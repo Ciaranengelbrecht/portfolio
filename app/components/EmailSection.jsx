@@ -21,8 +21,7 @@ const EmailSection = () => {
           Let&apos;s Connect
         </h5>
         <p className="text-[#ADB7BE] mb-4 max-w-md">
-          {" "}
-          I'm always looking for new opportunities, check out my projects and profile below.
+          {"I'm always looking for new opportunities, check out my projects and profile below. "}
         </p>
         <div className="socials flex flex-row gap-2">
           <Link href="https://github.com/Ciaranengelbrecht">
