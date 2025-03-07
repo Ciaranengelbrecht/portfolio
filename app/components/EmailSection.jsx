@@ -5,6 +5,7 @@ import Image from "next/image";
 
 const EmailSection = () => {
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const basePath = process.env.NODE_ENV === 'production' ? '/portfolio' : '';
 
   return (
     <section
@@ -21,10 +22,10 @@ const EmailSection = () => {
         </p>
         <div className="socials flex flex-row gap-2">
           <Link href="https://github.com/Ciaranengelbrecht">
-            <Image src="/images/github-icon.svg" alt="Github Icon" width={24} height={24} />
+            <Image src={`${basePath}/images/github-icon.svg`} alt="Github Icon" width={24} height={24} />
           </Link>
           <Link href="https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243/">
-            <Image src="/images/linkedin-icon.svg" alt="Linkedin Icon" width={24} height={24} />
+            <Image src={`${basePath}/images/linkedin-icon.svg`} alt="Linkedin Icon" width={24} height={24} />
           </Link>
         </div>
       </div>
