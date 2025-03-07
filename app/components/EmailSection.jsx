@@ -17,7 +17,7 @@ const EmailSection = () => {
           Let&apos;s Connect
         </h5>
         <p className="text-[#ADB7BE] mb-4 max-w-md">
-          {"I'm always looking for new opportunities, check out my projects and profile below. "}
+          I'm always looking for new opportunities, check out my projects and profile below.
         </p>
         <div className="socials flex flex-row gap-2">
           <Link href="https://github.com/Ciaranengelbrecht">
@@ -29,7 +29,26 @@ const EmailSection = () => {
         </div>
       </div>
       <div>
-        
+        {emailSubmitted ? (
+          <p className="text-white">Thank you for subscribing!</p>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setEmailSubmitted(true);
+            }}
+          >
+            <input
+              type="email"
+              placeholder="Your email"
+              required
+              className="p-2 rounded-lg"
+            />
+            <button type="submit" className="p-2 bg-blue-500 text-white rounded-lg ml-2">
+              Subscribe
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );
