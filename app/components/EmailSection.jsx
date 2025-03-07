@@ -21,10 +21,10 @@ const EmailSection = () => {
         </p>
         <div className="socials flex flex-row gap-2">
           <Link href="https://github.com/Ciaranengelbrecht">
-            <Image src="/public/github-icon.svg" alt="Github Icon" width={24} height={24} />
+            <Image src="app/public/github-icon.svg" alt="Github Icon" width={24} height={24} />
           </Link>
           <Link href="https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243/">
-            <Image src="/public/linkedin-icon.svg" alt="Linkedin Icon" width={24} height={24} />
+            <Image src="app/public/linkedin-icon.svg" alt="Linkedin Icon" width={24} height={24} />
           </Link>
         </div>
       </div>
