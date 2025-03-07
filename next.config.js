@@ -1,8 +1,10 @@
-/**
- * @type {import('next').NextConfig}
- */
+// next.config.js
+const isProd = process.env.NODE_ENV === 'production';
+
 module.exports = {
-  output: 'export',
-  basePath: process.env.NODE_ENV === 'production' ? '/portfolio' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/portfolio/' : '',
+  assetPrefix: isProd ? '/portfolio/' : '',
+  basePath: isProd ? '/portfolio' : '',
+  images: {
+    unoptimized: true,
+  },
 };
