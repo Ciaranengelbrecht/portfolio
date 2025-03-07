@@ -6,8 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 
 const HeroSection = () => {
-  const basePath = process.env.NODE_ENV === 'production' ? '/portfolio' : '';
-
   return (
     <section className="lg:py-16">
       <div className="grid grid-cols-1 sm:grid-cols-12">
@@ -66,14 +64,14 @@ const HeroSection = () => {
         >
           <div className="rounded-full bg-[#181818] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] relative">
             <Image
-              src={`${basePath}/images/portrait.webp`}
+              src="/images/portrait.png"
               alt="hero image"
               className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
               width={390}
               height={390}
               priority  // Ensures the image is loaded as soon as possible
               placeholder="blur"  // Adds a blur effect while the image is loading
-              blurDataURL={`${basePath}/images/portrait-blur.webp`}  // Use a small base64-encoded image as a placeholder
+              blurDataURL="/images/portrait-blur.png"  // Use a small base64-encoded image as a placeholder
             />
           </div>
         </motion.div>
