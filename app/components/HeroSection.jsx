@@ -3,6 +3,7 @@ import React from "react";
 import { TypeAnimation } from "react-type-animation";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
 const HeroSection = () => {
   return (
@@ -62,12 +63,15 @@ const HeroSection = () => {
           className="col-span-4 place-self-center mt-4 lg:mt-0"
         >
           <div className="rounded-full bg-[#181818] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] relative">
-            <img
-              src="app/public/images/portrait.webp"
+            <Image
+              src="/public/images/portrait.png"
               alt="hero image"
               className="absolute transform -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
               width={390}
               height={390}
+              priority  // Ensures the image is loaded as soon as possible
+              placeholder="blur"  // Adds a blur effect while the image is loading
+              blurDataURL="/images/portrait-blur.png"  // Use a small base64-encoded image as a placeholder
             />
           </div>
         </motion.div>
