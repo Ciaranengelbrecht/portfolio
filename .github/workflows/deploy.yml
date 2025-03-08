@@ -1,19 +1,10 @@
-name: Deploy to GitHub Pages
+name: Deploy to Website
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      deploy_target:
-        description: "Deploy target (github_pages or custom_domain)"
-        required: true
-        default: "github_pages"
-        type: choice
-        options:
-          - github_pages
-          - custom_domain
 
 jobs:
   build-and-deploy:
@@ -31,21 +22,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # Build for custom domain if specified in workflow_dispatch
-      - name: Build for custom domain
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'custom_domain' }}
+      # Always build for custom domain by default
+      - name: Build website
         env:
           DEPLOY_ENV: "CUSTOM_DOMAIN"
         run: npm run build
 
-      # Default build for GitHub Pages
-      - name: Build for GitHub Pages
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_target != 'custom_domain' }}
-        run: npm run build
+      - name: Create CNAME file
+        run: echo "ciaranengelbrecht.com" > ./out/CNAME
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.website_workflow }}
           publish_dir: ./out
-          cname: yourdomain.com # Replace with your actual domain
