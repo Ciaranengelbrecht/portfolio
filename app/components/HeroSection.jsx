@@ -16,12 +16,12 @@ const HeroSection = () => {
       </div>
 
       {/* Keep animated circles in the background */}
-      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-primary-600/20 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-      <div className="absolute bottom-1/3 left-1/4 w-60 h-60 bg-accent/20 rounded-full filter blur-3xl opacity-15 animate-pulse"></div>
+      <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-primary-500/30 rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-1/3 left-1/4 w-72 h-72 bg-gray-500/30 rounded-full filter blur-3xl opacity-30 animate-pulse-slow"></div>
 
-      {/* Add more subtle animated elements for interest */}
-      <div className="absolute top-2/3 right-1/3 w-48 h-48 bg-gray-700/10 rounded-full filter blur-3xl opacity-10 animate-pulse delay-700"></div>
-      <div className="absolute bottom-2/3 left-1/3 w-36 h-36 bg-gray-800/10 rounded-full filter blur-3xl opacity-10 animate-pulse delay-1000"></div>
+      {/* Additional animated elements with increased visibility */}
+      <div className="absolute top-2/3 right-1/3 w-56 h-56 bg-gray-600/25 rounded-full filter blur-3xl opacity-25 animate-pulse delay-700"></div>
+      <div className="absolute bottom-2/3 left-1/3 w-48 h-48 bg-gray-700/25 rounded-full filter blur-3xl opacity-25 animate-pulse-slow delay-1000"></div>
 
       <div className="grid grid-cols-1 sm:grid-cols-12 relative z-20">
         <motion.div
