@@ -3,7 +3,7 @@ import React from "react";
 import { TypeAnimation } from "react-type-animation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
+import NextImage from "./NextImage"; // Import the custom component
 
 const HeroSection = () => {
   return (
@@ -103,7 +103,7 @@ const HeroSection = () => {
           className="col-span-5 place-self-center mt-8 lg:mt-0">
           <div className="rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/30 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-md shadow-lg">
             <div className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-b from-primary-800/10 to-primary-900/10">
-              <Image
+              <NextImage
                 src="/images/portrait.webp"
                 alt="Ciaran Engelbrecht"
                 className="object-cover"
@@ -125,8 +125,6 @@ const HeroSection = () => {
           </div>
         </motion.div>
       </div>
-
-     
     </section>
   );
 };
