@@ -102,7 +102,7 @@ const HeroSection = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="col-span-5 place-self-center mt-8 lg:mt-0">
-          <div className="rounded-full bg-gradient-to-r from-black/5 to-gray-900/10 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-sm shadow-none">
+          <div className="rounded-full bg-black/10 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-[2px] shadow-none">
             {" "}
             <div className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-b from-primary-800/10 to-primary-900/10">
               <AssetImage
