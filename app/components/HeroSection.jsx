@@ -10,8 +10,8 @@ const HeroSection = () => {
   return (
     <section className="lg:py-16 relative overflow-hidden">
       {/* Background elements */}
-      <div className="absolute top-0 left-0 right-0 bottom-0 bg-[#121212] z-0">
-        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent to-black/40 z-10"></div>
+      <div className="absolute top-0 left-0 right-0 bottom-0 bg-[#121212]/80 z-0">
+        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent to-black/20 z-10"></div>
         <div className="absolute grid grid-cols-6 w-full h-full z-0 opacity-20">
           {[...Array(36)].map((_, i) => (
             <div key={i} className="border-[0.5px] border-gray-700/30"></div>
@@ -114,14 +114,32 @@ const HeroSection = () => {
             </div>
 
             {/* Tech stack indicators */}
-            <div className="tech-tag absolute -top-2 -right-8 bg-primary-800 text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -top-2 -right-8 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
               React
             </div>
-            <div className="tech-tag absolute -bottom-2 -left-8 bg-primary-800 text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute top-6 -right-4 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
               Python
             </div>
-            <div className="tech-tag absolute -bottom-10 right-10 bg-primary-800 text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -bottom-2 -left-8 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              Java
+            </div>
+            <div className="tech-tag absolute -bottom-10 -left-2 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              C
+            </div>
+            <div className="tech-tag absolute -bottom-10 right-10 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
               JavaScript
+            </div>
+            <div className="tech-tag absolute -top-8 left-10 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              HTML
+            </div>
+            <div className="tech-tag absolute -top-2 left-0 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              CSS
+            </div>
+            <div className="tech-tag absolute top-10 -left-6 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              SQL
+            </div>
+            <div className="tech-tag absolute bottom-10 right-0 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+              Flask
             </div>
           </div>
         </motion.div>
