@@ -9,19 +9,19 @@ import AssetImage from "./AssetImage";
 const HeroSection = () => {
   return (
     <section className="lg:py-16 relative overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute top-0 left-0 right-0 bottom-0 bg-[#121212]/80 z-0">
-        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent to-black/20 z-10"></div>
-        <div className="absolute grid grid-cols-6 w-full h-full z-0 opacity-20">
-          {[...Array(36)].map((_, i) => (
-            <div key={i} className="border-[0.5px] border-gray-700/30"></div>
-          ))}
-        </div>
+      {/* Remove background box and grid, just keep subtle gradient overlay */}
+      <div className="absolute top-0 left-0 right-0 bottom-0 bg-transparent z-0">
+        <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-b from-transparent to-black/10 z-10"></div>
+        {/* Grid removed */}
       </div>
 
-      {/* Animated circles in the background */}
-      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-primary-600/30 rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
-      <div className="absolute bottom-1/3 left-1/4 w-60 h-60 bg-accent/30 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
+      {/* Keep animated circles in the background */}
+      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-primary-600/20 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
+      <div className="absolute bottom-1/3 left-1/4 w-60 h-60 bg-accent/20 rounded-full filter blur-3xl opacity-15 animate-pulse"></div>
+
+      {/* Add more subtle animated elements for interest */}
+      <div className="absolute top-2/3 right-1/3 w-48 h-48 bg-gray-700/10 rounded-full filter blur-3xl opacity-10 animate-pulse delay-700"></div>
+      <div className="absolute bottom-2/3 left-1/3 w-36 h-36 bg-gray-800/10 rounded-full filter blur-3xl opacity-10 animate-pulse delay-1000"></div>
 
       <div className="grid grid-cols-1 sm:grid-cols-12 relative z-20">
         <motion.div
