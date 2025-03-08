@@ -4,4 +4,7 @@ module.exports = {
   images: {
     unoptimized: true, // This is required for static export
   },
+  // Add these lines:
+  basePath: "/portfolio",
+  trailingSlash: true,
 };
