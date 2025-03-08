@@ -8,27 +8,148 @@ import Link from "next/link";
 const projectsData = [
   {
     id: 1,
-    title: "Project 1",
+    title: "CITS3005 Ontology Project",
     description:
-      "This is a description of project 1. It includes details about technologies used and what problems it solves.",
-    image: "/images/projects/project1.jpg",
+      "Ontology-based project focusing on knowledge representation and semantic web technologies.",
+    image: "/images/projects/project1.jpg", // Use a placeholder image
     tag: ["All", "Web"],
-    gitUrl: "https://github.com/Ciaranengelbrecht",
-    previewUrl: "/",
-    tech: ["React", "Tailwind", "JavaScript"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/CITS3005-Ontology-Project",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/CITS3005-Ontology-Project",
+    tech: ["CSS", "Semantic Web", "Ontology"],
   },
   {
     id: 2,
-    title: "Project 2",
+    title: "CITS3200 OCR Project",
     description:
-      "This is a description of project 2. It includes details about technologies used and what problems it solves.",
+      "Optical Character Recognition project for extracting and processing text from documents.",
     image: "/images/projects/project2.jpg",
-    tag: ["All", "Mobile"],
-    gitUrl: "https://github.com/Ciaranengelbrecht",
-    previewUrl: "/",
-    tech: ["Python", "TensorFlow", "Pandas"],
+    tag: ["All", "AI"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/CITS3200-OCR-Project",
+    previewUrl: "https://github.com/Ciaranengelbrecht/CITS3200-OCR-Project",
+    tech: ["Python", "OCR", "Image Processing"],
   },
-  // Add more projects as needed
+  {
+    id: 3,
+    title: "Subject Selection Splitter",
+    description:
+      "PDF splitter for subject selections - automates the process of separating PDF documents by subject.",
+    image: "/images/projects/project3.jpg", // Add this image
+    tag: ["All", "Utility"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
+    tech: ["Python", "PDF Processing"],
+  },
+  {
+    id: 4,
+    title: "TaskHub Web Project",
+    description:
+      "Web application for task management and collaboration built using modern web technologies.",
+    image: "/images/projects/project4.jpg", // Add this image
+    tag: ["All", "Web"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
+    tech: ["JavaScript", "Node.js", "Express", "MongoDB"],
+  },
+  {
+    id: 5,
+    title: "Systems Programming",
+    description:
+      "Collection of systems programming projects and lab work focusing on low-level programming concepts.",
+    image: "/images/projects/project5.jpg", // Add this image
+    tag: ["All", "Systems"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/Systems-Programming",
+    previewUrl: "https://github.com/Ciaranengelbrecht/Systems-Programming",
+    tech: ["C", "Systems Programming"],
+  },
+  {
+    id: 6,
+    title: "Data Structures and Algorithms",
+    description:
+      "Implementation of various data structures and algorithms with practical applications.",
+    image: "/images/projects/project6.jpg", // Add this image
+    tag: ["All", "Algorithms"],
+    gitUrl:
+      "https://github.com/Ciaranengelbrecht/Data-Structures-and-Algorithms",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/Data-Structures-and-Algorithms",
+    tech: ["Java", "Data Structures", "Algorithms"],
+  },
+  {
+    id: 7,
+    title: "Algorithms, Agents, and AI",
+    description:
+      "Projects related to algorithmic problem-solving, agent-based systems, and artificial intelligence.",
+    image: "/images/projects/project7.jpg", // Add this image
+    tag: ["All", "AI"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/Algorithms-Agents-and-AI",
+    previewUrl: "https://github.com/Ciaranengelbrecht/Algorithms-Agents-and-AI",
+    tech: ["Python", "AI", "Machine Learning"],
+  },
+  {
+    id: 8,
+    title: "Networking Server Project",
+    description:
+      "Implementation of networking protocols and server-side applications.",
+    image: "/images/projects/project8.jpg", // Add this image
+    tag: ["All", "Systems"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/Networking-Server-Project",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/Networking-Server-Project",
+    tech: ["C", "Networking", "Server Development"],
+  },
+  {
+    id: 9,
+    title: "OCR Table Detection & PDF Conversion",
+    description:
+      "Professional Computing project for detecting tables in documents and converting them to structured PDFs.",
+    image: "/images/projects/project9.jpg", // Add this image
+    tag: ["All", "AI"],
+    gitUrl:
+      "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
+    tech: ["Python", "OCR", "PDF Processing"],
+  },
+  {
+    id: 10,
+    title: "Car Park System",
+    description:
+      "Automated system for managing car parks, tracking occupancy and facilitating reservations.",
+    image: "/images/projects/project10.jpg", // Add this image
+    tag: ["All", "Web"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/Car-Park-System",
+    previewUrl: "https://github.com/Ciaranengelbrecht/Car-Park-System",
+    tech: ["Python", "Database", "System Design"],
+  },
+  {
+    id: 11,
+    title: "Graphics and Animation Project",
+    description:
+      "3D graphics and animation project exploring rendering techniques and visual effects.",
+    image: "/images/projects/project11.jpg", // Add this image
+    tag: ["All", "Graphics"],
+    gitUrl:
+      "https://github.com/Ciaranengelbrecht/CITS3003_Project_Gaphics-and-Animation",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/CITS3003_Project_Gaphics-and-Animation",
+    tech: ["C++", "Graphics", "Animation"],
+  },
+  {
+    id: 12,
+    title: "Super Mario Bros ML Speedrun",
+    description:
+      "Machine learning project that trains an AI to speedrun Super Mario Bros.",
+    image: "/images/projects/project12.jpg", // Add this image
+    tag: ["All", "AI"],
+    gitUrl:
+      "https://github.com/Ciaranengelbrecht/Super-Mario-Bros-ML-AI-Speedrun",
+    previewUrl:
+      "https://github.com/Ciaranengelbrecht/Super-Mario-Bros-ML-AI-Speedrun",
+    tech: ["Python", "Machine Learning", "Game AI"],
+  },
 ];
 
 // Project filter categories
@@ -45,33 +166,17 @@ const ProjectTag = ({ name, onClick, isSelected }) => {
   );
 };
 
-const ProjectCard = ({
-  imgUrl,
-  title,
-  description,
-  gitUrl,
-  previewUrl,
-  tech,
-}) => {
+const ProjectCard = ({ title, description, gitUrl, previewUrl, tech }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="bg-[#181818] rounded-xl overflow-hidden shadow-xl h-full">
-      <div className="relative h-52 md:h-72">
-        {imgUrl ? (
-          <Image src={imgUrl} alt={title} className="object-cover" fill />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-800 to-secondary flex items-center justify-center">
-            <p className="text-white text-xl">{title}</p>
-          </div>
-        )}
-      </div>
       <div className="p-6">
         <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
         <p className="text-[#ADB7BE] mb-4">{description}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-6">
           {tech.map((item, index) => (
             <span
               key={index}
@@ -80,7 +185,7 @@ const ProjectCard = ({
             </span>
           ))}
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between mt-auto">
           <Link
             href={gitUrl}
             target="_blank"
@@ -120,7 +225,7 @@ const ProjectsSection = () => {
         <p className="text-[#ADB7BE] text-lg text-center mb-10">
           Explore my recent work and technical capabilities
         </p>
-        <div className="flex flex-row justify-center items-center gap-2 md:gap-4 py-6">
+        <div className="flex flex-row justify-center items-center gap-2 md:gap-4 py-6 flex-wrap">
           <ProjectTag
             onClick={handleTagChange}
             name="All"
@@ -133,8 +238,23 @@ const ProjectsSection = () => {
           />
           <ProjectTag
             onClick={handleTagChange}
-            name="Mobile"
-            isSelected={tag === "Mobile"}
+            name="AI"
+            isSelected={tag === "AI"}
+          />
+          <ProjectTag
+            onClick={handleTagChange}
+            name="Systems"
+            isSelected={tag === "Systems"}
+          />
+          <ProjectTag
+            onClick={handleTagChange}
+            name="Algorithms"
+            isSelected={tag === "Algorithms"}
+          />
+          <ProjectTag
+            onClick={handleTagChange}
+            name="Graphics"
+            isSelected={tag === "Graphics"}
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
@@ -143,7 +263,6 @@ const ProjectsSection = () => {
               key={project.id}
               title={project.title}
               description={project.description}
-              imgUrl={project.image}
               gitUrl={project.gitUrl}
               previewUrl={project.previewUrl}
               tech={project.tech}
