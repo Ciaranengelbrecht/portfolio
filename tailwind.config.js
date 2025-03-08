@@ -32,16 +32,6 @@ module.exports = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
         "hero-pattern": "url('/images/grid-pattern.svg')",
       },
-      animation: {
-        "bounce-slow": "bounce 3s infinite",
-        "fade-in": "fadeIn 0.5s ease-in forwards",
-      },
-      keyframes: {
-        fadeIn: {
-          "0%": { opacity: 0 },
-          "100%": { opacity: 1 },
-        },
-      },
     },
   },
   plugins: [],

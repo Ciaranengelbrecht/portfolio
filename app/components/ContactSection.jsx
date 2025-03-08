@@ -108,9 +108,9 @@ const ContactSection = () => {
                 <div>
                   <h4 className="text-lg font-medium text-white">Portfolio</h4>
                   <a
-                    href="https://ciaranengelbrecht.com"
+                    href="https://github.com/Ciaranengelbrecht"
                     className="text-[#ADB7BE] hover:text-primary-400">
-                    ciaranengelbrecht.com
+                    github.com/Ciaranengelbrecht
                   </a>
                 </div>
               </div>

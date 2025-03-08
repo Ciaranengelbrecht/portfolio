@@ -36,18 +36,18 @@ const HeroSection = () => {
 
           <h1 className="text-white mb-4 text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
-              Hello, I'm{" "}
+              I am{" "}
             </span>
             <TypeAnimation
               sequence={[
+                "a Creator",
+                1000,
+                "a Learner",
+                1000,
+                "a Thinker",
+                1000,
                 "Ciaran",
-                1000,
-                "a Developer",
-                1000,
-                "an Innovator",
-                1000,
-                "a Problem Solver",
-                1000,
+                5000,
               ]}
               wrapper="span"
               speed={50}
@@ -126,19 +126,7 @@ const HeroSection = () => {
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-        <span className="text-gray-400 text-sm mb-2">Scroll down</span>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className="w-5 h-8 border-2 border-gray-400 rounded-full flex justify-center">
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-            className="w-1 h-2 bg-primary-500 rounded-full mt-1"></motion.div>
-        </motion.div>
-      </div>
+     
     </section>
   );
 };

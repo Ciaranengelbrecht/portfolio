@@ -76,7 +76,7 @@ const Navbar = () => {
           ))}
 
           <Link
-            href="https://s3.ap-southeast-2.amazonaws.com/ciaranengelbrecht.com/Resume+Ciaran+Engelbrecht+for+website.pdf"
+            href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
             target="_blank"
             className="px-5 py-2.5 rounded-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white text-sm font-medium transition-all shadow-lg shadow-primary-500/20">
             Resume

@@ -37,7 +37,7 @@ const MenuOverlay = ({ links, setNavbarOpen }) => {
       ))}
       <motion.div variants={item} className="mt-8">
         <Link
-          href="https://s3.ap-southeast-2.amazonaws.com/ciaranengelbrecht.com/Resume+Ciaran+Engelbrecht+for+website.pdf"
+          href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
           target="_blank"
           className="px-8 py-3 rounded-full bg-gradient-to-r from-primary-600 to-primary-700 text-white font-medium"
           onClick={() => setNavbarOpen(false)}>

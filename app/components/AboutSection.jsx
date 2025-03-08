@@ -45,26 +45,24 @@ const TAB_DATA = [
         <div className="relative pl-8 border-l-2 border-primary-500">
           <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500"></div>
           <div className="mb-1 text-xs inline-block px-2 py-1 rounded bg-primary-900/30 text-primary-300">
-            2020 - 2022
+            2021 - 2025
           </div>
           <h4 className="text-xl font-semibold">
-            Graduate Diploma - Computer Science
+            Bachelor of Science - Computer Science
           </h4>
           <p className="text-gray-400">University of Western Australia</p>
           <p className="mt-2">
-            Specialized in software engineering and advanced algorithms
+            Specialised in software engineering and advanced algorithms
           </p>
         </div>
         <div className="relative pl-8 border-l-2 border-primary-500">
           <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500"></div>
           <div className="mb-1 text-xs inline-block px-2 py-1 rounded bg-primary-900/30 text-primary-300">
-            2016 - 2020
+            2017 - 2020
           </div>
           <h4 className="text-xl font-semibold">Bachelor of Science</h4>
           <p className="text-gray-400">Edith Cowan University</p>
-          <p className="mt-2">
-            Focused on foundational science and analytical skills
-          </p>
+          <p className="mt-2"></p>
         </div>
       </div>
     ),
@@ -76,13 +74,19 @@ const TAB_DATA = [
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
           {
-            title: "Harvard CS50x",
-            subtitle: "Intro to Computer Science",
+            title: "CompTIA Network+",
+            subtitle:
+              "Code: VBM3CR955MQE1EW3 Criteria: N10-009 - CompTIA Network+ ce",
             image: "/images/certifications/cs50.png",
           },
           {
-            title: "Harvard CS50P",
-            subtitle: "Intro to Python",
+            title: "CompTIA Security+",
+            subtitle: "",
+            image: "/images/certifications/cs50p.png",
+          },
+          {
+            title: "GitHub Foundations",
+            subtitle: "",
             image: "/images/certifications/cs50p.png",
           },
         ].map((cert, index) => (

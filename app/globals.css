@@ -9,7 +9,6 @@
 
 html {
   scroll-behavior: smooth;
-  /* cursor: none; */
 }
 
 body {
@@ -17,15 +16,6 @@ body {
   background: rgb(var(--background-rgb));
   overflow-x: hidden;
 }
-
-/* Hide default cursor when custom cursor is active */
-/*
-a,
-button,
-[role="button"] {
-  cursor: none;
-}
-*/
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {

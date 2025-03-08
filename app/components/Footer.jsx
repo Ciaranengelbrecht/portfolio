@@ -112,7 +112,6 @@ const Footer = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             className="text-gray-500 text-sm mt-2 md:mt-0">
-            Built with Next.js & Tailwind CSS
           </motion.p>
         </div>
       </div>
