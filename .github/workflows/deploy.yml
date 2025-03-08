@@ -3,7 +3,17 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Set this to the branch you want to trigger the deployment
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Deploy target (github_pages or custom_domain)'
+        required: true
+        default: 'github_pages'
+        type: choice
+        options:
+          - github_pages
+          - custom_domain
 
 jobs:
   build-and-deploy:
@@ -21,7 +31,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build the project
+      # Build for custom domain if specified in workflow_dispatch
+      - name: Build for custom domain
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'custom_domain' }}
+        env:
+          DEPLOY_ENV: "CUSTOM_DOMAIN"
+        run: npm run build
+
+      # Default build for GitHub Pages
+      - name: Build for GitHub Pages
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_target != 'custom_domain' }}
         run: npm run build
 
       - name: Deploy to GitHub Pages
