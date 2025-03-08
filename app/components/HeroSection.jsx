@@ -102,7 +102,8 @@ const HeroSection = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="col-span-5 place-self-center mt-8 lg:mt-0">
-          <div className="rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/30 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-md shadow-lg">
+          <div className="rounded-full bg-gradient-to-r from-black/5 to-gray-900/10 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-sm shadow-none">
+            {" "}
             <div className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-b from-primary-800/10 to-primary-900/10">
               <AssetImage
                 src="/portfolio/images/portrait.webp"
@@ -112,33 +113,32 @@ const HeroSection = () => {
                 priority
               />
             </div>
-
             {/* Tech stack indicators */}
-            <div className="tech-tag absolute -top-2 -right-8 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -top-2 -right-8 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               React
             </div>
-            <div className="tech-tag absolute top-6 -right-4 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute top-6 -right-4 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               Python
             </div>
-            <div className="tech-tag absolute -bottom-2 -left-8 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -bottom-2 -left-8 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               Java
             </div>
-            <div className="tech-tag absolute -bottom-10 -left-2 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -bottom-10 -left-2 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               C
             </div>
-            <div className="tech-tag absolute -bottom-10 right-10 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -bottom-10 right-10 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               JavaScript
             </div>
-            <div className="tech-tag absolute -top-8 left-10 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -top-8 left-10 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               HTML
             </div>
-            <div className="tech-tag absolute -top-2 left-0 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute -top-2 left-0 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               CSS
             </div>
-            <div className="tech-tag absolute top-10 -left-6 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute top-10 -left-6 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               SQL
             </div>
-            <div className="tech-tag absolute bottom-10 right-0 bg-[#1F2937] text-white text-xs py-1 px-3 rounded-full shadow-lg">
+            <div className="tech-tag absolute bottom-10 right-0 bg-black/40 backdrop-blur-sm text-gray-200 text-xs py-1 px-3 rounded-full border border-gray-800/30">
               Flask
             </div>
           </div>

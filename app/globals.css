@@ -27,12 +27,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3b82f6;
+  background: #6b7280; /* Changed from #3b82f6 to grey */
   border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2563eb;
+  background: #4b5563; /* Changed from #2563eb to darker grey */
 }
 
 /* Animations */
@@ -54,13 +54,13 @@ body {
 
 @keyframes pulse-glow {
   0% {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 10px rgba(107, 114, 128, 0.5); /* Changed from blue to grey */
   }
   50% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+    box-shadow: 0 0 20px rgba(107, 114, 128, 0.8);
   }
   100% {
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 10px rgba(107, 114, 128, 0.5);
   }
 }
 
