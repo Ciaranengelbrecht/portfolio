@@ -1,18 +1,21 @@
 "use client";
+import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-export default function NextImage({ src, ...props }) {
-  // Get the current path to detect if we're on GitHub Pages
+const AssetImage = ({ src, ...props }) => {
   const pathname = usePathname();
-  const isGitHubPages = pathname.startsWith("/portfolio");
+  const isCustomDomain =
+    typeof window !== "undefined" &&
+    !window.location.hostname.includes("github.io");
 
-  // Adjust the src path based on environment
-  const adjustedSrc = src.startsWith("/")
-    ? isGitHubPages
-      ? `/portfolio${src}`
-      : src
-    : src;
+  // If it's a custom domain, or the path already contains /portfolio, don't add prefix
+  const adjustedSrc =
+    isCustomDomain || src.includes("/portfolio/")
+      ? src.replace("/portfolio/", "/") // Remove /portfolio/ if on custom domain
+      : src; // Keep original src
 
   return <Image src={adjustedSrc} {...props} />;
-}
+};
+
+export default AssetImage;
