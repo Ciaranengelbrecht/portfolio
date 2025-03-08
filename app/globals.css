@@ -9,7 +9,7 @@
 
 html {
   scroll-behavior: smooth;
-  cursor: none;
+  /* cursor: none; */
 }
 
 body {
@@ -19,11 +19,13 @@ body {
 }
 
 /* Hide default cursor when custom cursor is active */
+/*
 a,
 button,
 [role="button"] {
   cursor: none;
 }
+*/
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
