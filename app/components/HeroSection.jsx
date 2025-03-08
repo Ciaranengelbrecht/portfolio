@@ -104,7 +104,7 @@ const HeroSection = () => {
           <div className="rounded-full bg-gradient-to-r from-primary-500/10 to-primary-500/30 w-[250px] h-[250px] lg:w-[350px] lg:h-[350px] relative backdrop-filter backdrop-blur-md shadow-lg">
             <div className="absolute inset-2 rounded-full overflow-hidden bg-gradient-to-b from-primary-800/10 to-primary-900/10">
               <Image
-                src="/images/portrait.webp"
+                src="/portfolio/images/portrait.webp"
                 alt="Ciaran Engelbrecht"
                 className="object-cover"
                 fill
