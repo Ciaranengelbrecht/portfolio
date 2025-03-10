@@ -179,7 +179,7 @@ const AboutSection = () => {
             <div className="h-full w-full bg-gradient-to-br from-primary-500 to-primary-700 p-1">
               <div className="bg-dark h-full w-full rounded-xl overflow-hidden">
                 <Image
-                  src="/images/about-image.jpg"
+                  src="/images/about-image.webp"
                   alt="Computer setup"
                   width={500}
                   height={350}
