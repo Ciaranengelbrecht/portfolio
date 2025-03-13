@@ -46,12 +46,11 @@ const projectsData = [
     title: "TaskHub Web Project",
     description:
       "Web application for task management and collaboration built using modern web technologies.",
-    image: "/images/projects/project4.jpg", // Add this image
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
-    previewUrl:
-      "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
+    previewUrl: "https://taskhub.ciaranengelbrecht.com",
     tech: ["JavaScript", "Node.js", "Express", "MongoDB"],
+    hasDemo: true, // Add this field
   },
   {
     id: 5,
@@ -166,7 +165,14 @@ const ProjectTag = ({ name, onClick, isSelected }) => {
   );
 };
 
-const ProjectCard = ({ title, description, gitUrl, previewUrl, tech }) => {
+const ProjectCard = ({
+  title,
+  description,
+  gitUrl,
+  previewUrl,
+  tech,
+  hasDemo = false,
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -192,12 +198,15 @@ const ProjectCard = ({ title, description, gitUrl, previewUrl, tech }) => {
             className="px-4 py-2 bg-[#121212] hover:bg-slate-800 text-white rounded-lg flex items-center gap-2">
             Code <span>→</span>
           </Link>
-          <Link
-            href={previewUrl}
-            target="_blank"
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2">
-            Demo <span>→</span>
-          </Link>
+
+          {hasDemo && (
+            <Link
+              href={previewUrl}
+              target="_blank"
+              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2">
+              Demo <span>→</span>
+            </Link>
+          )}
         </div>
       </div>
     </motion.div>
@@ -266,6 +275,7 @@ const ProjectsSection = () => {
               gitUrl={project.gitUrl}
               previewUrl={project.previewUrl}
               tech={project.tech}
+              hasDemo={project.hasDemo || false} // Add this prop
             />
           ))}
         </div>
