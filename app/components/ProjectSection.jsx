@@ -204,7 +204,7 @@ const ProjectCard = ({
           </Link>
 
           {hasDemo && (
-            <div className="relative">
+            <div className="relative group">
               <Link
                 href={previewUrl}
                 target="_blank"
@@ -213,15 +213,16 @@ const ProjectCard = ({
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
                 onClick={() => {
-                  // Show brief notification
                   alert(
                     "Demo server may take up to 1 minute to spin up if inactive."
                   );
                 }}>
                 Demo <span>→</span>
               </Link>
+
+              {/* Tooltip positioned above button */}
               {showTooltip && (
-                <div className="absolute bottom-full left-0 mb-2 p-2 bg-black/80 text-xs text-white rounded w-48">
+                <div className="absolute left-1/2 bottom-full transform -translate-x-1/2 mb-2 p-2 bg-black/80 text-xs text-white rounded-md w-48 z-10 shadow-lg">
                   Please allow up to a minute for the server to start if it has
                   been inactive.
                 </div>
