@@ -1,6 +1,6 @@
 // app/components/ContactSection.jsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,8 +13,19 @@ const ContactSection = () => {
     message: "",
   });
   const [emailSubmitted, setEmailSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
+
+  // Check URL for submission confirmation
+  useEffect(() => {
+    if (window.location.search.includes("submitted=true")) {
+      setEmailSubmitted(true);
+      // Clear the URL parameter
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + "#contact"
+      );
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -23,46 +34,14 @@ const ContactSection = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      // Using FormSubmit.co service - replace with your actual email
-      const response = await fetch(
-        "https://formsubmit.co/ajax/ciaran.engelbrecht@outlook.com",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success === "true" || data.success === true) {
-        setEmailSubmitted(true);
-        setFormData({ name: "", email: "", subject: "", message: "" });
-      } else {
-        throw new Error("Form submission failed");
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      setError(
-        "Failed to send message. Please try again or email me directly."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+  const resetForm = () => {
+    setEmailSubmitted(false);
+    setFormData({
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    });
   };
 
   return (
@@ -209,7 +188,7 @@ const ContactSection = () => {
                   Thank you for reaching out. I'll get back to you shortly.
                 </p>
                 <button
-                  onClick={() => setEmailSubmitted(false)}
+                  onClick={resetForm}
                   className="mt-6 px-6 py-3 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-medium transition-all">
                   Send Another Message
                 </button>
@@ -220,14 +199,25 @@ const ContactSection = () => {
                   Send Me a Message
                 </h3>
 
-                {/* Show error message if there is one */}
-                {error && (
-                  <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-md text-red-400">
-                    {error}
-                  </div>
-                )}
+                {/* Traditional form submission - more reliable */}
+                <form
+                  action="https://formsubmit.co/ciaran.engelbrecht@outlook.com"
+                  method="POST"
+                  className="space-y-4">
+                  {/* FormSubmit configuration fields */}
+                  <input
+                    type="hidden"
+                    name="_subject"
+                    value="New message from portfolio website"
+                  />
+                  <input
+                    type="hidden"
+                    name="_next"
+                    value="https://ciaranengelbrecht.com/#contact?submitted=true"
+                  />
+                  <input type="hidden" name="_captcha" value="false" />
+                  <input type="hidden" name="_template" value="table" />
 
-                <form className="space-y-4" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label
@@ -262,6 +252,8 @@ const ContactSection = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Subject field */}
                   <div>
                     <label
                       htmlFor="subject"
@@ -278,6 +270,8 @@ const ContactSection = () => {
                       className="w-full bg-[#181818] border border-[#33353F] rounded-lg py-3 px-4 text-white outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
+
+                  {/* Message field */}
                   <div>
                     <label
                       htmlFor="message"
@@ -293,30 +287,12 @@ const ContactSection = () => {
                       rows={4}
                       className="w-full bg-[#181818] border border-[#33353F] rounded-lg py-3 px-4 text-white outline-none focus:ring-2 focus:ring-primary-500"></textarea>
                   </div>
+
+                  {/* Submit button */}
                   <button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium transition-all disabled:opacity-70 flex items-center justify-center">
-                    {isSubmitting ? (
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : null}
-                    {isSubmitting ? "Sending..." : "Send Message"}
+                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium transition-all flex items-center justify-center">
+                    Send Message
                   </button>
                 </form>
               </>
