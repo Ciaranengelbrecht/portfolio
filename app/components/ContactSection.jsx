@@ -1,11 +1,12 @@
 // app/components/ContactSection.jsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 
 const ContactSection = () => {
+  const formRef = useRef();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -13,6 +14,7 @@ const ContactSection = () => {
     message: "",
   });
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Check URL for submission confirmation
   useEffect(() => {
@@ -42,6 +44,27 @@ const ContactSection = () => {
       subject: "",
       message: "",
     });
+  };
+
+  // Handle form submission with immediate feedback
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Show a loading state for better UX
+      setTimeout(() => {
+        // Submit the form programmatically
+        formRef.current.submit();
+
+        // Show immediate success message
+        // Note: This will be overwritten when the page reloads with the submitted=true parameter
+        setEmailSubmitted(true);
+      }, 1000); // Wait 1 second for visual feedback
+    } catch (error) {
+      console.error("Form submission error:", error);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -199,11 +222,13 @@ const ContactSection = () => {
                   Send Me a Message
                 </h3>
 
-                {/* Traditional form submission - more reliable */}
+                {/* Traditional form submission with onSubmit handler */}
                 <form
+                  ref={formRef}
                   action="https://formsubmit.co/ciaran.engelbrecht@outlook.com"
                   method="POST"
-                  className="space-y-4">
+                  className="space-y-4"
+                  onSubmit={handleSubmit}>
                   {/* FormSubmit configuration fields */}
                   <input
                     type="hidden"
@@ -213,7 +238,7 @@ const ContactSection = () => {
                   <input
                     type="hidden"
                     name="_next"
-                    value="https://ciaranengelbrecht.com/#contact?submitted=true"
+                    value="https://ciaranengelbrecht.github.io/portfolio/#contact?submitted=true"
                   />
                   <input type="hidden" name="_captcha" value="false" />
                   <input type="hidden" name="_template" value="table" />
@@ -288,11 +313,35 @@ const ContactSection = () => {
                       className="w-full bg-[#181818] border border-[#33353F] rounded-lg py-3 px-4 text-white outline-none focus:ring-2 focus:ring-primary-500"></textarea>
                   </div>
 
-                  {/* Submit button */}
+                  {/* Submit button with loading state */}
                   <button
                     type="submit"
-                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium transition-all flex items-center justify-center">
-                    Send Message
+                    disabled={isSubmitting}
+                    className="w-full px-6 py-3 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium transition-all disabled:opacity-70 flex items-center justify-center">
+                    {isSubmitting ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Message"
+                    )}
                   </button>
                 </form>
               </>
