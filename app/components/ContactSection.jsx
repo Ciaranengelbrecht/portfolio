@@ -14,6 +14,7 @@ const ContactSection = () => {
   });
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -25,12 +26,43 @@ const ContactSection = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError("");
 
-    // Simulate form submission - replace with actual API call
-    setTimeout(() => {
-      setEmailSubmitted(true);
+    try {
+      // Using FormSubmit.co service - replace with your actual email
+      const response = await fetch(
+        "https://formsubmit.co/ajax/ciaran.engelbrecht@outlook.com",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success === "true" || data.success === true) {
+        setEmailSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        throw new Error("Form submission failed");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setError(
+        "Failed to send message. Please try again or email me directly."
+      );
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -187,6 +219,14 @@ const ContactSection = () => {
                 <h3 className="text-2xl font-semibold text-white mb-6">
                   Send Me a Message
                 </h3>
+
+                {/* Show error message if there is one */}
+                {error && (
+                  <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-md text-red-400">
+                    {error}
+                  </div>
+                )}
+
                 <form className="space-y-4" onSubmit={handleSubmit}>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
