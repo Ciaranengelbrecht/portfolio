@@ -173,13 +173,16 @@ const ProjectCard = ({
   tech,
   hasDemo = false,
 }) => {
+  // Add state to track if tooltip is shown
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="bg-[#181818] rounded-xl overflow-hidden shadow-xl h-full">
-      <div className="p-6">
+      <div className="p-6 flex flex-col h-full">
         <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
         <p className="text-[#ADB7BE] mb-4">{description}</p>
         <div className="flex flex-wrap gap-2 mb-6">
@@ -191,23 +194,48 @@ const ProjectCard = ({
             </span>
           ))}
         </div>
-        <div className="flex justify-between mt-auto">
+        <div className="flex justify-between items-center mt-auto">
           <Link
             href={gitUrl}
             target="_blank"
+            rel="noopener noreferrer"
             className="px-4 py-2 bg-[#121212] hover:bg-slate-800 text-white rounded-lg flex items-center gap-2">
             Code <span>→</span>
           </Link>
 
           {hasDemo && (
-            <Link
-              href={previewUrl}
-              target="_blank"
-              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2">
-              Demo <span>→</span>
-            </Link>
+            <div className="relative">
+              <Link
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={() => {
+                  // Show brief notification
+                  alert(
+                    "Demo server may take up to 1 minute to spin up if inactive."
+                  );
+                }}>
+                Demo <span>→</span>
+              </Link>
+              {showTooltip && (
+                <div className="absolute bottom-full left-0 mb-2 p-2 bg-black/80 text-xs text-white rounded w-48">
+                  Please allow up to a minute for the server to start if it has
+                  been inactive.
+                </div>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Small note below for demo links */}
+        {hasDemo && (
+          <p className="text-gray-400 text-xs mt-2 italic text-center">
+            Note: Server may take up to 1 minute to start if inactive
+          </p>
+        )}
       </div>
     </motion.div>
   );
