@@ -87,7 +87,7 @@ const TAB_DATA = [
           {
             title: "GitHub Foundations",
             subtitle: "",
-            image: "/images/certifications/cs50p.png",
+            image: "/images/certifications/githubfoundation.pdf",
           },
         ].map((cert, index) => (
           <div key={index} className="bg-gray-800 p-4 rounded-lg">
