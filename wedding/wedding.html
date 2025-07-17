@@ -1,1 +1,213 @@
 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciaran &amp; Cheylin Wedding</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap"
+      rel="stylesheet" />
+    <style>
+      :root {
+        --gold: #d4af37;
+        --lilac: #c8a2c8;
+        --white: #ffffff;
+        --text: #333333;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Montserrat", sans-serif;
+        background: var(--white);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      header {
+        background: linear-gradient(135deg, var(--gold), var(--lilac));
+        color: var(--white);
+        text-align: center;
+        padding: 80px 20px;
+      }
+      header h1 {
+        font-family: "Playfair Display", serif;
+        font-size: 3rem;
+        letter-spacing: 2px;
+        animation: glow 3s ease-in-out infinite alternate;
+        text-shadow: 0 0 8px var(--white), 0 0 16px var(--lilac);
+      }
+      @keyframes glow {
+        from {
+          text-shadow: 0 0 8px var(--white), 0 0 16px var(--lilac);
+        }
+        to {
+          text-shadow: 0 0 16px var(--white), 0 0 32px var(--lilac);
+        }
+      }
+      header p {
+        font-family: "Playfair Display", serif;
+        font-size: 1.25rem;
+        margin-top: 10px;
+      }
+      main {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      section {
+        margin-bottom: 60px;
+      }
+      .section-title {
+        position: relative;
+        display: inline-block;
+        font-family: "Playfair Display", serif;
+        font-size: 2rem;
+        color: var(--gold);
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .section-title::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        width: 50%;
+        height: 2px;
+        background: var(--lilac);
+        transform: translateX(-50%);
+        transition: background 0.3s ease, width 0.3s ease;
+      }
+      .section-title:hover::after {
+        background: var(--gold);
+        width: 75%;
+      }
+      .content {
+        background: var(--white);
+        padding: 20px;
+        border: 1px solid #eee;
+        border-radius: 8px;
+      }
+      .content img {
+        max-width: 100%;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      #details .item {
+        text-align: center;
+        padding: 20px;
+        background: var(--lilac);
+        border-radius: 8px;
+        color: var(--text);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+      }
+      #details .item h3 {
+        font-family: "Playfair Display", serif;
+        margin-bottom: 10px;
+      }
+      #details .item:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 0 15px var(--gold), 0 0 30px var(--lilac);
+      }
+      #rsvp iframe {
+        width: 100%;
+        height: 600px;
+        border: none;
+        border-radius: 8px;
+        transition: box-shadow 0.3s ease;
+      }
+      #rsvp iframe:hover {
+        box-shadow: 0 0 10px var(--lilac);
+      }
+      footer {
+        text-align: center;
+        padding: 20px;
+        background: #f8f8f8;
+        font-size: 0.9rem;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+      a:hover {
+        color: var(--gold);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Hero Section -->
+    <header>
+      <h1>Ciarán &amp; Cheylin</h1>
+      <p>September 26, 2027 &bull; Caversham House</p>
+    </header>
+
+    <main>
+      <!-- Our Story -->
+      <section id="story">
+        <h2 class="section-title">Our Story</h2>
+        <div class="content">
+          <p>
+            From the moment we met, our journeys intertwined in the most magical
+            way. Join us as we celebrate love, laughter, and happily ever after.
+          </p>
+          <img
+            src="https://via.placeholder.com/800x400?text=Our+Story+Image"
+            alt="Our Story Photo" />
+        </div>
+      </section>
+
+      <!-- Event Details -->
+      <section id="details">
+        <h2 class="section-title">Event Details</h2>
+        <div class="grid">
+          <div class="item">
+            <h3>Ceremony</h3>
+            <p>
+              1:00 PM &mdash; 3:00 PM &mdash; St Michael the Archangel,
+              Leederville
+            </p>
+          </div>
+          <div class="item">
+            <h3>Reception</h3>
+            <p>4:00 PM &mdash; 11:00 PM &mdash; Marquee at Caversham House</p>
+          </div>
+          <div class="item">
+            <h3>Dress Code</h3>
+            <p>Black Tie Optional &mdash; Regal Touches Welcome</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Venue -->
+      <section id="venue">
+        <h2 class="section-title">Venue</h2>
+        <div class="content">
+          <p>Caversham House Marquee<br />265 Caversham Rd, Caversham WA</p>
+          <img
+            src="https://via.placeholder.com/800x400?text=Venue+Image"
+            alt="Venue Photo" />
+        </div>
+      </section>
+
+      <!-- RSVP -->
+      <section id="rsvp">
+        <h2 class="section-title">RSVP</h2>
+        <!-- Embed your Google or Microsoft form below -->
+        <iframe src="YOUR_FORM_URL_HERE" title="RSVP Form"></iframe>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2027 Ciaran &amp; Cheylin. All Rights Reserved.</p>
+    </footer>
+  </body>
+</html>
