@@ -21,6 +21,7 @@
       }
       body {
         font-family: "Montserrat", sans-serif;
+        /* White background */
         background: var(--white);
         color: var(--text);
         line-height: 1.6;
@@ -85,9 +86,11 @@
         width: 75%;
       }
       .content {
-        background: var(--white);
+        /* Frosted lilac glass container */
+        background: rgba(200, 162, 200, 0.2);
+        backdrop-filter: blur(10px);
         padding: 20px;
-        border: 1px solid #eee;
+        border: 1px solid rgba(200, 162, 200, 0.5);
         border-radius: 8px;
       }
       .content img {
@@ -103,9 +106,13 @@
       #details .item {
         text-align: center;
         padding: 20px;
-        background: var(--lilac);
+        /* Frosted lilac box */
+        background: rgba(200, 162, 200, 0.2);
+        backdrop-filter: blur(10px);
         border-radius: 8px;
         color: var(--text);
+        border: 1px solid rgba(200, 162, 200, 0.5);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       }
       #details .item h3 {
