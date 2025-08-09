@@ -130,7 +130,13 @@ function Shell() {
                   <button
                     className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
                     onClick={async () => {
-                      try { await supabase.auth.signOut() } finally { navigate('/settings') }
+                      try {
+                        await supabase.auth.signOut()
+                      } finally {
+                        try { localStorage.removeItem('sb_pw_reset') } catch {}
+                        setAuthEmail(null)
+                        navigate('/settings')
+                      }
                     }}
                   >
                     Sign out

@@ -118,7 +118,12 @@ export default function SettingsPage(){
           ) : userEmail ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
-              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>supabase.auth.signOut()}>Sign out</button>
+              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                try { await supabase.auth.signOut() } finally {
+                  try { localStorage.removeItem('sb_pw_reset') } catch {}
+                  setUserEmail(undefined)
+                }
+              }}>Sign out</button>
             </div>
           ) : (
             <div className="space-y-2 mt-2">
