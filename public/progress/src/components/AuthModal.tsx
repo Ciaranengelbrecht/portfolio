@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import GlassCard from './GlassCard'
 import GlossyButton from './GlossyButton'
 import { supabase } from '../lib/supabase'
@@ -10,10 +10,33 @@ export default function AuthModal({ open, onClose, onSignedIn }:{ open: boolean;
   const [otp, setOtp] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const doneRef = useRef(false)
 
   useEffect(() => {
     if (!open) return
+    doneRef.current = false
     setEmail(''); setPassword(''); setPassword2(''); setOtp(''); setBusy(null); setMsg(null)
+  }, [open])
+
+  // Close modal as soon as a session is detected (faster feedback)
+  useEffect(() => {
+    if (!open) return
+    let mounted = true
+    const handle = () => {
+      if (doneRef.current) return
+      doneRef.current = true
+      onSignedIn()
+    }
+    // Immediate check in case session already exists
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
+      if (data.session) handle()
+    })
+    const sub = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (!mounted) return
+      if (session) handle()
+    })
+    return () => { mounted = false; sub.data.subscription.unsubscribe() }
   }, [open])
 
   if (!open) return null
@@ -43,7 +66,7 @@ export default function AuthModal({ open, onClose, onSignedIn }:{ open: boolean;
               setBusy('signin')
               const { data, error } = await supabase.auth.signInWithPassword({ email, password })
               if (error) setMsg('Sign-in error: ' + error.message)
-              else { setMsg('Signed in'); onSignedIn() }
+              else { setMsg('Signed in'); if(!doneRef.current){ doneRef.current = true; onSignedIn() } }
               setBusy(null)
             }}>Sign in</GlossyButton>
             <GlossyButton disabled={busy==='signup'} className={`${busy==='signup'?'opacity-70':''}`} onClick={async ()=>{
@@ -74,7 +97,7 @@ export default function AuthModal({ open, onClose, onSignedIn }:{ open: boolean;
               setBusy('verify')
               const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' as any })
               if (error) setMsg('OTP error: ' + error.message)
-              else { setMsg('Signed in via OTP'); onSignedIn() }
+              else { setMsg('Signed in via OTP'); if(!doneRef.current){ doneRef.current = true; onSignedIn() } }
               setBusy(null)
             }}>Verify</GlossyButton>
           </div>
