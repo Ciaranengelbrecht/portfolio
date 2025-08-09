@@ -14,7 +14,7 @@ export default defineConfig({
         description: 'Track lifting sessions and measurements offline',
         theme_color: '#0b0f14',
         background_color: '#0b0f14',
-  // When hosted under /progress, index.html lives in /progress/dist
+  // Installed app will originate from /progress/dist; dist manifest uses ./index.html at that scope.
   start_url: './index.html',
   scope: './',
         display: 'standalone',
