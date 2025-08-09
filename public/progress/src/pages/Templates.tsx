@@ -9,6 +9,7 @@ export default function Templates(){
   const [name, setName] = useState('')
   const [showAddFor, setShowAddFor] = useState<string|null>(null)
   const [query, setQuery] = useState('')
+  const [exerciseQuery, setExerciseQuery] = useState('')
 
   useEffect(() => { (async () => {
     setExercises(await db.getAll('exercises'))
@@ -62,6 +63,30 @@ export default function Templates(){
     setExercises(exercises.map(e=> e.id===ex.id? next: e))
   }
 
+  const deleteTemplate = async (t: Template) => {
+    if (!confirm(`Delete template "${t.name}"? This cannot be undone.`)) return
+    await db.delete('templates', t.id)
+    setTemplates(templates.filter(x => x.id !== t.id))
+  }
+
+  const deleteExercise = async (ex: Exercise) => {
+    if (!confirm(`Delete exercise "${ex.name}"? It will be removed from all templates.`)) return
+    await db.delete('exercises', ex.id)
+    // Remove from local list
+    const nextExercises = exercises.filter(e => e.id !== ex.id)
+    setExercises(nextExercises)
+    // Remove from all templates and persist
+    const changed: Template[] = []
+    const nextTemplates = templates.map(t => {
+      if (!t.exerciseIds.includes(ex.id)) return t
+      const nt = { ...t, exerciseIds: t.exerciseIds.filter(id => id !== ex.id) }
+      changed.push(nt)
+      return nt
+    })
+    setTemplates(nextTemplates)
+    await Promise.all(changed.map(t => db.put('templates', t)))
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Templates</h2>
@@ -79,6 +104,7 @@ export default function Templates(){
               <div className="flex items-center gap-2">
                 <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>duplicate(t)}>Duplicate</button>
                 <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>toggle(t)}>{t.hidden? 'Show':'Hide'}</button>
+                <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>deleteTemplate(t)}>Delete</button>
               </div>
             </div>
             <div className="mt-2 text-sm text-gray-300">Exercises: {t.exerciseIds.length}</div>
@@ -92,6 +118,7 @@ export default function Templates(){
                     <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" disabled={idx===t.exerciseIds.length-1} onClick={()=>moveExercise(t, idx, idx+1)}>Down</button>
                     <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" onClick={()=>ex && toggleOptional(ex)}>{ex?.isOptional? 'Optional ✓':'Optional'}</button>
                     <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>removeExerciseFromTemplate(t, id)}>Remove</button>
+                    {ex && <button className="text-xs bg-red-700 rounded-xl px-2 py-1" onClick={()=>deleteExercise(ex)}>Delete exercise</button>}
                   </div>
                 )
               })}
@@ -118,6 +145,25 @@ export default function Templates(){
           </div>
         </div>
       )}
+
+      {/* Exercise Library Management */}
+      <div className="bg-card rounded-2xl p-4 shadow-soft">
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-medium">Exercise Library</div>
+          <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Search" value={exerciseQuery} onChange={e=>setExerciseQuery(e.target.value)} />
+        </div>
+        <div className="grid gap-2">
+          {exercises
+            .filter(e => e.name.toLowerCase().includes(exerciseQuery.toLowerCase()))
+            .map(ex => (
+            <div key={ex.id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2">
+              <div className="flex-1 truncate">{ex.name}</div>
+              <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" onClick={()=>toggleOptional(ex)}>{ex.isOptional? 'Optional ✓':'Optional'}</button>
+              <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>deleteExercise(ex)}>Delete</button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
