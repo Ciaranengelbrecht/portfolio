@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { NavLink, Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
@@ -17,6 +17,8 @@ function Shell() {
   const { theme } = useTheme()
   const navigate = useNavigate()
   const locationRef = useLocation()
+  const [authChecked, setAuthChecked] = useState(false)
+  const [authEmail, setAuthEmail] = useState<string | null>(null)
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
   useEffect(() => { (async () => {
@@ -69,6 +71,23 @@ function Shell() {
     return () => { stopped = true; clearInterval(timer); sub.data.subscription.unsubscribe() }
   }, [])
 
+  // Global auth indicator: keep a lightweight session state
+  useEffect(() => {
+    let timer: any = setTimeout(() => setAuthChecked(true), 1500)
+    const sub = supabase.auth.onAuthStateChange((_evt, session) => {
+      setAuthEmail(session?.user?.email ?? null)
+      setAuthChecked(true)
+    })
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        setAuthEmail(data?.session?.user?.email ?? null)
+        setAuthChecked(true)
+      })
+      .catch(() => setAuthChecked(true))
+      .finally(() => clearTimeout(timer))
+    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.() }
+  }, [])
+
   // Supabase sync handles online/visibility internally now
   useEffect(() => { (async () => {
     const s = await getSettings()
@@ -92,15 +111,39 @@ function Shell() {
     <div className="min-h-screen flex flex-col">
       <BackgroundFX />
       <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <h1 className="text-lg font-semibold">LiftLog</h1>
-          <nav className="flex gap-2 overflow-x-auto">
-            <Tab to="/" label="Dashboard" />
-            <Tab to="/sessions" label="Sessions" />
-            <Tab to="/measurements" label="Measurements" />
-            <Tab to="/templates" label="Templates" />
-            <Tab to="/settings" label="Settings" />
-          </nav>
+          <div className="flex items-center gap-3">
+            <nav className="flex gap-2 overflow-x-auto">
+              <Tab to="/" label="Dashboard" />
+              <Tab to="/sessions" label="Sessions" />
+              <Tab to="/measurements" label="Measurements" />
+              <Tab to="/templates" label="Templates" />
+              <Tab to="/settings" label="Settings" />
+            </nav>
+            <div className="flex items-center gap-2">
+              {!authChecked ? (
+                <span className="text-xs text-gray-400">…</span>
+              ) : authEmail ? (
+                <>
+                  <span className="text-xs text-emerald-400">Signed in</span>
+                  <button
+                    className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
+                    onClick={() => supabase.auth.signOut()}
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
+                  onClick={() => navigate('/settings')}
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </header>
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4">
