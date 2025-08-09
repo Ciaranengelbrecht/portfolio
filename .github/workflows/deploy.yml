@@ -25,15 +25,16 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Build Next.js and export static site
+      - name: Build Next.js (static export)
+        env:
+          DEPLOY_ENV: CUSTOM_DOMAIN
         run: |
           npm run build
-          npm run export
 
       - name: Build Progress (Vite) app
         working-directory: public/progress
         run: |
-          npm ci
+          npm ci || npm install
           npm run build
 
       - name: Bundle Progress app into export
