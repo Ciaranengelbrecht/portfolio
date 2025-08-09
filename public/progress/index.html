@@ -10,7 +10,8 @@
         var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         var atDist = /\/dist\/?$/.test(location.pathname) || location.pathname.includes('/dist/');
         if (!isLocal && !atDist) {
-          location.replace('./dist/');
+          var target = './dist/' + (location.search || '') + (location.hash || '');
+          location.replace(target);
         }
       })();
     </script>

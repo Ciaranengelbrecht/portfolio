@@ -11,6 +11,7 @@ export default function SettingsPage(){
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [userEmail, setUserEmail] = useState<string|undefined>()
 
@@ -33,6 +34,16 @@ export default function SettingsPage(){
     // get current session once
     supabase.auth.getSession().then(({ data }: any) => setUserEmail(data?.session?.user?.email || undefined))
     return () => { sub.data.subscription.unsubscribe() }
+  }, [])
+
+  // Handle password recovery deep-links from Supabase (type=recovery in URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
+    const type = params.get('type') || params.get('event')
+    if (type === 'recovery') {
+      // User arrived via password recovery link; prompt to set a new password
+      alert('Enter a new password below to complete your reset.')
+    }
   }, [])
 
   const save = async () => { await db.put('settings', { ...s, id:'app' } as any) }
@@ -128,12 +139,45 @@ export default function SettingsPage(){
                     else setUserEmail(data?.user?.email || email)
                   }}>Verify OTP</button>
                 </div>
+                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  if(!email) return alert('Enter your email')
+                  const redirectTo = window.location.origin + window.location.pathname + window.location.search
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+                  if (error) alert('Reset error: ' + error.message)
+                  else alert('Password reset email sent. Check your inbox.')
+                }}>Forgot password</button>
               </div>
               <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
               <div className="text-xs text-gray-400">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
             </div>
           )}
         </div>
+        {/* Password recovery completion (when coming from email link) */}
+        {(() => {
+          const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
+          const type = params.get('type') || params.get('event')
+          if (type === 'recovery' && !userEmail) {
+            return (
+              <div className="mt-2 space-y-2">
+                <div className="text-sm text-gray-300">Reset your password</div>
+                <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
+                <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  if(!newPassword) return alert('Enter a new password')
+                  const { error } = await supabase.auth.updateUser({ password: newPassword })
+                  if(error) alert('Could not set password: ' + error.message)
+                  else {
+                    alert('Password updated. You are now signed in.')
+                    // Clean recovery params so refreshes are clean
+                    const url = new URL(window.location.href)
+                    url.hash = ''
+                    history.replaceState(null, '', url.toString())
+                  }
+                }}>Set new password</button>
+              </div>
+            )
+          }
+          return null
+        })()}
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
             <div className="text-sm text-gray-300">Units</div>
