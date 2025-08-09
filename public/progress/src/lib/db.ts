@@ -39,6 +39,8 @@ export function getDB() {
   return dbPromise!
 }
 
+export function isUsingLocalStorageFallback(){ return useLocal }
+
 function lsKey(store: string) { return `liftlog:${store}` }
 function lsRead<T>(store: string): Record<string,T> {
   const raw = localStorage.getItem(lsKey(store))
@@ -54,14 +56,30 @@ export const db = {
       const obj = lsRead<T>(store)
       return Object.values(obj)
     }
-    return (await getDB()).getAll(store as any)
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      return await dbi.getAll(store as any)
+    } catch {
+      useLocal = true
+      const obj = lsRead<T>(store)
+      return Object.values(obj)
+    }
   },
   async get<T = any>(store: keyof DBSchema, key: string): Promise<T | undefined> {
     if (useLocal) {
       const obj = lsRead<T>(store)
       return (obj as any)[key]
     }
-    return (await getDB()).get(store as any, key)
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      return await dbi.get(store as any, key)
+    } catch {
+      useLocal = true
+      const obj = lsRead<T>(store)
+      return (obj as any)[key]
+    }
   },
   async put<T extends any>(store: keyof DBSchema, value: any): Promise<void> {
     if (useLocal) {
@@ -74,11 +92,23 @@ export const db = {
   schedulePush()
       return
     }
-    const dbi = await getDB()
-  if (store === 'settings') await dbi.put(store as any, value as any, 'app')
-  else await dbi.put(store as any, value as any)
-  enqueueUpsert(store as any, value?.id ?? 'app', value)
-  schedulePush()
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      if (store === 'settings') await dbi.put(store as any, value as any, 'app')
+      else await dbi.put(store as any, value as any)
+    } catch {
+      // fallback to local
+      useLocal = true
+      const obj = lsRead<any>(store)
+      const k = value?.id ?? (store === 'settings' ? 'app' : undefined)
+      if (!k) throw new Error('Missing key for localStorage put (fallback)')
+      obj[k] = value
+      lsWrite(store, obj)
+    } finally {
+      enqueueUpsert(store as any, value?.id ?? 'app', value)
+      schedulePush()
+    }
   },
   async delete(store: keyof DBSchema, key: string) {
     if (useLocal) {
@@ -89,8 +119,18 @@ export const db = {
       schedulePush()
       return
     }
-    await (await getDB()).delete(store as any, key)
-    enqueueDelete(store as any, key)
-    schedulePush()
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      await dbi.delete(store as any, key)
+    } catch {
+      useLocal = true
+      const obj = lsRead<any>(store)
+      delete obj[key]
+      lsWrite(store, obj)
+    } finally {
+      enqueueDelete(store as any, key)
+      schedulePush()
+    }
   }
 }
