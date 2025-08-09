@@ -78,6 +78,8 @@ export interface Settings {
     gistId?: string // target gist id; created automatically if missing
   etag?: string // last seen ETag for conditional pulls
   lastPulledAt?: string // ISO timestamp of last successful pull
+  lastPushedAt?: string // ISO timestamp of last successful push
+  lastError?: string
   }
 }
 

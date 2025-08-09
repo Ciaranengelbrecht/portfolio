@@ -8,6 +8,7 @@ export default function SettingsPage(){
   const fileRef = useRef<HTMLInputElement>(null)
   const [token, setToken] = useState('')
   const [gistId, setGistId] = useState('')
+  const [status, setStatus] = useState<{ lastPull?: string; lastPush?: string; error?: string }>({})
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -17,11 +18,23 @@ export default function SettingsPage(){
       for (const e of defaultExercises) await db.put('exercises', e)
       for (const t of defaultTemplates) await db.put('templates', t)
       setS(defaultSettings)
-    } else { setS(current); setToken(current.cloudSync?.token||''); setGistId(current.cloudSync?.gistId||'') }
+    } else { setS(current); setToken(current.cloudSync?.token||''); setGistId(current.cloudSync?.gistId||''); setStatus({ lastPull: current.cloudSync?.lastPulledAt, lastPush: current.cloudSync?.lastPushedAt, error: current.cloudSync?.lastError }) }
    })() }, [])
 
   const save = async () => {
     await db.put('settings', { ...s, id:'app', cloudSync: token ? { provider:'gist', enabled:true, token, gistId: gistId||undefined } : undefined } as any)
+  }
+
+  const testSync = async () => {
+    const ss = await db.get<Settings>('settings','app')
+    if (!ss?.cloudSync?.token) return alert('Set token first')
+    const mod = await import('../lib/sync')
+    const ok = await mod.pushToGist({ ...ss.cloudSync!, enabled: true }) as any
+    const pulled = await mod.pullFromGist({ ...ss.cloudSync!, enabled: true })
+    const now = new Date().toISOString()
+    const refreshed = await db.get<Settings>('settings','app')
+    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt || (pulled? now: undefined), lastPush: refreshed?.cloudSync?.lastPushedAt || (ok? now: undefined), error: refreshed?.cloudSync?.lastError })
+    alert(`Push: ${ok ? 'OK' : 'Fail'}; Pull: ${pulled ? 'Changed' : 'No change/Fail'}`)
   }
 
   const exportData = async () => {
@@ -47,15 +60,19 @@ export default function SettingsPage(){
     const ss = await db.get<Settings>('settings','app')
     if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
     const mod = await import('../lib/sync')
-    await mod.pullFromGist(ss.cloudSync)
-    alert('Pulled from cloud')
+    const changed = await mod.pullFromGist(ss.cloudSync)
+    const refreshed = await db.get<Settings>('settings','app')
+    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt, lastPush: refreshed?.cloudSync?.lastPushedAt, error: refreshed?.cloudSync?.lastError })
+    alert(changed? 'Pulled updates' : 'No changes or failed')
   }
   const pushCloud = async () => {
     const ss = await db.get<Settings>('settings','app')
     if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
     const mod = await import('../lib/sync')
-    await mod.pushToGist(ss.cloudSync)
-    alert('Pushed to cloud')
+    const ok = await mod.pushToGist(ss.cloudSync)
+    const refreshed = await db.get<Settings>('settings','app')
+    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt, lastPush: refreshed?.cloudSync?.lastPushedAt, error: refreshed?.cloudSync?.lastError })
+    alert(ok? 'Pushed' : 'Push failed')
   }
 
   const importData = async (file: File) => {
@@ -176,6 +193,10 @@ export default function SettingsPage(){
           <div className="flex gap-2">
             <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pullCloud}>Pull</button>
             <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pushCloud}>Push</button>
+            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={testSync}>Test</button>
+          </div>
+          <div className="text-xs text-gray-400">
+            Last Pull: {status.lastPull || '—'} | Last Push: {status.lastPush || '—'} {status.error ? `| Error: ${status.error}` : ''}
           </div>
         </div>
       </div>

@@ -55,14 +55,23 @@ export async function pushToGist(cfg: NonNullable<Settings['cloudSync']>) {
     files: { 'liftlog.json': { content: toPayload(body) } }
   }
   if (cfg.gistId) {
-    await fetch(`https://api.github.com/gists/${cfg.gistId}`, { method:'PATCH', headers: { ...headers(cfg.token), 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
+    const res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, { method:'PATCH', headers: { ...headers(cfg.token), 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
+    const ok = res.ok
+    const s = await db.get<Settings>('settings','app')
+    await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastPushedAt: ok ? new Date().toISOString() : s?.cloudSync?.lastPushedAt, lastError: ok ? undefined : `push ${res.status}` } })
+    return ok
   } else {
     const res = await fetch('https://api.github.com/gists', { method:'POST', headers: { ...headers(cfg.token), 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
-    if (res.ok){
+    const ok = res.ok
+    if (ok){
       const j = await res.json()
       const s = await db.get<Settings>('settings','app')
-      await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), provider:'gist', enabled:true, token: cfg.token, gistId: j.id } })
+      await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), provider:'gist', enabled:true, token: cfg.token, gistId: j.id, lastPushedAt: new Date().toISOString(), lastError: undefined } })
+    } else {
+      const s = await db.get<Settings>('settings','app')
+      await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastError: `push ${res.status}` } })
     }
+    return ok
   }
 }
 
