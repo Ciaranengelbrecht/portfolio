@@ -14,7 +14,9 @@ export default defineConfig({
         description: 'Track lifting sessions and measurements offline',
         theme_color: '#0b0f14',
         background_color: '#0b0f14',
-        start_url: './index.html',
+  // When hosted under /progress, index.html lives in /progress/dist
+  start_url: './index.html',
+  scope: './',
         display: 'standalone',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
