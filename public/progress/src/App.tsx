@@ -1,10 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { NavLink, Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
-import PasscodeGate from './features/auth/PasscodeGate'
 import BackgroundFX from './components/BackgroundFX'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
@@ -16,6 +15,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 function Shell() {
   const { theme } = useTheme()
   const navigate = useNavigate()
+  const locationRef = useLocation()
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
   useEffect(() => { (async () => {
@@ -32,11 +32,15 @@ function Shell() {
   useEffect(() => { (async () => {
     const s = await getSettings()
     const start = s.dashboardPrefs?.startPage || (s.dashboardPrefs?.openToLast ? 'last' : 'dashboard')
-    if (start === 'last' && s.dashboardPrefs?.openToLast !== false && s.dashboardPrefs?.lastLocation) {
-      navigate('/sessions')
-    } else if (start === 'sessions') navigate('/sessions')
-    else if (start === 'measurements') navigate('/measurements')
-    else if (start === 'dashboard') navigate('/')
+  const loc = locationRef.pathname
+    // Only auto-navigate on first load when at root path
+    if (loc === '/' || loc === ''){
+      if (start === 'last' && s.dashboardPrefs?.openToLast !== false && s.dashboardPrefs?.lastLocation) {
+        navigate('/sessions')
+      } else if (start === 'sessions') navigate('/sessions')
+      else if (start === 'measurements') navigate('/measurements')
+      else if (start === 'dashboard') navigate('/')
+    }
   })() }, [])
 
   const Tab = ({ to, label }: { to: string; label: string }) => (
@@ -74,11 +78,10 @@ function Shell() {
 }
 
 export default function App() {
+  const locationRef = useLocation()
   return (
     <ThemeProvider>
-      <PasscodeGate>
-        <Shell />
-      </PasscodeGate>
+      <Shell />
     </ThemeProvider>
   )
 }
