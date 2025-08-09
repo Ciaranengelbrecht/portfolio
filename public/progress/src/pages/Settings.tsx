@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
 import { supabase, clearAuthStorage } from '../lib/supabase'
 
 export default function SettingsPage(){
+  const navigate = useNavigate()
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState<{ lastPull?: string; lastPush?: string; error?: string }>({})
@@ -121,7 +123,7 @@ export default function SettingsPage(){
           ) : userEmail ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
-              <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`} disabled={busy==='signout'} onClick={async ()=>{
+        <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`} disabled={busy==='signout'} onClick={async ()=>{
                 setBusy('signout')
                 try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out') } finally {
                   try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
@@ -135,6 +137,7 @@ export default function SettingsPage(){
                     }
                   } catch {}
                   setUserEmail(undefined)
+          navigate('/')
                   setBusy(null)
                 }
               }}>Sign out</button>

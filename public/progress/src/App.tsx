@@ -5,6 +5,7 @@ import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
 import { supabase, clearAuthStorage } from './lib/supabase'
+import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
@@ -21,6 +22,7 @@ function Shell() {
   const [authEmail, setAuthEmail] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [authOpen, setAuthOpen] = useState(false)
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
   useEffect(() => { (async () => {
@@ -148,7 +150,7 @@ function Shell() {
                           }
                         } catch {}
                         setAuthEmail(null)
-                        navigate('/settings')
+                        navigate('/')
                         setSigningOut(false)
                         setToast('Signed out')
                       }
@@ -160,7 +162,7 @@ function Shell() {
               ) : (
                 <button
                   className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
-                  onClick={() => navigate('/settings')}
+                  onClick={() => setAuthOpen(true)}
                 >
                   Sign in
                 </button>
@@ -169,6 +171,7 @@ function Shell() {
           </div>
         </div>
       </header>
+      <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} onSignedIn={()=>{ setAuthOpen(false); setToast('Signed in') }} />
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
           <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
@@ -184,7 +187,7 @@ function Shell() {
             <div className="text-lg font-medium">Please sign in to view your data</div>
             <div className="text-sm text-gray-400">Your local data remains on this device but is hidden until you sign in.</div>
             <div className="flex gap-2">
-              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={() => navigate('/settings')}>Go to Settings</button>
+              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={() => setAuthOpen(true)}>Sign in</button>
             </div>
           </div>
         ) : (
