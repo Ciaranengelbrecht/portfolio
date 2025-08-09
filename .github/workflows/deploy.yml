@@ -1,38 +1,59 @@
-name: Deploy to Website
+name: Deploy site to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: 20
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install root dependencies
+        run: npm ci
 
-      # Always build for custom domain by default
-      - name: Build website
-        env:
-          DEPLOY_ENV: "CUSTOM_DOMAIN"
-        run: npm run build
+      - name: Build Next.js and export static site
+        run: |
+          npm run build
+          npm run export
 
-      - name: Create CNAME file
-        run: echo "ciaranengelbrecht.com" > ./out/CNAME
+      - name: Build Progress (Vite) app
+        working-directory: public/progress
+        run: |
+          npm ci
+          npm run build
+
+      - name: Bundle Progress app into export
+        run: |
+          rm -rf out/progress
+          mkdir -p out/progress
+          cp -r public/progress/dist/* out/progress/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Add CNAME (if present)
+        run: |
+          if [ -f public/CNAME ]; then cp public/CNAME out/CNAME; fi
+          if [ -f public/progress/CNAME ]; then cp public/progress/CNAME out/CNAME; fi
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.website_workflow }}
-          publish_dir: ./out
+        uses: actions/deploy-pages@v4
