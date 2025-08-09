@@ -34,11 +34,15 @@ export default function SettingsPage(){
       setAuthChecked(true)
     })
     // get current session once
-    supabase.auth.getSession().then(({ data }: any) => {
-      setUserEmail(data?.session?.user?.email || undefined)
-      setAuthChecked(true)
-    })
-    return () => { sub.data.subscription.unsubscribe() }
+    let timer = setTimeout(() => setAuthChecked(true), 1500)
+    supabase.auth.getSession()
+      .then(({ data }: any) => {
+        setUserEmail(data?.session?.user?.email || undefined)
+        setAuthChecked(true)
+      })
+      .catch(() => setAuthChecked(true))
+      .finally(() => { clearTimeout(timer) })
+    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.() }
   }, [])
 
   // Handle password recovery deep-links from Supabase (type=recovery in URL)
