@@ -29,10 +29,24 @@ function Shell() {
   useEffect(() => { (async () => {
     const s = await getSettings()
     if (s.cloudSync?.enabled && s.cloudSync.provider==='gist' && s.cloudSync.token && s.cloudSync.gistId) {
-      await pullFromGist(s.cloudSync)
-  startBackgroundPull(30000)
+  const changed = await pullFromGist(s.cloudSync)
+  if (changed) location.reload()
+      startBackgroundPull(5000)
     }
   })() }, [])
+
+  // Pull when app/tab becomes visible or comes back online
+  useEffect(() => {
+    const onFocus = async () => {
+      const s = await getSettings()
+      if (s.cloudSync?.enabled && s.cloudSync.provider==='gist' && s.cloudSync.token && s.cloudSync.gistId) {
+        await pullFromGist(s.cloudSync)
+      }
+    }
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) onFocus() })
+    window.addEventListener('online', onFocus)
+    return () => { window.removeEventListener('online', onFocus) }
+  }, [])
   useEffect(() => { (async () => {
     const s = await getSettings()
     const start = s.dashboardPrefs?.startPage || (s.dashboardPrefs?.openToLast ? 'last' : 'dashboard')

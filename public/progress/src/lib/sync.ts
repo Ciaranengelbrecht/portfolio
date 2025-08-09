@@ -18,19 +18,19 @@ async function collectAll(){
   return { exercises, sessions, measurements, templates, settings }
 }
 
-export async function pullFromGist(cfg: NonNullable<Settings['cloudSync']>) {
-  if (!cfg.enabled || !cfg.token || !cfg.gistId) return
+export async function pullFromGist(cfg: NonNullable<Settings['cloudSync']>): Promise<boolean> {
+  if (!cfg.enabled || !cfg.token || !cfg.gistId) return false
   try {
     pulling = true
     const res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, {
       headers: { ...headers(cfg.token), ...(cfg.etag ? { 'If-None-Match': cfg.etag } : {}) }
     })
-    if (res.status === 304) return // no changes
-    if (!res.ok) return
+    if (res.status === 304) return false // no changes
+    if (!res.ok) return false
     const etag = res.headers.get('ETag') || undefined
     const data = await res.json()
     const file = data.files?.['liftlog.json']
-    if (!file?.content) return
+    if (!file?.content) return false
     const json = JSON.parse(file.content)
     for (const e of json.exercises||[]) await db.put('exercises', e)
     for (const s of json.sessions||[]) await db.put('sessions', s)
@@ -39,9 +39,11 @@ export async function pullFromGist(cfg: NonNullable<Settings['cloudSync']>) {
     for (const t of json.templates||[]) await db.put('templates', t)
     const s = await db.get<Settings>('settings','app')
     await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), provider:'gist', enabled:true, token: cfg.token, gistId: cfg.gistId, etag, lastPulledAt: new Date().toISOString() } })
+    return true
   } finally {
     pulling = false
   }
+  return false
 }
 
 export async function pushToGist(cfg: NonNullable<Settings['cloudSync']>) {
@@ -70,16 +72,34 @@ export async function syncDebounced(){
   debounceTimer = setTimeout(async () => {
     const s = await db.get<Settings>('settings','app')
     if (s?.cloudSync?.provider==='gist') await pushToGist(s.cloudSync!)
-  }, 1000)
+  }, 300)
 }
 
 let pollTimer: any
-export function startBackgroundPull(intervalMs = 30000) {
+async function resolveGistId(token: string): Promise<string | undefined> {
+  try {
+    const res = await fetch('https://api.github.com/gists?per_page=100', { headers: headers(token) })
+    if (!res.ok) return
+    const list = await res.json()
+    const found = list.find((g: any) => g.files && g.files['liftlog.json'])
+    return found?.id
+  } catch { return }
+}
+
+export function startBackgroundPull(intervalMs = 5000) {
   if (pollTimer) clearInterval(pollTimer)
   pollTimer = setInterval(async () => {
     const s = await db.get<Settings>('settings','app')
-    if (s?.cloudSync?.provider==='gist' && s.cloudSync.enabled && s.cloudSync.token && s.cloudSync.gistId) {
-      await pullFromGist(s.cloudSync)
+    if (s?.cloudSync?.provider==='gist' && s.cloudSync.enabled && s.cloudSync.token) {
+      let cfg = s.cloudSync
+      if (!cfg.gistId && cfg.token) {
+        const id = await resolveGistId(cfg.token as string)
+        if (id) {
+          await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...cfg, gistId: id } })
+          cfg = { ...cfg, gistId: id }
+        }
+      }
+      if (cfg.gistId) await pullFromGist(cfg)
     }
   }, intervalMs)
 }
