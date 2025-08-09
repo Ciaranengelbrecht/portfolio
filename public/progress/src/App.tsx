@@ -4,6 +4,7 @@ import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
+import { supabase } from './lib/supabase'
 import BackgroundFX from './components/BackgroundFX'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
@@ -27,6 +28,25 @@ function Shell() {
   })() }, [])
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => { initSupabaseSync() }, [])
+
+  // If user opens a Supabase password recovery link, send them to Settings to finish reset
+  useEffect(() => {
+    // Event-driven: Supabase emits PASSWORD_RECOVERY when coming from the email link
+    const sub = supabase.auth.onAuthStateChange((evt) => {
+      if (evt === 'PASSWORD_RECOVERY') {
+        try { localStorage.setItem('sb_pw_reset', '1') } catch {}
+        navigate('/settings')
+      }
+    })
+    // Hash fallback: if the URL still contains type=recovery, also navigate
+    const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
+    const type = params.get('type') || params.get('event')
+    if (type === 'recovery') {
+      try { localStorage.setItem('sb_pw_reset', '1') } catch {}
+      navigate('/settings')
+    }
+    return () => { sub.data.subscription.unsubscribe() }
+  }, [])
 
   // Supabase sync handles online/visibility internally now
   useEffect(() => { (async () => {

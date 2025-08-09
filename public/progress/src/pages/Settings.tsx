@@ -40,9 +40,15 @@ export default function SettingsPage(){
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
     const type = params.get('type') || params.get('event')
-    if (type === 'recovery') {
-      // User arrived via password recovery link; prompt to set a new password
-      alert('Enter a new password below to complete your reset.')
+    const isRecovery = type === 'recovery' || localStorage.getItem('sb_pw_reset') === '1'
+    if (isRecovery) {
+      try { localStorage.setItem('sb_pw_reset', '1') } catch {}
+      // Inform user to set new password in the section below
+      // Avoid alert loops by only showing once
+      if (!sessionStorage.getItem('pw_reset_alert')) {
+        alert('Enter a new password below to complete your reset.')
+        sessionStorage.setItem('pw_reset_alert', '1')
+      }
     }
   }, [])
 
@@ -141,7 +147,9 @@ export default function SettingsPage(){
                 </div>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
-                  const redirectTo = window.location.origin + window.location.pathname + window.location.search
+                  // Ensure the redirect points to the app route (works for both /progress and /progress/dist)
+                  const base = window.location.origin + window.location.pathname
+                  const redirectTo = base + (base.endsWith('/') ? '' : '/')
                   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
                   if (error) alert('Reset error: ' + error.message)
                   else alert('Password reset email sent. Check your inbox.')
@@ -156,7 +164,8 @@ export default function SettingsPage(){
         {(() => {
           const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
           const type = params.get('type') || params.get('event')
-          if (type === 'recovery' && !userEmail) {
+          const isRecovery = (type === 'recovery') || (localStorage.getItem('sb_pw_reset') === '1')
+          if (isRecovery) {
             return (
               <div className="mt-2 space-y-2">
                 <div className="text-sm text-gray-300">Reset your password</div>
@@ -171,6 +180,7 @@ export default function SettingsPage(){
                     const url = new URL(window.location.href)
                     url.hash = ''
                     history.replaceState(null, '', url.toString())
+                    try { localStorage.removeItem('sb_pw_reset') } catch {}
                   }
                 }}>Set new password</button>
               </div>
