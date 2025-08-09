@@ -8,7 +8,6 @@ import { supabase, clearAuthStorage } from './lib/supabase'
 import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
 import BigFlash from './components/BigFlash'
-import { isUsingLocalStorageFallback } from './lib/db'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
 const Sessions = lazy(() => import('./pages/Sessions'))
@@ -26,7 +25,6 @@ function Shell() {
   const [toast, setToast] = useState<string | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
   const [bigFlash, setBigFlash] = useState<string | null>(null)
-  const [fallbackWarned, setFallbackWarned] = useState(false)
   // Auto-dismiss small toast notifications
   useEffect(() => {
     if (!toast) return
@@ -40,15 +38,6 @@ function Shell() {
   }, [bigFlash])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
-  useEffect(() => {
-    // Inform user if IndexedDB isn't available and we're using localStorage
-    try {
-      if (!fallbackWarned && isUsingLocalStorageFallback()) {
-        setFallbackWarned(true)
-        setToast('Offline DB in fallback mode; changes still save locally')
-      }
-    } catch {}
-  }, [fallbackWarned])
   useEffect(() => { (async () => {
     const s = await getSettings()
     // apply accent and card style
