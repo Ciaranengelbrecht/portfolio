@@ -129,7 +129,9 @@ function Shell() {
                   <span className="text-xs text-emerald-400">Signed in</span>
                   <button
                     className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
-                    onClick={() => supabase.auth.signOut()}
+                    onClick={async () => {
+                      try { await supabase.auth.signOut() } finally { navigate('/settings') }
+                    }}
                   >
                     Sign out
                   </button>
@@ -147,15 +149,26 @@ function Shell() {
         </div>
       </header>
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4">
-        <Suspense fallback={<div>Loading…</div>}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/sessions" element={<Sessions />} />
-            <Route path="/measurements" element={<Measurements />} />
-            <Route path="/templates" element={<Templates />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </Suspense>
+        {/* Auth gate: only allow viewing data routes when signed in; Settings always accessible */}
+        {authChecked && !authEmail && locationRef.pathname !== '/settings' ? (
+          <div className="flex flex-col items-center justify-center text-center gap-3 py-16">
+            <div className="text-lg font-medium">Please sign in to view your data</div>
+            <div className="text-sm text-gray-400">Your local data remains on this device but is hidden until you sign in.</div>
+            <div className="flex gap-2">
+              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={() => navigate('/settings')}>Go to Settings</button>
+            </div>
+          </div>
+        ) : (
+          <Suspense fallback={<div>Loading…</div>}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/sessions" element={<Sessions />} />
+              <Route path="/measurements" element={<Measurements />} />
+              <Route path="/templates" element={<Templates />} />
+              <Route path="/settings" element={<Settings />} />
+            </Routes>
+          </Suspense>
+        )}
       </main>
     </div>
   )
