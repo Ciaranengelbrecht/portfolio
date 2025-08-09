@@ -40,34 +40,18 @@ jobs:
           npm ci || npm install
           npm run build
 
-      - name: Bundle Progress app into export
+      - name: Bundle Progress app into export (preserve dist folder and redirecting index)
         run: |
           rm -rf out/progress
           mkdir -p out/progress
-          # Copy built assets
-          cp -r public/progress/dist/* out/progress/
-          # Add a lightweight boot index.html at /progress that loads the built bundle
-          HASHED_JS=$(ls public/progress/dist/assets/index-*.js | head -n 1 | xargs -n 1 basename)
-          HASHED_CSS=$(ls public/progress/dist/assets/index-*.css | head -n 1 | xargs -n 1 basename)
-          cat > out/progress/index.html <<'HTML'
-          <!doctype html>
-          <html lang="en" class="dark">
-            <head>
-              <meta charset="UTF-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <meta name="theme-color" content="#0b0f14" />
-              <link rel="manifest" href="./manifest.webmanifest" />
-              <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-              <title>LiftLog</title>
-              <link rel="stylesheet" href="./assets/___HASHED_CSS___" />
-            </head>
-            <body class="bg-bg text-white">
-              <div id="root"></div>
-              <script type="module" src="./assets/___HASHED_JS___"></script>
-            </body>
-          </html>
-          HTML
-          sed -i.bak "s/___HASHED_JS___/${HASHED_JS}/g; s/___HASHED_CSS___/${HASHED_CSS}/g" out/progress/index.html && rm out/progress/index.html.bak
+          # Keep the built app under /progress/dist
+          mkdir -p out/progress/dist
+          cp -r public/progress/dist/* out/progress/dist/
+          # Copy the source redirecting index and manifest to /progress
+          cp public/progress/index.html out/progress/index.html
+          cp public/progress/manifest.webmanifest out/progress/manifest.webmanifest
+          # Copy icons and any static assets expected at root
+          if [ -f public/progress/public/favicon.svg ]; then cp public/progress/public/favicon.svg out/progress/; fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
