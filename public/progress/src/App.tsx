@@ -4,7 +4,7 @@ import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
-import { supabase } from './lib/supabase'
+import { supabase, clearAuthStorage } from './lib/supabase'
 import BackgroundFX from './components/BackgroundFX'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
@@ -131,9 +131,18 @@ function Shell() {
                     className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
                     onClick={async () => {
                       try {
-                        await supabase.auth.signOut()
+                        await supabase.auth.signOut({ scope: 'global' } as any)
                       } finally {
-                        try { localStorage.removeItem('sb_pw_reset') } catch {}
+                        try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
+                        // Double-check session is gone
+                        try {
+                          let tries = 0
+                          while (tries++ < 10) {
+                            const { data } = await supabase.auth.getSession()
+                            if (!data.session) break
+                            await new Promise(r => setTimeout(r, 100))
+                          }
+                        } catch {}
                         setAuthEmail(null)
                         navigate('/settings')
                       }

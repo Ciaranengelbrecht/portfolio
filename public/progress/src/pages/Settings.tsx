@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
-import { supabase } from '../lib/supabase'
+import { supabase, clearAuthStorage } from '../lib/supabase'
 
 export default function SettingsPage(){
   const [s, setS] = useState<Settings>(defaultSettings)
@@ -119,8 +119,17 @@ export default function SettingsPage(){
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
               <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
-                try { await supabase.auth.signOut() } finally {
-                  try { localStorage.removeItem('sb_pw_reset') } catch {}
+                try { await supabase.auth.signOut({ scope: 'global' } as any) } finally {
+                  try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
+                  // Verify session gone
+                  try {
+                    let tries = 0
+                    while (tries++ < 10) {
+                      const { data } = await supabase.auth.getSession()
+                      if (!data.session) break
+                      await new Promise(r => setTimeout(r, 100))
+                    }
+                  } catch {}
                   setUserEmail(undefined)
                 }
               }}>Sign out</button>
