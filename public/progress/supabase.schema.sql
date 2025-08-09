@@ -1,0 +1,100 @@
+-- Run this in Supabase SQL Editor (SQL > New query) and click Run
+-- It creates JSON-based tables mirroring your local data, sets update triggers,
+-- and enforces Row Level Security so each user only sees their own rows.
+
+-- Optional: user profile (handy for future)
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz default now()
+);
+
+-- Core collections as JSONB payloads keyed by text IDs + owner
+create table if not exists exercises (
+  id text primary key,
+  owner uuid references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+create table if not exists sessions (
+  id text primary key,
+  owner uuid references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+create table if not exists measurements (
+  id text primary key,
+  owner uuid references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+create table if not exists templates (
+  id text primary key,
+  owner uuid references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+create table if not exists settings (
+  id text primary key,
+  owner uuid references auth.users(id) on delete cascade,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+
+-- Touch updated_at automatically on update
+create extension if not exists moddatetime with schema extensions;
+create trigger exercises_updated before update on exercises for each row execute function extensions.moddatetime(updated_at);
+create trigger sessions_updated before update on sessions for each row execute function extensions.moddatetime(updated_at);
+create trigger measurements_updated before update on measurements for each row execute function extensions.moddatetime(updated_at);
+create trigger templates_updated before update on templates for each row execute function extensions.moddatetime(updated_at);
+create trigger settings_updated before update on settings for each row execute function extensions.moddatetime(updated_at);
+
+-- Row Level Security: only owner can see/edit/delete their rows
+alter table exercises enable row level security;
+alter table sessions enable row level security;
+alter table measurements enable row level security;
+alter table templates enable row level security;
+alter table settings enable row level security;
+
+-- Policies per table (drop first for idempotency)
+drop policy if exists "own read" on exercises;
+drop policy if exists "own insert" on exercises;
+drop policy if exists "own update" on exercises;
+drop policy if exists "own delete" on exercises;
+create policy "own read" on exercises for select using (auth.uid() = owner);
+create policy "own insert" on exercises for insert with check (auth.uid() = owner);
+create policy "own update" on exercises for update using (auth.uid() = owner);
+create policy "own delete" on exercises for delete using (auth.uid() = owner);
+
+drop policy if exists "own read" on sessions;
+drop policy if exists "own insert" on sessions;
+drop policy if exists "own update" on sessions;
+drop policy if exists "own delete" on sessions;
+create policy "own read" on sessions for select using (auth.uid() = owner);
+create policy "own insert" on sessions for insert with check (auth.uid() = owner);
+create policy "own update" on sessions for update using (auth.uid() = owner);
+create policy "own delete" on sessions for delete using (auth.uid() = owner);
+
+drop policy if exists "own read" on measurements;
+drop policy if exists "own insert" on measurements;
+drop policy if exists "own update" on measurements;
+drop policy if exists "own delete" on measurements;
+create policy "own read" on measurements for select using (auth.uid() = owner);
+create policy "own insert" on measurements for insert with check (auth.uid() = owner);
+create policy "own update" on measurements for update using (auth.uid() = owner);
+create policy "own delete" on measurements for delete using (auth.uid() = owner);
+
+drop policy if exists "own read" on templates;
+drop policy if exists "own insert" on templates;
+drop policy if exists "own update" on templates;
+drop policy if exists "own delete" on templates;
+create policy "own read" on templates for select using (auth.uid() = owner);
+create policy "own insert" on templates for insert with check (auth.uid() = owner);
+create policy "own update" on templates for update using (auth.uid() = owner);
+create policy "own delete" on templates for delete using (auth.uid() = owner);
+
+drop policy if exists "own read" on settings;
+drop policy if exists "own upsert" on settings;
+drop policy if exists "own update" on settings;
+create policy "own read" on settings for select using (auth.uid() = owner);
+create policy "own upsert" on settings for insert with check (auth.uid() = owner);
+create policy "own update" on settings for update using (auth.uid() = owner);

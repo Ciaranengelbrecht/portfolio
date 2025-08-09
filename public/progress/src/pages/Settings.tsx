@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
+import { supabase } from '../lib/supabase'
 
 export default function SettingsPage(){
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [token, setToken] = useState('')
-  const [gistId, setGistId] = useState('')
   const [status, setStatus] = useState<{ lastPull?: string; lastPush?: string; error?: string }>({})
+  const [email, setEmail] = useState('')
+  const [userEmail, setUserEmail] = useState<string|undefined>()
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -18,24 +19,22 @@ export default function SettingsPage(){
       for (const e of defaultExercises) await db.put('exercises', e)
       for (const t of defaultTemplates) await db.put('templates', t)
       setS(defaultSettings)
-    } else { setS(current); setToken(current.cloudSync?.token||''); setGistId(current.cloudSync?.gistId||''); setStatus({ lastPull: current.cloudSync?.lastPulledAt, lastPush: current.cloudSync?.lastPushedAt, error: current.cloudSync?.lastError }) }
+  } else { setS(current) }
    })() }, [])
 
-  const save = async () => {
-    await db.put('settings', { ...s, id:'app', cloudSync: token ? { provider:'gist', enabled:true, token, gistId: gistId||undefined } : undefined } as any)
-  }
+  useEffect(() => {
+    // Track supabase auth state
+    const sub = supabase.auth.onAuthStateChange(async (_evt: any, session: any) => {
+      setUserEmail(session?.user?.email || undefined)
+    })
+    // get current session once
+    supabase.auth.getSession().then(({ data }: any) => setUserEmail(data?.session?.user?.email || undefined))
+    return () => { sub.data.subscription.unsubscribe() }
+  }, [])
 
-  const testSync = async () => {
-    const ss = await db.get<Settings>('settings','app')
-    if (!ss?.cloudSync?.token) return alert('Set token first')
-    const mod = await import('../lib/sync')
-    const ok = await mod.pushToGist({ ...ss.cloudSync!, enabled: true }) as any
-    const pulled = await mod.pullFromGist({ ...ss.cloudSync!, enabled: true })
-    const now = new Date().toISOString()
-    const refreshed = await db.get<Settings>('settings','app')
-    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt || (pulled? now: undefined), lastPush: refreshed?.cloudSync?.lastPushedAt || (ok? now: undefined), error: refreshed?.cloudSync?.lastError })
-    alert(`Push: ${ok ? 'OK' : 'Fail'}; Pull: ${pulled ? 'Changed' : 'No change/Fail'}`)
-  }
+  const save = async () => { await db.put('settings', { ...s, id:'app' } as any) }
+
+  // testSync removed with Gist sync
 
   const exportData = async () => {
     const [exercises, sessions, measurements, templates, settings] = await Promise.all([
@@ -56,24 +55,7 @@ export default function SettingsPage(){
     download('sessions.csv', ssCsv, 'text/csv')
   }
 
-  const pullCloud = async () => {
-    const ss = await db.get<Settings>('settings','app')
-    if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
-    const mod = await import('../lib/sync')
-    const changed = await mod.pullFromGist(ss.cloudSync)
-    const refreshed = await db.get<Settings>('settings','app')
-    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt, lastPush: refreshed?.cloudSync?.lastPushedAt, error: refreshed?.cloudSync?.lastError })
-    alert(changed? 'Pulled updates' : 'No changes or failed')
-  }
-  const pushCloud = async () => {
-    const ss = await db.get<Settings>('settings','app')
-    if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
-    const mod = await import('../lib/sync')
-    const ok = await mod.pushToGist(ss.cloudSync)
-    const refreshed = await db.get<Settings>('settings','app')
-    setStatus({ lastPull: refreshed?.cloudSync?.lastPulledAt, lastPush: refreshed?.cloudSync?.lastPushedAt, error: refreshed?.cloudSync?.lastError })
-    alert(ok? 'Pushed' : 'Push failed')
-  }
+  // Gist sync removed; Supabase sync is automatic
 
   const importData = async (file: File) => {
     const text = await file.text()
@@ -99,6 +81,27 @@ export default function SettingsPage(){
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div className="mb-2">
+          <div className="font-medium">Account (Supabase)</div>
+          <div className="text-sm text-gray-400">Sign in with a magic link to sync via Supabase (central database). Offline still works; changes sync when you reconnect.</div>
+          {userEmail ? (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
+              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>supabase.auth.signOut()}>Sign out</button>
+            </div>
+          ) : (
+            <div className="flex gap-2 mt-2">
+              <input className="bg-slate-800 rounded-xl px-3 py-2 flex-1" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
+              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                if(!email) return alert('Enter your email')
+                const redirectTo = window.location.origin + window.location.pathname
+                const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+                if(error) alert('Signin error: ' + error.message)
+                else alert('Magic link sent. Check your email.')
+              }}>Send magic link</button>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
             <div className="text-sm text-gray-300">Units</div>
@@ -183,22 +186,7 @@ export default function SettingsPage(){
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>fileRef.current?.click()}>Import JSON</button>
           <button className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-xl" onClick={resetData}>Reset data</button>
         </div>
-        <div className="mt-4 border-t border-slate-700 pt-3 space-y-2">
-          <div className="font-medium">Cloud Sync (GitHub Gist)</div>
-          <div className="text-sm text-gray-400">Store an encrypted backup in your private Gist. Use a token with gist scope. Leave Gist ID blank to create one on first push.</div>
-          <div className="grid grid-cols-2 gap-3">
-            <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="GitHub token" value={token} onChange={e=>setToken(e.target.value)} />
-            <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Gist ID (optional)" value={gistId} onChange={e=>setGistId(e.target.value)} />
-          </div>
-          <div className="flex gap-2">
-            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pullCloud}>Pull</button>
-            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pushCloud}>Push</button>
-            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={testSync}>Test</button>
-          </div>
-          <div className="text-xs text-gray-400">
-            Last Pull: {status.lastPull || '—'} | Last Push: {status.lastPush || '—'} {status.error ? `| Error: ${status.error}` : ''}
-          </div>
-        </div>
+  {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
       </div>
 
       <ExerciseOverrides />

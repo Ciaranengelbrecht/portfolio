@@ -2,7 +2,7 @@ import { openDB, IDBPDatabase } from 'idb'
 import { Exercise, Measurement, Session, Settings, Template } from './types'
 import { migrateV2 } from './migrations/v2'
 import { migrateV3 } from './migrations/v3'
-import { syncDebounced } from './sync'
+import { enqueueDelete, enqueueUpsert, schedulePush } from './supabaseSync'
 
 const DB_NAME = 'liftlog'
 const DB_VERSION = 3
@@ -70,26 +70,27 @@ export const db = {
       if (!k) throw new Error('Missing key for localStorage put')
       obj[k] = value
       lsWrite(store, obj)
-      await syncDebounced()
+  enqueueUpsert(store as any, value?.id ?? 'app', value)
+  schedulePush()
       return
     }
     const dbi = await getDB()
-    if (store === 'settings') {
-      await dbi.put(store as any, value as any, 'app')
-    } else {
-      await dbi.put(store as any, value as any)
-    }
-    await syncDebounced()
+  if (store === 'settings') await dbi.put(store as any, value as any, 'app')
+  else await dbi.put(store as any, value as any)
+  enqueueUpsert(store as any, value?.id ?? 'app', value)
+  schedulePush()
   },
   async delete(store: keyof DBSchema, key: string) {
     if (useLocal) {
       const obj = lsRead<any>(store)
       delete obj[key]
       lsWrite(store, obj)
-      await syncDebounced()
+      enqueueDelete(store as any, key)
+      schedulePush()
       return
     }
     await (await getDB()).delete(store as any, key)
-    await syncDebounced()
+    enqueueDelete(store as any, key)
+    schedulePush()
   }
 }

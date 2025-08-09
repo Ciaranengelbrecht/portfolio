@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { getSettings, setSettings } from './lib/helpers'
-import { pullFromGist, startBackgroundPull } from './lib/sync'
+import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
 import PasscodeGate from './features/auth/PasscodeGate'
@@ -25,28 +25,10 @@ function Shell() {
     if (s.accentColor) root.style.setProperty('--accent', s.accentColor)
     if (s.cardStyle) root.setAttribute('data-card-style', s.cardStyle)
   })() }, [])
-  // First-load pull for cloud sync (if configured)
-  useEffect(() => { (async () => {
-    const s = await getSettings()
-    if (s.cloudSync?.enabled && s.cloudSync.provider==='gist' && s.cloudSync.token && s.cloudSync.gistId) {
-  const changed = await pullFromGist(s.cloudSync)
-  if (changed) location.reload()
-      startBackgroundPull(5000)
-    }
-  })() }, [])
+  // Initialize Supabase sync (pull, push queue, realtime)
+  useEffect(() => { initSupabaseSync() }, [])
 
-  // Pull when app/tab becomes visible or comes back online
-  useEffect(() => {
-    const onFocus = async () => {
-      const s = await getSettings()
-      if (s.cloudSync?.enabled && s.cloudSync.provider==='gist' && s.cloudSync.token && s.cloudSync.gistId) {
-        await pullFromGist(s.cloudSync)
-      }
-    }
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) onFocus() })
-    window.addEventListener('online', onFocus)
-    return () => { window.removeEventListener('online', onFocus) }
-  }, [])
+  // Supabase sync handles online/visibility internally now
   useEffect(() => { (async () => {
     const s = await getSettings()
     const start = s.dashboardPrefs?.startPage || (s.dashboardPrefs?.openToLast ? 'last' : 'dashboard')
