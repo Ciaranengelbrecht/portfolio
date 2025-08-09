@@ -14,9 +14,9 @@ export default defineConfig({
         description: 'Track lifting sessions and measurements offline',
         theme_color: '#0b0f14',
         background_color: '#0b0f14',
-  // Installed app will originate from /progress/dist; dist manifest uses ./index.html at that scope.
-  start_url: './index.html',
-  scope: './',
+        // Use absolute URLs so install works whether the manifest is served from /progress or /progress/dist/assets
+        start_url: '/progress/dist/index.html',
+        scope: '/progress/dist/',
         display: 'standalone',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
