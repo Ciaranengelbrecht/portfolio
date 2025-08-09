@@ -7,6 +7,7 @@ import { registerSW } from './lib/pwa'
 import { supabase, clearAuthStorage } from './lib/supabase'
 import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
+import BigFlash from './components/BigFlash'
 
 const Dashboard = lazy(() => import('./features/dashboard/Dashboard'))
 const Sessions = lazy(() => import('./pages/Sessions'))
@@ -23,12 +24,18 @@ function Shell() {
   const [signingOut, setSigningOut] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
+  const [bigFlash, setBigFlash] = useState<string | null>(null)
   // Auto-dismiss small toast notifications
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 1800)
     return () => clearTimeout(t)
   }, [toast])
+  useEffect(() => {
+    if (!bigFlash) return
+    const t = setTimeout(() => setBigFlash(null), 1800)
+    return () => clearTimeout(t)
+  }, [bigFlash])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
   useEffect(() => { (async () => {
@@ -159,6 +166,7 @@ function Shell() {
                         navigate('/')
                         setSigningOut(false)
                         setToast('Signed out')
+                        setBigFlash('Signed out successfully')
                       }
                     }}
                   >
@@ -177,7 +185,8 @@ function Shell() {
           </div>
         </div>
       </header>
-      <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} onSignedIn={()=>{ setAuthOpen(false); setToast('Signed in') }} />
+  <AuthModal open={authOpen} onClose={()=>setAuthOpen(false)} onSignedIn={()=>{ setAuthOpen(false); setToast('Signed in'); setBigFlash('Signed in successfully') }} />
+  <BigFlash open={!!bigFlash} message={bigFlash||''} onClose={()=>setBigFlash(null)} />
       {toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
           <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">

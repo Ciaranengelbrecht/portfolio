@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import BigFlash from '../components/BigFlash'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
@@ -19,12 +20,18 @@ export default function SettingsPage(){
   const [authChecked, setAuthChecked] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [bigFlash, setBigFlash] = useState<string | null>(null)
   // Auto-dismiss toast notifications after ~1.8s
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 1800)
     return () => clearTimeout(t)
   }, [toast])
+  useEffect(() => {
+    if (!bigFlash) return
+    const t = setTimeout(() => setBigFlash(null), 1800)
+    return () => clearTimeout(t)
+  }, [bigFlash])
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -118,8 +125,9 @@ export default function SettingsPage(){
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Settings</h2>
+    <h2 className="text-xl font-semibold">Settings</h2>
   <Toast open={!!toast} message={toast||''} onClose={()=>setToast(null)} />
+  <BigFlash open={!!bigFlash} message={bigFlash||''} onClose={()=>setBigFlash(null)} />
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
@@ -131,7 +139,7 @@ export default function SettingsPage(){
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
         <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`} disabled={busy==='signout'} onClick={async ()=>{
                 setBusy('signout')
-                try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out') } finally {
+                try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out'); setBigFlash('Signed out successfully') } finally {
                   try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
                   // Verify session gone
                   try {
@@ -158,7 +166,7 @@ export default function SettingsPage(){
                   setBusy('signin')
                   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
                   if(error) alert('Sign-in error: ' + error.message)
-                  else { setUserEmail(data.user?.email || email); setToast('Signed in') }
+                  else { setUserEmail(data.user?.email || email); setToast('Signed in'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Sign in</button>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
@@ -169,7 +177,7 @@ export default function SettingsPage(){
                   const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
                   if(error) alert('Sign-up error: ' + error.message)
                   else if (!data.session) alert('Check your email to confirm your account.')
-                  else { setUserEmail(data.user?.email || email); setToast('Account created') }
+                  else { setUserEmail(data.user?.email || email); setToast('Account created'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Create account</button>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
