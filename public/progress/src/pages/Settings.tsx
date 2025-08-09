@@ -6,6 +6,8 @@ import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defa
 export default function SettingsPage(){
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [token, setToken] = useState('')
+  const [gistId, setGistId] = useState('')
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -15,11 +17,11 @@ export default function SettingsPage(){
       for (const e of defaultExercises) await db.put('exercises', e)
       for (const t of defaultTemplates) await db.put('templates', t)
       setS(defaultSettings)
-    } else setS(current)
-  })() }, [])
+    } else { setS(current); setToken(current.cloudSync?.token||''); setGistId(current.cloudSync?.gistId||'') }
+   })() }, [])
 
   const save = async () => {
-    await db.put('settings', { ...s, id:'app' } as any)
+    await db.put('settings', { ...s, id:'app', cloudSync: token ? { provider:'gist', enabled:true, token, gistId: gistId||undefined } : undefined } as any)
   }
 
   const exportData = async () => {
@@ -39,6 +41,21 @@ export default function SettingsPage(){
       ].join(','))))
     ].join('\n')
     download('sessions.csv', ssCsv, 'text/csv')
+  }
+
+  const pullCloud = async () => {
+    const ss = await db.get<Settings>('settings','app')
+    if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
+    const mod = await import('../lib/sync')
+    await mod.pullFromGist(ss.cloudSync)
+    alert('Pulled from cloud')
+  }
+  const pushCloud = async () => {
+    const ss = await db.get<Settings>('settings','app')
+    if (!ss?.cloudSync?.token || !ss.cloudSync.enabled) return alert('Set token and save first')
+    const mod = await import('../lib/sync')
+    await mod.pushToGist(ss.cloudSync)
+    alert('Pushed to cloud')
   }
 
   const importData = async (file: File) => {
@@ -64,7 +81,7 @@ export default function SettingsPage(){
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
-  <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
             <div className="text-sm text-gray-300">Units</div>
@@ -148,6 +165,18 @@ export default function SettingsPage(){
           <input type="file" hidden ref={fileRef} accept="application/json" onChange={e=>{ const f=e.target.files?.[0]; if(f) importData(f) }} />
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>fileRef.current?.click()}>Import JSON</button>
           <button className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-xl" onClick={resetData}>Reset data</button>
+        </div>
+        <div className="mt-4 border-t border-slate-700 pt-3 space-y-2">
+          <div className="font-medium">Cloud Sync (GitHub Gist)</div>
+          <div className="text-sm text-gray-400">Store an encrypted backup in your private Gist. Use a token with gist scope. Leave Gist ID blank to create one on first push.</div>
+          <div className="grid grid-cols-2 gap-3">
+            <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="GitHub token" value={token} onChange={e=>setToken(e.target.value)} />
+            <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Gist ID (optional)" value={gistId} onChange={e=>setGistId(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pullCloud}>Pull</button>
+            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={pushCloud}>Push</button>
+          </div>
         </div>
       </div>
 

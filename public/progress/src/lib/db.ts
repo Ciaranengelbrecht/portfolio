@@ -2,6 +2,7 @@ import { openDB, IDBPDatabase } from 'idb'
 import { Exercise, Measurement, Session, Settings, Template } from './types'
 import { migrateV2 } from './migrations/v2'
 import { migrateV3 } from './migrations/v3'
+import { syncDebounced } from './sync'
 
 const DB_NAME = 'liftlog'
 const DB_VERSION = 3
@@ -69,6 +70,7 @@ export const db = {
       if (!k) throw new Error('Missing key for localStorage put')
       obj[k] = value
       lsWrite(store, obj)
+      await syncDebounced()
       return
     }
     const dbi = await getDB()
@@ -77,14 +79,17 @@ export const db = {
     } else {
       await dbi.put(store as any, value as any)
     }
+    await syncDebounced()
   },
   async delete(store: keyof DBSchema, key: string) {
     if (useLocal) {
       const obj = lsRead<any>(store)
       delete obj[key]
       lsWrite(store, obj)
+      await syncDebounced()
       return
     }
     await (await getDB()).delete(store as any, key)
+    await syncDebounced()
   }
 }

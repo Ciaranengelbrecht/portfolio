@@ -71,6 +71,14 @@ export interface Settings {
   measurementUnits?: 'metric'|'imperial'
   privacyUnlockMode?: 'everyLaunch'|'remember24h'
   unlockedUntil?: string
+  cloudSync?: {
+    provider: 'gist'
+    enabled?: boolean
+    token?: string // GitHub Personal Access Token with 'gist' scope
+    gistId?: string // target gist id; created automatically if missing
+  etag?: string // last seen ETag for conditional pulls
+  lastPulledAt?: string // ISO timestamp of last successful pull
+  }
 }
 
 export interface Template {

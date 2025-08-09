@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { getSettings, setSettings } from './lib/helpers'
+import { pullFromGist, startBackgroundPull } from './lib/sync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
 import PasscodeGate from './features/auth/PasscodeGate'
@@ -23,6 +24,14 @@ function Shell() {
     const root = document.documentElement
     if (s.accentColor) root.style.setProperty('--accent', s.accentColor)
     if (s.cardStyle) root.setAttribute('data-card-style', s.cardStyle)
+  })() }, [])
+  // First-load pull for cloud sync (if configured)
+  useEffect(() => { (async () => {
+    const s = await getSettings()
+    if (s.cloudSync?.enabled && s.cloudSync.provider==='gist' && s.cloudSync.token && s.cloudSync.gistId) {
+      await pullFromGist(s.cloudSync)
+  startBackgroundPull(30000)
+    }
   })() }, [])
   useEffect(() => { (async () => {
     const s = await getSettings()
