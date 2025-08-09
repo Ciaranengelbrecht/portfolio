@@ -14,6 +14,7 @@ export default function SettingsPage(){
   const [newPassword, setNewPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [userEmail, setUserEmail] = useState<string|undefined>()
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -30,9 +31,13 @@ export default function SettingsPage(){
     // Track supabase auth state
     const sub = supabase.auth.onAuthStateChange(async (_evt: any, session: any) => {
       setUserEmail(session?.user?.email || undefined)
+      setAuthChecked(true)
     })
     // get current session once
-    supabase.auth.getSession().then(({ data }: any) => setUserEmail(data?.session?.user?.email || undefined))
+    supabase.auth.getSession().then(({ data }: any) => {
+      setUserEmail(data?.session?.user?.email || undefined)
+      setAuthChecked(true)
+    })
     return () => { sub.data.subscription.unsubscribe() }
   }, [])
 
@@ -104,7 +109,9 @@ export default function SettingsPage(){
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
           <div className="text-sm text-gray-400">Sign in to sync via Supabase. Offline still works; changes sync when you reconnect.</div>
-          {userEmail ? (
+          {!authChecked ? (
+            <div className="flex items-center gap-3 mt-2 text-sm text-gray-400">Checking session…</div>
+          ) : userEmail ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
               <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>supabase.auth.signOut()}>Sign out</button>
