@@ -15,6 +15,8 @@ export default function SettingsPage(){
   const [otp, setOtp] = useState('')
   const [userEmail, setUserEmail] = useState<string|undefined>()
   const [authChecked, setAuthChecked] = useState(false)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')
@@ -109,6 +111,7 @@ export default function SettingsPage(){
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
+  <Toast open={!!toast} message={toast||''} onClose={()=>setToast(null)} />
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
@@ -118,8 +121,9 @@ export default function SettingsPage(){
           ) : userEmail ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
-              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
-                try { await supabase.auth.signOut({ scope: 'global' } as any) } finally {
+              <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`} disabled={busy==='signout'} onClick={async ()=>{
+                setBusy('signout')
+                try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out') } finally {
                   try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
                   // Verify session gone
                   try {
@@ -131,6 +135,7 @@ export default function SettingsPage(){
                     }
                   } catch {}
                   setUserEmail(undefined)
+                  setBusy(null)
                 }
               }}>Sign out</button>
             </div>
@@ -141,33 +146,41 @@ export default function SettingsPage(){
               <div className="flex gap-2 flex-wrap">
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
+                  setBusy('signin')
                   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
                   if(error) alert('Sign-in error: ' + error.message)
-                  else setUserEmail(data.user?.email || email)
+                  else { setUserEmail(data.user?.email || email); setToast('Signed in') }
+                  setBusy(null)
                 }}>Sign in</button>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
                   if(password !== password2) return alert('Passwords do not match')
                   const redirectTo = window.location.origin + window.location.pathname
+                  setBusy('signup')
                   const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
                   if(error) alert('Sign-up error: ' + error.message)
                   else if (!data.session) alert('Check your email to confirm your account.')
-                  else setUserEmail(data.user?.email || email)
+                  else { setUserEmail(data.user?.email || email); setToast('Account created') }
+                  setBusy(null)
                 }}>Create account</button>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
                   const redirectTo = window.location.origin + window.location.pathname
+                  setBusy('otp')
                   const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
                   if(error) alert('Magic link error: ' + error.message)
                   else alert('Magic link sent. Check your email.')
+                  setBusy(null)
                 }}>Send magic link</button>
                 <div className="flex items-center gap-2">
                   <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
                   <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                     if(!email || !otp) return alert('Enter email and OTP code')
+                    setBusy('verify')
                     const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' as any })
                     if(error) alert('OTP error: ' + error.message)
-                    else setUserEmail(data?.user?.email || email)
+                    else { setUserEmail(data?.user?.email || email); setToast('Signed in via OTP') }
+                    setBusy(null)
                   }}>Verify OTP</button>
                 </div>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
@@ -319,6 +332,19 @@ function download(name: string, content: string, type: string){
   a.download = name
   a.click()
   URL.revokeObjectURL(a.href)
+}
+
+// lightweight inline snackbar for Settings page
+function Toast({ open, message, onClose }:{ open:boolean; message:string; onClose:()=>void }){
+  if (!open) return null
+  return (
+    <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
+      <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
+        {message}
+        <button className="ml-3 text-xs underline" onClick={onClose}>Dismiss</button>
+      </div>
+    </div>
+  )
 }
 
 function ExerciseOverrides(){
