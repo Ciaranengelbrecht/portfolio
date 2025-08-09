@@ -4,7 +4,13 @@ import { Settings } from './types'
 let pulling = false
 
 function headers(token: string){
-  return { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+  // Classic PATs usually start with ghp_ and accept 'token'. Fine-grained often start with github_pat_ and prefer 'Bearer'.
+  const scheme = token.startsWith('github_pat_') ? 'Bearer' : 'token'
+  return {
+    'Authorization': `${scheme} ${token}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
 }
 
 function toPayload(blob: any){
@@ -57,19 +63,21 @@ export async function pushToGist(cfg: NonNullable<Settings['cloudSync']>) {
   if (cfg.gistId) {
     const res = await fetch(`https://api.github.com/gists/${cfg.gistId}`, { method:'PATCH', headers: { ...headers(cfg.token), 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
     const ok = res.ok
+    const errText = ok ? '' : await res.text().catch(()=> '')
     const s = await db.get<Settings>('settings','app')
-    await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastPushedAt: ok ? new Date().toISOString() : s?.cloudSync?.lastPushedAt, lastError: ok ? undefined : `push ${res.status}` } })
+    await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastPushedAt: ok ? new Date().toISOString() : s?.cloudSync?.lastPushedAt, lastError: ok ? undefined : `push ${res.status} ${errText.slice(0,120)}` } })
     return ok
   } else {
     const res = await fetch('https://api.github.com/gists', { method:'POST', headers: { ...headers(cfg.token), 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
     const ok = res.ok
+    const errText = ok ? '' : await res.text().catch(()=> '')
     if (ok){
       const j = await res.json()
       const s = await db.get<Settings>('settings','app')
       await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), provider:'gist', enabled:true, token: cfg.token, gistId: j.id, lastPushedAt: new Date().toISOString(), lastError: undefined } })
     } else {
       const s = await db.get<Settings>('settings','app')
-      await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastError: `push ${res.status}` } })
+      await db.put('settings', { ...(s||{}), id:'app', cloudSync: { ...(s?.cloudSync||{}), lastError: `push ${res.status} ${errText.slice(0,120)}` } })
     }
     return ok
   }
