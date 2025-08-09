@@ -2,7 +2,7 @@ import { openDB, IDBPDatabase } from 'idb'
 import { Exercise, Measurement, Session, Settings, Template } from './types'
 import { migrateV2 } from './migrations/v2'
 import { migrateV3 } from './migrations/v3'
-import { enqueueDelete, enqueueUpsert, schedulePush } from './supabaseSync'
+import { enqueueDelete, enqueueUpsert, schedulePush, pushLocalChanges } from './supabaseSync'
 
 const DB_NAME = 'liftlog'
 const DB_VERSION = 3
@@ -51,6 +51,48 @@ function lsWrite<T>(store: string, data: Record<string,T>) {
 }
 
 export const db = {
+  // Writes used by sync (do not enqueue/push)
+  async putFromSync<T extends any>(store: keyof DBSchema, value: any): Promise<void> {
+    if (useLocal) {
+      const obj = lsRead<any>(store)
+      const k = value?.id ?? (store === 'settings' ? 'app' : undefined)
+      if (!k) throw new Error('Missing key for localStorage putFromSync')
+      obj[k] = value
+      lsWrite(store, obj)
+      return
+    }
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      if (store === 'settings') await dbi.put(store as any, value as any, 'app')
+      else await dbi.put(store as any, value as any)
+    } catch {
+      useLocal = true
+      const obj = lsRead<any>(store)
+      const k = value?.id ?? (store === 'settings' ? 'app' : undefined)
+      if (!k) throw new Error('Missing key for localStorage putFromSync (fallback)')
+      obj[k] = value
+      lsWrite(store, obj)
+    }
+  },
+  async deleteFromSync(store: keyof DBSchema, key: string) {
+    if (useLocal) {
+      const obj = lsRead<any>(store)
+      delete obj[key]
+      lsWrite(store, obj)
+      return
+    }
+    try {
+      const dbi = await getDB()
+      if (!dbi) throw new Error('IDB not available')
+      await dbi.delete(store as any, key)
+    } catch {
+      useLocal = true
+      const obj = lsRead<any>(store)
+      delete obj[key]
+      lsWrite(store, obj)
+    }
+  },
   async getAll<T = any>(store: keyof DBSchema): Promise<T[]> {
     if (useLocal) {
       const obj = lsRead<T>(store)
@@ -107,7 +149,12 @@ export const db = {
       lsWrite(store, obj)
     } finally {
       enqueueUpsert(store as any, value?.id ?? 'app', value)
-      schedulePush()
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        // Push immediately when online for near-instant sync
+        pushLocalChanges()
+      } else {
+        schedulePush()
+      }
     }
   },
   async delete(store: keyof DBSchema, key: string) {
@@ -130,7 +177,11 @@ export const db = {
       lsWrite(store, obj)
     } finally {
       enqueueDelete(store as any, key)
-      schedulePush()
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        pushLocalChanges()
+      } else {
+        schedulePush()
+      }
     }
   }
 }

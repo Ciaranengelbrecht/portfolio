@@ -7,6 +7,7 @@ type PendingOp = { table: Table; type: 'upsert'|'delete'; id: string; data?: any
 
 const PENDING_KEY = 'liftlog:pendingOps'
 let pushTimer: any
+let pullTimer: any
 
 function readQueue(): PendingOp[]{
   try { return JSON.parse(localStorage.getItem(PENDING_KEY)||'[]') } catch { return [] }
@@ -47,7 +48,12 @@ export async function pushLocalChanges(){
 
 export function schedulePush(){
   if (pushTimer) clearTimeout(pushTimer)
-  pushTimer = setTimeout(() => { pushLocalChanges() }, 1500)
+  pushTimer = setTimeout(async () => {
+    await pushLocalChanges()
+    // After pushing, pull shortly to reflect changes from other devices
+    if (pullTimer) clearTimeout(pullTimer)
+    pullTimer = setTimeout(() => fullPull(), 800)
+  }, 400)
 }
 
 export async function fullPull(){
@@ -58,8 +64,8 @@ export async function fullPull(){
     const rows = await sbList(t)
     for (const row of rows){
       const data = (row as any).data
-      if (t==='settings') await db.put('settings', { ...data, id:'app' })
-      else await db.put(t as any, data)
+      if (t==='settings') await db.putFromSync('settings', { ...data, id:'app' } as any)
+      else await db.putFromSync(t as any, data)
     }
   }
 }
@@ -101,10 +107,10 @@ function startRealtime(){
         if (!row) return
         const data = row.data
         if (payload.eventType === 'DELETE') {
-          await db.delete(t as any, row.id)
+          await db.deleteFromSync(t as any, row.id)
         } else {
-          if (t==='settings') await db.put('settings', { ...data, id:'app' })
-          else await db.put(t as any, data)
+          if (t==='settings') await db.putFromSync('settings', { ...data, id:'app' } as any)
+          else await db.putFromSync(t as any, data)
         }
       })
       .subscribe()
