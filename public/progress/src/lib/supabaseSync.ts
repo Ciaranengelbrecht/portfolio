@@ -26,8 +26,8 @@ export function enqueueDelete(table: Table, id: string){
 }
 
 async function getOwnerId(): Promise<string|undefined> {
-  const { data } = await supabase.auth.getUser()
-  return data.user?.id
+  const { data } = await supabase.auth.getSession()
+  return data.session?.user?.id
 }
 
 export async function pushLocalChanges(){
@@ -81,7 +81,12 @@ export function initSupabaseSync(){
   })
   const onOnline = async () => { await pushLocalChanges(); await fullPull() }
   window.addEventListener('online', onOnline)
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) onOnline() })
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) onOnline();
+    else schedulePush();
+  })
+  // Periodic sync as a safety net
+  setInterval(onOnline, 30_000)
 }
 
 let realtimeStarted = false

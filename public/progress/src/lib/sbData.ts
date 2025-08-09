@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 type Table = 'exercises'|'sessions'|'measurements'|'templates'|'settings'
 
 export async function sbUpsert(table: Table, owner: string, id: string, data: any){
-  const { error } = await supabase.from(table).upsert({ id, owner, data }).eq('id', id)
+  const { error } = await supabase.from(table).upsert({ id, owner, data }, { onConflict: 'id' })
   if(error) throw error
 }
 
@@ -19,7 +19,13 @@ export async function sbGet(table: Table, id: string){
 }
 
 export async function sbList(table: Table){
-  const { data, error } = await supabase.from(table).select('id,data,owner,updated_at').order('updated_at', { ascending: true })
+  const { data: user } = await supabase.auth.getUser()
+  const owner = user.user?.id
+  const { data, error } = await supabase
+    .from(table)
+    .select('id,data,owner,updated_at')
+    .eq('owner', owner as any)
+    .order('updated_at', { ascending: true })
   if(error) throw error
   return data
 }
