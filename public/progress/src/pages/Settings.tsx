@@ -11,6 +11,7 @@ export default function SettingsPage(){
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [password2, setPassword2] = useState('')
+  const [otp, setOtp] = useState('')
   const [userEmail, setUserEmail] = useState<string|undefined>()
 
   useEffect(() => { (async () => {
@@ -118,6 +119,15 @@ export default function SettingsPage(){
                   if(error) alert('Magic link error: ' + error.message)
                   else alert('Magic link sent. Check your email.')
                 }}>Send magic link</button>
+                <div className="flex items-center gap-2">
+                  <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
+                  <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                    if(!email || !otp) return alert('Enter email and OTP code')
+                    const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' as any })
+                    if(error) alert('OTP error: ' + error.message)
+                    else setUserEmail(data?.user?.email || email)
+                  }}>Verify OTP</button>
+                </div>
               </div>
               <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
               <div className="text-xs text-gray-400">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
