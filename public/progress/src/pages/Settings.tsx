@@ -9,6 +9,8 @@ export default function SettingsPage(){
   const fileRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState<{ lastPull?: string; lastPush?: string; error?: string }>({})
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [password2, setPassword2] = useState('')
   const [userEmail, setUserEmail] = useState<string|undefined>()
 
   useEffect(() => { (async () => {
@@ -83,22 +85,42 @@ export default function SettingsPage(){
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
-          <div className="text-sm text-gray-400">Sign in with a magic link to sync via Supabase (central database). Offline still works; changes sync when you reconnect.</div>
+          <div className="text-sm text-gray-400">Sign in to sync via Supabase. Offline still works; changes sync when you reconnect.</div>
           {userEmail ? (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
               <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>supabase.auth.signOut()}>Sign out</button>
             </div>
           ) : (
-            <div className="flex gap-2 mt-2">
-              <input className="bg-slate-800 rounded-xl px-3 py-2 flex-1" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
-              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
-                if(!email) return alert('Enter your email')
-                const redirectTo = window.location.origin + window.location.pathname
-                const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
-                if(error) alert('Signin error: ' + error.message)
-                else alert('Magic link sent. Check your email.')
-              }}>Send magic link</button>
+            <div className="space-y-2 mt-2">
+              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
+              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+              <div className="flex gap-2 flex-wrap">
+                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  if(!email || !password) return alert('Enter email and password')
+                  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+                  if(error) alert('Sign-in error: ' + error.message)
+                  else setUserEmail(data.user?.email || email)
+                }}>Sign in</button>
+                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  if(!email || !password) return alert('Enter email and password')
+                  if(password !== password2) return alert('Passwords do not match')
+                  const redirectTo = window.location.origin + window.location.pathname
+                  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
+                  if(error) alert('Sign-up error: ' + error.message)
+                  else if (!data.session) alert('Check your email to confirm your account.')
+                  else setUserEmail(data.user?.email || email)
+                }}>Create account</button>
+                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  if(!email) return alert('Enter your email')
+                  const redirectTo = window.location.origin + window.location.pathname
+                  const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+                  if(error) alert('Magic link error: ' + error.message)
+                  else alert('Magic link sent. Check your email.')
+                }}>Send magic link</button>
+              </div>
+              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
+              <div className="text-xs text-gray-400">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
             </div>
           )}
         </div>
