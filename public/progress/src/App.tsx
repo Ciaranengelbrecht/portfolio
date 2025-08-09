@@ -29,23 +29,44 @@ function Shell() {
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => { initSupabaseSync() }, [])
 
-  // If user opens a Supabase password recovery link, send them to Settings to finish reset
+  // If user opens a Supabase password recovery link, mark the flow and navigate AFTER session exists
   useEffect(() => {
-    // Event-driven: Supabase emits PASSWORD_RECOVERY when coming from the email link
-    const sub = supabase.auth.onAuthStateChange((evt) => {
-      if (evt === 'PASSWORD_RECOVERY') {
-        try { localStorage.setItem('sb_pw_reset', '1') } catch {}
-        navigate('/settings')
-      }
-    })
-    // Hash fallback: if the URL still contains type=recovery, also navigate
     const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search)
     const type = params.get('type') || params.get('event')
     if (type === 'recovery') {
       try { localStorage.setItem('sb_pw_reset', '1') } catch {}
-      navigate('/settings')
     }
-    return () => { sub.data.subscription.unsubscribe() }
+
+    let stopped = false
+    const maybeRouteToSettings = async () => {
+      const flagged = localStorage.getItem('sb_pw_reset') === '1'
+      if (!flagged) return
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        navigate('/settings')
+        return true
+      }
+      return false
+    }
+
+    // Listen for auth changes and route when a session is ready
+    const sub = supabase.auth.onAuthStateChange(async (_evt, session) => {
+      if (localStorage.getItem('sb_pw_reset') === '1' && session) {
+        navigate('/settings')
+      }
+    })
+
+    // Poll briefly as a fallback in case session arrives before listener
+    let tries = 0
+    const timer = setInterval(async () => {
+      if (stopped) return
+      const done = await maybeRouteToSettings()
+      if (done || ++tries > 25) { // ~5s
+        clearInterval(timer)
+      }
+    }, 200)
+
+    return () => { stopped = true; clearInterval(timer); sub.data.subscription.unsubscribe() }
   }, [])
 
   // Supabase sync handles online/visibility internally now

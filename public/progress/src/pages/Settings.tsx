@@ -147,9 +147,10 @@ export default function SettingsPage(){
                 </div>
                 <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
-                  // Ensure the redirect points to the app route (works for both /progress and /progress/dist)
+                  // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
                   const base = window.location.origin + window.location.pathname
-                  const redirectTo = base + (base.endsWith('/') ? '' : '/')
+                  // If we're at /progress, send to /progress/dist/; if already /progress/dist, keep it
+                  const redirectTo = base.includes('/dist') ? base : (base.replace(/\/?$/, '/') + 'dist/')
                   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
                   if (error) alert('Reset error: ' + error.message)
                   else alert('Password reset email sent. Check your inbox.')
@@ -171,14 +172,21 @@ export default function SettingsPage(){
                 <div className="text-sm text-gray-300">Reset your password</div>
                 <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
                 <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={async ()=>{
-                  if(!newPassword) return alert('Enter a new password')
-                  const { error } = await supabase.auth.updateUser({ password: newPassword })
+                   if(!newPassword) return alert('Enter a new password')
+                   // Ensure Supabase has a valid session (from the email link hash) before updating
+                   const { data } = await supabase.auth.getSession()
+                   if (!data.session) {
+                     alert('Recovery session not established yet. Please re-open the email link in this browser and try again.')
+                     return
+                   }
+                   const { error } = await supabase.auth.updateUser({ password: newPassword })
                   if(error) alert('Could not set password: ' + error.message)
                   else {
                     alert('Password updated. You are now signed in.')
                     // Clean recovery params so refreshes are clean
                     const url = new URL(window.location.href)
-                    url.hash = ''
+                     // Some providers put tokens in hash; remove only after update
+                     url.hash = ''
                     history.replaceState(null, '', url.toString())
                     try { localStorage.removeItem('sb_pw_reset') } catch {}
                   }
