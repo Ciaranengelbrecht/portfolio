@@ -3,30 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0b0f14" />
-    <!-- If opened from the deployed site (not localhost) and not already under /dist, redirect to the built app -->
-    <script>
-      (function() {
-        var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        var atDist = location.pathname.includes('/dist/');
-        if (!isLocal && !atDist) {
-          // Ensure we treat current path as a directory (handles /progress and /portfolio/progress)
-          var baseDir = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
-          var target = baseDir + 'dist/index.html' + (location.search || '') + (location.hash || '');
-          location.replace(target);
-        }
-      })();
-    </script>
-    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0b0f14">
+    <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>LiftLog</title>
+    <!-- Load built CSS from /progress/dist -->
+  <link rel="stylesheet" href="./dist/assets/index-B3MMFRnV.css" />
   </head>
   <body class="bg-bg text-white">
     <div id="root"></div>
-  <!-- This script is required so Vite builds the app bundle into dist/ -->
-  <script type="module" src="/src/main.tsx"></script>
-    <noscript>
-      <p>Redirecting to the app… <a href="./dist/">Open LiftLog</a></p>
-    </noscript>
+    <!-- Load built JS from /progress/dist -->
+  <script type="module" src="./dist/assets/index-CpOT4UbX.js"></script>
   </body>
 </html>

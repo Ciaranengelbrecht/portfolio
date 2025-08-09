@@ -1,7 +1,7 @@
 {
   "name": "LiftLog",
   "short_name": "LiftLog",
-  "start_url": "./dist/index.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0b0f14",
