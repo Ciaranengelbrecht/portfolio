@@ -19,6 +19,12 @@ export default function SettingsPage(){
   const [authChecked, setAuthChecked] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  // Auto-dismiss toast notifications after ~1.8s
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 1800)
+    return () => clearTimeout(t)
+  }, [toast])
 
   useEffect(() => { (async () => {
     const current = await db.get<Settings>('settings','app')

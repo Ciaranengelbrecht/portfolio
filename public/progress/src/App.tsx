@@ -23,6 +23,12 @@ function Shell() {
   const [signingOut, setSigningOut] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [authOpen, setAuthOpen] = useState(false)
+  // Auto-dismiss small toast notifications
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 1800)
+    return () => clearTimeout(t)
+  }, [toast])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
   useEffect(() => { (async () => {
