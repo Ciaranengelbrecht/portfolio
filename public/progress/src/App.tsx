@@ -4,7 +4,7 @@ import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
-import { supabase, clearAuthStorage, refreshSessionNow, forceRefreshSession } from './lib/supabase'
+import { supabase, clearAuthStorage, refreshSessionNow, forceRefreshSession, waitForSession } from './lib/supabase'
 import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
 import BigFlash from './components/BigFlash'
@@ -38,13 +38,11 @@ function Shell() {
   }, [bigFlash])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
-  // Warm and force-refresh session at startup
+  // Warm and force-refresh session at startup; briefly wait for session to avoid flash of empty data
   useEffect(() => {
     (async () => {
-      const s1 = await refreshSessionNow()
-      if (!s1) await forceRefreshSession()
-      const s2 = await refreshSessionNow()
-      if (s2?.user?.email) setAuthEmail(s2.user.email)
+      const s = await waitForSession({ timeoutMs: 6000 })
+      if (s?.user?.email) setAuthEmail(s.user.email)
       setAuthChecked(true)
     })()
   }, [])
@@ -120,7 +118,7 @@ function Shell() {
         setAuthEmail(data?.session?.user?.email ?? null)
       } catch {}
     }
-    const onVis = () => { if (document.visibilityState === 'visible') refresh() }
+  const onVis = async () => { if (document.visibilityState === 'visible') { await waitForSession({ timeoutMs: 4000 }); refresh() } }
     window.addEventListener('visibilitychange', onVis)
     window.addEventListener('online', refresh)
     // React to explicit auth events (from supabase.ts)

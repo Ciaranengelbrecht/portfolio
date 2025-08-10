@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db } from '../lib/db'
+import { waitForSession } from '../lib/supabase'
 import { Exercise, Session, SessionEntry, SetEntry, Template } from '../lib/types'
 import { nanoid } from 'nanoid'
 import { getDeloadPrescription, getLastWorkingSets } from '../lib/helpers'
@@ -54,6 +55,7 @@ export default function Sessions() {
   })() }, [phase, week, day])
 
   useEffect(() => { (async () => {
+    await waitForSession({ timeoutMs: 4000 })
     setTemplates(await db.getAll('templates'))
     setExercises(await db.getAll('exercises'))
   })() }, [])
@@ -61,6 +63,7 @@ export default function Sessions() {
   // Refetch data when auth session changes (e.g., token refresh or resume)
   useEffect(() => {
     const onAuth = () => { (async () => {
+      await waitForSession({ timeoutMs: 4000 })
       setTemplates(await db.getAll('templates'))
       setExercises(await db.getAll('exercises'))
       if (session) {

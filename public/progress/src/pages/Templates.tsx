@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { db } from '../lib/db'
+import { waitForSession } from '../lib/supabase'
 import { Exercise, Template } from '../lib/types'
 import { nanoid } from 'nanoid'
 
@@ -12,12 +13,14 @@ export default function Templates(){
   const [exerciseQuery, setExerciseQuery] = useState('')
 
   useEffect(() => { (async () => {
+    await waitForSession({ timeoutMs: 4000 })
     setExercises(await db.getAll('exercises'))
     setTemplates(await db.getAll('templates'))
   })() }, [])
 
   useEffect(() => {
     const onAuth = () => { (async () => {
+      await waitForSession({ timeoutMs: 4000 })
       setExercises(await db.getAll('exercises'))
       setTemplates(await db.getAll('templates'))
     })() }

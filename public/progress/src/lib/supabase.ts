@@ -50,3 +50,21 @@ export async function forceRefreshSession(){
     return res.data.session
   } catch { return null }
 }
+
+// Wait for a valid session to be available (used to smooth over reload races)
+export async function waitForSession(opts: { timeoutMs?: number; intervalMs?: number } = {}){
+  const timeoutMs = opts.timeoutMs ?? 8000
+  const intervalMs = opts.intervalMs ?? 200
+  const start = Date.now()
+  // Try fast path
+  let { data } = await supabase.auth.getSession()
+  if (data.session) return data.session
+  // Nudge refresh once
+  await forceRefreshSession()
+  while (Date.now() - start < timeoutMs) {
+    const { data } = await supabase.auth.getSession()
+    if (data.session) return data.session
+    await new Promise(r => setTimeout(r, intervalMs))
+  }
+  return null
+}
