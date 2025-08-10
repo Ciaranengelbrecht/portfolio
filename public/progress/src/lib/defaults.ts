@@ -12,7 +12,8 @@ export const defaultSettings: Settings = {
   defaultSetRows: 3,
   measurementUnits: 'metric',
   privacyUnlockMode: 'everyLaunch',
-  dashboardPrefs: { range: '8w', openToLast: true, startPage: 'last' }
+  dashboardPrefs: { range: '8w', openToLast: true, startPage: 'last' },
+  progress: { weeklyTargetDays: 6, gamification: true, showDeloadHints: true }
 }
 
 export const defaultExercises: Exercise[] = [

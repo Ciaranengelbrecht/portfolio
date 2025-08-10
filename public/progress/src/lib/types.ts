@@ -63,6 +63,11 @@ export interface Settings {
     openToLast?: boolean
     startPage?: 'last'|'dashboard'|'sessions'|'measurements'
   }
+  progress?: {
+    weeklyTargetDays?: number // default 6, min 3, max 6
+    gamification?: boolean // default true
+    showDeloadHints?: boolean // default true
+  }
   currentPhase?: number
   accentColor?: string
   cardStyle?: 'glass'|'solid'|'minimal'
@@ -91,4 +96,4 @@ export interface Template {
   hidden?: boolean
 }
 
-export type DBVersion = 3
+export type DBVersion = 4

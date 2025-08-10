@@ -4,6 +4,7 @@ import { db } from '../lib/db'
 import { Measurement, Session } from '../lib/types'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts'
 import DashboardDeloadTable from './DashboardDeloadTable'
+import ProgressBars from '../components/ProgressBars'
 
 export default function Dashboard() {
   const [week, setWeek] = useState(1)
@@ -24,6 +25,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+  <ProgressBars />
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">Dashboard</h2>
         <select className="bg-card rounded-xl px-3 py-2" value={week} onChange={e=>setWeek(Number(e.target.value))}>

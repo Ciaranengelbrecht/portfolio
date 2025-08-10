@@ -378,6 +378,25 @@ export default function SettingsPage(){
         <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={save}>Save Safety Settings</button>
       </div>
 
+      {/* Progress */}
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div className="font-medium">Progress</div>
+        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
+          <span className="text-sm text-gray-300">Weekly target days</span>
+          <input className="bg-slate-900 rounded px-2 py-1 w-16 text-center" inputMode="numeric" value={s.progress?.weeklyTargetDays ?? 6}
+            onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; const n=Math.max(3, Math.min(6, Number(v||'6'))); setS({ ...s, progress: { ...(s.progress||{}), weeklyTargetDays: n } }) }} />
+        </label>
+        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
+          <span className="text-sm text-gray-300">Gamification effects</span>
+          <input type="checkbox" checked={(s.progress?.gamification ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), gamification: e.target.checked } })} />
+        </label>
+        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
+          <span className="text-sm text-gray-300">Show deload hints</span>
+          <input type="checkbox" checked={(s.progress?.showDeloadHints ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), showDeloadHints: e.target.checked } })} />
+        </label>
+        <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={save}>Save Progress Settings</button>
+      </div>
+
       <ExerciseOverrides />
     </div>
   )

@@ -31,6 +31,11 @@ export default function Sessions() {
     // load current phase from settings
     const s = await getSettings()
     setPhase(s.currentPhase || 1)
+    const last = s.dashboardPrefs?.lastLocation
+    if (last) {
+      setWeek(last.weekNumber as any)
+      setDay(last.dayId)
+    }
   })() }, [])
 
   useEffect(() => { (async () => {
@@ -123,7 +128,8 @@ export default function Sessions() {
     const newEntries = session.entries.map(e => e.id === entry.id ? entry : e)
   const updated = { ...session, entries: newEntries }
     setSession(updated)
-    await db.put('sessions', updated)
+  await db.put('sessions', updated)
+  try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })) } catch {}
   const s = await getSettings(); await setSettings({ ...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), lastLocation: { phaseNumber: phase, weekNumber: week, dayId: day, sessionId: updated.id } } })
   }
 
@@ -138,6 +144,7 @@ export default function Sessions() {
     const updated = { ...session, entries: session.entries.filter(e => e.id !== entryId) }
     setSession(updated)
     await db.put('sessions', updated)
+  try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })) } catch {}
     const undo = async () => { setSession(prev); await db.put('sessions', prev) }
     setLastAction({ undo })
     setSnack({ open:true, msg:'Exercise removed', undo })
@@ -157,7 +164,9 @@ export default function Sessions() {
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets }
     const updated = { ...session, entries: [...session.entries, entry] }
     setSession(updated)
-    await db.put('sessions', updated)
+  await db.put('sessions', updated)
+  try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })) } catch {}
+  const s = await getSettings(); await setSettings({ ...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), lastLocation: { phaseNumber: phase, weekNumber: week, dayId: day, sessionId: updated.id } } })
   }
 
   const createCustomExercise = async (name: string) => {
