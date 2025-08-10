@@ -22,3 +22,12 @@ export function clearAuthStorage() {
     }
   } catch {}
 }
+
+// Force a quick session validation; returns current session or null
+export async function refreshSessionNow(){
+  try {
+    const { data, error } = await supabase.auth.getSession()
+    if (error) return null
+    return data.session ?? null
+  } catch { return null }
+}

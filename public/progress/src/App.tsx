@@ -4,7 +4,7 @@ import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
-import { supabase, clearAuthStorage } from './lib/supabase'
+import { supabase, clearAuthStorage, refreshSessionNow } from './lib/supabase'
 import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
 import BigFlash from './components/BigFlash'
@@ -38,6 +38,8 @@ function Shell() {
   }, [bigFlash])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
+  // Warm session at startup
+  useEffect(() => { refreshSessionNow().then(s => { if (s?.user?.email) setAuthEmail(s.user.email); setAuthChecked(true) }).catch(()=>{}) }, [])
   useEffect(() => { (async () => {
     const s = await getSettings()
     // apply accent and card style
@@ -102,7 +104,24 @@ function Shell() {
       })
       .catch(() => setAuthChecked(true))
       .finally(() => clearTimeout(timer))
-    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.() }
+
+    // Actively refresh session when returning to app, regaining network, and periodically
+    const refresh = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        setAuthEmail(data?.session?.user?.email ?? null)
+      } catch {}
+    }
+    const onVis = () => { if (document.visibilityState === 'visible') refresh() }
+    window.addEventListener('visibilitychange', onVis)
+    window.addEventListener('online', refresh)
+    const iv = setInterval(refresh, 5 * 60 * 1000)
+
+    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.();
+      window.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('online', refresh)
+      clearInterval(iv)
+    }
   }, [])
 
   // Supabase sync handles online/visibility internally now
@@ -147,7 +166,7 @@ function Shell() {
                   <button
                     className={`px-2 py-1 rounded-lg text-xs ${signingOut ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`}
                     disabled={signingOut}
-                    onClick={async () => {
+          onClick={async () => {
                       setSigningOut(true)
                       try {
                         await supabase.auth.signOut({ scope: 'global' } as any)
@@ -166,7 +185,9 @@ function Shell() {
                         navigate('/')
                         setSigningOut(false)
                         setToast('Signed out')
-                        setBigFlash('Signed out successfully')
+            setBigFlash('Signed out successfully')
+            // Ensure a clean slate in PWA by reloading the page
+            setTimeout(() => { try { window.location.reload() } catch {} }, 200)
                       }
                     }}
                   >

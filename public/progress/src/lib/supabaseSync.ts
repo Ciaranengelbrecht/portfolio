@@ -10,10 +10,12 @@ export function initSupabaseSync(){
     subscribed = true
     const tables: Table[] = ['exercises','sessions','measurements','templates','settings']
     tables.forEach(t => {
-      supabase.channel(`rt-${t}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: t }, () => {
-          // Consumers should refresh views by reloading data on their side as needed
-          // We keep this minimal in cloud-only mode.
+      supabase
+        .channel(`rt-${t}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload: any) => {
+          try {
+            window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: t, payload } }))
+          } catch {}
         })
         .subscribe()
     })

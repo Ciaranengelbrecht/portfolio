@@ -58,6 +58,18 @@ export default function Sessions() {
     setExercises(await db.getAll('exercises'))
   })() }, [])
 
+  // Lightweight realtime auto-refresh: refetch lists when tables change
+  useEffect(() => {
+    const onChange = (e: any) => {
+      const tbl = e?.detail?.table
+      if (tbl === 'templates') db.getAll('templates').then(setTemplates)
+      if (tbl === 'exercises') db.getAll('exercises').then(setExercises)
+      if (tbl === 'sessions' && session) db.get<Session>('sessions', session.id).then(s=> s && setSession(s))
+    }
+    window.addEventListener('sb-change', onChange as any)
+    return () => window.removeEventListener('sb-change', onChange as any)
+  }, [session?.id])
+
   const addSet = (entry: SessionEntry) => {
     const next: SetEntry = { setNumber: entry.sets.length + 1, weightKg: 0, reps: 0 }
     updateEntry({ ...entry, sets: [...entry.sets, next] })

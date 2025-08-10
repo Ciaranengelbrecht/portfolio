@@ -16,6 +16,17 @@ export default function Templates(){
     setTemplates(await db.getAll('templates'))
   })() }, [])
 
+  // Realtime auto-refresh
+  useEffect(() => {
+    const onChange = (e: any) => {
+      const tbl = e?.detail?.table
+      if (tbl === 'exercises') db.getAll('exercises').then(setExercises)
+      if (tbl === 'templates') db.getAll('templates').then(setTemplates)
+    }
+    window.addEventListener('sb-change', onChange as any)
+    return () => window.removeEventListener('sb-change', onChange as any)
+  }, [])
+
   const addTemplate = async () => {
     const t: Template = { id: nanoid(), name: name || `Template ${templates.length+1}`, exerciseIds: exercises.slice(0,4).map(e=>e.id) }
     await db.put('templates', t)
