@@ -5,6 +5,21 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 })
 
+// Cache the last session we heard about from onAuthStateChange.
+let lastAuthSession: any = null
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  let t: any
+  return Promise.race([
+    p.finally(() => clearTimeout(t)),
+    new Promise<never>((_, rej) => {
+      t = setTimeout(() => {
+        rej(new Error(`${label} timed out after ${ms}ms`))
+      }, ms)
+    })
+  ])
+}
+
 // Helper: robustly clear Supabase auth storage for this project
 export function clearAuthStorage() {
   try {
@@ -41,6 +56,7 @@ try {
   supabase.auth.onAuthStateChange((evt, session) => {
     try {
       console.log('[auth] onAuthStateChange:', evt, 'user:', session?.user?.id || null)
+      lastAuthSession = session || lastAuthSession
       window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session } }))
     } catch {}
   })
@@ -67,15 +83,29 @@ export async function waitForSession(opts: { timeoutMs?: number; intervalMs?: nu
   const start = Date.now()
   console.log('[auth] waitForSession: start', { timeoutMs, intervalMs })
   // Try fast path
-  let { data } = await supabase.auth.getSession()
-  console.log('[auth] waitForSession: initial getSession session?', !!data.session)
-  if (data.session) { console.log('[auth] waitForSession: fast path hit'); return data.session }
+  try {
+    let { data } = await withTimeout(supabase.auth.getSession(), 800, 'getSession (initial)')
+    console.log('[auth] waitForSession: initial getSession session?', !!data.session)
+    if (data.session) { console.log('[auth] waitForSession: fast path hit'); return data.session }
+  } catch (e: any) {
+    console.log('[auth] waitForSession: initial getSession timeout/error:', e?.message || e)
+    if (lastAuthSession) {
+      console.log('[auth] waitForSession: using lastAuthSession from onAuthStateChange')
+      return lastAuthSession
+    }
+  }
   // Nudge refresh once
   console.log('[auth] waitForSession: forceRefresh once')
-  await forceRefreshSession()
+  try { await withTimeout(supabase.auth.refreshSession(), 1000, 'refreshSession (nudge)') } catch (e:any) { console.log('[auth] waitForSession: refresh nudge timeout/error:', e?.message||e) }
   while (Date.now() - start < timeoutMs) {
-    const { data } = await supabase.auth.getSession()
-    if (data.session) { console.log('[auth] waitForSession: session present after', Date.now()-start, 'ms'); return data.session }
+    try {
+      const { data } = await withTimeout(supabase.auth.getSession(), 800, 'getSession (loop)')
+      if (data.session) { console.log('[auth] waitForSession: session present after', Date.now()-start, 'ms'); return data.session }
+    } catch {}
+    if (lastAuthSession) {
+      console.log('[auth] waitForSession: returning lastAuthSession from event after', Date.now()-start, 'ms')
+      return lastAuthSession
+    }
     await new Promise(r => setTimeout(r, intervalMs))
   }
   console.log('[auth] waitForSession: timeout after', timeoutMs, 'ms')
