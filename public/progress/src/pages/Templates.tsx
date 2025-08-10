@@ -160,21 +160,40 @@ export default function Templates(){
               {t.exerciseIds.map((id, idx) => {
                 const ex = exercises.find(e=>e.id===id)
                 return (
-                  <div key={id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3">
-                    <div className="flex-1 truncate">{ex?.name || 'Unknown'}</div>
-                    <div className="flex items-center gap-2">
-                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" disabled={idx===0} onClick={()=>moveExercise(t, idx, idx-1)}>Up</button>
-                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" disabled={idx===t.exerciseIds.length-1} onClick={()=>moveExercise(t, idx, idx+1)}>Down</button>
-                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" onClick={()=>ex && toggleOptional(ex)}>{ex?.isOptional? 'Optional \u2713':'Optional'}</button>
-                      <button className="text-xs bg-red-600 rounded-xl px-3 py-2" onClick={()=>removeExerciseFromTemplate(t, id)}>Remove</button>
-                      {ex && <button className="text-xs bg-red-700 rounded-xl px-3 py-2" onClick={()=>deleteExercise(ex)}>Delete exercise</button>}
+                  <div key={id} className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-800 rounded-xl px-3 py-3">
+                    <div className="w-full sm:flex-1 text-sm sm:text-base break-words">{ex?.name || 'Unknown'}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50" disabled={idx===0} onClick={()=>moveExercise(t, idx, idx-1)}>Up</button>
+                      <button className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50" disabled={idx===t.exerciseIds.length-1} onClick={()=>moveExercise(t, idx, idx+1)}>Down</button>
+                      <button className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2" onClick={()=>ex && toggleOptional(ex)}>
+                        {ex?.isOptional ? (
+                          <>
+                            <span className="hidden sm:inline">Optional ✓</span>
+                            <span className="inline sm:hidden">Opt ✓</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="hidden sm:inline">Optional</span>
+                            <span className="inline sm:hidden">Opt</span>
+                          </>
+                        )}
+                      </button>
+                      <button className="text-[11px] sm:text-xs bg-red-600 rounded-xl px-2 py-1 sm:px-3 sm:py-2" onClick={()=>removeExerciseFromTemplate(t, id)}>Remove</button>
+                      {ex && (
+                        <button className="text-[11px] sm:text-xs bg-red-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2" onClick={()=>deleteExercise(ex)}>
+                          <span className="hidden sm:inline">Delete exercise</span>
+                          <span className="inline sm:hidden">Delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
               })}
             </div>
             <div className="mt-3">
-              <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>setShowAddFor(t.id)}>Add exercise</button>
+              <div className="flex flex-wrap gap-2">
+                <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>setShowAddFor(t.id)}>Add exercise</button>
+              </div>
             </div>
           </div>
         ))}
