@@ -87,13 +87,15 @@ export default function Templates(){
   }
 
   const deleteTemplate = async (t: Template) => {
-    if (!confirm(`Delete template "${t.name}"? This cannot be undone.`)) return
+    const cfg = await db.get('settings','app')
+    if (cfg?.confirmDestructive && !confirm(`Delete template "${t.name}"? This cannot be undone.`)) return
     await db.delete('templates', t.id)
     setTemplates(templates.filter(x => x.id !== t.id))
   }
 
   const deleteExercise = async (ex: Exercise) => {
-    if (!confirm(`Delete exercise "${ex.name}"? It will be removed from all templates.`)) return
+    const cfg = await db.get('settings','app')
+    if (cfg?.confirmDestructive && !confirm(`Delete exercise "${ex.name}"? It will be removed from all templates.`)) return
     await db.delete('exercises', ex.id)
     // Remove from local list
     const nextExercises = exercises.filter(e => e.id !== ex.id)

@@ -70,6 +70,7 @@ export interface Settings {
   defaultSetRows?: number
   measurementUnits?: 'metric'|'imperial'
   privacyUnlockMode?: 'everyLaunch'|'remember24h'
+  confirmDestructive?: boolean
   unlockedUntil?: string
   cloudSync?: {
     provider: 'gist'

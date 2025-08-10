@@ -129,6 +129,11 @@ export default function Sessions() {
 
   const removeEntry = async (entryId: string) => {
     if (!session) return
+    const cfg = await getSettings()
+    if (cfg.confirmDestructive) {
+      const ex = exercises.find(e=> e.id === session.entries.find(x=>x.id===entryId)?.exerciseId)?.name || 'exercise'
+      if (!window.confirm(`Remove ${ex} from this session?`)) return
+    }
     const prev = session
     const updated = { ...session, entries: session.entries.filter(e => e.id !== entryId) }
     setSession(updated)

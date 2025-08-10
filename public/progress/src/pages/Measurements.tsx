@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { db } from '../lib/db'
+import { getSettings } from '../lib/helpers'
 import { Measurement } from '../lib/types'
 import { nanoid } from 'nanoid'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
@@ -31,6 +32,8 @@ export default function Measurements(){
   }
 
   const remove = async (id: string) => {
+    const cfg = await getSettings()
+    if (cfg.confirmDestructive && !window.confirm('Delete this measurement entry?')) return
     const prev = data
     await db.delete('measurements', id)
     setData(data.filter(x=>x.id!==id))

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTheme, THEME_PRESETS } from '../lib/theme'
 import { useNavigate } from 'react-router-dom'
 import BigFlash from '../components/BigFlash'
 import { db } from '../lib/db'
@@ -7,6 +8,7 @@ import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defa
 import { supabase, clearAuthStorage, waitForSession } from '../lib/supabase'
 
 export default function SettingsPage(){
+  const { applyPreset } = useTheme()
   const navigate = useNavigate()
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -117,6 +119,7 @@ export default function SettingsPage(){
   }
 
   const resetData = async () => {
+    if (s.confirmDestructive && !window.confirm('Reset all local data? This cannot be undone.')) return
     for (const k of ['exercises','sessions','measurements','templates'] as const){
       const items = await db.getAll<any>(k)
       for (const it of items) await db.delete(k, (it as any).id)
@@ -338,6 +341,41 @@ export default function SettingsPage(){
           <button className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-xl" onClick={resetData}>Reset data</button>
         </div>
   {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
+      </div>
+
+      {/* Appearance */}
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div className="font-medium">Appearance</div>
+        <div className="space-y-2">
+          <div className="text-sm text-gray-300">Presets</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {THEME_PRESETS.map(p => (
+              <button key={p.id} className="bg-slate-800 rounded-xl p-3 text-left hover:bg-slate-700"
+                onClick={async ()=>{
+                  applyPreset(p.id)
+                  // Persist to settings
+                  const cur = await db.get('settings','app')
+                  await db.put('settings', { ...(cur||{}), id:'app', theme: p.theme, accentColor: p.accent, cardStyle: p.cardStyle })
+                }}>
+                <div className="font-medium text-sm">{p.name}</div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 rounded-full" style={{ background: p.accent }} />
+                  <span className="text-xs text-gray-400 capitalize">{p.theme} • {p.cardStyle}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Safety */}
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div className="font-medium">Safety</div>
+        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
+          <span className="text-sm text-gray-300">Confirm before deleting items</span>
+          <input type="checkbox" checked={!!s.confirmDestructive} onChange={e=>setS({...s, confirmDestructive: e.target.checked})} />
+        </label>
+        <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={save}>Save Safety Settings</button>
       </div>
 
       <ExerciseOverrides />
