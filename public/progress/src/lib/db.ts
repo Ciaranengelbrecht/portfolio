@@ -1,5 +1,5 @@
 import { Exercise, Measurement, Session, Settings, Template } from './types'
-import { supabase } from './supabase'
+import { supabase, forceRefreshSession } from './supabase'
 import { sbUpsert, sbDelete, sbList, sbGet } from './sbData'
 
 export interface DBSchema {
@@ -50,15 +50,33 @@ export const db = {
     if (isTestEnv()) {
       return Array.from(MEM[store].values()) as any
     }
-    const rows = await sbList(store as any)
-    return rows.map((r: any) => store === 'settings' ? ({ ...r.data, id: 'app' }) : r.data)
+    try {
+      const rows = await sbList(store as any)
+      return rows.map((r: any) => store === 'settings' ? ({ ...r.data, id: 'app' }) : r.data)
+    } catch (e: any) {
+      if (/Not signed in/i.test(String(e?.message || e))) {
+        await forceRefreshSession()
+        const rows = await sbList(store as any)
+        return rows.map((r: any) => store === 'settings' ? ({ ...r.data, id: 'app' }) : r.data)
+      }
+      throw e
+    }
   },
   async get<T = any>(store: keyof DBSchema, key: string): Promise<T | undefined> {
     if (isTestEnv()) {
       return MEM[store].get(key)
     }
-    const row = await sbGet(store as any, key)
-    return row ? (store === 'settings' ? ({ ...row.data, id: 'app' } as any) : row.data) : undefined
+    try {
+      const row = await sbGet(store as any, key)
+      return row ? (store === 'settings' ? ({ ...row.data, id: 'app' } as any) : row.data) : undefined
+    } catch (e: any) {
+      if (/Not signed in/i.test(String(e?.message || e))) {
+        await forceRefreshSession()
+        const row = await sbGet(store as any, key)
+        return row ? (store === 'settings' ? ({ ...row.data, id: 'app' } as any) : row.data) : undefined
+      }
+      throw e
+    }
   },
   async put<T extends any>(store: keyof DBSchema, value: any): Promise<void> {
     const id = value?.id ?? (store === 'settings' ? 'app' : undefined)
@@ -67,15 +85,35 @@ export const db = {
       MEM[store].set(id, value)
       return
     }
-    const owner = await getOwnerId()
-    await sbUpsert(store as any, owner, id, value)
+    try {
+      const owner = await getOwnerId()
+      await sbUpsert(store as any, owner, id, value)
+    } catch (e: any) {
+      if (/Not signed in/i.test(String(e?.message || e))) {
+        await forceRefreshSession()
+        const owner = await getOwnerId()
+        await sbUpsert(store as any, owner, id, value)
+        return
+      }
+      throw e
+    }
   },
   async delete(store: keyof DBSchema, key: string) {
     if (isTestEnv()) {
       MEM[store].delete(key)
       return
     }
-    const owner = await getOwnerId()
-    await sbDelete(store as any, owner, key)
+    try {
+      const owner = await getOwnerId()
+      await sbDelete(store as any, owner, key)
+    } catch (e: any) {
+      if (/Not signed in/i.test(String(e?.message || e))) {
+        await forceRefreshSession()
+        const owner = await getOwnerId()
+        await sbDelete(store as any, owner, key)
+        return
+      }
+      throw e
+    }
   }
 }

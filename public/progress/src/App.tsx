@@ -4,7 +4,7 @@ import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
 import { ThemeProvider, useTheme } from './lib/theme'
 import { registerSW } from './lib/pwa'
-import { supabase, clearAuthStorage, refreshSessionNow } from './lib/supabase'
+import { supabase, clearAuthStorage, refreshSessionNow, forceRefreshSession } from './lib/supabase'
 import AuthModal from './components/AuthModal'
 import BackgroundFX from './components/BackgroundFX'
 import BigFlash from './components/BigFlash'
@@ -38,8 +38,16 @@ function Shell() {
   }, [bigFlash])
   useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
   useEffect(() => { registerSW() }, [])
-  // Warm session at startup
-  useEffect(() => { refreshSessionNow().then(s => { if (s?.user?.email) setAuthEmail(s.user.email); setAuthChecked(true) }).catch(()=>{}) }, [])
+  // Warm and force-refresh session at startup
+  useEffect(() => {
+    (async () => {
+      const s1 = await refreshSessionNow()
+      if (!s1) await forceRefreshSession()
+      const s2 = await refreshSessionNow()
+      if (s2?.user?.email) setAuthEmail(s2.user.email)
+      setAuthChecked(true)
+    })()
+  }, [])
   useEffect(() => { (async () => {
     const s = await getSettings()
     // apply accent and card style

@@ -39,3 +39,14 @@ try {
     try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session } })) } catch {}
   })
 } catch {}
+
+// Force refresh tokens if a session exists
+export async function forceRefreshSession(){
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) return null
+    const res = await supabase.auth.refreshSession()
+    try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: res.data.session } })) } catch {}
+    return res.data.session
+  } catch { return null }
+}
