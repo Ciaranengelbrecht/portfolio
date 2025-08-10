@@ -58,6 +58,20 @@ export default function Sessions() {
     setExercises(await db.getAll('exercises'))
   })() }, [])
 
+  // Refetch data when auth session changes (e.g., token refresh or resume)
+  useEffect(() => {
+    const onAuth = () => { (async () => {
+      setTemplates(await db.getAll('templates'))
+      setExercises(await db.getAll('exercises'))
+      if (session) {
+        const fresh = await db.get<Session>('sessions', session.id)
+        if (fresh) setSession(fresh)
+      }
+    })() }
+    window.addEventListener('sb-auth', onAuth)
+    return () => window.removeEventListener('sb-auth', onAuth)
+  }, [session?.id])
+
   // Lightweight realtime auto-refresh: refetch lists when tables change
   useEffect(() => {
     const onChange = (e: any) => {

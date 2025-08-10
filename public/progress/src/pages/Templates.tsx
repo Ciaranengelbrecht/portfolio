@@ -16,6 +16,15 @@ export default function Templates(){
     setTemplates(await db.getAll('templates'))
   })() }, [])
 
+  useEffect(() => {
+    const onAuth = () => { (async () => {
+      setExercises(await db.getAll('exercises'))
+      setTemplates(await db.getAll('templates'))
+    })() }
+    window.addEventListener('sb-auth', onAuth)
+    return () => window.removeEventListener('sb-auth', onAuth)
+  }, [])
+
   // Realtime auto-refresh
   useEffect(() => {
     const onChange = (e: any) => {

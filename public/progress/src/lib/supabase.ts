@@ -28,6 +28,14 @@ export async function refreshSessionNow(){
   try {
     const { data, error } = await supabase.auth.getSession()
     if (error) return null
+    try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: data.session } })) } catch {}
     return data.session ?? null
   } catch { return null }
 }
+
+// Emit auth events globally for UI refetches
+try {
+  supabase.auth.onAuthStateChange((_evt, session) => {
+    try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session } })) } catch {}
+  })
+} catch {}

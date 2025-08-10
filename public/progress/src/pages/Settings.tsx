@@ -50,6 +50,8 @@ export default function SettingsPage(){
       setUserEmail(session?.user?.email || undefined)
       setAuthChecked(true)
     })
+    const onAuth = (e: any) => setUserEmail(e?.detail?.session?.user?.email || undefined)
+    window.addEventListener('sb-auth', onAuth)
     // get current session once
     let timer = setTimeout(() => setAuthChecked(true), 1500)
     supabase.auth.getSession()
@@ -59,7 +61,7 @@ export default function SettingsPage(){
       })
       .catch(() => setAuthChecked(true))
       .finally(() => { clearTimeout(timer) })
-    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.() }
+    return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.(); window.removeEventListener('sb-auth', onAuth) }
   }, [])
 
   // Handle password recovery deep-links from Supabase (type=recovery in URL)

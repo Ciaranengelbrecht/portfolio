@@ -115,11 +115,15 @@ function Shell() {
     const onVis = () => { if (document.visibilityState === 'visible') refresh() }
     window.addEventListener('visibilitychange', onVis)
     window.addEventListener('online', refresh)
+    // React to explicit auth events (from supabase.ts)
+    const onAuth = (e: any) => setAuthEmail(e?.detail?.session?.user?.email ?? null)
+    window.addEventListener('sb-auth', onAuth as any)
     const iv = setInterval(refresh, 5 * 60 * 1000)
 
     return () => { try { clearTimeout(timer) } catch {}; sub?.data?.subscription?.unsubscribe?.();
       window.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('online', refresh)
+      window.removeEventListener('sb-auth', onAuth as any)
       clearInterval(iv)
     }
   }, [])
