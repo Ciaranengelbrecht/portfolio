@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTheme, THEME_PRESETS } from '../lib/theme'
+import { useAppTheme } from '../theme/ThemeProvider'
+import { THEMES, ThemeKey } from '../theme/themes'
 import { useNavigate } from 'react-router-dom'
 import BigFlash from '../components/BigFlash'
 import { db } from '../lib/db'
@@ -9,6 +11,7 @@ import { supabase, clearAuthStorage, waitForSession } from '../lib/supabase'
 
 export default function SettingsPage(){
   const { applyPreset } = useTheme()
+  const { themeKey, setThemeKey } = useAppTheme()
   const navigate = useNavigate()
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -136,13 +139,13 @@ export default function SettingsPage(){
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
-          <div className="text-sm text-gray-400">Sign in to sync via Supabase. Offline still works; changes sync when you reconnect.</div>
+          <div className="text-sm text-muted">Sign in to sync via Supabase. Offline still works; changes sync when you reconnect.</div>
           {!authChecked ? (
-            <div className="flex items-center gap-3 mt-2 text-sm text-gray-400">Checking session…</div>
+            <div className="flex items-center gap-3 mt-2 text-sm text-muted">Checking session…</div>
           ) : userEmail ? (
             <div className="flex items-center gap-3 mt-2">
-              <span className="text-sm text-gray-300">Signed in as {userEmail}</span>
-        <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`} disabled={busy==='signout'} onClick={async ()=>{
+      <span className="text-sm text-app">Signed in as {userEmail}</span>
+    <button className={`px-3 py-2 rounded-xl ${busy==='signout' ? 'btn-outline' : 'btn-primary'}`} disabled={busy==='signout'} onClick={async ()=>{
                 setBusy('signout')
                 try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out'); setBigFlash('Signed out successfully') } finally {
                   try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
@@ -163,10 +166,10 @@ export default function SettingsPage(){
             </div>
           ) : (
             <div className="space-y-2 mt-2">
-              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
-              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+              <input className="input-app rounded-xl px-3 py-3 w-full" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
+              <input className="input-app rounded-xl px-3 py-3 w-full" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
               <div className="flex gap-2 flex-wrap">
-                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                <button className="btn-primary px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
                   setBusy('signin')
                   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -174,7 +177,7 @@ export default function SettingsPage(){
                   else { setUserEmail(data.user?.email || email); setToast('Signed in'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Sign in</button>
-                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                <button className="btn-outline px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
                   if(password !== password2) return alert('Passwords do not match')
                   const redirectTo = window.location.origin + window.location.pathname
@@ -185,7 +188,7 @@ export default function SettingsPage(){
                   else { setUserEmail(data.user?.email || email); setToast('Account created'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Create account</button>
-                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                <button className="btn-outline px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
                   const redirectTo = window.location.origin + window.location.pathname
                   setBusy('otp')
@@ -195,8 +198,8 @@ export default function SettingsPage(){
                   setBusy(null)
                 }}>Send magic link</button>
                 <div className="flex items-center gap-2">
-                  <input className="bg-slate-800 rounded-xl px-3 py-3" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
-                  <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                  <input className="input-app rounded-xl px-3 py-3" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
+                  <button className="btn-outline px-3 py-3 rounded-xl" onClick={async ()=>{
                     if(!email || !otp) return alert('Enter email and OTP code')
                     setBusy('verify')
                     const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' as any })
@@ -205,7 +208,7 @@ export default function SettingsPage(){
                     setBusy(null)
                   }}>Verify OTP</button>
                 </div>
-                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                <button className="btn-outline px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
                   // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
                   const base = window.location.origin + window.location.pathname
@@ -216,8 +219,8 @@ export default function SettingsPage(){
                   else alert('Password reset email sent. Check your inbox.')
                 }}>Forgot password</button>
               </div>
-              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
-              <div className="text-xs text-gray-400">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
+              <input className="input-app rounded-xl px-3 py-3 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
+              <div className="text-xs text-muted">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
             </div>
           )}
         </div>
@@ -229,9 +232,9 @@ export default function SettingsPage(){
           if (isRecovery) {
             return (
               <div className="mt-2 space-y-2">
-                <div className="text-sm text-gray-300">Reset your password</div>
-                <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
-                <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={async ()=>{
+                <div className="text-sm text-app">Reset your password</div>
+                <input className="input-app rounded-xl px-3 py-3 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
+                <button className="btn-primary px-3 py-3 rounded-xl" onClick={async ()=>{
                    if(!newPassword) return alert('Enter a new password')
                    // Ensure Supabase has a valid session (from the email link hash) before updating
                    const s = await waitForSession({ timeoutMs: 2000 })
@@ -256,32 +259,32 @@ export default function SettingsPage(){
           }
           return null
         })()}
-        <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Units</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.unit} onChange={e=>setS({...s, unit: e.target.value as any})}>
+      <div className="text-sm text-app">Units</div>
+      <select className="input-app rounded-xl px-3 py-2" value={s.unit} onChange={e=>setS({...s, unit: e.target.value as any})}>
               <option value="kg">kg</option>
               <option value="lb">lb</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Theme</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.theme} onChange={e=>setS({...s, theme: e.target.value as any})}>
+            <div className="text-sm text-app">Theme</div>
+            <select className="input-app rounded-xl px-3 py-2" value={s.theme} onChange={e=>setS({...s, theme: e.target.value as any})}>
               <option value="dark">dark</option>
               <option value="light">light</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Deload load %</div>
-            <input className="bg-slate-800 rounded-xl px-3 py-2" inputMode="decimal" value={Math.round(s.deloadDefaults.loadPct*100)} onChange={e=>setS({...s, deloadDefaults: { ...s.deloadDefaults, loadPct: Number(e.target.value)/100 }})} />
+            <div className="text-sm text-app">Deload load %</div>
+            <input className="input-app rounded-xl px-3 py-2" inputMode="decimal" value={Math.round(s.deloadDefaults.loadPct*100)} onChange={e=>setS({...s, deloadDefaults: { ...s.deloadDefaults, loadPct: Number(e.target.value)/100 }})} />
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Deload set %</div>
-            <input className="bg-slate-800 rounded-xl px-3 py-2" inputMode="decimal" value={Math.round(s.deloadDefaults.setPct*100)} onChange={e=>setS({...s, deloadDefaults: { ...s.deloadDefaults, setPct: Number(e.target.value)/100 }})} />
+            <div className="text-sm text-app">Deload set %</div>
+            <input className="input-app rounded-xl px-3 py-2" inputMode="decimal" value={Math.round(s.deloadDefaults.setPct*100)} onChange={e=>setS({...s, deloadDefaults: { ...s.deloadDefaults, setPct: Number(e.target.value)/100 }})} />
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Start Page</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.dashboardPrefs?.startPage||'last'} onChange={e=>setS({...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), startPage: e.target.value as any }})}>
+            <div className="text-sm text-app">Start Page</div>
+            <select className="input-app rounded-xl px-3 py-2" value={s.dashboardPrefs?.startPage||'last'} onChange={e=>setS({...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), startPage: e.target.value as any }})}>
               <option value="last">Last Session</option>
               <option value="dashboard">Dashboard</option>
               <option value="sessions">Sessions</option>
@@ -289,56 +292,56 @@ export default function SettingsPage(){
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Open to last session</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={String(s.dashboardPrefs?.openToLast ?? true)} onChange={e=>setS({...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), openToLast: e.target.value==='true' }})}>
+            <div className="text-sm text-app">Open to last session</div>
+            <select className="input-app rounded-xl px-3 py-2" value={String(s.dashboardPrefs?.openToLast ?? true)} onChange={e=>setS({...s, dashboardPrefs: { ...(s.dashboardPrefs||{}), openToLast: e.target.value==='true' }})}>
               <option value="true">On</option>
               <option value="false">Off</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Accent Color</div>
-            <input type="color" className="bg-slate-800 rounded-xl px-3 py-2 h-10" value={s.accentColor||'#22c55e'} onChange={e=>{ const v=e.target.value; setS({...s, accentColor: v}); document.documentElement.style.setProperty('--accent', v) }} />
+            <div className="text-sm text-app">Accent Color</div>
+            <input type="color" className="input-app rounded-xl px-3 py-2 h-10" value={s.accentColor||'#22c55e'} onChange={e=>{ const v=e.target.value; setS({...s, accentColor: v}); document.documentElement.style.setProperty('--accent', v) }} />
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Card Style</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.cardStyle||'glass'} onChange={e=>{ const v=e.target.value as any; setS({...s, cardStyle: v}); document.documentElement.setAttribute('data-card-style', v) }}>
+            <div className="text-sm text-app">Card Style</div>
+            <select className="input-app rounded-xl px-3 py-2" value={s.cardStyle||'glass'} onChange={e=>{ const v=e.target.value as any; setS({...s, cardStyle: v}); document.documentElement.setAttribute('data-card-style', v) }}>
               <option value="glass">Glass</option>
               <option value="solid">Solid</option>
               <option value="minimal">Minimal</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Auto-advance session</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={String(s.autoAdvanceSession??false)} onChange={e=>setS({...s, autoAdvanceSession: e.target.value==='true'})}>
+            <div className="text-sm text-app">Auto-advance session</div>
+            <select className="input-app rounded-xl px-3 py-2" value={String(s.autoAdvanceSession??false)} onChange={e=>setS({...s, autoAdvanceSession: e.target.value==='true'})}>
               <option value="false">Off</option>
               <option value="true">On</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Default set rows per exercise</div>
-            <input className="bg-slate-800 rounded-xl px-3 py-2" inputMode="numeric" value={s.defaultSetRows??3} onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; const n=Math.max(1,Math.min(6,Number(v||'3'))); setS({...s, defaultSetRows: n}) }} />
+            <div className="text-sm text-app">Default set rows per exercise</div>
+            <input className="input-app rounded-xl px-3 py-2" inputMode="numeric" value={s.defaultSetRows??3} onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; const n=Math.max(1,Math.min(6,Number(v||'3'))); setS({...s, defaultSetRows: n}) }} />
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Measurement units</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.measurementUnits||'metric'} onChange={e=>setS({...s, measurementUnits: e.target.value as any})}>
+            <div className="text-sm text-app">Measurement units</div>
+            <select className="input-app rounded-xl px-3 py-2" value={s.measurementUnits||'metric'} onChange={e=>setS({...s, measurementUnits: e.target.value as any})}>
               <option value="metric">cm / kg</option>
               <option value="imperial">in / lb</option>
             </select>
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-gray-300">Privacy: unlock</div>
-            <select className="bg-slate-800 rounded-xl px-3 py-2" value={s.privacyUnlockMode||'everyLaunch'} onChange={e=>setS({...s, privacyUnlockMode: e.target.value as any})}>
+            <div className="text-sm text-app">Privacy: unlock</div>
+            <select className="input-app rounded-xl px-3 py-2" value={s.privacyUnlockMode||'everyLaunch'} onChange={e=>setS({...s, privacyUnlockMode: e.target.value as any})}>
               <option value="everyLaunch">Require passcode every launch</option>
               <option value="remember24h">Remember unlock for 24h</option>
             </select>
           </label>
         </div>
         <div className="flex gap-2">
-          <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={save}>Save</button>
-          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={exportData}>Export JSON & CSV</button>
+          <button className="btn-primary px-3 py-2 rounded-xl" onClick={save}>Save</button>
+          <button className="btn-outline px-3 py-2 rounded-xl" onClick={exportData}>Export JSON & CSV</button>
           <input type="file" hidden ref={fileRef} accept="application/json" onChange={e=>{ const f=e.target.files?.[0]; if(f) importData(f) }} />
-          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>fileRef.current?.click()}>Import JSON</button>
-          <button className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-xl" onClick={resetData}>Reset data</button>
+          <button className="btn-outline px-3 py-2 rounded-xl" onClick={()=>fileRef.current?.click()}>Import JSON</button>
+          <button className="px-3 py-2 rounded-xl text-white" style={{ background: 'var(--danger)' }} onClick={resetData}>Reset data</button>
         </div>
   {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
       </div>
@@ -347,20 +350,23 @@ export default function SettingsPage(){
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Appearance</div>
         <div className="space-y-2">
-          <div className="text-sm text-gray-300">Presets</div>
+          <div className="text-sm text-app">Theme presets</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {THEME_PRESETS.map(p => (
-              <button key={p.id} className="bg-slate-800 rounded-xl p-3 text-left hover:bg-slate-700"
+            {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
+              <button key={k}
+                className={`rounded-xl p-3 text-left border border-card ${themeKey===k ? 'btn-primary' : 'card-surface hover:opacity-90'}`}
                 onClick={async ()=>{
-                  applyPreset(p.id)
-                  // Persist to settings
                   const cur = await db.get('settings','app')
-                  await db.put('settings', { ...(cur||{}), id:'app', theme: p.theme, accentColor: p.accent, cardStyle: p.cardStyle, themeV2: { key: p.theme==='light' ? 'minimal-light' : 'default-glass' } })
+                  await db.put('settings', { ...(cur||{}), id:'app', themeV2: { key: k } })
+                  // apply live
+                  setThemeKey(k)
                 }}>
-                <div className="font-medium text-sm">{p.name}</div>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="inline-block w-4 h-4 rounded-full" style={{ background: p.accent }} />
-                  <span className="text-xs text-gray-400 capitalize">{p.theme} • {p.cardStyle}</span>
+                <div className="font-medium text-sm capitalize">{k.replace(/-/g,' ')}</div>
+                <div className="mt-2 grid grid-cols-6 gap-1 items-center">
+                  <span className="col-span-3 h-6 rounded" style={{ background: THEMES[k]['--bg-muted'] }} />
+                  <span className="h-6 rounded border" style={{ background: THEMES[k]['--card'], borderColor: THEMES[k]['--card-border'] }} />
+                  <span className="h-6 rounded" style={{ background: THEMES[k]['--chart-1'] }} />
+                  <span className="h-6 rounded" style={{ background: THEMES[k]['--chart-2'] }} />
                 </div>
               </button>
             ))}
@@ -371,30 +377,30 @@ export default function SettingsPage(){
       {/* Safety */}
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Safety</div>
-        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
-          <span className="text-sm text-gray-300">Confirm before deleting items</span>
+        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+          <span className="text-sm text-app">Confirm before deleting items</span>
           <input type="checkbox" checked={!!s.confirmDestructive} onChange={e=>setS({...s, confirmDestructive: e.target.checked})} />
         </label>
-        <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={save}>Save Safety Settings</button>
+        <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>Save Safety Settings</button>
       </div>
 
       {/* Progress */}
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Progress</div>
-        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
-          <span className="text-sm text-gray-300">Weekly target days</span>
-          <input className="bg-slate-900 rounded px-2 py-1 w-16 text-center" inputMode="numeric" value={s.progress?.weeklyTargetDays ?? 6}
+        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+          <span className="text-sm text-app">Weekly target days</span>
+          <input className="input-app rounded px-2 py-1 w-16 text-center" inputMode="numeric" value={s.progress?.weeklyTargetDays ?? 6}
             onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; const n=Math.max(3, Math.min(6, Number(v||'6'))); setS({ ...s, progress: { ...(s.progress||{}), weeklyTargetDays: n } }) }} />
         </label>
-        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
-          <span className="text-sm text-gray-300">Gamification effects</span>
+        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+          <span className="text-sm text-app">Gamification effects</span>
           <input type="checkbox" checked={(s.progress?.gamification ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), gamification: e.target.checked } })} />
         </label>
-        <label className="flex items-center justify-between bg-slate-800 rounded-xl px-3 py-3">
-          <span className="text-sm text-gray-300">Show deload hints</span>
+        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+          <span className="text-sm text-app">Show deload hints</span>
           <input type="checkbox" checked={(s.progress?.showDeloadHints ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), showDeloadHints: e.target.checked } })} />
         </label>
-        <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={save}>Save Progress Settings</button>
+        <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>Save Progress Settings</button>
       </div>
 
       <ExerciseOverrides />
@@ -415,7 +421,7 @@ function Toast({ open, message, onClose }:{ open:boolean; message:string; onClos
   if (!open) return null
   return (
     <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
-      <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
+  <div className="card-surface border border-card rounded-xl px-4 py-2 shadow-soft text-sm">
         {message}
         <button className="ml-3 text-xs underline" onClick={onClose}>Dismiss</button>
       </div>
@@ -435,13 +441,13 @@ function ExerciseOverrides(){
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
       <div className="font-medium">Exercise deload overrides</div>
-      <div className="text-sm text-gray-400">Set specific deload % for load and sets. Leave blank to use global defaults.</div>
+  <div className="text-sm text-muted">Set specific deload % for load and sets. Leave blank to use global defaults.</div>
       <div className="grid gap-2">
         {list.map((ex,i)=> (
           <div key={ex.id} className="grid grid-cols-3 gap-2 items-center">
             <div className="truncate">{ex.name}</div>
-            <input aria-label="Load %" className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Load %" value={Math.round((ex.defaults.deloadLoadPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadLoadPct', Number(e.target.value)/100)} />
-            <input aria-label="Set %" className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Set %" value={Math.round((ex.defaults.deloadSetPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadSetPct', Number(e.target.value)/100)} />
+            <input aria-label="Load %" className="input-app rounded-xl px-3 py-2" placeholder="Load %" value={Math.round((ex.defaults.deloadLoadPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadLoadPct', Number(e.target.value)/100)} />
+            <input aria-label="Set %" className="input-app rounded-xl px-3 py-2" placeholder="Set %" value={Math.round((ex.defaults.deloadSetPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadSetPct', Number(e.target.value)/100)} />
           </div>
         ))}
       </div>

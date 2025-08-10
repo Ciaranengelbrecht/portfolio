@@ -66,28 +66,29 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
   const grid = css.getPropertyValue('--chart-grid').trim() || '#1f2937'
   const axis = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ca3af'
   const keys = kind === 'exercise' ? EX_SERIES_KEYS : [{ key: 'value', label: 'Value' }]
+  const glow = css.getPropertyValue('--glow').trim()
 
   return (
     <GlassCard>
       <div className="flex items-center gap-2 mb-2">
         {kind==='exercise' ? (
-          <select className="bg-slate-800 rounded-xl px-2 py-1" value={exerciseId} onChange={e=>setExerciseId(e.target.value)}>
+          <select className="input-app rounded-xl px-2 py-1" value={exerciseId} onChange={e=>setExerciseId(e.target.value)}>
             {exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         ) : (
-          <select className="bg-slate-800 rounded-xl px-2 py-1" value={measurementKey} onChange={e=>setMeasurementKey(e.target.value as any)}>
+          <select className="input-app rounded-xl px-2 py-1" value={measurementKey} onChange={e=>setMeasurementKey(e.target.value as any)}>
             {['weightKg','waist','upperArm','chest','thigh','calf'].map(k => <option key={k} value={k}>{k}</option>)}
           </select>
         )}
         <div className="flex gap-1 ml-auto">
           {RANGE_OPTS.map(r => (
-            <button key={r} className={`text-xs px-2 py-1 rounded-xl ${range===r? 'bg-brand-600':'bg-slate-800'}`} onClick={()=>setRange(r)}>{r.toUpperCase()}</button>
+            <button key={r} className={`text-xs px-2 py-1 rounded-xl ${range===r? 'btn-primary':'btn-outline'}`} onClick={()=>setRange(r)}>{r.toUpperCase()}</button>
           ))}
         </div>
       </div>
       <div className="flex gap-2 mb-2 flex-wrap">
         {keys.map(s => (
-          <label key={s.key} className="text-xs bg-slate-800 rounded-xl px-2 py-1 flex items-center gap-1">
+          <label key={s.key} className="text-xs input-app rounded-xl px-2 py-1 flex items-center gap-1">
             <input type="checkbox" checked={series.includes(s.key)} onChange={e=> setSeries(
               e.target.checked ? [...series, s.key] : series.filter(k=>k!==s.key)
             )} /> {s.label}
@@ -102,13 +103,23 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
             <YAxis stroke={axis} />
             <Tooltip />
             {kind==='exercise' ? (
-              series.map((k,i) => <Line key={k} type="monotone" dataKey={k} stroke={i % 2 === 0 ? chart1 : chart2} dot={false} />)
+              series.map((k,i) => <Line key={k} type="monotone" dataKey={k} stroke={i % 2 === 0 ? chart1 : chart2} dot={false} strokeWidth={i===0?2:1.5} filter={i===0 && glow ? 'url(#glow)' : undefined} />)
             ) : (
-              <Line type="monotone" dataKey="value" stroke={chart1} dot={false} />
+              <Line type="monotone" dataKey="value" stroke={chart1} dot={false} strokeWidth={2} />
             )}
             {kind==='exercise' && prs.some(Boolean) && (
               <Scatter data={(data as ExercisePoint[]).map((d,i)=> prs[i] ? { date: d.date, y: d.topWeight } : null).filter(Boolean) as any} fill={chart2} />
             )}
+            {/* optional SVG glow filter */}
+            <defs>
+              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -27,6 +27,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }){
     root.setAttribute('data-card-style', glass ? 'glass' : 'solid')
     const bg = vars['--bg']?.startsWith('radial-gradient') ? (vars['--bg-muted'] || '#0b0f14') : (vars['--bg'] || '#0b0f14')
     setMetaTheme(bg)
+    // toggle aurora background layer if present
+    try {
+      const body = document.body
+      if (vars['--bg-layer'] && vars['--bg-layer'] !== 'none') body.setAttribute('data-bg-layer', 'on')
+      else body.removeAttribute('data-bg-layer')
+    } catch {}
   try { window.dispatchEvent(new CustomEvent('theme-change', { detail: { vars } })) } catch {}
   }
 
