@@ -2,7 +2,6 @@ export type ThemeKey =
   | 'default-glass'
   | 'neo-dark-glow'
   | 'aurora'
-  | 'minimal-light'
   | 'carbon'
   | 'purple-night'
   | 'inferno-red'
@@ -75,26 +74,6 @@ export const THEMES: Record<ThemeKey, ThemeVars> = {
     '--danger': 'hsl(0 84% 60%)',
     '--card-backdrop': 'blur(18px)',
     '--bg-layer': 'radial-gradient(1200px 800px at 15% 20%, hsl(200 90% 50% / 0.55) 0%, transparent 35%), radial-gradient(1000px 700px at 85% 80%, hsl(330 90% 55% / 0.55) 0%, transparent 35%)'
-  },
-  'minimal-light': {
-    '--bg': 'hsl(0 0% 98%)',
-    '--bg-muted': 'hsl(220 20% 96%)',
-    '--card': 'hsl(0 0% 100%)',
-    '--card-border': 'hsla(220 20% 20% / 0.10)',
-    '--text': 'hsl(220 30% 12%)',
-    '--text-muted': 'hsl(220 10% 40%)',
-    '--accent': 'hsl(220 90% 56%)',
-    '--accent-contrast': 'hsl(0 0% 100%)',
-    '--ring': 'hsl(220 90% 56%)',
-    '--shadow': '0 6px 24px hsla(220 30% 20% / 0.08)',
-    '--glow': '0 0 0 hsla(0 0% 0% / 0)',
-    '--chart-1': 'hsl(220 90% 56%)',
-    '--chart-2': 'hsl(142 72% 40%)',
-    '--chart-grid': 'hsla(220 10% 20% / 0.10)',
-    '--success': 'hsl(142 72% 35%)',
-    '--warning': 'hsl(38 92% 50%)',
-    '--danger': 'hsl(0 84% 54%)',
-    '--card-backdrop': 'none'
   },
   'carbon': {
     '--bg': 'hsl(220 20% 4%)',

@@ -40,9 +40,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }){
     setThemeKeyState(key)
     const vars = THEMES[key]
     applyVars(vars)
-    // Toggle dark mode class based on theme
-    const isLight = key === 'minimal-light'
-    document.documentElement.classList.toggle('dark', !isLight)
+  // Toggle dark mode class: all current themes are dark-styled; keep dark class on
+  document.documentElement.classList.add('dark')
     const root = document.getElementById('root')
     if (root) {
       root.style.transition = 'opacity 200ms ease'
@@ -56,18 +55,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }){
   useEffect(() => { (async () => {
     try {
       const s = await db.get<Settings>('settings','app')
-      // prefer v2, fallback to earlier experimental theme object, else map legacy theme string ('light'->minimal-light) or default-glass
-      let key = ((s as any)?.themeV2?.key || (s as any)?.theme?.key) as ThemeKey | undefined
-      if (!key) {
-        const legacy = (s as any)?.theme as ('dark'|'light'|undefined)
-        if (legacy === 'light') key = 'minimal-light'
-        else key = 'default-glass'
-      }
-      setThemeKeyState(key)
-      const vars = THEMES[key]
+  // prefer v2, fallback to earlier experimental theme object, otherwise default to 'default-glass'
+  let key = ((s as any)?.themeV2?.key || (s as any)?.theme?.key) as ThemeKey | undefined
+  if (!key || !THEMES[key as ThemeKey]) {
+    key = 'default-glass'
+    // self-heal persisted invalid/removed keys
+    try { await db.put('settings', { ...(s||{} as any), id:'app', themeV2: { key } } as any) } catch {}
+  }
+  setThemeKeyState(key as ThemeKey)
+  const vars = THEMES[key as ThemeKey]
       applyVars(vars)
-      const isLight = key === 'minimal-light'
-      document.documentElement.classList.toggle('dark', !isLight)
+  document.documentElement.classList.add('dark')
   try { window.dispatchEvent(new CustomEvent('theme-change', { detail: { key } })) } catch {}
     } catch {
       applyVars(THEMES['default-glass'])
