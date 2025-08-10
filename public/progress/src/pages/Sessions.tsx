@@ -25,6 +25,7 @@ export default function Sessions() {
   const [dragEntryIdx, setDragEntryIdx] = useState<number|null>(null)
   const [snack, setSnack] = useState<{open:boolean; msg:string; undo?:()=>void}>({open:false,msg:''})
   const [showImport, setShowImport] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useEffect(() => { (async () => {
     // load current phase from settings
@@ -175,17 +176,20 @@ export default function Sessions() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 items-center">
+      {/* Header toolbar - responsive */}
+      <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-xl font-semibold">Sessions</h2>
-  <PhaseStepper value={phase} onChange={async (p)=>{ setPhase(p); const s = await getSettings(); await setSettings({ ...s, currentPhase: p }) }} />
+        <PhaseStepper value={phase} onChange={async (p)=>{ setPhase(p); const s = await getSettings(); await setSettings({ ...s, currentPhase: p }) }} />
         <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={e=>setWeek(Number(e.target.value) as any)}>
           {Array.from({length:9},(_,i)=>i+1).map(w=>(<option key={w} value={w}>Week {w}</option>))}
         </select>
         <select className="bg-card rounded-xl px-2 py-1" value={day} onChange={e=>setDay(Number(e.target.value))}>
           {DAYS.map((d, i)=>(<option key={i} value={i}>{d}</option>))}
         </select>
-  <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=>setShowImport(true)}>Import from Template</button>
-        <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=>{
+        {/* Desktop: show all actions */}
+        <div className="hidden sm:flex items-center gap-2">
+          <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=>setShowImport(true)}>Import from Template</button>
+          <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=>{
           const s = await getSettings()
           const next = (s.currentPhase||1) + 1
           await setSettings({ ...s, currentPhase: next })
@@ -193,7 +197,7 @@ export default function Sessions() {
           setWeek(1 as any)
           setDay(0)
         }}>Next phase →</button>
-        <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
           if (!session) return
           const prevId = `${phase}-${Math.max(1, (week as number)-1)}-${day}`
           let prev = await db.get<Session>('sessions', prevId)
@@ -205,6 +209,38 @@ export default function Sessions() {
             setSession(copy); await db.put('sessions', copy)
           }
         }}>Copy last session</button>
+        </div>
+        {/* Mobile: collapse actions into More */}
+        <div className="sm:hidden">
+          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=>setMoreOpen(o=>!o)}>{moreOpen? 'Close': 'More'}</button>
+        </div>
+        {moreOpen && (
+          <div className="w-full sm:hidden grid grid-cols-1 gap-2">
+            <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=>{ setShowImport(true); setMoreOpen(false) }}>Import from Template</button>
+            <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=>{
+              const s = await getSettings()
+              const next = (s.currentPhase||1) + 1
+              await setSettings({ ...s, currentPhase: next })
+              setPhase(next as number)
+              setWeek(1 as any)
+              setDay(0)
+              setMoreOpen(false)
+            }}>Next phase →</button>
+            <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+              if (!session) return
+              const prevId = `${phase}-${Math.max(1, (week as number)-1)}-${day}`
+              let prev = await db.get<Session>('sessions', prevId)
+              if (!prev && week === 1 && phase > 1) {
+                prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`)
+              }
+              if (prev) {
+                const copy: Session = { ...session, entries: prev.entries.map(e=>({ ...e, id: nanoid(), sets: e.sets.map((s,i)=>({ ...s, setNumber:i+1 })) })) }
+                setSession(copy); await db.put('sessions', copy)
+              }
+              setMoreOpen(false)
+            }}>Copy last session</button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -230,8 +266,49 @@ export default function Sessions() {
                 </div>
               </div>
 
-              {/* Sets grid with drag-and-drop */}
-              <div className="mt-3 grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center">
+              {/* Sets - mobile friendly list */}
+              <div className="mt-3 sm:hidden space-y-2">
+                {entry.sets.map((set, idx) => (
+                  <div key={idx} className="rounded-xl bg-slate-800 px-2 py-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        <span className="text-gray-300">Set {set.setNumber}</span>
+                        <PRChip exerciseId={entry.exerciseId} score={set.weightKg * set.reps} week={week} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button className="text-[11px] bg-slate-700 rounded px-2 py-1" disabled={idx===0} onClick={()=>reorderSet(entry, idx, idx-1)}>Up</button>
+                        <button className="text-[11px] bg-slate-700 rounded px-2 py-1" disabled={idx===entry.sets.length-1} onClick={()=>reorderSet(entry, idx, idx+1)}>Down</button>
+                        <button className="text-[11px] bg-red-600 rounded px-2 py-1" onClick={()=>deleteSet(entry, idx)}>Del</button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-900/40 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">Weight</div>
+                        <div className="flex items-center gap-2">
+                          <button className="bg-slate-700 rounded px-3 py-2" onClick={()=>updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: Math.max(0, (s.weightKg||0) - 2.5) }: s) })}>-</button>
+                          <input inputMode="decimal" aria-label="Weight" className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center" value={set.weightKg}
+                            onKeyDown={e=>{ if(e.key==='ArrowUp') { e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: (s.weightKg||0) + 2.5 }: s) }) } else if(e.key==='ArrowDown'){ e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: Math.max(0,(s.weightKg||0) - 2.5) }: s) }) } }}
+                            onChange={e=>{ const v=e.target.value; if(!/^\d*(?:\.\d*)?$/.test(v)) return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: v===''? 0 : Number(v) }: s) }) }} />
+                          <button className="bg-slate-700 rounded px-3 py-2" onClick={()=>updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: (s.weightKg||0) + 2.5 }: s) })}>+</button>
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/40 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">Reps</div>
+                        <div className="flex items-center gap-2">
+                          <button className="bg-slate-700 rounded px-3 py-2" onClick={()=>updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0, (s.reps||0) - 1) }: s) })}>-</button>
+                          <input inputMode="numeric" aria-label="Reps" className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center" value={set.reps}
+                            onKeyDown={e=>{ if(e.key==='ArrowUp'){ e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0) + 1 }: s) }) } else if(e.key==='ArrowDown'){ e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0,(s.reps||0) - 1) }: s) }) } }}
+                            onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: v===''? 0 : Number(v) }: s) }) }} />
+                          <button className="bg-slate-700 rounded px-3 py-2" onClick={()=>updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0) + 1 }: s) })}>+</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sets grid with drag-and-drop (desktop) */}
+              <div className="mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center">
                 <div className="text-sm text-gray-400">Set</div>
                 <div className="text-sm text-gray-400">Weight</div>
                 <div className="text-sm text-gray-400">Reps</div>
@@ -267,7 +344,7 @@ export default function Sessions() {
               </div>
 
               <div className="mt-3">
-                <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=>addSet(entry)} disabled={!session}>+ Add set</button>
+                <button className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=>addSet(entry)} disabled={!session}>+ Add set</button>
               </div>
 
               <div className="mt-3">
@@ -281,9 +358,9 @@ export default function Sessions() {
       <div className="bg-card rounded-2xl p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm">Add exercise</div>
-          <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>setShowAdd(true)}>Search</button>
+          <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>setShowAdd(true)}>Search</button>
         </div>
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto sm:overflow-visible sm:flex-nowrap sm:overflow-x-auto">
           {exercises.map(ex => (
             <button key={ex.id} className="px-3 py-2 bg-slate-800 rounded-xl whitespace-nowrap" onClick={()=>addExerciseToSession(ex)}>{ex.name}</button>
           ))}
@@ -292,16 +369,16 @@ export default function Sessions() {
 
       {/* Add dialog */}
       {showAdd && (
-        <div className="fixed inset-0 bg-black/60 grid place-items-center" onClick={()=>setShowAdd(false)}>
-          <div className="bg-card rounded-2xl p-4 shadow-soft w-full max-w-md" onClick={e=>e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/60 grid place-items-end sm:place-items-center" onClick={()=>setShowAdd(false)}>
+          <div className="bg-card rounded-t-2xl sm:rounded-2xl p-4 shadow-soft w-full sm:max-w-md" onClick={e=>e.stopPropagation()}>
             <div className="font-medium mb-2">Add exercise</div>
-            <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-2" placeholder="Search or type a new exercise" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && query.trim()){ createCustomExercise(query.trim()); setShowAdd(false); setQuery('') } }} />
-            <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+            <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-3" placeholder="Search or type a new exercise" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter' && query.trim()){ createCustomExercise(query.trim()); setShowAdd(false); setQuery('') } }} />
+            <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
               {exercises.filter(e=> e.name.toLowerCase().includes(query.toLowerCase())).map(e => (
-                <button key={e.id} className="w-full text-left px-3 py-2 bg-slate-800 rounded-xl" onClick={()=>{ addExerciseToSession(e); setShowAdd(false); setQuery('') }}>{e.name}</button>
+                <button key={e.id} className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl" onClick={()=>{ addExerciseToSession(e); setShowAdd(false); setQuery('') }}>{e.name}</button>
               ))}
               {query && (
-                <button className="w-full text-left px-3 py-2 bg-brand-600 rounded-xl" onClick={()=>{ createCustomExercise(query.trim()); setShowAdd(false); setQuery('') }}>Create "{query}"</button>
+                <button className="w-full text-left px-3 py-3 bg-brand-600 rounded-xl" onClick={()=>{ createCustomExercise(query.trim()); setShowAdd(false); setQuery('') }}>Create "{query}"</button>
               )}
             </div>
           </div>

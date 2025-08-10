@@ -18,12 +18,12 @@ export default function PhaseStepper({ value, onChange }: { value?: number; onCh
 
   return (
     <div className="flex items-center gap-1">
-      <button className="bg-slate-700 px-2 py-1 rounded" onClick={()=>commit(n-1)}>-</button>
-      <input className="w-16 bg-slate-800 rounded px-2 py-1 text-center" inputMode="numeric" value={n}
+      <button className="bg-slate-700 px-3 py-2 rounded" onClick={()=>commit(n-1)}>-</button>
+      <input className="w-14 sm:w-16 bg-slate-800 rounded px-2 py-2 text-center" inputMode="numeric" value={n}
         onChange={e=>{ const v=e.target.value; if(!/^\d*$/.test(v)) return; setN(Number(v||'1')) }}
         onBlur={()=>commit(n)}
         onKeyDown={e=>{ if(e.key==='Enter') commit(n); if(e.key==='ArrowUp') commit(n+1); if(e.key==='ArrowDown') commit(n-1) }} />
-      <button className="bg-slate-700 px-2 py-1 rounded" onClick={()=>commit(n+1)}>+</button>
+      <button className="bg-slate-700 px-3 py-2 rounded" onClick={()=>commit(n+1)}>+</button>
       {hint && <div className="text-xs text-amber-400 ml-2">{hint}</div>}
     </div>
   )
