@@ -118,7 +118,7 @@ function Shell() {
         setAuthEmail(data?.session?.user?.email ?? null)
       } catch {}
     }
-  const onVis = async () => { if (document.visibilityState === 'visible') { await waitForSession({ timeoutMs: 4000 }); refresh() } }
+  const onVis = async () => { if (document.visibilityState === 'visible') { await waitForSession({ timeoutMs: 5000 }); refresh(); try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: (await supabase.auth.getSession()).data.session } })) } catch {} } }
     window.addEventListener('visibilitychange', onVis)
     window.addEventListener('online', refresh)
     // React to explicit auth events (from supabase.ts)

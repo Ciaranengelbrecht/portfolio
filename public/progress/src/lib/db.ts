@@ -50,14 +50,19 @@ export const db = {
     if (isTestEnv()) {
       return Array.from(MEM[store].values()) as any
     }
-    try {
+    const attempt = async () => {
       const rows = await sbList(store as any)
       return rows.map((r: any) => store === 'settings' ? ({ ...r.data, id: 'app' }) : r.data)
+    }
+    try {
+      return await attempt()
     } catch (e: any) {
-      if (/Not signed in/i.test(String(e?.message || e))) {
+      const msg = String(e?.message || e)
+      const status = (e && (e.status || e.code)) || ''
+      if (/Not signed in|jwt|token|auth|401|permission/i.test(msg) || String(status) === '401' || /Failed to fetch|TypeError|NetworkError/i.test(msg)) {
         await forceRefreshSession()
-        const rows = await sbList(store as any)
-        return rows.map((r: any) => store === 'settings' ? ({ ...r.data, id: 'app' }) : r.data)
+        await new Promise(r => setTimeout(r, 500))
+        return await attempt()
       }
       throw e
     }
@@ -66,14 +71,19 @@ export const db = {
     if (isTestEnv()) {
       return MEM[store].get(key)
     }
-    try {
+    const attempt = async () => {
       const row = await sbGet(store as any, key)
       return row ? (store === 'settings' ? ({ ...row.data, id: 'app' } as any) : row.data) : undefined
+    }
+    try {
+      return await attempt()
     } catch (e: any) {
-      if (/Not signed in/i.test(String(e?.message || e))) {
+      const msg = String(e?.message || e)
+      const status = (e && (e.status || e.code)) || ''
+      if (/Not signed in|jwt|token|auth|401|permission/i.test(msg) || String(status) === '401' || /Failed to fetch|TypeError|NetworkError/i.test(msg)) {
         await forceRefreshSession()
-        const row = await sbGet(store as any, key)
-        return row ? (store === 'settings' ? ({ ...row.data, id: 'app' } as any) : row.data) : undefined
+        await new Promise(r => setTimeout(r, 500))
+        return await attempt()
       }
       throw e
     }
@@ -85,15 +95,12 @@ export const db = {
       MEM[store].set(id, value)
       return
     }
-    try {
-      const owner = await getOwnerId()
-      await sbUpsert(store as any, owner, id, value)
-    } catch (e: any) {
-      if (/Not signed in/i.test(String(e?.message || e))) {
-        await forceRefreshSession()
-        const owner = await getOwnerId()
-        await sbUpsert(store as any, owner, id, value)
-        return
+    const attempt = async () => { const owner = await getOwnerId(); await sbUpsert(store as any, owner, id, value) }
+    try { await attempt() } catch (e: any) {
+      const msg = String(e?.message || e)
+      const status = (e && (e.status || e.code)) || ''
+      if (/Not signed in|jwt|token|auth|401|permission/i.test(msg) || String(status) === '401' || /Failed to fetch|TypeError|NetworkError/i.test(msg)) {
+        await forceRefreshSession(); await new Promise(r => setTimeout(r, 500)); await attempt(); return
       }
       throw e
     }
@@ -103,15 +110,12 @@ export const db = {
       MEM[store].delete(key)
       return
     }
-    try {
-      const owner = await getOwnerId()
-      await sbDelete(store as any, owner, key)
-    } catch (e: any) {
-      if (/Not signed in/i.test(String(e?.message || e))) {
-        await forceRefreshSession()
-        const owner = await getOwnerId()
-        await sbDelete(store as any, owner, key)
-        return
+    const attempt = async () => { const owner = await getOwnerId(); await sbDelete(store as any, owner, key) }
+    try { await attempt() } catch (e: any) {
+      const msg = String(e?.message || e)
+      const status = (e && (e.status || e.code)) || ''
+      if (/Not signed in|jwt|token|auth|401|permission/i.test(msg) || String(status) === '401' || /Failed to fetch|TypeError|NetworkError/i.test(msg)) {
+        await forceRefreshSession(); await new Promise(r => setTimeout(r, 500)); await attempt(); return
       }
       throw e
     }
