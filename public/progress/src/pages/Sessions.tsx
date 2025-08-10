@@ -55,19 +55,28 @@ export default function Sessions() {
   })() }, [phase, week, day])
 
   useEffect(() => { (async () => {
-    await waitForSession({ timeoutMs: 4000 })
-    setTemplates(await db.getAll('templates'))
-    setExercises(await db.getAll('exercises'))
+  console.log('[Sessions] init: waitForSession then fetch lists')
+  await waitForSession({ timeoutMs: 4000 })
+  const t = await db.getAll('templates')
+  const e = await db.getAll('exercises')
+  console.log('[Sessions] init: templates', t.length, 'exercises', e.length)
+  setTemplates(t)
+  setExercises(e)
   })() }, [])
 
   // Refetch data when auth session changes (e.g., token refresh or resume)
   useEffect(() => {
     const onAuth = () => { (async () => {
+      console.log('[Sessions] sb-auth: waitForSession then refetch lists')
       await waitForSession({ timeoutMs: 4000 })
-      setTemplates(await db.getAll('templates'))
-      setExercises(await db.getAll('exercises'))
+      const t = await db.getAll('templates')
+      const e = await db.getAll('exercises')
+      console.log('[Sessions] sb-auth: templates', t.length, 'exercises', e.length)
+      setTemplates(t)
+      setExercises(e)
       if (session) {
         const fresh = await db.get<Session>('sessions', session.id)
+        console.log('[Sessions] sb-auth: refreshed session entries', fresh?.entries?.length || 0)
         if (fresh) setSession(fresh)
       }
     })() }

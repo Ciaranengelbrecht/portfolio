@@ -8,6 +8,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // Helper: robustly clear Supabase auth storage for this project
 export function clearAuthStorage() {
   try {
+  console.log('[auth] clearAuthStorage: start')
     const ref = new URL(SUPABASE_URL).hostname.split('.')[0]
     const keys = [
       `sb-${ref}-auth-token`,
@@ -20,14 +21,16 @@ export function clearAuthStorage() {
       const k = localStorage.key(i) || ''
       if (k.startsWith('sb-') && k.includes(ref)) localStorage.removeItem(k)
     }
+  console.log('[auth] clearAuthStorage: done')
   } catch {}
 }
 
 // Force a quick session validation; returns current session or null
 export async function refreshSessionNow(){
   try {
+  console.log('[auth] refreshSessionNow: getSession()')
     const { data, error } = await supabase.auth.getSession()
-    if (error) return null
+  if (error) { console.log('[auth] refreshSessionNow: getSession error', error?.message); return null }
     try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: data.session } })) } catch {}
     return data.session ?? null
   } catch { return null }
@@ -35,17 +38,23 @@ export async function refreshSessionNow(){
 
 // Emit auth events globally for UI refetches
 try {
-  supabase.auth.onAuthStateChange((_evt, session) => {
-    try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session } })) } catch {}
+  supabase.auth.onAuthStateChange((evt, session) => {
+    try {
+      console.log('[auth] onAuthStateChange:', evt, 'user:', session?.user?.id || null)
+      window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session } }))
+    } catch {}
   })
 } catch {}
 
 // Force refresh tokens if a session exists
 export async function forceRefreshSession(){
   try {
-    const { data } = await supabase.auth.getSession()
-    if (!data.session) return null
-    const res = await supabase.auth.refreshSession()
+  console.log('[auth] forceRefreshSession: checking current session')
+  const { data } = await supabase.auth.getSession()
+  if (!data.session) { console.log('[auth] forceRefreshSession: no session'); return null }
+  console.log('[auth] forceRefreshSession: refreshing...')
+  const res = await supabase.auth.refreshSession()
+  if (res.error) console.log('[auth] forceRefreshSession: refresh error', res.error.message)
     try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: res.data.session } })) } catch {}
     return res.data.session
   } catch { return null }
@@ -56,15 +65,19 @@ export async function waitForSession(opts: { timeoutMs?: number; intervalMs?: nu
   const timeoutMs = opts.timeoutMs ?? 8000
   const intervalMs = opts.intervalMs ?? 200
   const start = Date.now()
+  console.log('[auth] waitForSession: start', { timeoutMs, intervalMs })
   // Try fast path
   let { data } = await supabase.auth.getSession()
-  if (data.session) return data.session
+  console.log('[auth] waitForSession: initial getSession session?', !!data.session)
+  if (data.session) { console.log('[auth] waitForSession: fast path hit'); return data.session }
   // Nudge refresh once
+  console.log('[auth] waitForSession: forceRefresh once')
   await forceRefreshSession()
   while (Date.now() - start < timeoutMs) {
     const { data } = await supabase.auth.getSession()
-    if (data.session) return data.session
+    if (data.session) { console.log('[auth] waitForSession: session present after', Date.now()-start, 'ms'); return data.session }
     await new Promise(r => setTimeout(r, intervalMs))
   }
+  console.log('[auth] waitForSession: timeout after', timeoutMs, 'ms')
   return null
 }

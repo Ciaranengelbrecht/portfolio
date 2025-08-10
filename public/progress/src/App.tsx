@@ -41,7 +41,9 @@ function Shell() {
   // Warm and force-refresh session at startup; briefly wait for session to avoid flash of empty data
   useEffect(() => {
     (async () => {
+      console.log('[App] init: waitForSession…')
       const s = await waitForSession({ timeoutMs: 6000 })
+      console.log('[App] init: session?', !!s, 'user:', s?.user?.id || null)
       if (s?.user?.email) setAuthEmail(s.user.email)
       setAuthChecked(true)
     })()
@@ -100,11 +102,13 @@ function Shell() {
   useEffect(() => {
     let timer: any = setTimeout(() => setAuthChecked(true), 1500)
     const sub = supabase.auth.onAuthStateChange((_evt, session) => {
+      console.log('[App] onAuthStateChange: user?', session?.user?.id || null)
       setAuthEmail(session?.user?.email ?? null)
       setAuthChecked(true)
     })
     supabase.auth.getSession()
       .then(({ data }) => {
+        console.log('[App] getSession (global): session?', !!data?.session, 'user:', data?.session?.user?.id || null)
         setAuthEmail(data?.session?.user?.email ?? null)
         setAuthChecked(true)
       })
@@ -115,10 +119,22 @@ function Shell() {
     const refresh = async () => {
       try {
         const { data } = await supabase.auth.getSession()
+        console.log('[App] refresh: session?', !!data?.session, 'user:', data?.session?.user?.id || null)
         setAuthEmail(data?.session?.user?.email ?? null)
       } catch {}
     }
-  const onVis = async () => { if (document.visibilityState === 'visible') { await waitForSession({ timeoutMs: 5000 }); refresh(); try { window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: (await supabase.auth.getSession()).data.session } })) } catch {} } }
+    const onVis = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[App] visibilitychange: visible -> waitForSession')
+        await waitForSession({ timeoutMs: 5000 });
+        await refresh();
+        try {
+          const sess = (await supabase.auth.getSession()).data.session
+          console.log('[App] visibilitychange: dispatch sb-auth, session?', !!sess)
+          window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: sess } }))
+        } catch {}
+      }
+    }
     window.addEventListener('visibilitychange', onVis)
     window.addEventListener('online', refresh)
     // React to explicit auth events (from supabase.ts)
@@ -181,12 +197,14 @@ function Shell() {
                       try {
                         await supabase.auth.signOut({ scope: 'global' } as any)
                       } finally {
+            console.log('[App] signOut clicked: clearing storage & verify loop')
                         try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
                         // Double-check session is gone
                         try {
                           let tries = 0
                           while (tries++ < 10) {
                             const { data } = await supabase.auth.getSession()
+              console.log('[App] signOut verify try', tries, 'session?', !!data.session)
                             if (!data.session) break
                             await new Promise(r => setTimeout(r, 100))
                           }
