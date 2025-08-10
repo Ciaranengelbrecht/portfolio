@@ -12,6 +12,28 @@ export default function Templates(){
   const [query, setQuery] = useState('')
   const [exerciseQuery, setExerciseQuery] = useState('')
 
+  const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ')
+  const findExerciseByName = (n: string) => {
+    const target = norm(n)
+    return exercises.find(e => norm(e.name) === target)
+  }
+  const createOrGetExercise = async (rawName: string): Promise<Exercise> => {
+    const clean = rawName.trim()
+    if (!clean) throw new Error('Exercise name required')
+    const existing = findExerciseByName(clean)
+    if (existing) return existing
+    const e: Exercise = {
+      id: nanoid(),
+      name: clean,
+      muscleGroup: 'other',
+      defaults: { sets: 3, targetRepRange: '8-12' },
+      active: true
+    }
+    await db.put('exercises', e)
+    setExercises([e, ...exercises])
+    return e
+  }
+
   useEffect(() => { (async () => {
     await waitForSession({ timeoutMs: 4000 })
     setExercises(await db.getAll('exercises'))
@@ -68,6 +90,7 @@ export default function Templates(){
   }
 
   const addExerciseToTemplate = async (t: Template, ex: Exercise) => {
+    if (t.exerciseIds.includes(ex.id)) { setShowAddFor(null); setQuery(''); return }
     const nt = { ...t, exerciseIds: [...t.exerciseIds, ex.id] }
     await db.put('templates', nt)
     setTemplates(templates.map(x=>x.id===t.id? nt: x))
@@ -161,14 +184,35 @@ export default function Templates(){
           <div className="fixed inset-0 z-50 bg-black/60 grid place-items-end sm:place-items-center" onClick={()=>setShowAddFor(null)}>
             <div className="bg-card rounded-t-2xl sm:rounded-2xl p-4 shadow-soft w-full sm:max-w-md" onClick={e=>e.stopPropagation()}>
             <div className="font-medium mb-2">Add exercise</div>
-              <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-3" placeholder="Search exercise" value={query} onChange={e=>setQuery(e.target.value)} />
+              <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-3" placeholder="Search or create exercise" value={query} onChange={e=>setQuery(e.target.value)} />
               <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
-              {exercises.filter(e=> e.name.toLowerCase().includes(query.toLowerCase())).map(e => (
-                  <button key={e.id} className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl" onClick={()=>{
-                  const t = templates.find(x=>x.id===showAddFor)!; addExerciseToTemplate(t, e)
-                }}>{e.name}</button>
-              ))}
-            </div>
+                {/* Create option when no exact case-insensitive match */}
+                {(() => {
+                  const q = query.trim()
+                  if (!q) return null
+                  const exact = findExerciseByName(q)
+                  if (!exact) {
+                    return (
+                      <button
+                        className="w-full text-left px-3 py-3 rounded-xl bg-brand-600 hover:bg-brand-700"
+                        onClick={async ()=>{
+                          const t = templates.find(x=>x.id===showAddFor)!
+                          const e = await createOrGetExercise(q)
+                          await addExerciseToTemplate(t, e)
+                        }}
+                      >Create “{q}”</button>
+                    )
+                  }
+                  return null
+                })()}
+                {exercises
+                  .filter(e=> e.name.toLowerCase().includes(query.toLowerCase()))
+                  .map(e => (
+                    <button key={e.id} className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl" onClick={()=>{
+                      const t = templates.find(x=>x.id===showAddFor)!; addExerciseToTemplate(t, e)
+                    }}>{e.name}</button>
+                  ))}
+              </div>
           </div>
         </div>
       )}

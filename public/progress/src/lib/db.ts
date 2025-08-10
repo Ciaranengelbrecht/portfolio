@@ -92,10 +92,34 @@ export const db = {
     const id = value?.id ?? (store === 'settings' ? 'app' : undefined)
     if (!id) throw new Error('Missing id for put')
     if (isTestEnv()) {
+      // Enforce exercise name uniqueness (case-insensitive) in test mode
+      if (store === 'exercises') {
+        const norm = (s: string) => String(s||'').toLowerCase().trim().replace(/\s+/g, ' ')
+        for (const v of MEM.exercises.values()) {
+          if (v.id !== id && norm(v.name) === norm(value.name)) {
+            // Reuse existing by overwriting id to existing id
+            MEM.exercises.set(v.id, { ...v, ...value, id: v.id })
+            return
+          }
+        }
+      }
       MEM[store].set(id, value)
       return
     }
-  const attempt = async () => { const owner = await getOwnerId(); await sbUpsert(store as any, owner, id, value) }
+  const attempt = async () => {
+    const owner = await getOwnerId()
+    // Enforce exercise name uniqueness (case-insensitive) at app layer before upsert
+    if (store === 'exercises') {
+      const existing = await sbList('exercises' as any)
+      const norm = (s: string) => String(s||'').toLowerCase().trim().replace(/\s+/g, ' ')
+      const dup = existing.find((r: any) => r.data?.id !== id && norm(r.data?.name) === norm(value?.name))
+      if (dup) {
+        // If attempting to create a duplicate, just return without creating another row
+        return
+      }
+    }
+    await sbUpsert(store as any, owner, id, value)
+  }
     try { await attempt() } catch (e: any) {
       const msg = String(e?.message || e)
       const status = (e && (e.status || e.code)) || ''
