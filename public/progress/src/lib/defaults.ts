@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 export const defaultSettings: Settings = {
   unit: 'kg',
   theme: 'dark',
+  themeV2: { key: 'default-glass' },
   deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, // default per requirement
   currentPhase: 1,
   accentColor: '#22c55e',

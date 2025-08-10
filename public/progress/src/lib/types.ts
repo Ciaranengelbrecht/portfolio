@@ -50,9 +50,14 @@ export interface Measurement {
   deletedAt?: string | null
 }
 
+import type { ThemeKey } from '../theme/themes'
+
 export interface Settings {
   unit: 'kg'|'lb'
+  // Legacy theme flag kept for backward-compat UI; do not remove without migration of Settings UI
   theme?: 'dark'|'light'
+  // New theming system (v5+)
+  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean }
   deloadDefaults: { loadPct: number; setPct: number }
   backupEmail?: string
   dashboardPrefs?: {
@@ -96,4 +101,4 @@ export interface Template {
   hidden?: boolean
 }
 
-export type DBVersion = 4
+export type DBVersion = 5

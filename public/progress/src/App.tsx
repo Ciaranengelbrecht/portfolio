@@ -2,7 +2,9 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { NavLink, Route, Routes, useNavigate, useLocation } from 'react-router-dom'
 import { getSettings, setSettings } from './lib/helpers'
 import { initSupabaseSync } from './lib/supabaseSync'
-import { ThemeProvider, useTheme } from './lib/theme'
+import { ThemeProvider as LegacyThemeProvider } from './lib/theme'
+import { ThemeProvider as VarsThemeProvider } from './theme/ThemeProvider'
+import './styles/theme.css'
 import { registerSW } from './lib/pwa'
 import { supabase, clearAuthStorage, refreshSessionNow, forceRefreshSession, waitForSession } from './lib/supabase'
 import AuthModal from './components/AuthModal'
@@ -16,7 +18,6 @@ const Templates = lazy(() => import('./pages/Templates'))
 const Settings = lazy(() => import('./pages/Settings'))
 
 function Shell() {
-  const { theme } = useTheme()
   const navigate = useNavigate()
   const locationRef = useLocation()
   const [authChecked, setAuthChecked] = useState(false)
@@ -36,7 +37,7 @@ function Shell() {
     const t = setTimeout(() => setBigFlash(null), 1800)
     return () => clearTimeout(t)
   }, [bigFlash])
-  useEffect(() => { document.documentElement.classList.toggle('dark', theme === 'dark') }, [theme])
+  // dark class is managed by new ThemeProvider
   useEffect(() => { registerSW() }, [])
   // Warm and force-refresh session at startup; briefly wait for session to avoid flash of empty data
   useEffect(() => {
@@ -274,8 +275,10 @@ function Shell() {
 export default function App() {
   const locationRef = useLocation()
   return (
-    <ThemeProvider>
-      <Shell />
-    </ThemeProvider>
+    <LegacyThemeProvider>
+      <VarsThemeProvider>
+        <Shell />
+      </VarsThemeProvider>
+    </LegacyThemeProvider>
   )
 }

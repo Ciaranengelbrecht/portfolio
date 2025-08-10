@@ -7,10 +7,12 @@
   --accent: #22c55e; /* default accent */
   --accent-hover: #16a34a;
   --card-bg: #111826;
-  --card-border: rgba(255,255,255,0.05);
+  --card-border: rgba(255, 255, 255, 0.05);
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
@@ -22,10 +24,27 @@ input[type="number"] {
 /* simple shadcn-like tokens via tailwind */
 
 /* Accent overrides */
-.bg-brand-600 { background-color: var(--accent) !important; }
-.hover\:bg-brand-700:hover { background-color: var(--accent-hover) !important; }
+.bg-brand-600 {
+  background-color: var(--accent) !important;
+}
+.hover\:bg-brand-700:hover {
+  background-color: var(--accent-hover) !important;
+}
 
 /* Card style variants via data attribute */
-[data-card-style="glass"] .bg-card { background-color: color-mix(in srgb, var(--card-bg) 85%, transparent) !important; backdrop-filter: blur(6px); }
-[data-card-style="solid"] .bg-card { background-color: var(--card-bg) !important; }
-[data-card-style="minimal"] .bg-card { background-color: transparent !important; border: 1px solid var(--card-border); box-shadow: none !important; }
+[data-card-style="glass"] .bg-card {
+  background-color: color-mix(
+    in srgb,
+    var(--card-bg) 85%,
+    transparent
+  ) !important;
+  backdrop-filter: blur(6px);
+}
+[data-card-style="solid"] .bg-card {
+  background-color: var(--card-bg) !important;
+}
+[data-card-style="minimal"] .bg-card {
+  background-color: transparent !important;
+  border: 1px solid var(--card-border);
+  box-shadow: none !important;
+}

@@ -6,11 +6,11 @@ import { Exercise, Measurement } from '../lib/types'
 import { getDashboardPrefs, getExerciseTimeSeries, getMeasurementTimeSeries, setDashboardPrefs, RangeKey, rollingPRs } from '../lib/helpers'
 
 const RANGE_OPTS: RangeKey[] = ['4w','8w','12w','all']
-const EX_SERIES = [
-  { key: 'topWeight', label: 'Top Weight', color: '#3b82f6' },
-  { key: 'avgWeight', label: 'Avg Weight', color: '#22c55e' },
-  { key: 'repsTotal', label: 'Reps', color: '#f97316' },
-  { key: 'volume', label: 'Volume', color: '#a855f7' },
+const EX_SERIES_KEYS = [
+  { key: 'topWeight', label: 'Top Weight' },
+  { key: 'avgWeight', label: 'Avg Weight' },
+  { key: 'repsTotal', label: 'Reps' },
+  { key: 'volume', label: 'Volume' },
 ]
 
 type ExercisePoint = { date: string; topWeight: number; avgWeight: number; repsTotal: number; volume: number }
@@ -24,6 +24,7 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
   const [series, setSeries] = useState<string[]>(['topWeight'])
   const [data, setData] = useState<(ExercisePoint|MeasurementPoint)[]>([])
   const [prs, setPrs] = useState<number[]>([])
+  const [, setThemeTick] = useState(0)
 
   useEffect(() => { (async () => {
     setExercises(await db.getAll('exercises'))
@@ -52,7 +53,19 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
     }
   })() }, [kind, exerciseId, measurementKey, range, exercises])
 
-  const keys = kind === 'exercise' ? EX_SERIES : [{ key: 'value', label: 'Value', color: '#3b82f6' }]
+  // Re-render on theme changes to pick up CSS variable values for charts
+  useEffect(() => {
+    const fn = () => setThemeTick(t => t + 1)
+    window.addEventListener('theme-change', fn as any)
+    return () => window.removeEventListener('theme-change', fn as any)
+  }, [])
+
+  const css = getComputedStyle(document.documentElement)
+  const chart1 = css.getPropertyValue('--chart-1').trim() || '#3b82f6'
+  const chart2 = css.getPropertyValue('--chart-2').trim() || '#22c55e'
+  const grid = css.getPropertyValue('--chart-grid').trim() || '#1f2937'
+  const axis = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#9ca3af'
+  const keys = kind === 'exercise' ? EX_SERIES_KEYS : [{ key: 'value', label: 'Value' }]
 
   return (
     <GlassCard>
@@ -84,17 +97,17 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
       <div className="h-60">
         <ResponsiveContainer>
           <LineChart data={data} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis dataKey="date" stroke="#9ca3af" />
-            <YAxis stroke="#9ca3af" />
+            <CartesianGrid strokeDasharray="3 3" stroke={grid} />
+            <XAxis dataKey="date" stroke={axis} />
+            <YAxis stroke={axis} />
             <Tooltip />
             {kind==='exercise' ? (
-              series.map((k,i) => <Line key={k} type="monotone" dataKey={k} stroke={EX_SERIES.find(x=>x.key===k)?.color||'#3b82f6'} dot={false} />)
+              series.map((k,i) => <Line key={k} type="monotone" dataKey={k} stroke={i % 2 === 0 ? chart1 : chart2} dot={false} />)
             ) : (
-              <Line type="monotone" dataKey="value" stroke="#3b82f6" dot={false} />
+              <Line type="monotone" dataKey="value" stroke={chart1} dot={false} />
             )}
             {kind==='exercise' && prs.some(Boolean) && (
-              <Scatter data={(data as ExercisePoint[]).map((d,i)=> prs[i] ? { date: d.date, y: d.topWeight } : null).filter(Boolean) as any} fill="#f59e0b" />
+              <Scatter data={(data as ExercisePoint[]).map((d,i)=> prs[i] ? { date: d.date, y: d.topWeight } : null).filter(Boolean) as any} fill={chart2} />
             )}
           </LineChart>
         </ResponsiveContainer>

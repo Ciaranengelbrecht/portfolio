@@ -1,0 +1,36 @@
+:root {
+  --bg: #0b0f14;
+  --bg-muted: #0e1520;
+  --card: rgba(17,24,39,0.6);
+  --card-border: rgba(255,255,255,0.08);
+  --text: hsl(210 40% 96%);
+  --text-muted: hsl(215 16% 70%);
+  --accent: #22c55e;
+  --accent-contrast: #06140b;
+  --ring: hsl(141 71% 40%);
+  --shadow: 0 10px 30px hsla(0,0%,0%,0.4);
+  --glow: 0 0 32px hsla(141,71%,45%,0.35);
+  --chart-1: #3b82f6;
+  --chart-2: #22c55e;
+  --chart-grid: rgba(255,255,255,0.08);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --card-backdrop: blur(12px);
+}
+
+.bg-app { background: var(--bg); }
+.bg-app-muted { background: var(--bg-muted); }
+.text-app { color: var(--text); }
+.text-muted { color: var(--text-muted); }
+.border-card { border-color: var(--card-border); }
+.bg-card { background: var(--card); box-shadow: var(--shadow); }
+.ring-app { outline: 2px solid var(--ring); outline-offset: 2px; }
+.btn-primary { background: var(--accent); color: var(--accent-contrast); box-shadow: var(--glow); }
+.btn-primary:hover { filter: brightness(0.98); }
+.btn-outline { border: 1px solid var(--card-border); background: transparent; color: var(--text); }
+.input-app { background: var(--bg-muted); color: var(--text); border: 1px solid var(--card-border); }
+.chart-grid { stroke: var(--chart-grid); }
+
+/* Glass toggle via data attribute */
+[data-card-style="glass"] .bg-card { backdrop-filter: var(--card-backdrop); }

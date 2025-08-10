@@ -20,7 +20,7 @@ export async function getLastWorkingSets(exerciseId: string, weekNumber: number,
 }
 
 export async function getSettings(): Promise<Settings> {
-  return (await db.get<Settings>('settings', 'app')) || { unit: 'kg', deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, theme: 'dark' }
+  return (await db.get<Settings>('settings', 'app')) || { unit: 'kg', deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, theme: 'dark', themeV2: { key: 'default-glass' } }
 }
 
 export async function setSettings(s: Settings) { await db.put('settings', { ...s, id: 'app' } as any) }

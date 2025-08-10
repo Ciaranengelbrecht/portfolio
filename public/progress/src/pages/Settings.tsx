@@ -355,7 +355,7 @@ export default function SettingsPage(){
                   applyPreset(p.id)
                   // Persist to settings
                   const cur = await db.get('settings','app')
-                  await db.put('settings', { ...(cur||{}), id:'app', theme: p.theme, accentColor: p.accent, cardStyle: p.cardStyle })
+                  await db.put('settings', { ...(cur||{}), id:'app', theme: p.theme, accentColor: p.accent, cardStyle: p.cardStyle, themeV2: { key: p.theme==='light' ? 'minimal-light' : 'default-glass' } })
                 }}>
                 <div className="font-medium text-sm">{p.name}</div>
                 <div className="mt-2 flex items-center gap-2">
