@@ -259,7 +259,7 @@ export default function SettingsPage(){
           }
           return null
         })()}
-    <div className="grid grid-cols-2 gap-3">
+  <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
           <label className="space-y-1">
       <div className="text-sm text-app">Units</div>
       <select className="input-app rounded-xl px-3 py-2" value={s.unit} onChange={e=>setS({...s, unit: e.target.value as any})}>
@@ -336,7 +336,7 @@ export default function SettingsPage(){
             </select>
           </label>
         </div>
-        <div className="flex gap-2">
+  <div className="flex gap-2 flex-wrap">
           <button className="btn-primary px-3 py-2 rounded-xl" onClick={save}>Save</button>
           <button className="btn-outline px-3 py-2 rounded-xl" onClick={exportData}>Export JSON & CSV</button>
           <input type="file" hidden ref={fileRef} accept="application/json" onChange={e=>{ const f=e.target.files?.[0]; if(f) importData(f) }} />
@@ -442,9 +442,9 @@ function ExerciseOverrides(){
     <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
       <div className="font-medium">Exercise deload overrides</div>
   <div className="text-sm text-muted">Set specific deload % for load and sets. Leave blank to use global defaults.</div>
-      <div className="grid gap-2">
+    <div className="grid gap-2">
         {list.map((ex,i)=> (
-          <div key={ex.id} className="grid grid-cols-3 gap-2 items-center">
+      <div key={ex.id} className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2">
             <div className="truncate">{ex.name}</div>
             <input aria-label="Load %" className="input-app rounded-xl px-3 py-2" placeholder="Load %" value={Math.round((ex.defaults.deloadLoadPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadLoadPct', Number(e.target.value)/100)} />
             <input aria-label="Set %" className="input-app rounded-xl px-3 py-2" placeholder="Set %" value={Math.round((ex.defaults.deloadSetPct?? NaN)*100) || ''} onChange={e=>save(i,'deloadSetPct', Number(e.target.value)/100)} />

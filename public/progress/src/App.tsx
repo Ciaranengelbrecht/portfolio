@@ -168,17 +168,17 @@ function Shell() {
   })() }, [])
 
   const Tab = ({ to, label }: { to: string; label: string }) => (
-    <NavLink to={to} className={({ isActive }) => `px-3 py-2 rounded-2xl text-sm ${isActive ? 'bg-card text-white' : 'text-gray-300'}`}>{label}</NavLink>
+    <NavLink to={to} className={({ isActive }) => `px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${isActive ? 'bg-card text-white' : 'text-gray-300'}`}>{label}</NavLink>
   )
 
   return (
     <div className="min-h-screen flex flex-col">
       <BackgroundFX />
-      <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold">LiftLog</h1>
-          <div className="flex items-center gap-3">
-            <nav className="flex gap-2 overflow-x-auto">
+  <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
+          <h1 className="text-base sm:text-lg font-semibold shrink-0">LiftLog</h1>
+          <div className="flex items-center gap-2 sm:gap-3 w-full">
+            <nav className="flex gap-2 overflow-x-auto no-scrollbar max-w-[62vw] sm:max-w-none">
               <Tab to="/" label="Dashboard" />
               <Tab to="/sessions" label="Sessions" />
               <Tab to="/measurements" label="Measurements" />
@@ -192,7 +192,7 @@ function Shell() {
                 <>
                   <span className="text-xs text-emerald-400">Signed in</span>
                   <button
-                    className={`px-2 py-1 rounded-lg text-xs ${signingOut ? 'bg-slate-600' : 'bg-slate-700 hover:bg-slate-600'}`}
+        className={`px-2 py-1 rounded-lg text-xs ${signingOut ? 'btn-outline' : 'btn-primary'}`}
                     disabled={signingOut}
           onClick={async () => {
                       setSigningOut(true)
@@ -226,7 +226,7 @@ function Shell() {
                 </>
               ) : (
                 <button
-                  className="bg-slate-700 px-2 py-1 rounded-lg text-xs"
+                  className="btn-outline px-2 py-1 rounded-lg text-xs"
                   onClick={() => setAuthOpen(true)}
                 >
                   Sign in
@@ -249,11 +249,11 @@ function Shell() {
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4">
         {/* Auth gate: only allow viewing data routes when signed in; Settings always accessible */}
         {authChecked && !authEmail && locationRef.pathname !== '/settings' ? (
-          <div className="flex flex-col items-center justify-center text-center gap-3 py-16">
+      <div className="flex flex-col items-center justify-center text-center gap-3 py-16">
             <div className="text-lg font-medium">Please sign in to view your data</div>
             <div className="text-sm text-gray-400">Your local data remains on this device but is hidden until you sign in.</div>
             <div className="flex gap-2">
-              <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={() => setAuthOpen(true)}>Sign in</button>
+        <button className="btn-primary px-3 py-2 rounded-xl" onClick={() => setAuthOpen(true)}>Sign in</button>
             </div>
           </div>
         ) : (

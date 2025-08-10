@@ -70,7 +70,7 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
 
   return (
     <GlassCard>
-      <div className="flex items-center gap-2 mb-2">
+  <div className="flex items-center gap-2 mb-2 flex-wrap">
         {kind==='exercise' ? (
           <select className="input-app rounded-xl px-2 py-1" value={exerciseId} onChange={e=>setExerciseId(e.target.value)}>
             {exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
@@ -80,7 +80,7 @@ export default function ChartPanel({ kind }: { kind: 'exercise'|'measurement' })
             {['weightKg','waist','upperArm','chest','thigh','calf'].map(k => <option key={k} value={k}>{k}</option>)}
           </select>
         )}
-        <div className="flex gap-1 ml-auto">
+  <div className="flex gap-1 ml-auto flex-wrap">
           {RANGE_OPTS.map(r => (
             <button key={r} className={`text-xs px-2 py-1 rounded-xl ${range===r? 'btn-primary':'btn-outline'}`} onClick={()=>setRange(r)}>{r.toUpperCase()}</button>
           ))}

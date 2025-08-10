@@ -39,6 +39,9 @@
 .text-warning { color: var(--warning); }
 /* Focus ring helper */
 .focus-ring:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+/* Hide scrollbars utility (for horizontal chip nav) */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
 /* Glass toggle via data attribute */
 [data-card-style="glass"] .bg-card { backdrop-filter: var(--card-backdrop); }
