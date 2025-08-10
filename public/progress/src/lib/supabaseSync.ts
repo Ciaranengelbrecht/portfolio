@@ -1,12 +1,14 @@
-import { supabase } from './supabase'
+import { supabase, waitForSession } from './supabase'
 
 type Table = 'exercises'|'sessions'|'measurements'|'templates'|'settings'
 
 export function initSupabaseSync(){
   let subscribed = false
   const start = async () => {
-    const { data } = await supabase.auth.getSession()
-    if (!data.session || subscribed) return
+    if (subscribed) return
+    // Avoid hanging on Safari: wait briefly for a session using resilient helper
+    const session = await waitForSession({ timeoutMs: 1500 })
+    if (!session || subscribed) return
     subscribed = true
     const tables: Table[] = ['exercises','sessions','measurements','templates','settings']
     tables.forEach(t => {
@@ -21,5 +23,7 @@ export function initSupabaseSync(){
     })
   }
   start()
-  supabase.auth.onAuthStateChange(() => start())
+  supabase.auth.onAuthStateChange((_evt, session) => {
+    if (!subscribed && session) start()
+  })
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import GlassCard from './GlassCard'
 import GlossyButton from './GlossyButton'
-import { supabase } from '../lib/supabase'
+import { supabase, waitForSession } from '../lib/supabase'
 
 export default function AuthModal({ open, onClose, onSignedIn }:{ open: boolean; onClose: () => void; onSignedIn: () => void }){
   const [email, setEmail] = useState('')
@@ -27,10 +27,10 @@ export default function AuthModal({ open, onClose, onSignedIn }:{ open: boolean;
       doneRef.current = true
       onSignedIn()
     }
-    // Immediate check in case session already exists
-    supabase.auth.getSession().then(({ data }) => {
+    // Immediate check in case session already exists (avoid Safari hang)
+    waitForSession({ timeoutMs: 1000 }).then((s) => {
       if (!mounted) return
-      if (data.session) handle()
+      if (s) handle()
     })
     const sub = supabase.auth.onAuthStateChange((_evt, session) => {
       if (!mounted) return

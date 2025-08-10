@@ -4,7 +4,7 @@ import BigFlash from '../components/BigFlash'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
-import { supabase, clearAuthStorage } from '../lib/supabase'
+import { supabase, clearAuthStorage, waitForSession } from '../lib/supabase'
 
 export default function SettingsPage(){
   const navigate = useNavigate()
@@ -52,11 +52,11 @@ export default function SettingsPage(){
     })
     const onAuth = (e: any) => setUserEmail(e?.detail?.session?.user?.email || undefined)
     window.addEventListener('sb-auth', onAuth)
-    // get current session once
+    // get current session once (resilient)
     let timer = setTimeout(() => setAuthChecked(true), 1500)
-    supabase.auth.getSession()
-      .then(({ data }: any) => {
-        setUserEmail(data?.session?.user?.email || undefined)
+    waitForSession({ timeoutMs: 1200 })
+      .then((s: any) => {
+        setUserEmail(s?.user?.email || undefined)
         setAuthChecked(true)
       })
       .catch(() => setAuthChecked(true))
@@ -143,12 +143,12 @@ export default function SettingsPage(){
                 setBusy('signout')
                 try { await supabase.auth.signOut({ scope: 'global' } as any); setToast('Signed out'); setBigFlash('Signed out successfully') } finally {
                   try { localStorage.removeItem('sb_pw_reset'); clearAuthStorage() } catch {}
-                  // Verify session gone
+                  // Verify session gone (resilient)
                   try {
                     let tries = 0
                     while (tries++ < 10) {
-                      const { data } = await supabase.auth.getSession()
-                      if (!data.session) break
+                      const s = await waitForSession({ timeoutMs: 800 })
+                      if (!s) break
                       await new Promise(r => setTimeout(r, 100))
                     }
                   } catch {}
@@ -231,8 +231,8 @@ export default function SettingsPage(){
                 <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={async ()=>{
                    if(!newPassword) return alert('Enter a new password')
                    // Ensure Supabase has a valid session (from the email link hash) before updating
-                   const { data } = await supabase.auth.getSession()
-                   if (!data.session) {
+                   const s = await waitForSession({ timeoutMs: 2000 })
+                   if (!s) {
                      alert('Recovery session not established yet. Please re-open the email link in this browser and try again.')
                      return
                    }

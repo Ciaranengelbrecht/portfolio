@@ -70,8 +70,8 @@ function Shell() {
     const maybeRouteToSettings = async () => {
       const flagged = localStorage.getItem('sb_pw_reset') === '1'
       if (!flagged) return
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
+      const s = await waitForSession({ timeoutMs: 1500 })
+      if (s) {
         navigate('/settings')
         return true
       }
@@ -106,21 +106,22 @@ function Shell() {
       setAuthEmail(session?.user?.email ?? null)
       setAuthChecked(true)
     })
-    supabase.auth.getSession()
-      .then(({ data }) => {
-        console.log('[App] getSession (global): session?', !!data?.session, 'user:', data?.session?.user?.id || null)
-        setAuthEmail(data?.session?.user?.email ?? null)
+    // Prefer resilient waitForSession over direct getSession to avoid Safari stalls
+    waitForSession({ timeoutMs: 1200 })
+      .then((s) => {
+        console.log('[App] waitForSession (global): session?', !!s, 'user:', s?.user?.id || null)
+        setAuthEmail(s?.user?.email ?? null)
         setAuthChecked(true)
       })
       .catch(() => setAuthChecked(true))
       .finally(() => clearTimeout(timer))
 
     // Actively refresh session when returning to app, regaining network, and periodically
-    const refresh = async () => {
+  const refresh = async () => {
       try {
-        const { data } = await supabase.auth.getSession()
-        console.log('[App] refresh: session?', !!data?.session, 'user:', data?.session?.user?.id || null)
-        setAuthEmail(data?.session?.user?.email ?? null)
+    const s = await waitForSession({ timeoutMs: 1200 })
+    console.log('[App] refresh: session?', !!s, 'user:', s?.user?.id || null)
+    setAuthEmail(s?.user?.email ?? null)
       } catch {}
     }
     const onVis = async () => {
@@ -129,7 +130,7 @@ function Shell() {
         await waitForSession({ timeoutMs: 5000 });
         await refresh();
         try {
-          const sess = (await supabase.auth.getSession()).data.session
+          const sess = await waitForSession({ timeoutMs: 1200 })
           console.log('[App] visibilitychange: dispatch sb-auth, session?', !!sess)
           window.dispatchEvent(new CustomEvent('sb-auth', { detail: { session: sess } }))
         } catch {}
@@ -203,9 +204,9 @@ function Shell() {
                         try {
                           let tries = 0
                           while (tries++ < 10) {
-                            const { data } = await supabase.auth.getSession()
-              console.log('[App] signOut verify try', tries, 'session?', !!data.session)
-                            if (!data.session) break
+                            const s = await waitForSession({ timeoutMs: 800 })
+                            console.log('[App] signOut verify try', tries, 'session?', !!s)
+                            if (!s) break
                             await new Promise(r => setTimeout(r, 100))
                           }
                         } catch {}
