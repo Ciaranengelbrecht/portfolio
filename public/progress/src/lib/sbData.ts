@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, getOwnerIdFast } from './supabase'
 
 type Table = 'exercises'|'sessions'|'measurements'|'templates'|'settings'
 
@@ -27,9 +27,7 @@ export async function sbDelete(table: Table, owner: string, id: string){
 }
 
 export async function sbGet(table: Table, id: string){
-  const { data: sess } = await supabase.auth.getSession()
-  const owner = sess.session?.user?.id
-  if (!owner) throw new Error('Not signed in')
+  const owner = await getOwnerIdFast({ timeoutMs: 1500 })
   const sk = storageKey(owner, id)
   // Try new namespaced key first
   let { data, error } = await supabase
@@ -57,9 +55,7 @@ export async function sbGet(table: Table, id: string){
 }
 
 export async function sbList(table: Table){
-  const { data: sess } = await supabase.auth.getSession()
-  const owner = sess.session?.user?.id
-  if (!owner) throw new Error('Not signed in')
+  const owner = await getOwnerIdFast({ timeoutMs: 1500 })
   const { data, error } = await supabase
     .from(table)
     .select('id,data,owner,updated_at')

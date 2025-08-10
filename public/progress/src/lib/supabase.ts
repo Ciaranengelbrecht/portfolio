@@ -111,3 +111,19 @@ export async function waitForSession(opts: { timeoutMs?: number; intervalMs?: nu
   console.log('[auth] waitForSession: timeout after', timeoutMs, 'ms')
   return null
 }
+
+// Safely obtain the current user id without risking a long hang on Safari
+export async function getOwnerIdFast(opts: { timeoutMs?: number } = {}): Promise<string> {
+  const t = opts.timeoutMs ?? 1500
+  try {
+    const { data } = await withTimeout(supabase.auth.getSession(), Math.min(800, t), 'getSession (owner)')
+    const id = data.session?.user?.id
+    if (id) return id
+  } catch (e:any) {
+    console.log('[auth] getOwnerIdFast: getSession timeout/error:', e?.message||e)
+  }
+  if (lastAuthSession?.user?.id) return lastAuthSession.user.id
+  const s = await waitForSession({ timeoutMs: t })
+  if (s?.user?.id) return s.user.id
+  throw new Error('Not signed in')
+}

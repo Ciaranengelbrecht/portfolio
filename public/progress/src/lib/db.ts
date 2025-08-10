@@ -1,5 +1,5 @@
 import { Exercise, Measurement, Session, Settings, Template } from './types'
-import { supabase, forceRefreshSession } from './supabase'
+import { supabase, forceRefreshSession, getOwnerIdFast } from './supabase'
 import { sbUpsert, sbDelete, sbList, sbGet } from './sbData'
 
 export interface DBSchema {
@@ -30,13 +30,13 @@ const MEM: { [K in keyof DBSchema]: Map<string, any> } = {
 }
 
 async function getOwnerId(): Promise<string> {
-  const { data } = await supabase.auth.getSession()
-  const id = data.session?.user?.id
-  if (!id) {
+  try {
+    const id = await getOwnerIdFast({ timeoutMs: 1500 })
+    return id
+  } catch (e) {
     if (isTestEnv()) return 'test-owner'
-    throw new Error('Not signed in')
+    throw e
   }
-  return id
 }
 
 export function isUsingLocalStorageFallback(){ return false }
@@ -95,7 +95,7 @@ export const db = {
       MEM[store].set(id, value)
       return
     }
-    const attempt = async () => { const owner = await getOwnerId(); await sbUpsert(store as any, owner, id, value) }
+  const attempt = async () => { const owner = await getOwnerId(); await sbUpsert(store as any, owner, id, value) }
     try { await attempt() } catch (e: any) {
       const msg = String(e?.message || e)
       const status = (e && (e.status || e.code)) || ''
