@@ -114,20 +114,20 @@ export default function Templates(){
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Templates</h2>
       <div className="bg-card rounded-2xl p-3">
-        <div className="flex gap-2">
-          <input className="bg-slate-800 rounded-xl px-3 py-2 flex-1" placeholder="New template name" value={name} onChange={e=>setName(e.target.value)} />
-          <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={addTemplate}>Add</button>
+          <div className="flex gap-2">
+            <input className="bg-slate-800 rounded-xl px-3 py-3 flex-1" placeholder="New template name" value={name} onChange={e=>setName(e.target.value)} />
+            <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={addTemplate}>Add</button>
         </div>
       </div>
       <div className="space-y-3">
         {templates.map(t => (
           <div key={t.id} className="bg-card rounded-2xl p-4 shadow-soft">
-            <div className="flex items-center justify-between">
-              <input className="bg-transparent font-medium" value={t.name} onChange={e=>{ const nt={...t, name:e.target.value}; setTemplates(templates.map(x=>x.id===t.id?nt:x)); db.put('templates', nt) }} />
-              <div className="flex items-center gap-2">
-                <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>duplicate(t)}>Duplicate</button>
-                <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>toggle(t)}>{t.hidden? 'Show':'Hide'}</button>
-                <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>deleteTemplate(t)}>Delete</button>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <input className="bg-transparent font-medium" value={t.name} onChange={e=>{ const nt={...t, name:e.target.value}; setTemplates(templates.map(x=>x.id===t.id?nt:x)); db.put('templates', nt) }} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>duplicate(t)}>Duplicate</button>
+                  <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>toggle(t)}>{t.hidden? 'Show':'Hide'}</button>
+                  <button className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2" onClick={()=>deleteTemplate(t)}>Delete</button>
               </div>
             </div>
             <div className="mt-2 text-sm text-gray-300">Exercises: {t.exerciseIds.length}</div>
@@ -135,32 +135,34 @@ export default function Templates(){
               {t.exerciseIds.map((id, idx) => {
                 const ex = exercises.find(e=>e.id===id)
                 return (
-                  <div key={id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2">
+                  <div key={id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3">
                     <div className="flex-1 truncate">{ex?.name || 'Unknown'}</div>
-                    <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" disabled={idx===0} onClick={()=>moveExercise(t, idx, idx-1)}>Up</button>
-                    <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" disabled={idx===t.exerciseIds.length-1} onClick={()=>moveExercise(t, idx, idx+1)}>Down</button>
-                    <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" onClick={()=>ex && toggleOptional(ex)}>{ex?.isOptional? 'Optional ✓':'Optional'}</button>
-                    <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>removeExerciseFromTemplate(t, id)}>Remove</button>
-                    {ex && <button className="text-xs bg-red-700 rounded-xl px-2 py-1" onClick={()=>deleteExercise(ex)}>Delete exercise</button>}
+                    <div className="flex items-center gap-2">
+                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" disabled={idx===0} onClick={()=>moveExercise(t, idx, idx-1)}>Up</button>
+                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" disabled={idx===t.exerciseIds.length-1} onClick={()=>moveExercise(t, idx, idx+1)}>Down</button>
+                      <button className="text-xs bg-slate-700 rounded-xl px-3 py-2" onClick={()=>ex && toggleOptional(ex)}>{ex?.isOptional? 'Optional \u2713':'Optional'}</button>
+                      <button className="text-xs bg-red-600 rounded-xl px-3 py-2" onClick={()=>removeExerciseFromTemplate(t, id)}>Remove</button>
+                      {ex && <button className="text-xs bg-red-700 rounded-xl px-3 py-2" onClick={()=>deleteExercise(ex)}>Delete exercise</button>}
+                    </div>
                   </div>
                 )
               })}
             </div>
             <div className="mt-3">
-              <button className="text-xs bg-slate-800 rounded-xl px-2 py-1" onClick={()=>setShowAddFor(t.id)}>Add exercise</button>
+              <button className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2" onClick={()=>setShowAddFor(t.id)}>Add exercise</button>
             </div>
           </div>
         ))}
       </div>
 
       {showAddFor && (
-        <div className="fixed inset-0 bg-black/60 grid place-items-center" onClick={()=>setShowAddFor(null)}>
-          <div className="bg-card rounded-2xl p-4 shadow-soft w-full max-w-md" onClick={e=>e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 bg-black/60 grid place-items-end sm:place-items-center" onClick={()=>setShowAddFor(null)}>
+            <div className="bg-card rounded-t-2xl sm:rounded-2xl p-4 shadow-soft w-full sm:max-w-md" onClick={e=>e.stopPropagation()}>
             <div className="font-medium mb-2">Add exercise</div>
-            <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-2" placeholder="Search exercise" value={query} onChange={e=>setQuery(e.target.value)} />
-            <div className="mt-3 max-h-60 overflow-y-auto space-y-1">
+              <input autoFocus className="w-full bg-slate-800 rounded-xl px-3 py-3" placeholder="Search exercise" value={query} onChange={e=>setQuery(e.target.value)} />
+              <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
               {exercises.filter(e=> e.name.toLowerCase().includes(query.toLowerCase())).map(e => (
-                <button key={e.id} className="w-full text-left px-3 py-2 bg-slate-800 rounded-xl" onClick={()=>{
+                  <button key={e.id} className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl" onClick={()=>{
                   const t = templates.find(x=>x.id===showAddFor)!; addExerciseToTemplate(t, e)
                 }}>{e.name}</button>
               ))}
@@ -171,18 +173,18 @@ export default function Templates(){
 
       {/* Exercise Library Management */}
       <div className="bg-card rounded-2xl p-4 shadow-soft">
-        <div className="flex items-center justify-between mb-2">
-          <div className="font-medium">Exercise Library</div>
-          <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="Search" value={exerciseQuery} onChange={e=>setExerciseQuery(e.target.value)} />
+          <div className="flex items-center justify-between mb-2 gap-2">
+            <div className="font-medium">Exercise Library</div>
+            <input className="bg-slate-800 rounded-xl px-3 py-3" placeholder="Search" value={exerciseQuery} onChange={e=>setExerciseQuery(e.target.value)} />
         </div>
         <div className="grid gap-2">
           {exercises
             .filter(e => e.name.toLowerCase().includes(exerciseQuery.toLowerCase()))
             .map(ex => (
-            <div key={ex.id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-2">
+              <div key={ex.id} className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3">
               <div className="flex-1 truncate">{ex.name}</div>
-              <button className="text-xs bg-slate-700 rounded-xl px-2 py-1" onClick={()=>toggleOptional(ex)}>{ex.isOptional? 'Optional ✓':'Optional'}</button>
-              <button className="text-xs bg-red-600 rounded-xl px-2 py-1" onClick={()=>deleteExercise(ex)}>Delete</button>
+                <button className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2" onClick={()=>toggleOptional(ex)}>{ex.isOptional? 'Optional \u2713':'Optional'}</button>
+                <button className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2" onClick={()=>deleteExercise(ex)}>Delete</button>
             </div>
           ))}
         </div>

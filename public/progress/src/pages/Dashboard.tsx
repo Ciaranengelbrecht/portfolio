@@ -26,7 +26,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">Dashboard</h2>
-        <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={e=>setWeek(Number(e.target.value))}>
+        <select className="bg-card rounded-xl px-3 py-2" value={week} onChange={e=>setWeek(Number(e.target.value))}>
           {Array.from({length:9},(_,i)=>i+1).map(w=>(<option key={w} value={w}>Week {w}</option>))}
         </select>
       </div>

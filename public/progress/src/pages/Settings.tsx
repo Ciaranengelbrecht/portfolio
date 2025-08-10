@@ -160,10 +160,10 @@ export default function SettingsPage(){
             </div>
           ) : (
             <div className="space-y-2 mt-2">
-              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
-              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
+              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} />
               <div className="flex gap-2 flex-wrap">
-                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
                   setBusy('signin')
                   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -171,7 +171,7 @@ export default function SettingsPage(){
                   else { setUserEmail(data.user?.email || email); setToast('Signed in'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Sign in</button>
-                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email || !password) return alert('Enter email and password')
                   if(password !== password2) return alert('Passwords do not match')
                   const redirectTo = window.location.origin + window.location.pathname
@@ -182,7 +182,7 @@ export default function SettingsPage(){
                   else { setUserEmail(data.user?.email || email); setToast('Account created'); setBigFlash('Signed in successfully') }
                   setBusy(null)
                 }}>Create account</button>
-                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
                   const redirectTo = window.location.origin + window.location.pathname
                   setBusy('otp')
@@ -192,8 +192,8 @@ export default function SettingsPage(){
                   setBusy(null)
                 }}>Send magic link</button>
                 <div className="flex items-center gap-2">
-                  <input className="bg-slate-800 rounded-xl px-3 py-2" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
-                  <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                  <input className="bg-slate-800 rounded-xl px-3 py-3" placeholder="OTP code" value={otp} onChange={e=>setOtp(e.target.value)} />
+                  <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                     if(!email || !otp) return alert('Enter email and OTP code')
                     setBusy('verify')
                     const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' as any })
@@ -202,7 +202,7 @@ export default function SettingsPage(){
                     setBusy(null)
                   }}>Verify OTP</button>
                 </div>
-                <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                <button className="bg-slate-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                   if(!email) return alert('Enter your email')
                   // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
                   const base = window.location.origin + window.location.pathname
@@ -213,7 +213,7 @@ export default function SettingsPage(){
                   else alert('Password reset email sent. Check your inbox.')
                 }}>Forgot password</button>
               </div>
-              <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
+              <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="Confirm password (for create)" type="password" value={password2} onChange={e=>setPassword2(e.target.value)} />
               <div className="text-xs text-gray-400">To use password sign-in, ensure Email provider is enabled in Supabase Authentication. If email confirmation is on, you’ll need to confirm via email after creating an account.</div>
             </div>
           )}
@@ -227,8 +227,8 @@ export default function SettingsPage(){
             return (
               <div className="mt-2 space-y-2">
                 <div className="text-sm text-gray-300">Reset your password</div>
-                <input className="bg-slate-800 rounded-xl px-3 py-2 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
-                <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={async ()=>{
+                <input className="bg-slate-800 rounded-xl px-3 py-3 w-full" placeholder="New password" type="password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} />
+                <button className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl" onClick={async ()=>{
                    if(!newPassword) return alert('Enter a new password')
                    // Ensure Supabase has a valid session (from the email link hash) before updating
                    const s = await waitForSession({ timeoutMs: 2000 })
