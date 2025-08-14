@@ -1,16 +1,24 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0b0f14" />
     <!-- If opened from the deployed site (not localhost) and not already under /dist, redirect to the built app -->
     <script>
       (function () {
-        var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        var atDist = /\/dist\/?$/.test(location.pathname) || location.pathname.includes('/dist/');
+        var isLocal =
+          location.hostname === "localhost" ||
+          location.hostname === "127.0.0.1";
+        var atDist =
+          /\/dist\/?$/.test(location.pathname) ||
+          location.pathname.includes("/dist/");
         if (!isLocal && !atDist) {
-          var target = './dist/' + (location.search || '') + (location.hash || '');
+          var target =
+            "./dist/" + (location.search || "") + (location.hash || "");
           location.replace(target);
         }
       })();
@@ -29,4 +37,4 @@
       </p>
     </noscript>
   </body>
-  </html>
+</html>

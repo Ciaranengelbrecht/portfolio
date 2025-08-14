@@ -1,35 +1,77 @@
-import { useEffect, useState } from 'react'
-import { volumeByMuscleGroup } from '../lib/helpers'
-import { db } from '../lib/db'
-import { Measurement, Session } from '../lib/types'
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts'
-import DashboardDeloadTable from './DashboardDeloadTable'
-import ProgressBars from '../components/ProgressBars'
+import { useEffect, useState } from "react";
+import { volumeByMuscleGroup } from "../lib/helpers";
+import { db } from "../lib/db";
+import { Measurement, Session } from "../lib/types";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  BarChart,
+  Bar,
+} from "recharts";
+import DashboardDeloadTable from "./DashboardDeloadTable";
+import ProgressBars from "../components/ProgressBars";
 
 export default function Dashboard() {
-  const [week, setWeek] = useState(1)
-  const [volume, setVolume] = useState<Record<string,{tonnage:number,sets:number}>>({})
-  const [weights, setWeights] = useState<{date:string, weight:number}[]>([])
-  const [waist, setWaist] = useState<{date:string, value:number}[]>([])
-  const [arm, setArm] = useState<{date:string, value:number}[]>([])
+  const [week, setWeek] = useState(1);
+  const [volume, setVolume] = useState<
+    Record<string, { tonnage: number; sets: number }>
+  >({});
+  const [weights, setWeights] = useState<{ date: string; weight: number }[]>(
+    []
+  );
+  const [waist, setWaist] = useState<{ date: string; value: number }[]>([]);
+  const [arm, setArm] = useState<{ date: string; value: number }[]>([]);
 
-  useEffect(() => { volumeByMuscleGroup(week).then(setVolume) }, [week])
-  useEffect(() => { (async () => {
-    const m = await db.getAll<Measurement>('measurements')
-    setWeights(m.filter(x=>x.weightKg).map(x=>({ date:x.dateISO.slice(5), weight:x.weightKg! })))
-    setWaist(m.filter(x=>x.waist).map(x=>({ date:x.dateISO.slice(5), value:x.waist! })))
-    setArm(m.filter(x=>x.upperArm).map(x=>({ date:x.dateISO.slice(5), value:x.upperArm! })))
-  })() }, [])
+  useEffect(() => {
+    volumeByMuscleGroup(week).then(setVolume);
+  }, [week]);
+  useEffect(() => {
+    (async () => {
+      const m = await db.getAll<Measurement>("measurements");
+      setWeights(
+        m
+          .filter((x) => x.weightKg)
+          .map((x) => ({ date: x.dateISO.slice(5), weight: x.weightKg! }))
+      );
+      setWaist(
+        m
+          .filter((x) => x.waist)
+          .map((x) => ({ date: x.dateISO.slice(5), value: x.waist! }))
+      );
+      setArm(
+        m
+          .filter((x) => x.upperArm)
+          .map((x) => ({ date: x.dateISO.slice(5), value: x.upperArm! }))
+      );
+    })();
+  }, []);
 
-  const volData = Object.entries(volume).map(([k,v]) => ({ group:k, tonnage:v.tonnage, sets:v.sets }))
+  const volData = Object.entries(volume).map(([k, v]) => ({
+    group: k,
+    tonnage: v.tonnage,
+    sets: v.sets,
+  }));
 
   return (
     <div className="space-y-6">
-  <ProgressBars />
+      <ProgressBars />
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">Dashboard</h2>
-        <select className="bg-card rounded-xl px-3 py-2" value={week} onChange={e=>setWeek(Number(e.target.value))}>
-          {Array.from({length:9},(_,i)=>i+1).map(w=>(<option key={w} value={w}>Week {w}</option>))}
+        <select
+          className="bg-card rounded-xl px-3 py-2"
+          value={week}
+          onChange={(e) => setWeek(Number(e.target.value))}
+        >
+          {Array.from({ length: 9 }, (_, i) => i + 1).map((w) => (
+            <option key={w} value={w}>
+              Week {w}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -58,7 +100,12 @@ export default function Dashboard() {
                 <XAxis dataKey="date" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
                 <Tooltip />
-                <Line type="monotone" dataKey="weight" stroke="#3b82f6" dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="#3b82f6"
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -75,7 +122,12 @@ export default function Dashboard() {
                 <XAxis dataKey="date" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#ef4444" dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#ef4444"
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -89,14 +141,19 @@ export default function Dashboard() {
                 <XAxis dataKey="date" stroke="#9ca3af" />
                 <YAxis stroke="#9ca3af" />
                 <Tooltip />
-                <Line type="monotone" dataKey="value" stroke="#22c55e" dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#22c55e"
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-  <DashboardDeloadTable />
+      <DashboardDeloadTable />
     </div>
-  )
+  );
 }

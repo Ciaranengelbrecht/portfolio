@@ -7,11 +7,13 @@ import BigFlash from '../components/BigFlash'
 import { db } from '../lib/db'
 import { Settings } from '../lib/types'
 import { defaultSettings, defaultExercises, defaultTemplates } from '../lib/defaults'
+import { saveProfileTheme } from '../lib/profile'
 import { supabase, clearAuthStorage, waitForSession } from '../lib/supabase'
 
 export default function SettingsPage(){
   const { applyPreset } = useTheme()
   const { themeKey, setThemeKey } = useAppTheme()
+  const [themeSaved, setThemeSaved] = useState<boolean | null>(null)
   const navigate = useNavigate()
   const [s, setS] = useState<Settings>(defaultSettings)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -347,7 +349,7 @@ export default function SettingsPage(){
       </div>
 
       {/* Appearance */}
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+  <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Appearance</div>
         <div className="space-y-2">
           <div className="text-sm text-app">Theme presets</div>
@@ -370,6 +372,17 @@ export default function SettingsPage(){
                 </div>
               </button>
             ))}
+          </div>
+          <div className="text-xs text-muted mt-1">Changes are local until you press <strong>Save Theme</strong>.</div>
+          <div className="flex items-center gap-3 flex-wrap mt-2">
+            <button className="btn-primary px-3 py-2 rounded-xl" onClick={async ()=>{
+              const cur = await db.get<Settings>('settings','app')
+              const ok = await saveProfileTheme(cur?.themeV2)
+              setThemeSaved(ok)
+              setToast(ok? 'Theme saved to profile':'Failed to save theme')
+            }}>Save Theme</button>
+            {themeSaved === true && <span className="text-xs text-emerald-400">Saved ✓</span>}
+            {themeSaved === false && <span className="text-xs text-red-400">Not saved</span>}
           </div>
         </div>
       </div>
@@ -399,6 +412,10 @@ export default function SettingsPage(){
         <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
           <span className="text-sm text-app">Show deload hints</span>
           <input type="checkbox" checked={(s.progress?.showDeloadHints ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), showDeloadHints: e.target.checked } })} />
+        </label>
+        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+          <span className="text-sm text-app">Show previous week hints</span>
+          <input type="checkbox" checked={(s.progress?.showPrevHints ?? true)} onChange={e=>setS({ ...s, progress: { ...(s.progress||{}), showPrevHints: e.target.checked } })} />
         </label>
         <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>Save Progress Settings</button>
       </div>
