@@ -130,6 +130,6 @@ export type DBVersion = 5;
 // User profile (server source of truth for theme persistence across devices)
 export interface UserProfile {
   id: string; // auth user id
-  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean };
+  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean }; // stored in DB column 'themev2'
   created_at?: string;
 }

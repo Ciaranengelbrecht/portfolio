@@ -5,8 +5,28 @@
 -- Optional: user profile (handy for future)
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  themeV2 jsonb -- stores { key: 'theme-name', customAccent?, prefersSystem? }
 );
+
+-- Backfill (safe idempotent add) if the column was added after initial setup
+do $$ begin
+  if not exists (
+    select 1 from information_schema.columns where table_name='profiles' and column_name='themev2'
+  ) then
+    alter table profiles add column themeV2 jsonb;
+  end if;
+end $$;
+
+-- (Optional) Enable RLS & policies for profiles if you want to restrict access
+alter table profiles enable row level security;
+-- Recreate policies idempotently with distinct names
+drop policy if exists "own read" on profiles;
+drop policy if exists "own insert" on profiles;
+drop policy if exists "own update" on profiles;
+create policy "own read" on profiles for select using (auth.uid() = id);
+create policy "own insert" on profiles for insert with check (auth.uid() = id);
+create policy "own update" on profiles for update using (auth.uid() = id);
 
 -- Core collections as JSONB payloads keyed by text IDs + owner
 create table if not exists exercises (
