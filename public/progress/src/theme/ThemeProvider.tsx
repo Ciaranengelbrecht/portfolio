@@ -120,6 +120,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  // Apply profile theme when auth state changes (e.g., user signs in after initial mount)
+  useEffect(() => {
+    const onAuth = async (e: any) => {
+      try {
+        const session = e?.detail?.session;
+        const userId = session?.user?.id;
+        if (!userId) return;
+        const profile = await fetchUserProfile();
+        const pKey = profile?.themeV2?.key as ThemeKey | undefined;
+        if (pKey && THEMES[pKey] && pKey !== themeKey) {
+          // Use internal setter to persist + animate
+          setThemeKey(pKey);
+        }
+      } catch (err) {
+        console.warn('[theme] auth listener apply failed', err);
+      }
+    };
+    window.addEventListener('sb-auth', onAuth);
+    return () => window.removeEventListener('sb-auth', onAuth);
+  }, [themeKey]);
+
   const ctx = useMemo(() => ({ themeKey, setThemeKey, applyVars }), [themeKey]);
   return <ThemeCtx.Provider value={ctx}>{children}</ThemeCtx.Provider>;
 }
