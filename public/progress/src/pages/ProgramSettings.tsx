@@ -16,7 +16,7 @@ import {
   restoreArchivedProgram,
 } from "../lib/profile";
 import { db } from "../lib/db";
-import { Session } from "../lib/types";
+import { Session, Exercise } from "../lib/types";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -42,6 +42,12 @@ export default function ProgramSettings() {
   const [history, setHistory] = useState<any[]>([]);
   const [volumeByWeek, setVolumeByWeek] = useState<number[]>([]);
   const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({});
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [showAllocator, setShowAllocator] = useState(false);
+  const [weeklySetTargets, setWeeklySetTargets] = useState<Record<string, number>>({ chest:10, back:12, legs:12, shoulders:8, arms:6, core:6 });
+  const [allocatorData, setAllocatorData] = useState<{current: Record<string, number>; diff: Record<string, number>; suggestions: { day: number; muscle: string; add: number }[]}>({ current:{}, diff:{}, suggestions:[] });
+  const [showDiffConfirm, setShowDiffConfirm] = useState(false);
+  const [diffItems, setDiffItems] = useState<string[]>([]);
 
   // derive simple historical volume (current mesocycle sessions)
   useEffect(()=>{ (async()=>{
@@ -175,6 +181,41 @@ export default function ProgramSettings() {
     setSaving(false);
   };
   const archiveAndSwitch = async () => {
+    // compute diff vs existing program first; require user confirmation
+    if(program){
+      const diffs:string[] = [];
+      if(program.weekLengthDays !== working.weekLengthDays){
+        diffs.push(`Week length: ${program.weekLengthDays} → ${working.weekLengthDays}`);
+      }
+      const oldMode = program.deload.mode;
+      const newMode = working.deload.mode;
+      if(oldMode !== newMode){
+        diffs.push(`Deload mode: ${oldMode} → ${newMode}`);
+      } else if(oldMode==='interval' && newMode==='interval' && (program.deload as any).everyNWeeks !== (working.deload as any).everyNWeeks){
+        diffs.push(`Deload interval: ${(program.deload as any).everyNWeeks} → ${(working.deload as any).everyNWeeks}`);
+      }
+      // day labels / order changes
+  const oldDays = program.weeklySplit.map((d:WeeklySplitDay)=> d.customLabel || d.type).join('|');
+  const newDays = working.weeklySplit.map((d:WeeklySplitDay)=> d.customLabel || d.type).join('|');
+      if(oldDays !== newDays){
+        diffs.push('Day order / labels changed');
+      }
+      // template attachments changes
+      const tmplChanges:string[] = [];
+      working.weeklySplit.forEach((d,i)=>{
+        const prev = program.weeklySplit[i];
+        if(!prev) return; // length difference handled above
+        if(prev.templateId !== d.templateId) {
+          tmplChanges.push(`Day ${i+1} template: ${prev.templateId||'–'} → ${d.templateId||'–'}`);
+        }
+      });
+      if(tmplChanges.length) diffs.push(...tmplChanges);
+      if(diffs.length && !showDiffConfirm){
+        setDiffItems(diffs);
+        setShowDiffConfirm(true);
+        return; // wait for confirmation
+      }
+    }
     const errs = validateProgram(working);
     setErrors(errs);
     if (errs.length) {
@@ -205,6 +246,42 @@ export default function ProgramSettings() {
     } else setToast("Restore failed");
     setSaving(false);
   };
+
+  // Allocation logic effect
+  useEffect(()=>{ if(!showAllocator) return; (async()=>{
+    const exercises = await db.getAll<Exercise>('exercises');
+    const exMap = new Map(exercises.map(e=> [e.id, e]));
+    // compute current planned sets per muscle using templates mapped in working.weeklySplit
+    const templateMap = new Map(templates.map(t=> [t.id, t]));
+    const current: Record<string, number> = {};
+    const perDayMuscle: Record<number, Record<string, number>> = {};
+    working.weeklySplit.forEach((day,i)=>{
+      const t = day.templateId ? templateMap.get(day.templateId): null;
+      const mv: Record<string, number> = {};
+      if(t){
+        t.exerciseIds.forEach(eid=>{ const ex = exMap.get(eid); if(!ex) return; const sets = ex.defaults.sets || 0; const m = ex.muscleGroup || 'other'; current[m] = (current[m]||0) + sets; mv[m]=(mv[m]||0)+sets; });
+      }
+      perDayMuscle[i]=mv;
+    });
+    const diff: Record<string, number> = {};
+    Object.entries(weeklySetTargets).forEach(([m,target])=> { diff[m] = target - (current[m]||0); });
+    // suggestions: allocate remaining diff across days lacking that muscle
+    const suggestions: { day:number; muscle:string; add:number }[] = [];
+    Object.entries(diff).forEach(([muscle, remain])=>{
+      if(remain <= 0) return;
+      // days sorted by existing volume ascending for that muscle
+      const sortedDays = Object.entries(perDayMuscle).sort((a,b)=> (a[1][muscle]||0) - (b[1][muscle]||0));
+      let left = remain;
+      for(const [dIndexStr,_mv] of sortedDays){
+        const dIndex = Number(dIndexStr);
+        if(left<=0) break;
+        const add = Math.min( Math.max(1, Math.ceil(remain / sortedDays.length)), left );
+        suggestions.push({ day:dIndex, muscle, add });
+        left -= add;
+      }
+    });
+    setAllocatorData({ current, diff, suggestions });
+  })() }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Program</h2>
@@ -416,6 +493,10 @@ export default function ProgramSettings() {
                     updateSplit(i, { templateId: e.target.value || undefined })
                   }
                   className="w-full rounded-lg bg-white/10 px-2 py-1 text-[10px]"
+                  onMouseEnter={() => {
+                    if(d.templateId){ const t=templates.find(t=> t.id===d.templateId); if(t) setPreviewTemplate(t); }
+                  }}
+                  onMouseLeave={()=> setPreviewTemplate(null)}
                 >
                   <option value="">No template</option>
                   {templates.map((t) => (
@@ -461,6 +542,42 @@ export default function ProgramSettings() {
               <li key={e}>{e}</li>
             ))}
           </ul>
+        )}
+        <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
+          <span>Planned Volume Allocator (beta)</span>
+          <button className="btn-outline px-2 py-1 rounded-lg" onClick={()=> setShowAllocator(v=>!v)}>{showAllocator? 'Hide':'Open'}</button>
+        </div>
+        {showAllocator && (
+          <div className="rounded-xl bg-white/5 border border-white/10 p-3 space-y-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {Object.entries(weeklySetTargets).map(([m,val])=> (
+                <label key={m} className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-wide text-gray-500 flex items-center justify-between">
+                    <span>{m}</span>
+                    <span className="opacity-60">{allocatorData.current[m]||0}</span>
+                  </span>
+                  <input type="number" min={0} max={40} value={val} onChange={e=> setWeeklySetTargets(ts=> ({...ts, [m]: Number(e.target.value)}))} className="w-full rounded bg-white/10 px-2 py-1 text-xs" />
+                  <div className={`text-[10px] ${ (allocatorData.diff[m]||0) > 0 ? 'text-amber-400':'text-emerald-400'}`}>Δ {(allocatorData.diff[m]||0)}</div>
+                </label>
+              ))}
+            </div>
+            <div className="space-y-1">
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">Suggestions</div>
+              {allocatorData.suggestions.length ? (
+                <ul className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                  {allocatorData.suggestions.map((s,i)=> (
+                    <li key={i} className="text-[11px] bg-white/5 rounded px-2 py-1 flex justify-between">
+                      <span>Day {s.day+1}: add {s.add} {s.muscle} set{s.add>1?'s':''}</span>
+                      <span className="opacity-60">need {(allocatorData.diff[s.muscle]||0)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-[11px] text-gray-500">Targets satisfied.</div>
+              )}
+            </div>
+            <div className="text-[10px] text-gray-500">(Allocator suggests additional sets for under-target muscles. Apply manually by editing templates.)</div>
+          </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -511,6 +628,39 @@ export default function ProgramSettings() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {previewTemplate && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in" onMouseLeave={()=> setPreviewTemplate(null)}>
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium">{previewTemplate.name}</span>
+            <button className="text-[10px] px-2 py-0.5 rounded bg-slate-700" onClick={()=> setPreviewTemplate(null)}>Close</button>
+          </div>
+          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 text-[11px]">
+            {previewTemplate.exerciseIds.map(id=> (
+              <li key={id} className="bg-white/5 rounded px-2 py-1 flex items-center justify-between">
+                <span>{id.slice(0,6)}</span>
+                <span className="opacity-60">set×?</span>
+              </li>
+            ))}
+          </ul>
+          <div className="text-[10px] text-gray-500">(Template preview placeholder; replace id slices with exercise names & planned sets)</div>
+        </div>
+      )}
+      {showDiffConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)] p-4 w-full max-w-md space-y-3 fade-in">
+            <div className="text-sm font-medium">Confirm Archive & Switch</div>
+            <div className="text-[11px] text-gray-400">Review changes before archiving current program:</div>
+            <ul className="text-[11px] list-disc pl-4 space-y-1 max-h-40 overflow-y-auto pr-1">
+              {diffItems.map((d,i)=> <li key={i}>{d}</li>)}
+            </ul>
+            <div className="flex gap-2 justify-end text-xs">
+              <button className="btn-outline px-3 py-1 rounded-lg" onClick={()=> { setShowDiffConfirm(false); setDiffItems([]); }}>Cancel</button>
+              <button className="btn-primary px-3 py-1 rounded-lg" onClick={()=> { setShowDiffConfirm(false); // run archive again will skip diff modal
+                setTimeout(()=> archiveAndSwitch(), 0); }}>Confirm</button>
+            </div>
           </div>
         </div>
       )}
