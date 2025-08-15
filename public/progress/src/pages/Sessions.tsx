@@ -613,256 +613,67 @@ export default function Sessions() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header toolbar - responsive */}
-  <div className="flex flex-wrap items-center gap-2 sticky-toolbar rounded-b-xl">
+    <div className="space-y-4 overflow-x-hidden">
+      <div className="flex flex-wrap items-center gap-2 sticky-toolbar rounded-b-xl">
         <h2 className="text-xl font-semibold">Sessions</h2>
-        <PhaseStepper
-          value={phase}
-          onChange={async (p) => {
-            setPhase(p);
-            const s = await getSettings();
-            await setSettings({ ...s, currentPhase: p });
-          }}
-        />
-  <div className="flex items-center gap-2">
-          <select
-            className="bg-card rounded-xl px-2 py-1"
-            value={week}
-            onChange={(e) => setWeek(Number(e.target.value))}
-          >
-            {(program
-              ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
-              : Array.from({ length: 9 }, (_, i) => i + 1)
-            ).map((w) => (
-              <option key={w} value={w}>
-                Week {w}
-                {program && deloadWeeks.has(w) ? " (Deload)" : ""}
-              </option>
-            ))}
+        <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
+        <div className="flex items-center gap-2">
+          <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+            {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
           </select>
-          <select
-            className="bg-card rounded-xl px-2 py-1"
-            value={day}
-            onChange={(e) => setDay(Number(e.target.value))}
-          >
-            {(program
-              ? program.weeklySplit.map((d: any) => d.customLabel || d.type)
-              : DAYS
-            ).map((d: string, i: number) => (
-              <option key={i} value={i}>
-                {d}
-              </option>
-            ))}
+          <select className="bg-card rounded-xl px-2 py-1" value={day} onChange={(e)=> setDay(Number(e.target.value))}>
+            {(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS).map((d:string,i:number)=> <option key={i} value={i}>{d}</option>)}
           </select>
-          {program && (
-            <button
-              className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10"
-              onClick={() => (window.location.hash = "#/settings/program")}
-              title="Edit program"
-            >
-              {programSummary(program)}
-            </button>
-          )}
-          {session?.autoImportedTemplateId && (
-            <span className="badge" title="Auto-imported template applied">Template</span>
-          )}
+          {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
+          {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
         </div>
-        {/* Desktop: show all actions */}
-        <div className="hidden sm:flex items-center gap-2">
-          {session && (
-            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1" title="Current assigned date (click pencil to edit)">
-              {!editingDate && <span>{session.localDate || session.dateISO.slice(0,10)}</span>}
-              {editingDate && (
-                <div className="flex items-center gap-1">
-                  <input
-                    type="date"
-                    className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
-                    value={dateEditValue}
-                    onChange={e=> setDateEditValue(e.target.value)}
-                  />
-                  <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={saveManualDate}>Save</button>
-                  <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=> setEditingDate(false)}>Cancel</button>
-                </div>
-              )}
-              {!editingDate && (
-                <>
-                  <button
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                    onClick={stampToday}
-                  >Stamp Today</button>
-                  <button
-                    aria-label="Edit date"
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                    onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}
-                  >✎</button>
-                </>
-              )}
-            </div>
-          )}
-          <button
-            className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
-            onClick={() => setShowImport(true)}
-          >
-            Import from Template
-          </button>
-          <button
-            className="bg-emerald-700 px-3 py-2 rounded-xl"
-            title="Start next 9-week phase"
-            onClick={async () => {
-              // Require at least one real set in current phase before moving unless user confirms override.
-              const all = await db.getAll<Session>('sessions');
-              const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1)===phase);
-              const hasReal = curPhaseSessions.some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
-              if(!hasReal){
-                if(!window.confirm('No real training data logged in this phase. Advance anyway?')) return;
-              } else {
-                if(!window.confirm('Advance to next phase? This will reset week to 1.')) return;
-              }
-              const s = await getSettings();
-              const next = (s.currentPhase || 1) + 1;
-              await setSettings({ ...s, currentPhase: next });
-              setPhase(next as number);
-              setWeek(1 as any);
-              setDay(0);
-            }}
-          >Next phase →</button>
-          {phase>1 && <button
-            className="bg-slate-700 px-3 py-2 rounded-xl"
-            title="Revert to previous phase"
-            onClick={async ()=> {
-              if(!window.confirm('Revert to phase '+(phase-1)+'?')) return;
-              const s = await getSettings();
-              const prev = Math.max(1, (s.currentPhase||1)-1);
-              await setSettings({ ...s, currentPhase: prev });
-              setPhase(prev);
-              setWeek(1 as any);
-              setDay(0);
-            }}
-          >← Prev phase</button>}
-          <button
-            className="bg-slate-700 px-3 py-2 rounded-xl"
-            onClick={async () => {
-              if (!session) return;
-              const prevId = `${phase}-${Math.max(
-                1,
-                (week as number) - 1
-              )}-${day}`;
-              let prev = await db.get<Session>("sessions", prevId);
-              if (!prev && week === 1 && phase > 1) {
-                prev = await db.get<Session>(
-                  "sessions",
-                  `${phase - 1}-9-${day}`
-                );
-              }
-              if (prev) {
-                const copy: Session = {
-                  ...session,
-                  entries: prev.entries.map((e) => ({
-                    ...e,
-                    id: nanoid(),
-                    sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1 })),
-                  })),
-                };
-                setSession(copy);
-                await db.put("sessions", copy);
-              }
-            }}
-          >
-            Copy last session
-          </button>
-        </div>
-        {/* Mobile: collapse actions into More */}
-        <div className="sm:hidden">
-          <button
-            className="bg-slate-700 px-3 py-2 rounded-xl"
-            onClick={() => setMoreOpen((o) => !o)}
-          >
-            {moreOpen ? "Close" : "More"}
-          </button>
-        </div>
-        {moreOpen && (
-          <div className="w-full sm:hidden grid grid-cols-1 gap-2">
-            {session && <button
-              className="bg-slate-700 px-3 py-2 rounded-xl"
-              onClick={()=>{ stampToday(); setMoreOpen(false); }}
-            >Stamp Today ({session.localDate || session.dateISO.slice(0,10)})</button>}
-            {session && <button
-              className="bg-slate-800 px-3 py-2 rounded-xl text-xs"
-              onClick={()=> { const cur = session.localDate || session.dateISO.slice(0,10); const nv = prompt('Set session date (YYYY-MM-DD):', cur); if(nv){ setDateEditValue(nv); saveManualDate.call(null); setMoreOpen(false); } }}
-            >Edit Date…</button>}
-            <button
-              className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
-              onClick={() => {
-                setShowImport(true);
-                setMoreOpen(false);
-              }}
-            >
-              Import from Template
-            </button>
-            <button
-              className="bg-emerald-700 px-3 py-2 rounded-xl"
-              title="Start next 9-week phase"
-              onClick={async () => {
-                const s = await getSettings();
-                const next = (s.currentPhase || 1) + 1;
-                await setSettings({ ...s, currentPhase: next });
-                setPhase(next as number);
-                setWeek(1 as any);
-                setDay(0);
-                setMoreOpen(false);
-              }}
-            >
-              Next phase →
-            </button>
-            {phase>1 && <button
-              className="bg-slate-700 px-3 py-2 rounded-xl"
-              onClick={async ()=>{
-                if(!window.confirm('Revert to phase '+(phase-1)+'?')) return;
-                const s = await getSettings();
-                const prev = Math.max(1,(s.currentPhase||1)-1);
-                await setSettings({ ...s, currentPhase: prev });
-                setPhase(prev);
-                setWeek(1 as any);
-                setDay(0);
-                setMoreOpen(false);
-              }}
-            >Prev phase ←</button>}
-            <button
-              className="bg-slate-700 px-3 py-2 rounded-xl"
-              onClick={async () => {
-                if (!session) return;
-                const prevId = `${phase}-${Math.max(
-                  1,
-                  (week as number) - 1
-                )}-${day}`;
-                let prev = await db.get<Session>("sessions", prevId);
-                if (!prev && week === 1 && phase > 1) {
-                  prev = await db.get<Session>(
-                    "sessions",
-                    `${phase - 1}-9-${day}`
-                  );
-                }
-                if (prev) {
-                  const copy: Session = {
-                    ...session,
-                    entries: prev.entries.map((e) => ({
-                      ...e,
-                      id: nanoid(),
-                      sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1 })),
-                    })),
-                  };
-                  setSession(copy);
-                  await db.put("sessions", copy);
-                }
-                setMoreOpen(false);
-              }}
-            >
-              Copy last session
-            </button>
+        {session && (
+          <div className="hidden sm:flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
+            {!editingDate && <span>{session.localDate || session.dateISO.slice(0,10)}</span>}
+            {editingDate && (
+              <div className="flex items-center gap-1">
+                <input type="date" className="bg-slate-900 rounded px-1 py-0.5 text-[11px]" value={dateEditValue} onChange={e=> setDateEditValue(e.target.value)} />
+                <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={saveManualDate}>Save</button>
+                <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=> setEditingDate(false)}>Cancel</button>
+              </div>
+            )}
+            {!editingDate && (
+              <>
+                <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600" onClick={stampToday}>Stamp Today</button>
+                <button aria-label="Edit date" className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600" onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}>✎</button>
+              </>
+            )}
           </div>
         )}
       </div>
+      {/* Non-sticky actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
+          <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
+          <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=> {
+            const all = await db.getAll<Session>('sessions');
+            const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1)===phase);
+            const hasReal = curPhaseSessions.some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
+            if(!hasReal){ if(!window.confirm('No real training data logged in this phase. Advance anyway?')) return; } else { if(!window.confirm('Advance to next phase? This will reset week to 1.')) return; }
+            const s = await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0);
+          }}>Next phase →</button>
+          {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
+          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
+        </div>
+        <div className="sm:hidden">
+          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=> setMoreOpen(o=> !o)}>{moreOpen ? 'Close' : 'More'}</button>
+        </div>
+      </div>
+      {moreOpen && (
+        <div className="w-full sm:hidden grid grid-cols-1 gap-2">
+          {session && <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=> { stampToday(); setMoreOpen(false); }}>Stamp Today ({session.localDate || session.dateISO.slice(0,10)})</button>}
+          {session && <button className="bg-slate-800 px-3 py-2 rounded-xl text-xs" onClick={()=> { const cur = session.localDate || session.dateISO.slice(0,10); const nv = prompt('Set session date (YYYY-MM-DD):', cur); if(nv){ setDateEditValue(nv); saveManualDate(); setMoreOpen(false); } }}>Edit Date…</button>}
+          <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> { setShowImport(true); setMoreOpen(false); }}>Import from Template</button>
+          <button className="bg-emerald-700 px-3 py-2 rounded-xl" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }}>Next phase →</button>
+          {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }}>Prev phase ←</button>}
+          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }}>Copy last session</button>
+        </div>
+      )}
       {isDeloadWeek && (
         <div
           className="text-xs text-amber-300 fade-in inline-flex items-center gap-1"
