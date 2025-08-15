@@ -3,7 +3,7 @@ import { useProgram } from '../state/program'
 import { UserProgram, WeeklySplitDay, DayLabel, DeloadConfig, Template } from '../lib/types'
 import { defaultProgram } from '../lib/defaults'
 import { validateProgram, programSummary, ensureProgram } from '../lib/program'
-import { saveProfileProgram } from '../lib/profile'
+import { saveProfileProgram, archiveCurrentProgram, fetchUserProfile, restoreArchivedProgram } from '../lib/profile'
 import { db } from '../lib/db'
 
 const LABELS: DayLabel[] = ['Upper','Lower','Push','Pull','Legs','Full Body','Arms','Rest','Custom']
@@ -15,9 +15,11 @@ export default function ProgramSettings(){
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string|null>(null)
   const [errors, setErrors] = useState<string[]>([])
+  const [history, setHistory] = useState<any[]>([])
 
   useEffect(()=>{ if(program) setWorking(program) },[program])
   useEffect(()=>{ db.getAll<Template>('templates').then(setTemplates) },[])
+  useEffect(()=>{ (async()=>{ const prof = await fetchUserProfile(); setHistory((prof?.program_history)||[]) })() },[program])
 
   const update = (patch: Partial<UserProgram>) => {
     setWorking(w => ({ ...w, ...patch, updatedAt: new Date().toISOString() }))
@@ -57,6 +59,22 @@ export default function ProgramSettings(){
     if(ok){ setProgram(working); setToast('Program saved') } else setToast('Save failed')
     setSaving(false)
   }
+  const archiveAndSwitch = async () => {
+    const errs = validateProgram(working)
+    setErrors(errs)
+    if(errs.length){ setToast('Fix errors before saving'); return }
+    setSaving(true)
+    const next: UserProgram = { ...working, id: working.id || `prog_${Math.random().toString(36).slice(2,9)}`, createdAt: working.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() }
+    const ok = await archiveCurrentProgram(next)
+    if(ok){ setProgram(next); setToast('Archived previous and switched') } else setToast('Archive failed')
+    setSaving(false)
+  }
+  const restore = async (id:string) => {
+    setSaving(true)
+    const p = await restoreArchivedProgram(id)
+    if(p){ setProgram(p); setWorking(p); setToast('Program restored') } else setToast('Restore failed')
+    setSaving(false)
+  }
   return (
     <div className='space-y-6'>
       <h2 className='text-lg font-semibold'>Program</h2>
@@ -74,7 +92,7 @@ export default function ProgramSettings(){
           <label className='space-y-1'>
             <span className='text-xs text-gray-400'>Week length (days)</span>
             <select value={working.weekLengthDays} onChange={e=>changeWeekLen(Number(e.target.value))} className='input-app rounded-xl px-3 py-2 bg-white/5 border border-white/10'>
-              {[5,6,7].map(n=> <option key={n} value={n}>{n}</option>)}
+              {[5,6,7,8,9,10].map(n=> <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
           <div className='space-y-1'>
@@ -125,11 +143,30 @@ export default function ProgramSettings(){
           </div>
         </div>
         {!!errors.length && <ul className='text-xs text-red-400 list-disc pl-5 space-y-1'>{errors.map(e=> <li key={e}>{e}</li>)}</ul>}
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-3'>
           <button onClick={save} disabled={saving} className='btn-primary rounded-xl px-4 py-2 text-sm disabled:opacity-40'>{saving? 'Saving…':'Save Program'}</button>
+          <button onClick={archiveAndSwitch} disabled={saving} className='btn-outline rounded-xl px-4 py-2 text-sm disabled:opacity-40'>Archive & Switch</button>
           <span className='text-[11px] text-gray-400'>{programSummary(working)}</span>
         </div>
       </div>
+      {history.length > 0 && (
+        <div className='glass-card rounded-2xl p-4 space-y-3'>
+          <div className='text-xs uppercase tracking-wide text-gray-400'>Archived Programs</div>
+          <div className='space-y-2 max-h-60 overflow-y-auto pr-1'>
+            {history.map(h=> (
+              <div key={h.id} className='flex items-center justify-between text-xs bg-white/5 rounded-xl px-3 py-2'>
+                <div className='flex flex-col'>
+                  <span className='font-medium'>{h.name}</span>
+                  <span className='text-[10px] text-gray-400'>{h.summary || h.program?.mesoWeeks + 'w'} · {new Date(h.archivedAt).toLocaleDateString()}</span>
+                </div>
+                <div className='flex gap-2'>
+                  <button className='btn-outline px-2 py-1 rounded-lg' disabled={saving} onClick={()=>restore(h.id)}>Restore</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

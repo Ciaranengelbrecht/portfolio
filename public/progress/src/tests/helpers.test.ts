@@ -17,8 +17,9 @@ describe('deload prescription', () => {
     })
   })
 
-  it('uses 55% load and 50% sets by default', async () => {
-    const p = await getDeloadPrescription('e1', 2)
+  it('uses 55% load and 50% sets by default on a deload week', async () => {
+    // Provide a custom deloadWeeks set including week 2 for test determinism
+    const p = await getDeloadPrescription('e1', 2, { deloadWeeks: new Set([2]) })
     expect(p.targetWeight).toBe(55)
     expect(p.targetSets).toBe(2) // 50% of 4
   })

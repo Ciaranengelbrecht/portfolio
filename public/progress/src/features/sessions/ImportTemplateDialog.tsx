@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { db } from '../../lib/db'
 import { Exercise, Session, Template } from '../../lib/types'
 import { importFromTemplate } from '../../lib/sessionOps'
+import { useProgram } from '../../state/program'
+import { computeDeloadWeeks } from '../../lib/program'
 
 export default function ImportTemplateDialog({ open, onClose, session, weekNumber, onImported }: { open: boolean; onClose: ()=>void; session: Session; weekNumber: number; onImported: (updated: Session, count: number, name: string) => void }){
   const [templates, setTemplates] = useState<Template[]>([])
@@ -9,6 +11,8 @@ export default function ImportTemplateDialog({ open, onClose, session, weekNumbe
   const [templateId, setTemplateId] = useState<string>('')
   const [append, setAppend] = useState(true)
   const [confirming, setConfirming] = useState(false)
+  const { program } = useProgram()
+  const deloadWeeks = program ? computeDeloadWeeks(program) : undefined
 
   useEffect(()=>{ if(open){ db.getAll<Template>('templates').then(setTemplates); db.getAll<Exercise>('exercises').then(setExercises) } }, [open])
 
@@ -16,7 +20,7 @@ export default function ImportTemplateDialog({ open, onClose, session, weekNumbe
     const t = templates.find(t=>t.id===templateId)
     if (!t) return
     if (!append && !confirming) { setConfirming(true); return }
-    const updated = await importFromTemplate(session, t, exercises, { append, weekNumber })
+  const updated = await importFromTemplate(session, t, exercises, { append, weekNumber, deloadWeeks })
     await db.put('sessions', updated)
     onImported(updated, t.exerciseIds.length, t.name)
     onClose()

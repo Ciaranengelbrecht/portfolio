@@ -2,10 +2,11 @@ import { DeloadConfig, UserProgram } from './types'
 import { defaultProgram } from './defaults'
 
 export function ensureProgram(p?: UserProgram | null): UserProgram {
-  if(!p) return { ...defaultProgram, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+  if(!p) return { ...defaultProgram, id: defaultProgram.id, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
   // Basic sanity checks, self-heal
   let changed = false
-  if(p.weekLengthDays < 5 || p.weekLengthDays > 7){ p.weekLengthDays = 7; changed = true }
+  if(!p.id) { p.id = `prog_${Math.random().toString(36).slice(2,9)}`; changed = true }
+  if(p.weekLengthDays < 5 || p.weekLengthDays > 10){ p.weekLengthDays = Math.min(10, Math.max(5, p.weekLengthDays)); changed = true }
   if(p.weeklySplit.length !== p.weekLengthDays){
     p.weeklySplit = [...defaultProgram.weeklySplit].slice(0,p.weekLengthDays)
     changed = true
@@ -40,7 +41,7 @@ export function programSummary(p: UserProgram){
 
 export function validateProgram(p: UserProgram): string[] {
   const errs: string[] = []
-  if(p.weekLengthDays < 5 || p.weekLengthDays > 7) errs.push('Week length must be 5-7')
+  if(p.weekLengthDays < 5 || p.weekLengthDays > 10) errs.push('Week length must be 5-10')
   if(p.weeklySplit.length !== p.weekLengthDays) errs.push('Weekly split length mismatch')
   if(p.mesoWeeks < 4 || p.mesoWeeks > 20) errs.push('Mesocycle weeks must be 4-20')
   if(!p.weeklySplit.some(d=>d.type !== 'Rest')) errs.push('At least one training day required')

@@ -92,6 +92,7 @@ export default function Sessions() {
           dayName: templateName,
           entries: [],
           templateId: templateMeta?.templateId,
+          programId: program?.id,
         };
         await db.put("sessions", s);
         // If there is a templateId, auto-import it
@@ -105,7 +106,7 @@ export default function Sessions() {
               const exMap = new Map(exs.map((e:any)=>[e.id,e]))
               const rows = (exId: string) => Math.max(1, Math.min(6, settings.defaultSetRows ?? (exMap.get(exId)?.defaults.sets ?? 3)))
               const newEntries = (t.exerciseIds||[]).map((exId:string)=>({ id: nanoid(), exerciseId: exId, sets: Array.from({ length: rows(exId) }, (_,i)=>({ setNumber: i+1, weightKg: 0, reps: 0 })) }))
-              s = { ...s, entries: newEntries }
+              s = { ...s, entries: newEntries, autoImportedTemplateId: templateMeta.templateId }
               await db.put('sessions', s)
             }
           } catch(e){ console.warn('[Sessions] auto-import template failed', e) }
@@ -201,6 +202,15 @@ export default function Sessions() {
 
   const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>()
   const isDeloadWeek = deloadWeeks.has(week)
+
+  // Backfill programId on existing loaded session if missing (one-time effect per session)
+  useEffect(()=>{ (async()=>{
+    if(session && program && !session.programId){
+      const updated = { ...session, programId: program.id }
+      await db.put('sessions', updated)
+      setSession(updated)
+    }
+  })() }, [session?.id, program?.id])
 
   const addSet = (entry: SessionEntry) => {
     const next: SetEntry = {

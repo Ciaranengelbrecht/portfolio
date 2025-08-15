@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { UserProfile, UserProgram } from './types'
+import { UserProfile, UserProgram, ArchivedProgram } from './types'
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
@@ -61,5 +61,66 @@ export async function saveProfileProgram(program: UserProgram): Promise<boolean>
   } catch(e){
     console.warn('[profile] saveProfileProgram failed', e)
     return false
+  }
+}
+
+export async function archiveCurrentProgram(newProgram: UserProgram, opts?: { phaseSpan?: { from:number; to:number } }): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if(!user) throw new Error('Not signed in')
+    const { data, error } = await supabase.from('profiles').select('program, program_history').eq('id', user.id).single()
+    if(error) throw error
+    const history: ArchivedProgram[] = (data?.program_history || [])
+    if(data?.program){
+      const existing = data.program as UserProgram
+      const archived: ArchivedProgram = {
+        id: existing.id || `prog_${Math.random().toString(36).slice(2,9)}`,
+        name: existing.name,
+        summary: `${existing.name} · ${existing.mesoWeeks}w`,
+        archivedAt: new Date().toISOString(),
+        program: existing,
+        phaseSpan: opts?.phaseSpan,
+      }
+      history.unshift(archived)
+      // cap history
+      if(history.length > 10) history.pop()
+    }
+    const payload: any = { id: user.id, program: newProgram, program_history: history }
+    const { error: upErr } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+    if(upErr) throw upErr
+    return true
+  } catch(e){
+    console.warn('[profile] archiveCurrentProgram failed', e)
+    return false
+  }
+}
+
+export async function restoreArchivedProgram(programId: string): Promise<UserProgram | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if(!user) throw new Error('Not signed in')
+    const { data, error } = await supabase.from('profiles').select('program, program_history').eq('id', user.id).single()
+    if(error) throw error
+    const history: ArchivedProgram[] = (data?.program_history || [])
+    const idx = history.findIndex(h => h.id === programId)
+    if(idx === -1) return null
+    const target = history[idx]
+    // Move current program (if any) into history (top) before restoring
+    const newHistory = [...history]
+    const current = data?.program as UserProgram | undefined
+    if(current){
+      newHistory.unshift({ id: current.id || `prog_${Math.random().toString(36).slice(2,9)}`, name: current.name, summary: `${current.name} · ${current.mesoWeeks}w`, archivedAt: new Date().toISOString(), program: current })
+    }
+    // Remove restored one from its old position AFTER capturing
+    const adjusted = newHistory.filter((h,i)=> !(i !== 0 && h.id === target.id))
+    // Cap to 15
+    while(adjusted.length > 15) adjusted.pop()
+    const payload: any = { id: user.id, program: target.program, program_history: adjusted }
+    const { error: upErr } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+    if(upErr) throw upErr
+    return target.program
+  } catch(e){
+    console.warn('[profile] restoreArchivedProgram failed', e)
+    return null
   }
 }

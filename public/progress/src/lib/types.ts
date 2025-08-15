@@ -50,6 +50,8 @@ export interface Session {
   phase?: number;
   templateId?: UUID;
   dayName?: string;
+  programId?: string; // identifies which program config was active when created
+  autoImportedTemplateId?: string; // if auto-imported at creation, record template id for provenance badge
   entries: SessionEntry[];
   deletedAt?: string | null;
 }
@@ -134,6 +136,7 @@ export interface UserProfile {
   themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean }; // stored in DB column 'themev2'
   created_at?: string;
   program?: UserProgram;
+  program_history?: ArchivedProgram[]; // array of archived programs
 }
 
 // Program customization types
@@ -151,6 +154,7 @@ export type DeloadConfig =
   | { mode: 'interval'; everyNWeeks: number }
 
 export interface UserProgram {
+  id: string;
   name: string;
   weekLengthDays: number; // default 7 (allow 5-7)
   weeklySplit: WeeklySplitDay[]; // length = weekLengthDays
@@ -159,4 +163,14 @@ export interface UserProgram {
   createdAt: string;
   updatedAt: string;
   version: number;
+}
+
+export interface ArchivedProgram {
+  id: string; // same as program.id
+  name: string;
+  summary?: string;
+  archivedAt: string;
+  program: UserProgram;
+  phaseSpan?: { from: number; to: number };
+  stats?: { sessions: number; totalSets: number; totalVolume: number }; // lightweight volume snapshot
 }

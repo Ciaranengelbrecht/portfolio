@@ -163,6 +163,7 @@ export const defaultTemplates: Template[] = (() => {
 })();
 
 export const defaultProgram: UserProgram = {
+  id: 'default-program',
   name: 'UL x3 + Rest',
   weekLengthDays: 7,
   weeklySplit: [
