@@ -1251,7 +1251,7 @@ export default function Sessions() {
           {exercises.map((ex) => (
             <button
               key={ex.id}
-              className="px-3 py-2 bg-slate-800 rounded-xl whitespace-nowrap"
+              className="px-3 py-2 bg-slate-800 rounded-xl"
               onClick={() => addExerciseToSession(ex)}
             >
               {ex.name}

@@ -133,7 +133,14 @@ button:active { transform: scale(.97); }
 @media (prefers-reduced-motion: reduce) { button, .fade-in { animation: none !important; transition: none !important; } }
 
 /* Sticky toolbar helper */
-.sticky-toolbar { position:sticky; top:0; z-index:40; backdrop-filter: blur(14px) saturate(160%); background: linear-gradient(90deg, rgba(17 24 39 / 0.72), rgba(17 24 39 / 0.55)); border: 1px solid var(--border-subtle); border-left:0; border-right:0; margin-left:-1rem; margin-right:-1rem; padding-left:1rem; padding-right:1rem; }
+.sticky-toolbar { position:sticky; top:3.25rem; /* sit just below main app header */ z-index:40; backdrop-filter: blur(14px) saturate(160%); background: linear-gradient(90deg, rgba(17 24 39 / 0.72), rgba(17 24 39 / 0.55)); border: 1px solid var(--border-subtle); border-left:0; border-right:0; padding-left:1rem; padding-right:1rem; }
+@media (min-width:640px){ .sticky-toolbar { margin-left:calc(-1rem + 1px); margin-right:calc(-1rem + 1px); } }
+
+/* Prevent accidental horizontal scroll on narrow mobile view */
+html, body, #root { overflow-x:hidden; }
+/* Ensure internal scroll areas don't force width expansion */
+.no-scrollbar { scrollbar-width:none; }
+.no-scrollbar::-webkit-scrollbar { display:none; }
 
 /* Badges */
 .badge { font-size:10px; text-transform:uppercase; letter-spacing:.5px; padding:3px 8px; border-radius: var(--radius-pill); background:rgba(var(--accent-rgb)/0.18); color: var(--accent); display:inline-flex; align-items:center; gap:4px; }
