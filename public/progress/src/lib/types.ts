@@ -98,7 +98,7 @@ export interface Settings {
     weeklyTargetDays?: number; // default 6, min 3, max 6
     gamification?: boolean; // default true
     showDeloadHints?: boolean; // default true
-  showPrevHints?: boolean; // default true (previous week hint pill)
+    showPrevHints?: boolean; // default true (previous week hint pill)
   };
   currentPhase?: number;
   accentColor?: string;
@@ -140,18 +140,27 @@ export interface UserProfile {
 }
 
 // Program customization types
-export type DayLabel = 'Upper' | 'Lower' | 'Push' | 'Pull' | 'Legs' | 'Full Body' | 'Arms' | 'Rest' | 'Custom'
+export type DayLabel =
+  | "Upper"
+  | "Lower"
+  | "Push"
+  | "Pull"
+  | "Legs"
+  | "Full Body"
+  | "Arms"
+  | "Rest"
+  | "Custom";
 
 export type WeeklySplitDay = {
   type: DayLabel;
   customLabel?: string; // if type === 'Custom'
   templateId?: string; // exercise template mapping
-}
+};
 
 export type DeloadConfig =
-  | { mode: 'none' }
-  | { mode: 'last-week' }
-  | { mode: 'interval'; everyNWeeks: number }
+  | { mode: "none" }
+  | { mode: "last-week" }
+  | { mode: "interval"; everyNWeeks: number };
 
 export interface UserProgram {
   id: string;

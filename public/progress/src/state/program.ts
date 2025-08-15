@@ -7,10 +7,7 @@ interface ProgramCtx {
   program: UserProgram | null;
   setProgram: (p: UserProgram) => void;
 }
-const ProgramContext = createContext<ProgramCtx>({
-  program: null,
-  setProgram: () => {},
-});
+const C = createContext<ProgramCtx>({ program: null, setProgram: () => {} });
 
 export function ProgramProvider({ children }: { children: React.ReactNode }) {
   const [program, setProgramState] = useState<UserProgram | null>(null);
@@ -24,10 +21,6 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
   const setProgram = (p: UserProgram) => {
     setProgramState(p);
   };
-  return (
-    <ProgramContext.Provider value={{ program, setProgram }}>
-      {children}
-    </ProgramContext.Provider>
-  );
+  return <C.Provider value={{ program, setProgram }}>{children}</C.Provider>;
 }
-export const useProgram = () => useContext(ProgramContext);
+export const useProgram = () => useContext(C);

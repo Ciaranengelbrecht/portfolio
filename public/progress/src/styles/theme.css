@@ -135,7 +135,12 @@ body[data-bg-layer="on"]::before {
   white-space: nowrap;
 }
 .prev-hint-pill[data-nudge="true"] {
-  background: linear-gradient(90deg, var(--accent, #0ea5e9), var(--chart-2, #f472b6));
+  background: linear-gradient(
+    90deg,
+    var(--accent, #0ea5e9),
+    var(--chart-2, #f472b6)
+  );
   color: var(--accent-contrast, #fff);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), var(--shadow, 0 4px 16px rgba(0,0,0,0.4));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08),
+    var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.4));
 }

@@ -14,7 +14,12 @@ export const defaultSettings: Settings = {
   measurementUnits: "metric",
   privacyUnlockMode: "everyLaunch",
   dashboardPrefs: { range: "8w", openToLast: true, startPage: "last" },
-  progress: { weeklyTargetDays: 6, gamification: true, showDeloadHints: true, showPrevHints: true },
+  progress: {
+    weeklyTargetDays: 6,
+    gamification: true,
+    showDeloadHints: true,
+    showPrevHints: true,
+  },
 };
 
 export const defaultExercises: Exercise[] = [
@@ -163,20 +168,20 @@ export const defaultTemplates: Template[] = (() => {
 })();
 
 export const defaultProgram: UserProgram = {
-  id: 'default-program',
-  name: 'UL x3 + Rest',
+  id: "default-program",
+  name: "UL x3 + Rest",
   weekLengthDays: 7,
   weeklySplit: [
-    { type: 'Upper' },
-    { type: 'Lower' },
-    { type: 'Upper' },
-    { type: 'Lower' },
-    { type: 'Upper' },
-    { type: 'Lower' },
-    { type: 'Rest' }
+    { type: "Upper" },
+    { type: "Lower" },
+    { type: "Upper" },
+    { type: "Lower" },
+    { type: "Upper" },
+    { type: "Lower" },
+    { type: "Rest" },
   ],
   mesoWeeks: 9,
-  deload: { mode: 'last-week' },
+  deload: { mode: "last-week" },
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   version: 1,

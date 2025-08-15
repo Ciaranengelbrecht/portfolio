@@ -101,7 +101,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // Attempt profile override for cross-device persistence
         try {
           const profile = await fetchUserProfile();
-          if (profile?.themeV2?.key && THEMES[profile.themeV2.key as ThemeKey]) {
+          if (
+            profile?.themeV2?.key &&
+            THEMES[profile.themeV2.key as ThemeKey]
+          ) {
             key = profile.themeV2.key as ThemeKey;
           }
         } catch {}
@@ -134,11 +137,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           setThemeKey(pKey);
         }
       } catch (err) {
-        console.warn('[theme] auth listener apply failed', err);
+        console.warn("[theme] auth listener apply failed", err);
       }
     };
-    window.addEventListener('sb-auth', onAuth);
-    return () => window.removeEventListener('sb-auth', onAuth);
+    window.addEventListener("sb-auth", onAuth);
+    return () => window.removeEventListener("sb-auth", onAuth);
   }, [themeKey]);
 
   const ctx = useMemo(() => ({ themeKey, setThemeKey, applyVars }), [themeKey]);

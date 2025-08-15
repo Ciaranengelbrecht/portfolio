@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
-import { Exercise, Session, SessionEntry, SetEntry, Template, Settings } from "../lib/types";
-import { useProgram } from '../state/program'
-import { computeDeloadWeeks, programSummary } from '../lib/program'
+import {
+  Exercise,
+  Session,
+  SessionEntry,
+  SetEntry,
+  Template,
+  Settings,
+} from "../lib/types";
+import { useProgram } from "../state/program";
+import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
 import { nanoid } from "nanoid";
 import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
@@ -25,7 +32,7 @@ const DAYS = [
 ];
 
 export default function Sessions() {
-  const { program } = useProgram()
+  const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
   const [day, setDay] = useState(0);
@@ -42,9 +49,11 @@ export default function Sessions() {
   }>({ open: false, msg: "" });
   const [showImport, setShowImport] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [prevBestMap, setPrevBestMap] = useState<{[id:string]: { week:number; set:SetEntry }} | null>(null)
-  const [settingsState, setSettingsState] = useState<Settings | null>(null)
-  const [autoNavDone, setAutoNavDone] = useState(false)
+  const [prevBestMap, setPrevBestMap] = useState<{
+    [id: string]: { week: number; set: SetEntry };
+  } | null>(null);
+  const [settingsState, setSettingsState] = useState<Settings | null>(null);
+  const [autoNavDone, setAutoNavDone] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -61,58 +70,89 @@ export default function Sessions() {
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
-  useEffect(()=>{ (async()=>{
-    if(autoNavDone) return
-    const all = await db.getAll<Session>('sessions')
-    if(!all.length){ setAutoNavDone(true); return }
-    // Filter by current phase (legacy sessions may store phase or phaseNumber)
-    const byPhase = all.filter(s=> (s.phaseNumber||s.phase||1) === phase)
-    // Determine weeks with real data (any set with weight>0 or reps>0)
-    const weekHasData = new Map<number, boolean>()
-    for(const s of byPhase){
-      const real = s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) > 0 || (st.reps||0) > 0))
-      if(real){ weekHasData.set(s.weekNumber, true) }
-    }
-    if(weekHasData.size === 0){
-      // stay on current (default 1)
-      setAutoNavDone(true); return
-    }
-    // Highest week in this phase with data
-    const targetWeek = [...weekHasData.keys()].sort((a,b)=>a-b).pop()!
-    if(targetWeek !== week){ setWeek(targetWeek) }
-    setAutoNavDone(true)
-  })() }, [phase, autoNavDone])
+  useEffect(() => {
+    (async () => {
+      if (autoNavDone) return;
+      const all = await db.getAll<Session>("sessions");
+      if (!all.length) {
+        setAutoNavDone(true);
+        return;
+      }
+      // Filter by current phase (legacy sessions may store phase or phaseNumber)
+      const byPhase = all.filter(
+        (s) => (s.phaseNumber || s.phase || 1) === phase
+      );
+      // Determine weeks with real data (any set with weight>0 or reps>0)
+      const weekHasData = new Map<number, boolean>();
+      for (const s of byPhase) {
+        const real = s.entries.some((e) =>
+          e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
+        );
+        if (real) {
+          weekHasData.set(s.weekNumber, true);
+        }
+      }
+      if (weekHasData.size === 0) {
+        // stay on current (default 1)
+        setAutoNavDone(true);
+        return;
+      }
+      // Highest week in this phase with data
+      const targetWeek = [...weekHasData.keys()].sort((a, b) => a - b).pop()!;
+      if (targetWeek !== week) {
+        setWeek(targetWeek);
+      }
+      setAutoNavDone(true);
+    })();
+  }, [phase, autoNavDone]);
 
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
-  useEffect(()=>{ (async()=>{
-    const all = await db.getAll<Session>('sessions')
-    const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1) === phase)
-    // If user is beyond phase 1 and there is zero real data in phase weeks, revert to previous phase with data
-    if(phase > 1){
-      const haveReal = curPhaseSessions.some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) >0 || (st.reps||0)>0)))
-      if(!haveReal){
-        // find latest phase that has data
-        const phasesWithData = new Set<number>()
-        for(const s of all){ if(s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0))) phasesWithData.add((s.phaseNumber||s.phase||1)) }
-        if(phasesWithData.size){
-          const back = [...phasesWithData].sort((a,b)=>b-a)[0]
-          if(back !== phase){
-            setPhase(back)
-            const settings = await getSettings();
-            await setSettings({ ...settings, currentPhase: back })
+  useEffect(() => {
+    (async () => {
+      const all = await db.getAll<Session>("sessions");
+      const curPhaseSessions = all.filter(
+        (s) => (s.phaseNumber || s.phase || 1) === phase
+      );
+      // If user is beyond phase 1 and there is zero real data in phase weeks, revert to previous phase with data
+      if (phase > 1) {
+        const haveReal = curPhaseSessions.some((s) =>
+          s.entries.some((e) =>
+            e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
+          )
+        );
+        if (!haveReal) {
+          // find latest phase that has data
+          const phasesWithData = new Set<number>();
+          for (const s of all) {
+            if (
+              s.entries.some((e) =>
+                e.sets.some(
+                  (st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0
+                )
+              )
+            )
+              phasesWithData.add(s.phaseNumber || s.phase || 1);
+          }
+          if (phasesWithData.size) {
+            const back = [...phasesWithData].sort((a, b) => b - a)[0];
+            if (back !== phase) {
+              setPhase(back);
+              const settings = await getSettings();
+              await setSettings({ ...settings, currentPhase: back });
+            }
           }
         }
       }
-    }
-  })() }, [phase])
+    })();
+  }, [phase]);
 
   // Adjust week clamp if program changes
-  useEffect(()=>{
-    if(program){
-      if(week > program.mesoWeeks) setWeek(1)
-      if(day >= program.weekLengthDays) setDay(0)
+  useEffect(() => {
+    if (program) {
+      if (week > program.mesoWeeks) setWeek(1);
+      if (day >= program.weekLengthDays) setDay(0);
     }
-  },[program])
+  }, [program]);
 
   useEffect(() => {
     (async () => {
@@ -130,7 +170,9 @@ export default function Sessions() {
       }
       if (!s) {
         const templateMeta = program ? program.weeklySplit[day] : undefined;
-        const templateName = templateMeta ? (templateMeta.customLabel || templateMeta.type || 'Day') : DAYS[day];
+        const templateName = templateMeta
+          ? templateMeta.customLabel || templateMeta.type || "Day"
+          : DAYS[day];
         s = {
           id,
           dateISO: new Date().toISOString(),
@@ -144,20 +186,43 @@ export default function Sessions() {
         };
         await db.put("sessions", s);
         // If there is a templateId, auto-import it
-        if(templateMeta?.templateId){
+        if (templateMeta?.templateId) {
           try {
-            const t = await db.get('templates', templateMeta.templateId)
-            if(t){
+            const t = await db.get("templates", templateMeta.templateId);
+            if (t) {
               // Reuse import logic manually (append false since brand new)
-              const exs = await db.getAll('exercises')
-              const settings = await getSettings()
-              const exMap = new Map(exs.map((e:any)=>[e.id,e]))
-              const rows = (exId: string) => Math.max(1, Math.min(6, settings.defaultSetRows ?? (exMap.get(exId)?.defaults.sets ?? 3)))
-              const newEntries = (t.exerciseIds||[]).map((exId:string)=>({ id: nanoid(), exerciseId: exId, sets: Array.from({ length: rows(exId) }, (_,i)=>({ setNumber: i+1, weightKg: 0, reps: 0 })) }))
-              s = { ...s, entries: newEntries, autoImportedTemplateId: templateMeta.templateId }
-              await db.put('sessions', s)
+              const exs = await db.getAll("exercises");
+              const settings = await getSettings();
+              const exMap = new Map(exs.map((e: any) => [e.id, e]));
+              const rows = (exId: string) =>
+                Math.max(
+                  1,
+                  Math.min(
+                    6,
+                    settings.defaultSetRows ??
+                      exMap.get(exId)?.defaults.sets ??
+                      3
+                  )
+                );
+              const newEntries = (t.exerciseIds || []).map((exId: string) => ({
+                id: nanoid(),
+                exerciseId: exId,
+                sets: Array.from({ length: rows(exId) }, (_, i) => ({
+                  setNumber: i + 1,
+                  weightKg: 0,
+                  reps: 0,
+                })),
+              }));
+              s = {
+                ...s,
+                entries: newEntries,
+                autoImportedTemplateId: templateMeta.templateId,
+              };
+              await db.put("sessions", s);
             }
-          } catch(e){ console.warn('[Sessions] auto-import template failed', e) }
+          } catch (e) {
+            console.warn("[Sessions] auto-import template failed", e);
+          }
         }
       }
       setSession(s);
@@ -192,10 +257,10 @@ export default function Sessions() {
       setTemplates(t);
       setExercises(e);
       // Preload sessions for prev best map
-      const allSessions = await db.getAll<Session>("sessions")
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase))
-  const st = await getSettings();
-  setSettingsState(st as any)
+      const allSessions = await db.getAll<Session>("sessions");
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase));
+      const st = await getSettings();
+      setSettingsState(st as any);
     })();
   }, []);
 
@@ -243,22 +308,26 @@ export default function Sessions() {
   }, [session?.id]);
 
   // Recompute prev best map whenever week or phase changes
-  useEffect(() => { (async () => {
-    const allSessions = await db.getAll<Session>('sessions')
-    setPrevBestMap(buildPrevBestMap(allSessions, week, phase))
-  })() }, [week, phase])
+  useEffect(() => {
+    (async () => {
+      const allSessions = await db.getAll<Session>("sessions");
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase));
+    })();
+  }, [week, phase]);
 
-  const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>()
-  const isDeloadWeek = deloadWeeks.has(week)
+  const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
+  const isDeloadWeek = deloadWeeks.has(week);
 
   // Backfill programId on existing loaded session if missing (one-time effect per session)
-  useEffect(()=>{ (async()=>{
-    if(session && program && !session.programId){
-      const updated = { ...session, programId: program.id }
-      await db.put('sessions', updated)
-      setSession(updated)
-    }
-  })() }, [session?.id, program?.id])
+  useEffect(() => {
+    (async () => {
+      if (session && program && !session.programId) {
+        const updated = { ...session, programId: program.id };
+        await db.put("sessions", updated);
+        setSession(updated);
+      }
+    })();
+  }, [session?.id, program?.id]);
 
   const addSet = (entry: SessionEntry) => {
     const next: SetEntry = {
@@ -328,9 +397,11 @@ export default function Sessions() {
     if (!session) return;
     const cfg = await getSettings();
     if (cfg.confirmDestructive) {
-      const exName = exercises.find(
-        (e) => e.id === session.entries.find((x) => x.id === entryId)?.exerciseId
-      )?.name || "exercise";
+      const exName =
+        exercises.find(
+          (e) =>
+            e.id === session.entries.find((x) => x.id === entryId)?.exerciseId
+        )?.name || "exercise";
       if (!window.confirm(`Remove ${exName} from this session?`)) return;
     }
     const prev = session;
@@ -351,7 +422,7 @@ export default function Sessions() {
   const addExerciseToSession = async (ex: Exercise) => {
     if (!session) return;
     let sets: SetEntry[] = [];
-  const lastSets = await getLastWorkingSets(ex.id, week, phase);
+    const lastSets = await getLastWorkingSets(ex.id, week, phase);
     if (isDeloadWeek) {
       const dl = await getDeloadPrescription(ex.id, week, { deloadWeeks });
       const avgReps = lastSets.length
@@ -460,13 +531,14 @@ export default function Sessions() {
             value={day}
             onChange={(e) => setDay(Number(e.target.value))}
           >
-            {(program ? program.weeklySplit.map((d) => d.customLabel || d.type) : DAYS).map(
-              (d, i) => (
-                <option key={i} value={i}>
-                  {d}
-                </option>
-              )
-            )}
+            {(program
+              ? program.weeklySplit.map((d) => d.customLabel || d.type)
+              : DAYS
+            ).map((d, i) => (
+              <option key={i} value={i}>
+                {d}
+              </option>
+            ))}
           </select>
           {program && (
             <button
@@ -479,7 +551,7 @@ export default function Sessions() {
           )}
         </div>
         {/* Desktop: show all actions */}
-  <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <button
             className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
             onClick={() => setShowImport(true)}
@@ -610,7 +682,9 @@ export default function Sessions() {
         {session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge
-          const prev = prevBestMap ? getPrevBest(prevBestMap, entry.exerciseId) : undefined;
+          const prev = prevBestMap
+            ? getPrevBest(prevBestMap, entry.exerciseId)
+            : undefined;
           const currentBest = (() => {
             const best = [...entry.sets].sort((a, b) => {
               if (b.weightKg !== a.weightKg) return b.weightKg - a.weightKg;
@@ -618,8 +692,14 @@ export default function Sessions() {
             })[0];
             return best;
           })();
-          const showPrevHints = (settingsState?.progress?.showPrevHints ?? true);
-          const showNudge = !!(showPrevHints && prev && currentBest && currentBest.weightKg === prev.set.weightKg && currentBest.reps === prev.set.reps);
+          const showPrevHints = settingsState?.progress?.showPrevHints ?? true;
+          const showNudge = !!(
+            showPrevHints &&
+            prev &&
+            currentBest &&
+            currentBest.weightKg === prev.set.weightKg &&
+            currentBest.reps === prev.set.reps
+          );
           return (
             <div
               key={entry.id}

@@ -19,7 +19,7 @@ export default function PhaseStepper({
   const commit = async (v: number) => {
     const c = clampPhase(v);
     setN(c);
-  setHint(c !== v ? "Min phase is 1" : "");
+    setHint(c !== v ? "Min phase is 1" : "");
     onChange?.(c);
     const s = await getSettings();
     await setSettings({

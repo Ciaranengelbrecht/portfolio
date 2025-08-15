@@ -10,7 +10,7 @@ import { getSettings, setSettings } from "./lib/helpers";
 import { initSupabaseSync } from "./lib/supabaseSync";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
-import { ProgramProvider } from './state/program'
+import { ProgramProvider } from "./state/program";
 import "./styles/theme.css";
 import { registerSW } from "./lib/pwa";
 import {
@@ -30,8 +30,8 @@ const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Settings = lazy(() => import("./pages/Settings"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
-const ProgramSettings = lazy(() => import('./pages/ProgramSettings'));
-import RequireAuth from './routes/guards/RequireAuth'
+const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
+import RequireAuth from "./routes/guards/RequireAuth";
 
 function Shell() {
   const navigate = useNavigate();
@@ -240,104 +240,114 @@ function Shell() {
   );
 
   // Hide app shell (nav etc) on /auth route
-  const authRoute = locationRef.pathname.startsWith('/auth')
+  const authRoute = locationRef.pathname.startsWith("/auth");
   return (
     <div className="min-h-screen flex flex-col">
       {!authRoute && <BackgroundFX />}
-      {!authRoute && <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
-          <h1 className="text-base sm:text-lg font-semibold shrink-0">
-            LiftLog
-          </h1>
-          <div className="flex items-center gap-2 sm:gap-3 w-full">
-            <nav className="flex gap-2 overflow-x-auto no-scrollbar max-w-[62vw] sm:max-w-none">
-              <Tab to="/" label="Dashboard" />
-              <Tab to="/sessions" label="Sessions" />
-              <Tab to="/measurements" label="Measurements" />
-              <Tab to="/templates" label="Templates" />
-              <Tab to="/settings" label="Settings" />
-            </nav>
-            <div className="flex items-center gap-2">
-              {!authChecked ? (
-                <span className="text-xs text-gray-400">…</span>
-              ) : authEmail ? (
-                <>
-                  <span className="text-xs text-emerald-400">Signed in</span>
-                  <button
-                    className={`px-2 py-1 rounded-lg text-xs ${
-                      signingOut ? "btn-outline" : "btn-primary"
-                    }`}
-                    disabled={signingOut}
-                    onClick={async () => {
-                      setSigningOut(true);
-                      try {
-                        await supabase.auth.signOut({ scope: "global" } as any);
-                      } finally {
-                        console.log(
-                          "[App] signOut clicked: clearing storage & verify loop"
-                        );
+      {!authRoute && (
+        <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
+            <h1 className="text-base sm:text-lg font-semibold shrink-0">
+              LiftLog
+            </h1>
+            <div className="flex items-center gap-2 sm:gap-3 w-full">
+              <nav className="flex gap-2 overflow-x-auto no-scrollbar max-w-[62vw] sm:max-w-none">
+                <Tab to="/" label="Dashboard" />
+                <Tab to="/sessions" label="Sessions" />
+                <Tab to="/measurements" label="Measurements" />
+                <Tab to="/templates" label="Templates" />
+                <Tab to="/settings" label="Settings" />
+              </nav>
+              <div className="flex items-center gap-2">
+                {!authChecked ? (
+                  <span className="text-xs text-gray-400">…</span>
+                ) : authEmail ? (
+                  <>
+                    <span className="text-xs text-emerald-400">Signed in</span>
+                    <button
+                      className={`px-2 py-1 rounded-lg text-xs ${
+                        signingOut ? "btn-outline" : "btn-primary"
+                      }`}
+                      disabled={signingOut}
+                      onClick={async () => {
+                        setSigningOut(true);
                         try {
-                          localStorage.removeItem("sb_pw_reset");
-                          clearAuthStorage();
-                        } catch {}
-                        // Double-check session is gone
-                        try {
-                          let tries = 0;
-                          while (tries++ < 10) {
-                            const s = await waitForSession({ timeoutMs: 800 });
-                            console.log(
-                              "[App] signOut verify try",
-                              tries,
-                              "session?",
-                              !!s
-                            );
-                            if (!s) break;
-                            await new Promise((r) => setTimeout(r, 100));
-                          }
-                        } catch {}
-                        setAuthEmail(null);
-                        navigate("/");
-                        setSigningOut(false);
-                        setToast("Signed out");
-                        setBigFlash("Signed out successfully");
-                        // Ensure a clean slate in PWA by reloading the page
-                        setTimeout(() => {
+                          await supabase.auth.signOut({
+                            scope: "global",
+                          } as any);
+                        } finally {
+                          console.log(
+                            "[App] signOut clicked: clearing storage & verify loop"
+                          );
                           try {
-                            window.location.reload();
+                            localStorage.removeItem("sb_pw_reset");
+                            clearAuthStorage();
                           } catch {}
-                        }, 200);
-                      }
-                    }}
+                          // Double-check session is gone
+                          try {
+                            let tries = 0;
+                            while (tries++ < 10) {
+                              const s = await waitForSession({
+                                timeoutMs: 800,
+                              });
+                              console.log(
+                                "[App] signOut verify try",
+                                tries,
+                                "session?",
+                                !!s
+                              );
+                              if (!s) break;
+                              await new Promise((r) => setTimeout(r, 100));
+                            }
+                          } catch {}
+                          setAuthEmail(null);
+                          navigate("/");
+                          setSigningOut(false);
+                          setToast("Signed out");
+                          setBigFlash("Signed out successfully");
+                          // Ensure a clean slate in PWA by reloading the page
+                          setTimeout(() => {
+                            try {
+                              window.location.reload();
+                            } catch {}
+                          }, 200);
+                        }
+                      }}
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btn-outline px-2 py-1 rounded-lg text-xs"
+                    onClick={() => setAuthOpen(true)}
                   >
-                    Sign out
+                    Sign in
                   </button>
-                </>
-              ) : (
-                <button
-                  className="btn-outline px-2 py-1 rounded-lg text-xs"
-                  onClick={() => setAuthOpen(true)}
-                >
-                  Sign in
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </header>}
-      {!authRoute && <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        onSignedIn={() => {
-          setAuthOpen(false);
-          setToast("Signed in");
-          setBigFlash("Signed in successfully");
-        }}
-      />}
-      {!authRoute && <BigFlash
-        open={!!bigFlash}
-        message={bigFlash || ""}
-        onClose={() => setBigFlash(null)}
-      />}
+        </header>
+      )}
+      {!authRoute && (
+        <AuthModal
+          open={authOpen}
+          onClose={() => setAuthOpen(false)}
+          onSignedIn={() => {
+            setAuthOpen(false);
+            setToast("Signed in");
+            setBigFlash("Signed in successfully");
+          }}
+        />
+      )}
+      {!authRoute && (
+        <BigFlash
+          open={!!bigFlash}
+          message={bigFlash || ""}
+          onClose={() => setBigFlash(null)}
+        />
+      )}
       {!authRoute && toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
           <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
@@ -352,15 +362,57 @@ function Shell() {
         </div>
       )}
       <main className="flex-1 w-full px-0 py-0">
-        <Suspense fallback={<div className='p-6'>Loading…</div>}>
+        <Suspense fallback={<div className="p-6">Loading…</div>}>
           <Routes>
             <Route path="/auth" element={<IntroAuthPage />} />
-            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
-            <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
-            <Route path="/measurements" element={<RequireAuth><Measurements /></RequireAuth>} />
-            <Route path="/templates" element={<RequireAuth><Templates /></RequireAuth>} />
-            <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
-            <Route path="/settings/program" element={<RequireAuth><ProgramSettings /></RequireAuth>} />
+            <Route
+              path="/"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/sessions"
+              element={
+                <RequireAuth>
+                  <Sessions />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/measurements"
+              element={
+                <RequireAuth>
+                  <Measurements />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/templates"
+              element={
+                <RequireAuth>
+                  <Templates />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RequireAuth>
+                  <Settings />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings/program"
+              element={
+                <RequireAuth>
+                  <ProgramSettings />
+                </RequireAuth>
+              }
+            />
           </Routes>
         </Suspense>
       </main>
