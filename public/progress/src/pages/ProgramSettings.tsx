@@ -16,6 +16,7 @@ import {
   restoreArchivedProgram,
 } from "../lib/profile";
 import { db } from "../lib/db";
+import { Session } from "../lib/types";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -39,6 +40,34 @@ export default function ProgramSettings() {
   const [toast, setToast] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [volumeByWeek, setVolumeByWeek] = useState<number[]>([]);
+  const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({});
+
+  // derive simple historical volume (current mesocycle sessions)
+  useEffect(()=>{ (async()=>{
+    if(!program) return;
+    const all = await db.getAll<Session>('sessions');
+    const cur = all.filter(s=> (s.phaseNumber||s.phase||1) === (program as any).currentPhase || 1);
+    const byWeek: Record<number, number> = {};
+    const mv: Record<string, number> = {};
+    const exMap = new Map((await db.getAll('exercises')).map((e:any)=>[e.id,e]));
+    for(const s of cur){
+      let sessionVol=0;
+      for(const e of s.entries){
+        const ex = exMap.get(e.exerciseId);
+        const m = ex?.muscleGroup || 'other';
+        for(const set of e.sets){
+          const vol = (set.weightKg||0) * (set.reps||0);
+          sessionVol += vol;
+          mv[m] = (mv[m]||0)+vol;
+        }
+      }
+      byWeek[s.weekNumber] = (byWeek[s.weekNumber]||0) + sessionVol;
+    }
+    const weeks = Array.from({length: program.mesoWeeks}, (_,i)=> byWeek[i+1]||0);
+    setVolumeByWeek(weeks);
+    setMuscleVolume(mv);
+  })() }, [program?.id, program?.mesoWeeks]);
 
   useEffect(() => {
     if (program) setWorking(program);
@@ -181,6 +210,39 @@ export default function ProgramSettings() {
       <h2 className="text-lg font-semibold">Program</h2>
       {toast && <div className="text-xs text-emerald-400">{toast}</div>}
       <div className="glass-card rounded-2xl p-4 space-y-4">
+        {/* Mesocycle timeline */}
+        <div className="space-y-2">
+          <div className="text-xs uppercase tracking-wide text-gray-400">Mesocycle Timeline (Weekly Volume)</div>
+          <div className="flex items-end gap-1 h-24">
+            {volumeByWeek.map((v,i)=>{ const max=Math.max(1,...volumeByWeek); const pct=Math.round((v/max)*100); return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full bg-slate-700/40 rounded relative h-full flex items-end">
+                  <div className="w-full bg-gradient-to-t from-indigo-600/70 to-indigo-400/70 rounded transition-all" style={{height:`${pct}%`}} />
+                </div>
+                <div className="text-[9px] text-gray-500">W{i+1}</div>
+              </div>
+            )})}
+          </div>
+        </div>
+        {/* Muscle group heatmap */}
+        <div className="space-y-2">
+          <div className="text-xs uppercase tracking-wide text-gray-400">Muscle Volume Split</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {Object.entries(muscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=>{ const max=Math.max(1,...Object.values(muscleVolume)); const pct=(v/max)*100; return (
+              <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
+                <div className="flex items-center justify-between text-[10px] text-gray-400">
+                  <span className="capitalize">{m}</span><span className="tabular-nums">{Math.round(v)}</span>
+                </div>
+                <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
+                  <div className="h-full bg-emerald-500" style={{width:`${pct}%`}} />
+                </div>
+              </div>
+            )})}
+            {!Object.keys(muscleVolume).length && (
+              <div className="col-span-full text-[11px] text-gray-500">No logged volume yet this phase.</div>
+            )}
+          </div>
+        </div>
         <div className="flex flex-wrap gap-4">
           <label className="space-y-1">
             <span className="text-xs text-gray-400">Name</span>
