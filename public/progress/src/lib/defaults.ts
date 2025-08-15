@@ -21,6 +21,12 @@ export const defaultSettings: Settings = {
     showDeloadHints: true,
     showPrevHints: true,
   },
+  ui: {
+    compactMode: false,
+    instantThemeTransition: false,
+    smoothingDefault: false,
+    themeMode: 'dark'
+  }
 };
 
 export const defaultExercises: Exercise[] = [

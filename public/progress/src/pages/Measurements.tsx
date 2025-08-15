@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../lib/db";
-import { getSettings } from "../lib/helpers";
+import { getSettings, setSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
 import { nanoid } from "nanoid";
 import { loadRecharts } from "../lib/loadRecharts";
 import MeasurementsInfoModal from "./MeasurementsInfoModal";
+import UnifiedTooltip from "../components/UnifiedTooltip";
 import Snackbar from "../components/Snackbar";
 
 const TIPS: Record<string, string> = {
@@ -86,6 +87,7 @@ export default function Measurements() {
     "waist",
   ]);
   const [smoothing, setSmoothing] = useState(false);
+  useEffect(()=> { (async()=>{ const s = await getSettings(); setSmoothing(!!s.ui?.smoothingDefault); })() },[]);
   const toggleOverlay = (k: keyof Measurement) => {
     setOverlayKeys((prev) =>
       prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
@@ -153,35 +155,12 @@ export default function Measurements() {
     return out;
   }, [overlayKeys, data]);
 
-  const tooltipContent = (props: any) => {
-    if(!props.active || !props.payload?.length) return null;
-    const label = props.label;
-    return (
-      <div className="bg-slate-900/90 border border-white/10 rounded-md px-3 py-2 text-[11px] space-y-1">
-        <div className="font-medium">{label}</div>
-        {props.payload.map((p: any) => {
-          const name = p.name || p.dataKey;
-          const src = overlaySeries[name]?.[smoothing? 'avg':'raw'] || weightSeries;
-          const idx = src.findIndex((r:any)=> r.date === label);
-          let delta: string | null = null;
-          if(idx > 0){
-            const prev = src[idx-1];
-            if(prev){
-              const diff = (p.value - (prev.avg ?? prev.value));
-              if(!isNaN(diff)) delta = (diff >= 0? '+':'') + diff.toFixed(1);
-            }
-          }
-          return (
-            <div key={name + p.dataKey} className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: p.color }} /> {name}
-              </span>
-              <span className="tabular-nums">{Number(p.value).toFixed(1)}{delta && <span className={`ml-2 ${delta.startsWith('+')? 'text-emerald-400':'text-red-400'}`}>{delta}</span>}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
+  // Provide previous point lookup for UnifiedTooltip
+  const prevLookup = (seriesName:string, label:any) => {
+    const src = overlaySeries[seriesName]?.[smoothing? 'avg':'raw'] || weightSeries;
+    const idx = src.findIndex((r:any)=> r.date === label);
+    if(idx>0){ const prev = src[idx-1]; return prev?.avg ?? prev?.value; }
+    return undefined;
   };
 
   return (
@@ -276,7 +255,7 @@ export default function Measurements() {
           {["weightKg","waist","chest","hips","upperArm"].map(k => (
             <button key={k} onClick={()=> toggleOverlay(k as keyof Measurement)} className={`px-2 py-1 rounded-lg border ${overlayKeys.includes(k as any)?'bg-emerald-600 border-emerald-500':'bg-white/5 border-white/10'}`}>{k}</button>
           ))}
-          <button onClick={()=> setSmoothing(s=> !s)} className={`px-2 py-1 rounded-lg border ${smoothing? 'bg-indigo-600 border-indigo-500':'bg-white/5 border-white/10'}`}>{smoothing? 'Smoothing On':'Smoothing Off'}</button>
+          <button onClick={async ()=> { setSmoothing(s=> { const next=!s; (async()=>{ const st=await getSettings(); await setSettings({ ...st, ui:{ ...(st.ui||{}), smoothingDefault: next } }) })(); return next }); }} className={`px-2 py-1 rounded-lg border ${smoothing? 'bg-indigo-600 border-indigo-500':'bg-white/5 border-white/10'}`}>{smoothing? 'Smoothing On':'Smoothing Off'}</button>
           <span className="ml-auto text-[10px] text-gray-500 hidden sm:inline">Tooltip shows Δ vs prev day • Toggle smoothing for rolling avg (w=3)</span>
         </div>
         <div className="h-72">
@@ -287,7 +266,7 @@ export default function Measurements() {
                 <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 <RC.XAxis dataKey="date" stroke="#9ca3af" interval={Math.ceil((weightSeries.length||30)/12)} />
                 <RC.YAxis stroke="#9ca3af" />
-                <RC.Tooltip content={tooltipContent} />
+                <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ previousPointLookup: prevLookup }} />} />
                 <RC.Legend />
                 {overlayKeys.map((k,i)=> {
                   const sObj = overlaySeries[k];

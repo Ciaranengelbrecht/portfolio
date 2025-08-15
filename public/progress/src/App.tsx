@@ -74,7 +74,33 @@ function Shell() {
       const root = document.documentElement;
       if (s.accentColor) root.style.setProperty("--accent", s.accentColor);
       if (s.cardStyle) root.setAttribute("data-card-style", s.cardStyle);
-  if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
+      if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
+      // Theme mode handling
+      const applyThemeMode = () => {
+        const mode = s.ui?.themeMode || 'dark';
+        const preferSystem = mode === 'system';
+        let effective: 'dark' | 'light' = 'dark';
+        if (preferSystem) {
+          const mq = window.matchMedia('(prefers-color-scheme: light)');
+            effective = mq.matches ? 'light' : 'dark';
+        } else effective = mode;
+        document.body.dataset.theme = effective;
+      };
+      if(!s.ui?.instantThemeTransition){
+        document.body.classList.add('theme-animate');
+        setTimeout(()=> document.body.classList.remove('theme-animate'), 600);
+      }
+      applyThemeMode();
+      if (s.ui?.themeMode === 'system') {
+        try {
+          const mq = window.matchMedia('(prefers-color-scheme: light)');
+          const listener = () => applyThemeMode();
+          mq.addEventListener('change', listener);
+          setTimeout(()=> mq.removeEventListener('change', listener), 30000); // temp listener (can be persisted refactor later)
+        } catch {}
+      }
+      // Compact mode
+      if (s.ui?.compactMode) document.body.dataset.density = 'compact'; else delete document.body.dataset.density;
     })();
   }, []);
   // Initialize Supabase sync (pull, push queue, realtime)

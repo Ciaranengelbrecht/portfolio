@@ -3,9 +3,17 @@ import { volumeByMuscleGroup } from "../lib/helpers";
 import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
 import { Measurement, Session, Settings, Exercise } from "../lib/types";
+import UnifiedTooltip from "../components/UnifiedTooltip";
 // Recharts is lazy loaded; see RC state
 import DashboardDeloadTable from "./DashboardDeloadTable";
 import ProgressBars from "../components/ProgressBars";
+
+// Lightweight animated number hook respecting reduced motion
+function useAnimatedNumber(value:number, duration=600){
+  const [display,setDisplay]=useState(value);
+  useEffect(()=>{ if((document.documentElement.getAttribute('data-reduced-motion')==='true')){ setDisplay(value); return; } let start:number|undefined; const from=display; const diff=value-from; if(diff===0) return; const d= Math.max(200,duration); function step(ts:number){ if(start==null) start=ts; const t = (ts-start)/d; const eased = t<1? (1-Math.pow(1-t,3)):1; setDisplay(from + diff*eased); if(t<1) requestAnimationFrame(step); else setDisplay(value); } const r = requestAnimationFrame(step); return ()=> cancelAnimationFrame(r); },[value]);
+  return Math.round(display*100)/100;
+}
 
 export default function Dashboard() {
   const [week, setWeek] = useState(1);
@@ -122,6 +130,17 @@ export default function Dashboard() {
     [volume]
   );
 
+  // Build min/max metadata for line series
+  const weightMinMax = useMemo(()=>{ if(!weights.length) return undefined; const vals=weights.map(w=> w.weight); return { weight: { min: Math.min(...vals), max: Math.max(...vals) } }; },[weights]);
+  const waistMinMax = useMemo(()=>{ if(!waist.length) return undefined; const vals=waist.map(w=> w.value); return { value: { min: Math.min(...vals), max: Math.max(...vals) } }; },[waist]);
+  const armMinMax = useMemo(()=>{ if(!arm.length) return undefined; const vals=arm.map(w=> w.value); return { value: { min: Math.min(...vals), max: Math.max(...vals) } }; },[arm]);
+  const volumeTrendMinMax = useMemo(()=>{ if(!volumeTrend.length) return undefined; const out: Record<string,{min:number;max:number}> = {}; volumeTrend.forEach(row=> { Object.keys(row).forEach(k=> { if(k==='week') return; const v=row[k]; if(typeof v!=='number' || isNaN(v)) return; if(!out[k]) out[k]={min:v,max:v}; else { if(v<out[k].min) out[k].min=v; if(v>out[k].max) out[k].max=v; } }); }); return out; },[volumeTrend]);
+  const prevPoint = (series:string,label:any, rows:any[], keyField:string)=> { const idx = rows.findIndex(r=> r[keyField]===label); if(idx>0){ const prev = rows[idx-1]; return prev?.[series]; } return undefined; };
+
+  const animXp = useAnimatedNumber(xp);
+  const animWeekVol = useAnimatedNumber(weeklyRecap?.volume||0);
+  const animPR = useAnimatedNumber(weeklyRecap?.prCount||0);
+  const animAdh = useAnimatedNumber(weeklyRecap?.adherence||0);
   return (
     <div className="space-y-6">
       <ProgressBars />
@@ -155,9 +174,9 @@ export default function Dashboard() {
             <div>
               <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">XP</div>
               <div className="h-3 bg-slate-700/50 rounded overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500" style={{width: `${Math.min(100, (xp % 1000)/10)}%`}} />
+                <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-[width] duration-300" style={{width: `${Math.min(100, (xp % 1000)/10)}%`}} />
               </div>
-              <div className="text-[10px] text-gray-500 mt-1">{xp} XP</div>
+              <div className="text-[10px] text-gray-500 mt-1 tabular-nums">{animXp.toFixed(0)} XP</div>
             </div>
             {achievements.length>0 && (
               <div>
@@ -175,19 +194,19 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400">Volume</div>
-                <div className="font-semibold">{Math.round(weeklyRecap.volume)}</div>
+                <div className="font-semibold tabular-nums">{Math.round(animWeekVol)}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400">PRs</div>
-                <div className="font-semibold">{weeklyRecap.prCount}</div>
+                <div className="font-semibold tabular-nums">{Math.round(animPR)}</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400">BW Δ</div>
-                <div className="font-semibold">{weeklyRecap.bodyDelta?.toFixed(1) ?? '—'} kg</div>
+                <div className="font-semibold tabular-nums">{weeklyRecap.bodyDelta?.toFixed(1) ?? '—'} kg</div>
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400">Adherence</div>
-                <div className="font-semibold">{weeklyRecap.adherence.toFixed(0)}%</div>
+                <div className="font-semibold tabular-nums">{Math.round(animAdh)}%</div>
               </div>
             </div>
           ): <div className="text-xs text-gray-500">Need more data for recap.</div>}
@@ -202,7 +221,7 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="group" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: weightMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,weights,'date') }} />} />
                   <RC.Bar dataKey="tonnage" fill="#3b82f6" name="Tonnage" />
                   <RC.Bar dataKey="sets" fill="#f59e0b" name="Sets" />
                 </RC.BarChart>
@@ -220,8 +239,10 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: waistMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,waist,'date') }} />} />
                   <RC.Line type="monotone" dataKey="weight" stroke="#3b82f6" dot={false} />
+                    {/* PR marker (max weight) */}
+                    {weights.length>1 && (()=> { const max = Math.max(...weights.map(w=> w.weight)); const idx = weights.findIndex(w=> w.weight===max); if(idx>=0){ const pt = weights[idx]; return <RC.Scatter data={[pt]} shape={(props:any)=> <rect x={props.cx-3} y={props.cy-3} width={6} height={6} className="pr-marker" /> } /> } return null; })()}
                 </RC.LineChart>
               </RC.ResponsiveContainer>
             )}
@@ -240,7 +261,7 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: armMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,arm,'date') }} />} />
                   <RC.Line type="monotone" dataKey="value" stroke="#ef4444" dot={false} />
                 </RC.LineChart>
               </RC.ResponsiveContainer>
@@ -257,7 +278,7 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: volumeTrendMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,volumeTrend,'week') }} />} />
                   <RC.Line type="monotone" dataKey="value" stroke="#22c55e" dot={false} />
                 </RC.LineChart>
               </RC.ResponsiveContainer>
@@ -280,7 +301,7 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="week" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} />} />
                   <RC.Legend />
                   {['chest','back','legs','shoulders','arms','core','glutes'].filter(m=> volumeTrend.some(r=> r[m])).map((m,i)=> {
                     const palette=['#f87171','#60a5fa','#34d399','#fbbf24','#c084fc','#f472b6','#a3e635'];
@@ -306,7 +327,7 @@ export default function Dashboard() {
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="bucket" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip />
+                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} />} />
                   <RC.Bar dataKey="sets" name="% Sets" fill="#6366f1" />
                 </RC.BarChart>
               </RC.ResponsiveContainer>

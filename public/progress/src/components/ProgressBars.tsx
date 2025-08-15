@@ -7,7 +7,7 @@ import {
   setDashboardPrefs,
   getDashboardPrefs,
 } from "../lib/helpers";
-import { Session, Settings } from "../lib/types";
+import { Session, Settings, Exercise } from "../lib/types";
 import {
   getWeekCompletion,
   getPhaseCompletion,
@@ -58,6 +58,7 @@ function ProgressBar({ percent }: { percent: number }) {
 export default function ProgressBars() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [settings, setSettingsState] = useState<Settings | undefined>();
   const [curPhase, setCurPhase] = useState(1);
   const [curWeek, setCurWeek] = useState(1);
@@ -66,11 +67,12 @@ export default function ProgressBars() {
   useEffect(() => {
     (async () => {
       setSessions(await db.getAll("sessions"));
-      const s = await getSettings();
+  const s = await getSettings();
       setSettingsState(s);
       setCurPhase(s.currentPhase || 1);
       const prefs = await getDashboardPrefs();
       if (prefs.lastLocation) setCurWeek(prefs.lastLocation.weekNumber);
+  setExercises(await db.getAll('exercises'));
     })();
   }, []);
 
@@ -84,7 +86,7 @@ export default function ProgressBars() {
   }, []);
 
   const refresh = async () => {
-    setSessions(await db.getAll("sessions"));
+  setSessions(await db.getAll("sessions"));
     const s = await getSettings();
     setSettingsState(s);
     setCurPhase(s.currentPhase || 1);
@@ -92,6 +94,7 @@ export default function ProgressBars() {
       const prefs = await getDashboardPrefs();
       if (prefs.lastLocation) setCurWeek(prefs.lastLocation.weekNumber);
     } catch {}
+  setExercises(await db.getAll('exercises'));
   };
 
   const weeklyTarget = Math.max(
@@ -113,6 +116,13 @@ export default function ProgressBars() {
       }),
     [curPhase, sessions, weeklyTarget]
   );
+
+  // Sparkline points (percent per completed week) limited to weeks with any data
+  const sparklinePts = useMemo(()=> {
+    const pts = phase.weekPercents.map((p,i)=> ({ x:i, y:p }));
+    const maxIdx = pts.reduce((m,p,i)=> p.y>0? i: m, -1);
+    return pts.slice(0, Math.max(maxIdx+1,0));
+  },[phase.weekPercents]);
 
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const sessionForDay = (dayId: number) =>
@@ -158,6 +168,55 @@ export default function ProgressBars() {
       rest.entries?.some((e) => e.sets?.some((s) => (s.reps || 0) > 0))
       ? 1
       : 0;
+  };
+
+  // ----- Phase Checklist Modal State -----
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+
+  // Metrics for checklist
+  const phaseSessions = useMemo(()=> sessions.filter(s=> (s.phaseNumber||s.phase||1)===curPhase),[sessions,curPhase]);
+  const weeksElapsed = useMemo(()=> phase.weekPercents.reduce((m,p,i)=> p>0? i+1: m, 0),[phase.weekPercents]);
+  const adherence = useMemo(()=> {
+    if(!weeksElapsed) return 0;
+    const totalPct = phase.weekPercents.slice(0,weeksElapsed).reduce((a,b)=> a+b,0);
+    return totalPct / weeksElapsed; // average % of weeks
+  },[phase.weekPercents,weeksElapsed]);
+  const exerciseMap = useMemo(()=> new Map(exercises.map(e=> [e.id,e])),[exercises]);
+  const muscleSetTotals = useMemo(()=> {
+    const totals: Record<string, number> = {};
+    phaseSessions.forEach(s=> s.entries.forEach(e=> {
+      const ex = exerciseMap.get(e.exerciseId); const mg = ex?.muscleGroup || 'other';
+      e.sets.forEach(st=> { if((st.reps||0)>0 || (st.weightKg||0)>0){ totals[mg] = (totals[mg]||0)+1; } });
+    }));
+    return totals;
+  },[phaseSessions,exerciseMap]);
+  const muscleAvgPerWeek = useMemo(()=> {
+    const weeks = Math.max(1,weeksElapsed||1);
+    return Object.entries(muscleSetTotals).map(([m,v])=> ({ muscle:m, avg:(v/weeks) }));
+  },[muscleSetTotals,weeksElapsed]);
+  const undertrainedMuscles = useMemo(()=> muscleAvgPerWeek.filter(r=> r.avg < 8).sort((a,b)=> a.avg - b.avg),[muscleAvgPerWeek]);
+  // Simple plateau detector: last 4 sessions best set score stagnation
+  const plateauCount = useMemo(()=> {
+    const byEx: Record<string, number[]> = {};
+    phaseSessions.sort((a,b)=> a.dateISO.localeCompare(b.dateISO)).forEach(s=> s.entries.forEach(e=> {
+      const best = e.sets.reduce((m,st)=> Math.max(m,(st.weightKg||0)*(st.reps||0)),0);
+      if(best>0){ (byEx[e.exerciseId] ||= []).push(best); }
+    }));
+    let count=0; Object.values(byEx).forEach(arr=> { if(arr.length>=4){ const last4 = arr.slice(-4); const first2 = (last4[0]+last4[1])/2; const last2 = (last4[2]+last4[3])/2; if(last2 <= first2*1.02) count++; } });
+    return count;
+  },[phaseSessions]);
+
+  const advancePhaseConfirmed = async ()=> {
+    setAdvancing(true);
+    try {
+      const s = await getSettings();
+      const next = (s.currentPhase || 1) + 1;
+      await db.put('settings',{ ...s, id:'app', currentPhase: next });
+      setCurPhase(next);
+      await setDashboardPrefs({ lastLocation: { phaseNumber: next, weekNumber: 1 as any, dayId:0 }});
+      navigate('/sessions');
+    } finally { setAdvancing(false); setShowChecklist(false); }
   };
 
   return (
@@ -242,6 +301,27 @@ export default function ProgressBars() {
             ></div>
           ))}
         </div>
+        {sparklinePts.length>1 && (
+          <div className="mt-3">
+            <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" className="overflow-visible">
+              {(() => {
+                const xs = sparklinePts.map(p=> p.x);
+                const ys = sparklinePts.map(p=> p.y);
+                const maxX = Math.max(...xs,1);
+                const maxY = Math.max(...ys,100);
+                const path = sparklinePts.map((p,i)=> {
+                  const x = (p.x / maxX) * 100;
+                  const y = 32 - (p.y / maxY) * 28 - 2; // padding
+                  return `${i===0? 'M':'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+                }).join(' ');
+                return <>
+                  <path d={path} fill="none" stroke="var(--accent)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+                  {sparklinePts.map(p=> { const x=(p.x/Math.max(...xs,1))*100; const y=32-(p.y/Math.max(...ys,100))*28-2; return <circle key={p.x} cx={x} cy={y} r={1.5} fill="var(--accent)" /> })}
+                </>
+              })()}
+            </svg>
+          </div>
+        )}
         {curWeek < 9 &&
           phase.weekPercents.slice(0, 8).every((p) => p >= 100) &&
           (settings?.progress?.showDeloadHints ?? true) && (
@@ -252,21 +332,7 @@ export default function ProgressBars() {
             <span className="text-sm">Phase complete</span>
             <button
               className="text-xs bg-emerald-600 rounded px-2 py-1"
-              onClick={async () => {
-                // Ensure current phase has at least some real data
-                const real = sessions.filter(s=> (s.phaseNumber||s.phase||1)===curPhase).some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
-                if(!real){
-                  if(!window.confirm('No real logged data in this phase. Advance anyway?')) return;
-                } else {
-                  if(!window.confirm('Advance to next phase?')) return;
-                }
-                const s = await getSettings();
-                const next = (s.currentPhase || 1) + 1;
-                await db.put('settings', { ...s, id:'app', currentPhase: next });
-                setCurPhase(next);
-                await setDashboardPrefs({ lastLocation: { phaseNumber: next, weekNumber: 1 as any, dayId:0 }});
-                navigate('/sessions');
-              }}
+              onClick={()=> setShowChecklist(true)}
             >Start Phase {curPhase + 1}</button>
             {curPhase>1 && <button
               className="text-xs bg-slate-700 rounded px-2 py-1"
@@ -283,6 +349,49 @@ export default function ProgressBars() {
           </div>
         )}
       </GlassCard>
+      {showChecklist && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=> !advancing && setShowChecklist(false)} />
+          <div className="relative z-10 w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl p-5 space-y-4 shadow-xl">
+            <h4 className="text-lg font-semibold">Phase {curPhase} Review</h4>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Weeks</div>
+                <div className="font-medium">{weeksElapsed} / 9</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Adherence</div>
+                <div className="font-medium">{adherence.toFixed(0)}%</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Plateaus</div>
+                <div className="font-medium">{plateauCount}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">Undertrained</div>
+                <div className="font-medium">{undertrainedMuscles.length}</div>
+              </div>
+            </div>
+            <div className="text-xs max-h-40 overflow-auto rounded-lg border border-white/5 p-2 bg-slate-800/40">
+              <div className="font-semibold mb-1">Avg Sets / Week by Muscle</div>
+              {muscleAvgPerWeek.sort((a,b)=> b.avg - a.avg).map(r=> (
+                <div key={r.muscle} className="flex items-center justify-between py-0.5">
+                  <span className="capitalize">{r.muscle}</span>
+                  <span className={r.avg<8? 'text-amber-400': 'text-gray-200'}>{r.avg.toFixed(1)}</span>
+                </div>
+              ))}
+              {!muscleAvgPerWeek.length && <div className="text-gray-500">No logged sets.</div>}
+            </div>
+            {!!undertrainedMuscles.length && (
+              <div className="text-[11px] text-amber-400">Consider adding volume for: {undertrainedMuscles.slice(0,5).map(m=> m.muscle).join(', ')}{undertrainedMuscles.length>5?'…':''}</div>
+            )}
+            <div className="flex gap-3 justify-end pt-2">
+              <button className="text-xs px-3 py-2 rounded-lg bg-slate-700" disabled={advancing} onClick={()=> setShowChecklist(false)}>Cancel</button>
+              <button className="text-xs px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-50" disabled={advancing} onClick={advancePhaseConfirmed}>{advancing? 'Advancing…':'Confirm & Advance'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

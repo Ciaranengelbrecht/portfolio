@@ -102,6 +102,12 @@ export interface Settings {
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
   };
+  ui?: {
+    compactMode?: boolean; // reduced paddings / font-size
+    instantThemeTransition?: boolean; // disable animated theme swap
+    smoothingDefault?: boolean; // measurement chart smoothing persisted
+    themeMode?: 'system' | 'dark' | 'light'; // high-level mode override
+  };
   currentPhase?: number;
   accentColor?: string;
   cardStyle?: "glass" | "solid" | "minimal";

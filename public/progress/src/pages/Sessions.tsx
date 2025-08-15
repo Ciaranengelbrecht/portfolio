@@ -54,7 +54,8 @@ export default function Sessions() {
   } | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
-  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean}>>({}); // ephemeral per-set timers
+  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean}>>({}); // ephemeral per-set timers with optional finished pulse
+  const REST_TIMER_MAX = 180000; // 3 minutes in ms
   const [readinessPct, setReadinessPct] = useState(0);
 
   useEffect(() => {
@@ -162,19 +163,31 @@ export default function Sessions() {
   useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
 
   // Rest timer: high-res 60fps-ish update; auto-clears when stopped or another set's rest is started.
-  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ let changed=false; const next:{[k:string]:any}={}; for(const [k,v] of Object.entries(prev)){ if(v.running){ next[k]={...v, elapsed: Date.now()-v.start, running:true}; changed=true } else if(v.elapsed>0 && v.elapsed < 300) { /* just finished, keep for a brief flash */ next[k]=v } else { changed=true; /* drop */ } } return changed?next:prev }) }, 80); return ()=> clearInterval(id) },[])
+  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ const now=Date.now(); const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
+          if(v.finished){ // keep briefly for pulse
+            if(now - (v.start + v.elapsed) < 600){ next[k]=v; }
+            continue;
+          }
+          if(!v.running) continue;
+          const elapsed = now - v.start;
+          if(elapsed >= REST_TIMER_MAX){
+            next[k] = { ...v, elapsed: REST_TIMER_MAX, running:false, finished:true };
+          } else {
+            next[k] = { ...v, elapsed };
+          }
+        } return next }) }, 80); return ()=> clearInterval(id) },[])
   const toggleRestTimer = (entryId:string,setNumber:number)=>{
     const key=`${entryId}:${setNumber}`;
     setRestTimers(prev=>{
-      // Clear all other timers when starting a new one
       const cur=prev[key];
-      // If clicking active timer -> stop and remove
-      if(cur?.running){ const { [key]:_, ...rest } = prev; return rest }
-      const cleared: Record<string, any> = {};
-      return { ...cleared, [key]: { start: Date.now(), elapsed:0, running:true } };
-    })
+      if(cur?.running){ // mark finished with elapsed, non-running; keep for pulse then remove via tick cleanup
+        return { ...prev, [key]: { ...cur, running:false, finished:true, elapsed: Date.now()-cur.start } };
+      }
+      // start new; clear others
+      return { [key]: { start: Date.now(), elapsed:0, running:true } };
+    });
   }
-  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const msec = Math.floor(ms%1000/10); return <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 border border-emerald-600/40 shadow-inner ${t.running?'text-emerald-300':'text-slate-400'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(msec).padStart(2,'0')}</span></span> }
+  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const msec = Math.floor(ms%1000/10); return <span title="Rest timer" className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 border border-emerald-600/40 shadow-inner ${t.running?'text-emerald-300':'text-slate-400'} ${t.finished?'rest-finished':''}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(msec).padStart(2,'0')}</span></span> }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
 
   // Adjust week clamp if program changes
@@ -200,13 +213,22 @@ export default function Sessions() {
         }
       }
       if (!s) {
+        // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
+        const allToday = (await db.getAll<Session>('sessions')).filter(x=> x.dateISO?.slice(0,10) === new Date().toISOString().slice(0,10));
+        const existingSame = allToday.find(x=> x.id === id);
+        if(existingSame){
+          s = existingSame; // another timezone path already created it
+        }
+      }
+      if (!s) {
         const templateMeta = program ? program.weeklySplit[day] : undefined;
         const templateName = templateMeta
           ? templateMeta.customLabel || templateMeta.type || "Day"
           : DAYS[day];
         s = {
           id,
-          dateISO: new Date().toISOString(),
+          // Normalize date to start-of-day UTC to avoid duplicates across TZ boundaries
+          dateISO: (()=> { const d=new Date(); d.setUTCHours(0,0,0,0); return d.toISOString(); })(),
           weekNumber: week,
           phase,
           phaseNumber: phase,
@@ -496,9 +518,11 @@ export default function Sessions() {
   };
 
   const createCustomExercise = async (name: string) => {
+    const clean = name.trim().replace(/\s+/g,' ').slice(0,60);
+    if(!clean){ return; }
     const ex: Exercise = {
       id: nanoid(),
-      name,
+      name: clean,
       muscleGroup: "other",
       defaults: { sets: 3, targetRepRange: "8-12" },
     };

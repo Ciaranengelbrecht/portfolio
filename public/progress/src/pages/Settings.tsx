@@ -794,6 +794,41 @@ export default function SettingsPage() {
                 }}
               />
             </label>
+            <div className="flex flex-wrap gap-2 items-center text-xs">
+              <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>Theme mode</span>
+                <select
+                  className="bg-transparent outline-none"
+                  value={s.ui?.themeMode || 'dark'}
+                  onChange={async (e)=>{
+                    const mode=e.target.value as any;
+                    const next={ ...s, ui:{ ...(s.ui||{}), themeMode: mode } };
+                    setS(next);
+                    await db.put('settings',{ ...next, id:'app' } as any);
+                    // Apply immediately
+                    document.documentElement.setAttribute('data-theme', mode==='system'? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'): mode);
+                    // body attribute update is handled in root App but we set for immediate feedback
+                  }}
+                >
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                  <option value="system">System</option>
+                </select>
+              </div>
+              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>Compact UI</span>
+                <input type="checkbox" checked={!!s.ui?.compactMode} onChange={async(e)=>{
+                  const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), compactMode: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.setAttribute('data-density', val? 'compact':'normal'); }} />
+              </label>
+              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>Instant theme</span>
+                <input type="checkbox" checked={!!s.ui?.instantThemeTransition} onChange={async(e)=>{ const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), instantThemeTransition: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); if(val) document.documentElement.classList.remove('theme-animate'); else document.documentElement.classList.add('theme-animate'); }} />
+              </label>
+              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>Smoothing default</span>
+                <input type="checkbox" checked={!!s.ui?.smoothingDefault} onChange={async(e)=>{ const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), smoothingDefault: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); }} />
+              </label>
+            </div>
           </div>
         </div>
       </div>

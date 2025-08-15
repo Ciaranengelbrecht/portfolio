@@ -66,9 +66,11 @@ export default function Templates() {
   }, []);
 
   const addTemplate = async () => {
+    const raw = name || `Template ${templates.length + 1}`;
+    const clean = raw.trim().replace(/\s+/g,' ').slice(0,60) || `Template ${templates.length + 1}`;
     const t: Template = {
       id: nanoid(),
-      name: name || `Template ${templates.length + 1}`,
+      name: clean,
       exerciseIds: exercises.slice(0, 4).map((e) => e.id),
     };
     await db.put("templates", t);
