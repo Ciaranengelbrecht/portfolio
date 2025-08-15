@@ -500,7 +500,7 @@ export default function Sessions() {
   return (
     <div className="space-y-4">
       {/* Header toolbar - responsive */}
-      <div className="flex flex-wrap items-center gap-2">
+  <div className="flex flex-wrap items-center gap-2 sticky-toolbar rounded-b-xl">
         <h2 className="text-xl font-semibold">Sessions</h2>
         <PhaseStepper
           value={phase}
@@ -510,7 +510,7 @@ export default function Sessions() {
             await setSettings({ ...s, currentPhase: p });
           }}
         />
-        <div className="flex items-center gap-2">
+  <div className="flex items-center gap-2">
           <select
             className="bg-card rounded-xl px-2 py-1"
             value={week}
@@ -532,9 +532,9 @@ export default function Sessions() {
             onChange={(e) => setDay(Number(e.target.value))}
           >
             {(program
-              ? program.weeklySplit.map((d) => d.customLabel || d.type)
+              ? program.weeklySplit.map((d: any) => d.customLabel || d.type)
               : DAYS
-            ).map((d, i) => (
+            ).map((d: string, i: number) => (
               <option key={i} value={i}>
                 {d}
               </option>
@@ -548,6 +548,9 @@ export default function Sessions() {
             >
               {programSummary(program)}
             </button>
+          )}
+          {session?.autoImportedTemplateId && (
+            <span className="badge" title="Auto-imported template applied">Template</span>
           )}
         </div>
         {/* Desktop: show all actions */}
@@ -675,10 +678,10 @@ export default function Sessions() {
         )}
       </div>
       {isDeloadWeek && (
-        <div className="text-xs text-amber-300">Deload adjustments active</div>
+  <div className="text-xs text-amber-300 fade-in">Deload adjustments active</div>
       )}
 
-      <div className="space-y-3">
+  <div className="space-y-3">
         {session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge
@@ -703,7 +706,7 @@ export default function Sessions() {
           return (
             <div
               key={entry.id}
-              className="bg-card rounded-2xl p-4 shadow-soft"
+              className="bg-card rounded-2xl p-4 shadow-soft fade-in"
               draggable
               onDragStart={() => setDragEntryIdx(entryIdx)}
               onDragOver={(e) => e.preventDefault()}
@@ -1220,6 +1223,11 @@ export default function Sessions() {
         })}
       </div>
 
+      {/* Session summary footer */}
+      {session && !!session.entries.length && (
+        <SessionSummary session={session} exercises={exercises} />
+      )}
+
       <div className="bg-card rounded-2xl p-3">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm">Add exercise</div>
@@ -1334,6 +1342,34 @@ export default function Sessions() {
       />
     </div>
   );
+}
+
+// Lightweight summary component
+function SessionSummary({ session, exercises }: { session: Session; exercises: Exercise[] }) {
+  const exMap = useMemo(()=> new Map(exercises.map(e=>[e.id,e])), [exercises])
+  const totals = useMemo(()=>{
+    let sets = 0, volume = 0, prs = 0
+    for(const entry of session.entries){
+      for(const s of entry.sets){
+        sets++
+        const ton = (s.weightKg||0) * (s.reps||0)
+        volume += ton
+        // naive PR heuristic: ton > 0 & reps*weight above simple threshold
+        if(ton > 0 && ton >=  (exMap.get(entry.exerciseId)?.defaults.sets||3) * 50) prs++
+      }
+    }
+    return { sets, volume, prs }
+  }, [session, exMap])
+  const estTonnage = totals.volume
+  return (
+    <div className="bg-card rounded-2xl p-4 shadow-soft mt-4 fade-in">
+      <div className="flex flex-wrap gap-4 text-xs">
+        <div><span className="text-muted">Sets:</span> {totals.sets}</div>
+        <div><span className="text-muted">Volume:</span> {estTonnage}</div>
+        <div><span className="text-muted">PR Signals:</span> {totals.prs}</div>
+      </div>
+    </div>
+  )
 }
 
 function AsyncChip({ promise }: { promise: Promise<any> }) {

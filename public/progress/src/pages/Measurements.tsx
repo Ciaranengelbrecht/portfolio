@@ -39,13 +39,27 @@ export default function Measurements() {
   }>({ open: false, msg: "" });
 
   useEffect(() => {
-    db.getAll<Measurement>("measurements").then(setData);
+    (async()=>{
+      const list = await db.getAll<Measurement>("measurements")
+      const sorted = [...list].sort((a,b)=> b.dateISO.localeCompare(a.dateISO))
+      setData(sorted)
+      // today guard
+      const today = new Date().toISOString().slice(0,10)
+      const existingToday = sorted.find(r=> r.dateISO.slice(0,10) === today)
+      if(existingToday) setM(existingToday)
+    })()
   }, []);
 
   const save = async () => {
     await db.put("measurements", m);
-    setData([m, ...data]);
-    setM({ id: nanoid(), dateISO: new Date().toISOString() });
+    // refresh list
+    const list = await db.getAll<Measurement>('measurements')
+    const sorted = [...list].sort((a,b)=> b.dateISO.localeCompare(a.dateISO))
+    setData(sorted)
+    // if we just saved today's entry keep editing it; provide add another option
+    const today = new Date().toISOString().slice(0,10)
+    const todayEntry = sorted.find(r=> r.dateISO.slice(0,10) === today)
+    if(todayEntry) setM(todayEntry); else setM({ id: nanoid(), dateISO: new Date().toISOString() })
   };
 
   const remove = async (id: string) => {
@@ -83,7 +97,7 @@ export default function Measurements() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Measurements</h2>
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+  <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3 fade-in">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             "weightKg",
@@ -158,6 +172,10 @@ export default function Measurements() {
           >
             Save
           </button>
+          <button
+            className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
+            onClick={()=> setM({ id: nanoid(), dateISO: new Date().toISOString() })}
+          >Add another</button>
           <MeasurementsInfoModal />
         </div>
       </div>
@@ -178,6 +196,9 @@ export default function Measurements() {
 
       <div className="bg-card rounded-2xl p-4 shadow-soft">
         <div className="font-medium mb-2">Entries</div>
+        {!data.length && (
+          <div className="text-xs text-muted py-6 text-center">No measurements yet. Track your first bodyweight to begin a trend.</div>
+        )}
         <div className="space-y-2">
           {data.map((row) => (
             <div key={row.id} className="bg-slate-800 rounded-xl px-3 py-3">

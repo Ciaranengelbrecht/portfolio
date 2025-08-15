@@ -1,24 +1,49 @@
 :root {
+  /* Core palette */
   --bg: #0b0f14;
   --bg-muted: #0e1520;
-  --card: rgba(17, 24, 39, 0.6);
-  --card-border: rgba(255, 255, 255, 0.08);
+  --surface: rgba(17 24 39 / 0.55);
+  --surface-elevated: rgba(30 41 59 / 0.6);
+  --surface-solid: #182230;
+  --border-subtle: rgba(255 255 255 / 0.06);
+  --border-strong: rgba(255 255 255 / 0.12);
   --text: hsl(210 40% 96%);
   --text-muted: hsl(215 16% 70%);
   --accent: #22c55e;
   --accent-contrast: #06140b;
+  --accent-rgb: 34 197 94;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --success: #22c55e;
+  --info: #3b82f6;
+
+  /* Radius scale */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+
+  /* Depth / effects */
+  --shadow: 0 10px 30px -8px rgba(0 0 0 / 0.55);
+  --shadow-sm: 0 2px 6px -2px rgba(0 0 0 / 0.5);
+  --glow: 0 0 0 1px rgba(var(--accent-rgb) / 0.25), 0 0 24px -4px rgba(var(--accent-rgb) / 0.45);
   --ring: hsl(141 71% 40%);
-  --shadow: 0 10px 30px hsla(0, 0%, 0%, 0.4);
-  --glow: 0 0 32px hsla(141, 71%, 45%, 0.35);
+
+  /* Charts */
   --chart-1: #3b82f6;
   --chart-2: #22c55e;
-  --chart-grid: rgba(255, 255, 255, 0.08);
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --card-backdrop: blur(12px);
-  /* Optional themed background layer */
-  --bg-layer: none;
+  --chart-grid: rgba(255 255 255 / 0.08);
+
+  /* Glass */
+  --card: var(--surface);
+  --card-border: var(--border-subtle);
+  --card-backdrop: blur(14px) saturate(140%);
+
+  /* Background dynamic layer (aurora / gradient) */
+  --bg-layer: radial-gradient(at 20% 20%, #1e3a8a 0%, transparent 55%),
+    radial-gradient(at 80% 70%, #16a34a 0%, transparent 55%),
+    radial-gradient(at 40% 80%, #1d4ed8 0%, transparent 55%);
 }
 
 .bg-app {
@@ -40,7 +65,38 @@
 .card-surface {
   background: var(--card);
   box-shadow: var(--shadow);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
 }
+
+
+/* Skeleton */
+.skeleton { position: relative; overflow: hidden; background: linear-gradient(90deg,var(--surface-solid) 0%,var(--surface) 40%,var(--surface-solid) 80%); background-size: 200% 100%; animation: shimmer 1.8s linear infinite; border-radius: var(--radius-sm); }
+@keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+
+/* Fade / slide entrance */
+.fade-in { animation: fadeIn 300ms ease; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0);} }
+
+/* Micro-interactions */
+button, .btn-primary, .btn-outline { transition: transform .12s ease, background-color .15s ease, box-shadow .2s ease; }
+button:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { button, .fade-in { animation: none !important; transition: none !important; } }
+
+/* Sticky toolbar helper */
+.sticky-toolbar { position:sticky; top:0; z-index:40; backdrop-filter: blur(14px) saturate(160%); background: linear-gradient(90deg, rgba(17 24 39 / 0.72), rgba(17 24 39 / 0.55)); border: 1px solid var(--border-subtle); border-left:0; border-right:0; margin-left:-1rem; margin-right:-1rem; padding-left:1rem; padding-right:1rem; }
+
+/* Badges */
+.badge { font-size:10px; text-transform:uppercase; letter-spacing:.5px; padding:3px 8px; border-radius: var(--radius-pill); background:rgba(var(--accent-rgb)/0.18); color: var(--accent); display:inline-flex; align-items:center; gap:4px; }
+.badge[data-variant="danger"] { background: rgba(239 68 68 / 0.18); color: var(--danger); }
+.badge[data-variant="info"] { background: rgba(59 130 246 / 0.18); color: var(--info); }
+.badge-outline { background: transparent; border:1px solid var(--border-subtle); }
+
+/* Progress bar */
+.progress-track { height:6px; background: linear-gradient(90deg, rgba(255 255 255 / 0.06), rgba(255 255 255 / 0.02)); border-radius: var(--radius-pill); overflow:hidden; }
+.progress-fill { height:100%; background: linear-gradient(90deg, var(--accent), #16a34a); box-shadow: 0 0 0 1px rgba(255 255 255 / 0.07), 0 2px 6px -2px rgba(var(--accent-rgb)/0.6); }
 .ring-app {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
