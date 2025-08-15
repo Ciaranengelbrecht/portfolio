@@ -32,6 +32,8 @@ const Settings = lazy(() => import("./pages/Settings"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
 const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
 import RequireAuth from "./routes/guards/RequireAuth";
+import { migrateToV6 } from "./lib/migrations/v6_program";
+import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 
 function Shell() {
   const navigate = useNavigate();
@@ -106,6 +108,25 @@ function Shell() {
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => {
     initSupabaseSync();
+  }, []);
+
+  // Lightweight remote migrations (idempotent via localStorage flags)
+  useEffect(() => {
+    (async () => {
+      try {
+        await waitForSession({ timeoutMs: 6000 });
+        if (localStorage.getItem("mig_v6") !== "1") {
+          await migrateToV6();
+          localStorage.setItem("mig_v6", "1");
+        }
+        if (localStorage.getItem("mig_v7") !== "1") {
+          await migrateToV7();
+          localStorage.setItem("mig_v7", "1");
+        }
+      } catch (e) {
+        console.warn("[App] migration runner error", e);
+      }
+    })();
   }, []);
 
   // If user opens a Supabase password recovery link, mark the flow and navigate AFTER session exists

@@ -927,6 +927,7 @@ export default function SettingsPage() {
       </div>
 
       <ExerciseOverrides />
+  <ExerciseLibraryManager />
     </div>
   );
 }
@@ -1011,6 +1012,68 @@ function ExerciseOverrides() {
             />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// New: Exercise library manager (primary + secondary muscles editing)
+function ExerciseLibraryManager(){
+  const [list,setList] = useState<any[]>([]);
+  const [q,setQ] = useState("");
+  const [creating,setCreating] = useState("");
+  useEffect(()=> { (async ()=> setList(await db.getAll('exercises')))(); },[]);
+  const ALL: string[] = ['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'];
+  const update = async (id:string, mut:(ex:any)=>any) => {
+    setList(ls=> ls.map(ex=> ex.id===id? mut({...ex}): ex));
+    const ex = list.find(e=> e.id===id);
+    if(!ex) return; const next = mut({...ex}); await db.put('exercises', next);
+  };
+  const addSecondary = (ex:any, m:string) => update(ex.id, e=> ({...e, secondaryMuscles: [...(e.secondaryMuscles||[]), m]}));
+  const removeSecondary = (ex:any, m:string) => update(ex.id, e=> ({...e, secondaryMuscles: (e.secondaryMuscles||[]).filter((x:string)=> x!==m)}));
+  const createExercise = async () => {
+    const name = creating.trim(); if(!name) return; if(list.some(e=> e.name.toLowerCase()===name.toLowerCase())){ alert('Exists'); return; }
+    const ex={ id: crypto.randomUUID?.() || Date.now()+'' , name, muscleGroup:'other', defaults:{ sets:3, targetRepRange:'8-12' }, active:true, secondaryMuscles:[] };
+    await db.put('exercises', ex); setList([ex, ...list]); setCreating('');
+  };
+  return (
+    <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+      <div className="font-medium">Exercise Library</div>
+      <div className="text-sm text-muted">Edit primary and secondary muscles. Secondary muscles contribute indirect volume (0.5x) in allocator.</div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <input className="input-app rounded-xl px-3 py-2" placeholder="Search" value={q} onChange={e=> setQ(e.target.value)} />
+        <div className="flex gap-2 items-center">
+          <input className="input-app rounded-xl px-3 py-2" placeholder="New exercise" value={creating} onChange={e=> setCreating(e.target.value)} />
+          <button className="btn-primary px-3 py-2 rounded-xl" onClick={createExercise}>Add</button>
+        </div>
+      </div>
+      <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
+        {list.filter(ex=> ex.name.toLowerCase().includes(q.toLowerCase())).map(ex=> {
+          const remaining = ALL.filter(m=> m!==ex.muscleGroup && !(ex.secondaryMuscles||[]).includes(m));
+          return (
+            <div key={ex.id} className="p-3 rounded-xl bg-slate-800 space-y-2">
+              <div className="flex justify-between gap-2 flex-wrap">
+                <input className="bg-slate-700 rounded px-2 py-1 text-sm flex-1 min-w-[160px]" value={ex.name} onChange={e=> update(ex.id, x=> ({...x, name: e.target.value}))} />
+                <select className="bg-slate-700 rounded px-2 py-1 text-sm" value={ex.muscleGroup} onChange={e=> update(ex.id, x=> ({...x, muscleGroup: e.target.value}))}>
+                  {ALL.map(m=> <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-wrap gap-1 items-center text-[10px]">
+                {(ex.secondaryMuscles||[]).map((m:string)=> (
+                  <span key={m} className="bg-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1">{m}<button onClick={()=> removeSecondary(ex,m)} className="opacity-70 hover:opacity-100">×</button></span>
+                ))}
+                {remaining.length>0 && (
+                  <details className="bg-slate-700/40 rounded px-1 py-0.5">
+                    <summary className="cursor-pointer select-none">+ add</summary>
+                    <div className="mt-1 flex flex-wrap gap-1 max-w-[240px]">
+                      {remaining.map(m=> <button key={m} className="bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded" onClick={()=> addSecondary(ex,m)}>{m}</button>)}
+                    </div>
+                  </details>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -7,6 +7,8 @@ export type MuscleGroup =
   | "triceps"
   | "biceps"
   | "legs"
+  | "hamstrings"
+  | "quads"
   | "glutes"
   | "calves"
   | "core"
@@ -26,6 +28,8 @@ export interface Exercise {
   defaults: ExerciseDefaults;
   active?: boolean;
   isOptional?: boolean;
+  /** Additional secondary muscle groups contributing indirect volume */
+  secondaryMuscles?: MuscleGroup[]; // e.g. lat pulldown: ['biceps']
 }
 
 export interface SetEntry {
@@ -136,7 +140,7 @@ export interface Template {
   hidden?: boolean;
 }
 
-export type DBVersion = 6;
+export type DBVersion = 7;
 
 // User profile (server source of truth for theme persistence across devices)
 export interface UserProfile {

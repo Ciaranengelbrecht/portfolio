@@ -382,7 +382,30 @@ export default function Templates() {
                 key={ex.id}
                 className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
               >
-                <div className="flex-1 truncate">{ex.name}</div>
+                <div className="flex-1 min-w-[140px]">
+                  <div className="truncate text-sm">{ex.name}</div>
+                  <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-400">
+                    <select
+                      value={ex.muscleGroup}
+                      onChange={async(e)=> { const next={...ex, muscleGroup: e.target.value as any}; await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }}
+                      className="bg-slate-700 rounded px-1 py-0.5"
+                    >
+                      {['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'].map(m=> <option key={m} value={m}>{m}</option>)}
+                    </select>
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {(ex.secondaryMuscles||[]).map(sec=> (
+                        <span key={sec} className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1">
+                          {sec}
+                          <button
+                            className="opacity-70 hover:opacity-100"
+                            onClick={async()=> { const next={...ex, secondaryMuscles: (ex.secondaryMuscles||[]).filter(s=> s!==sec)}; await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }}
+                          >×</button>
+                        </span>
+                      ))}
+                      <SecondaryMusclePicker ex={ex} update={async(next)=> { await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }} />
+                    </div>
+                  </div>
+                </div>
                 <button
                   className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2"
                   onClick={() => toggleOptional(ex)}
@@ -399,6 +422,25 @@ export default function Templates() {
             ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Inline helper component to pick secondary muscles with quick-add chips
+function SecondaryMusclePicker({ ex, update }: { ex: Exercise; update: (next: Exercise)=> void }) {
+  const ALL: Exercise['muscleGroup'][] = ['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'];
+  const remaining = ALL.filter(m=> m!==ex.muscleGroup && !(ex.secondaryMuscles||[]).includes(m));
+  const [open,setOpen] = useState(false);
+  if(!open) return <button className="text-[10px] bg-slate-700/60 hover:bg-slate-700 px-2 py-0.5 rounded" onClick={()=> setOpen(true)}>+ add</button>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {remaining.map(m=> (
+        <button key={m} className="text-[10px] bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded"
+          onClick={()=> { const next={...ex, secondaryMuscles: [...(ex.secondaryMuscles||[]), m]}; update(next); }}>
+          {m}
+        </button>
+      ))}
+      <button className="text-[10px] text-red-400 px-1.5" onClick={()=> setOpen(false)}>×</button>
     </div>
   );
 }
