@@ -6,6 +6,7 @@ export const defaultSettings: Settings = {
   theme: "dark",
   themeV2: { key: "default-glass" },
   deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, // default per requirement
+  reducedMotion: false,
   currentPhase: 1,
   accentColor: "#22c55e",
   cardStyle: "glass",

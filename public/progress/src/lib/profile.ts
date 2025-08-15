@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
-import { UserProfile, UserProgram, ArchivedProgram } from "./types";
+import { UserProfile, UserProgram, ArchivedProgram, Session } from "./types";
+import { db } from "./db";
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
@@ -106,6 +107,17 @@ export async function archiveCurrentProgram(
     const history: ArchivedProgram[] = data?.program_history || [];
     if (data?.program) {
       const existing = data.program as UserProgram;
+      // compute lightweight stats snapshot for existing program
+      let stats: ArchivedProgram['stats'] | undefined = undefined;
+      try {
+        const sessions = await db.getAll<Session>('sessions');
+        const relevant = sessions.filter(s=> s.programId === existing.id);
+        if(relevant.length){
+          let totalSets=0; let totalVolume=0;
+            relevant.forEach(s=> s.entries.forEach(e=> e.sets.forEach(st=> { totalSets++; totalVolume += (st.weightKg||0)*(st.reps||0); })));
+          stats = { sessions: relevant.length, totalSets, totalVolume: Math.round(totalVolume) };
+        }
+      } catch(e){ console.warn('[archive] snapshot stats failed', e); }
       const archived: ArchivedProgram = {
         id: existing.id || `prog_${Math.random().toString(36).slice(2, 9)}`,
         name: existing.name,
@@ -113,6 +125,7 @@ export async function archiveCurrentProgram(
         archivedAt: new Date().toISOString(),
         program: existing,
         phaseSpan: opts?.phaseSpan,
+        stats,
       };
       history.unshift(archived);
       // cap history

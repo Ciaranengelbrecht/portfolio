@@ -3,15 +3,7 @@ import { db } from "../lib/db";
 import { getSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
 import { nanoid } from "nanoid";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import { loadRecharts } from "../lib/loadRecharts";
 import MeasurementsInfoModal from "./MeasurementsInfoModal";
 import Snackbar from "../components/Snackbar";
 
@@ -89,10 +81,108 @@ export default function Measurements() {
     await db.put("measurements", target);
   };
 
+  const [overlayKeys, setOverlayKeys] = useState<(keyof Measurement)[]>([
+    "weightKg",
+    "waist",
+  ]);
+  const [smoothing, setSmoothing] = useState(false);
+  const toggleOverlay = (k: keyof Measurement) => {
+    setOverlayKeys((prev) =>
+      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+    );
+  };
   const series = (key: keyof Measurement) =>
     data
-      .filter((x) => x[key])
-      .map((x) => ({ date: x.dateISO.slice(5), value: (x as any)[key] }));
+      .filter((x) => x[key] != null)
+      .map((x) => ({
+        date: x.dateISO.slice(5),
+        value: Number((x as any)[key]),
+        ts: new Date(x.dateISO).getTime(),
+      }));
+
+  const weightSeries = series("weightKg");
+  // 7-day rolling average for weight
+  const weight7 = useMemo(() => {
+    const out: any[] = [];
+    for (let i = 0; i < weightSeries.length; i++) {
+      const slice = weightSeries.slice(Math.max(0, i - 6), i + 1);
+      const avg =
+        slice.reduce((acc, cur) => acc + (cur.value || 0), 0) / slice.length;
+      out.push({ ...weightSeries[i], avg });
+    }
+    return out;
+  }, [weightSeries]);
+  // Linear regression (least squares) for weight
+  const weightTrend = useMemo(() => {
+    if (weightSeries.length < 2) return [] as any[];
+    const xs = weightSeries.map((p) => p.ts);
+    const ys = weightSeries.map((p) => p.value);
+    const n = xs.length;
+    const meanX = xs.reduce((a, b) => a + b, 0) / n;
+    const meanY = ys.reduce((a, b) => a + b, 0) / n;
+    let num = 0,
+      den = 0;
+    for (let i = 0; i < n; i++) {
+      num += (xs[i] - meanX) * (ys[i] - meanY);
+      den += (xs[i] - meanX) ** 2;
+    }
+    const slope = den === 0 ? 0 : num / den;
+    const intercept = meanY - slope * meanX;
+    return weightSeries.map((p) => ({ date: p.date, value: slope * p.ts + intercept }));
+  }, [weightSeries]);
+
+  const [RC, setRC] = useState<any | null>(null);
+  useEffect(()=> { loadRecharts().then(m=> setRC(m)); }, []);
+
+  // Lightweight moving average smoothing (window = 3)
+  const movingAvg = (arr: { date: string; value: number }[], win = 3) => {
+    if(!arr.length) return [] as any[];
+    return arr.map((p,i)=> {
+      const slice = arr.slice(Math.max(0, i-(win-1)), i+1);
+      const avg = slice.reduce((a,b)=> a + (b.value||0), 0)/slice.length;
+      return { ...p, avg };
+    });
+  };
+
+  const overlaySeries = useMemo(()=> {
+    const out: Record<string, { raw:any[]; avg:any[] }> = {};
+    overlayKeys.forEach(k => {
+      const s = series(k);
+      out[k as string] = { raw: s, avg: movingAvg(s) };
+    });
+    return out;
+  }, [overlayKeys, data]);
+
+  const tooltipContent = (props: any) => {
+    if(!props.active || !props.payload?.length) return null;
+    const label = props.label;
+    return (
+      <div className="bg-slate-900/90 border border-white/10 rounded-md px-3 py-2 text-[11px] space-y-1">
+        <div className="font-medium">{label}</div>
+        {props.payload.map((p: any) => {
+          const name = p.name || p.dataKey;
+          const src = overlaySeries[name]?.[smoothing? 'avg':'raw'] || weightSeries;
+          const idx = src.findIndex((r:any)=> r.date === label);
+          let delta: string | null = null;
+          if(idx > 0){
+            const prev = src[idx-1];
+            if(prev){
+              const diff = (p.value - (prev.avg ?? prev.value));
+              if(!isNaN(diff)) delta = (diff >= 0? '+':'') + diff.toFixed(1);
+            }
+          }
+          return (
+            <div key={name + p.dataKey} className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: p.color }} /> {name}
+              </span>
+              <span className="tabular-nums">{Number(p.value).toFixed(1)}{delta && <span className={`ml-2 ${delta.startsWith('+')? 'text-emerald-400':'text-red-400'}`}>{delta}</span>}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -180,18 +270,41 @@ export default function Measurements() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
-        <ChartCard
-          title="Weight (kg)"
-          data={series("weightKg")}
-          color="#3b82f6"
-        />
-        <ChartCard title="Waist (cm)" data={series("waist")} color="#ef4444" />
-        <ChartCard
-          title="Upper Arm (cm)"
-          data={series("upperArm")}
-          color="#22c55e"
-        />
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="uppercase tracking-wide text-gray-400">Overlays:</span>
+          {["weightKg","waist","chest","hips","upperArm"].map(k => (
+            <button key={k} onClick={()=> toggleOverlay(k as keyof Measurement)} className={`px-2 py-1 rounded-lg border ${overlayKeys.includes(k as any)?'bg-emerald-600 border-emerald-500':'bg-white/5 border-white/10'}`}>{k}</button>
+          ))}
+          <button onClick={()=> setSmoothing(s=> !s)} className={`px-2 py-1 rounded-lg border ${smoothing? 'bg-indigo-600 border-indigo-500':'bg-white/5 border-white/10'}`}>{smoothing? 'Smoothing On':'Smoothing Off'}</button>
+          <span className="ml-auto text-[10px] text-gray-500 hidden sm:inline">Tooltip shows Δ vs prev day • Toggle smoothing for rolling avg (w=3)</span>
+        </div>
+        <div className="h-72">
+          {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+          {RC && (
+            <RC.ResponsiveContainer>
+              <RC.LineChart data={weightSeries.length? weightSeries: series(overlayKeys[0]||'weightKg')}>
+                <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                <RC.XAxis dataKey="date" stroke="#9ca3af" interval={Math.ceil((weightSeries.length||30)/12)} />
+                <RC.YAxis stroke="#9ca3af" />
+                <RC.Tooltip content={tooltipContent} />
+                <RC.Legend />
+                {overlayKeys.map((k,i)=> {
+                  const sObj = overlaySeries[k];
+                  const s = sObj?.raw || series(k);
+                  const palette = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#a855f7'];
+                  return <RC.Line key={k} type="monotone" name={k} data={smoothing? sObj.avg: s} dataKey={smoothing? 'avg':'value'} stroke={palette[i%palette.length]} dot={false} />
+                })}
+                {overlayKeys.includes('weightKg') && (
+                  <>
+                    <RC.Line type="monotone" name="7d avg" data={weight7} dataKey="avg" stroke="#ffffff" strokeDasharray="4 4" dot={false} />
+                    {weightTrend.length>0 && <RC.Line type="monotone" name="trend" data={weightTrend} dataKey="value" stroke="#22c55e" strokeDasharray="2 6" dot={false} />}
+                  </>
+                )}
+              </RC.LineChart>
+            </RC.ResponsiveContainer>
+          )}
+        </div>
       </div>
 
       <div className="bg-card rounded-2xl p-4 shadow-soft">
@@ -391,19 +504,24 @@ function ChartCard({
   data: any[];
   color: string;
 }) {
+  const [RC, setRC] = useState<any | null>(null);
+  useEffect(()=> { loadRecharts().then(m=> setRC(m)); }, []);
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft">
       <h3 className="font-medium mb-2">{title}</h3>
       <div className="h-56">
-        <ResponsiveContainer>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis dataKey="date" stroke="#9ca3af" />
-            <YAxis stroke="#9ca3af" />
-            <Tooltip />
-            <Line type="monotone" dataKey="value" stroke={color} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+        {RC && (
+          <RC.ResponsiveContainer>
+            <RC.LineChart data={data}>
+              <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+              <RC.XAxis dataKey="date" stroke="#9ca3af" />
+              <RC.YAxis stroke="#9ca3af" />
+              <RC.Tooltip />
+              <RC.Line type="monotone" dataKey="value" stroke={color} dot={false} />
+            </RC.LineChart>
+          </RC.ResponsiveContainer>
+        )}
       </div>
     </div>
   );

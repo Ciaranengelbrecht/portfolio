@@ -29,6 +29,8 @@
   --shadow-sm: 0 2px 6px -2px rgba(0 0 0 / 0.5);
   --glow: 0 0 0 1px rgba(var(--accent-rgb) / 0.25), 0 0 24px -4px rgba(var(--accent-rgb) / 0.45);
   --ring: hsl(141 71% 40%);
+  --ring-alt: hsl(210 90% 60%);
+  --focus-outline: 2px solid var(--ring-alt);
 
   /* Charts */
   --chart-1: #3b82f6;
@@ -137,6 +139,20 @@ button:active { transform: scale(.97); }
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+.focus-ring-alt:focus-visible { outline: var(--focus-outline); outline-offset:2px; }
+
+/* Reduced motion override via data attribute */
+[data-reduced-motion="true"] * { animation: none !important; transition: none !important; }
+
+/* Colorblind safe shape indicators */
+[data-shape="pr"] { position:relative; }
+[data-shape="pr"]::after { content:""; position:absolute; inset:2px; border:2px solid rgba(0 0 0 / 0.4); border-radius:4px; pointer-events:none; mix-blend-mode:overlay; }
+/* PR pulse animation when a new PR is logged (element gets data-pr="new") */
+@keyframes prPulse { 0% { box-shadow:0 0 0 0 rgba(var(--accent-rgb)/0.7); } 70% { box-shadow:0 0 0 10px rgba(var(--accent-rgb)/0); } 100% { box-shadow:0 0 0 0 rgba(var(--accent-rgb)/0); } }
+[data-pr="new"] { animation: prPulse 1.4s ease-out 1; }
+/* Deload shape: dashed outline */
+[data-shape="deload"] { position:relative; }
+[data-shape="deload"]::after { content:""; position:absolute; inset:2px; border:2px dashed rgba(251 191 36 / 0.6); border-radius:6px; pointer-events:none; }
 /* Hide scrollbars utility (for horizontal chip nav) */
 .no-scrollbar {
   -ms-overflow-style: none;

@@ -40,19 +40,30 @@ export async function getLastWorkingSets(
   return entry?.sets || [];
 }
 
+// Lightweight in-memory cache for settings to avoid repeated IndexedDB reads within a short interval
+let _settingsCache: { value: Settings; ts: number } | null = null;
+const SETTINGS_TTL_MS = 10_000; // safe short TTL; settings seldom change
 export async function getSettings(): Promise<Settings> {
-  return (
-    (await db.get<Settings>("settings", "app")) || {
+  const now = Date.now();
+  if (_settingsCache && now - _settingsCache.ts < SETTINGS_TTL_MS) {
+    return _settingsCache.value;
+  }
+  const base: Settings =
+    (await db.get<Settings>("settings", "app")) || ({
       unit: "kg",
       deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
       theme: "dark",
       themeV2: { key: "default-glass" },
-    }
-  );
+    } as any);
+  // Backfill new fields if missing
+  if (base.reducedMotion == null) (base as any).reducedMotion = false;
+  _settingsCache = { value: base, ts: now };
+  return base;
 }
 
 export async function setSettings(s: Settings) {
   await db.put("settings", { ...s, id: "app" } as any);
+  _settingsCache = { value: s, ts: Date.now() }; // update cache immediately
 }
 
 export async function getDeloadPrescription(

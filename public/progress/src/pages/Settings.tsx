@@ -774,6 +774,26 @@ export default function SettingsPage() {
             {themeSaved === false && (
               <span className="text-xs text-red-400">Not saved</span>
             )}
+            <label className="flex items-center gap-2 text-xs bg-card/40 border border-card rounded-xl px-3 py-2">
+              <span>Reduce motion</span>
+              <input
+                type="checkbox"
+                checked={!!s.reducedMotion}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setS({ ...s, reducedMotion: val });
+                  if (val)
+                    document.documentElement.setAttribute(
+                      "data-reduced-motion",
+                      "true"
+                    );
+                  else
+                    document.documentElement.removeAttribute(
+                      "data-reduced-motion"
+                    );
+                }}
+              />
+            </label>
           </div>
         </div>
       </div>

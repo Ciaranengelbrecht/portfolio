@@ -80,6 +80,8 @@ export interface Settings {
   // New theming system (v5+)
   themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean };
   deloadDefaults: { loadPct: number; setPct: number };
+  /** User preference to reduce motion regardless of system setting */
+  reducedMotion?: boolean;
   backupEmail?: string;
   dashboardPrefs?: {
     exerciseId?: string;

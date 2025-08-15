@@ -699,7 +699,13 @@ export default function Sessions() {
         )}
       </div>
       {isDeloadWeek && (
-  <div className="text-xs text-amber-300 fade-in">Deload adjustments active</div>
+        <div
+          className="text-xs text-amber-300 fade-in inline-flex items-center gap-1"
+          data-shape="deload"
+          aria-label="Deload week adjustments are active"
+        >
+          Deload adjustments active
+        </div>
       )}
 
   <div className="space-y-3">
@@ -747,7 +753,9 @@ export default function Sessions() {
                 </div>
                 <div className="flex items-center gap-2">
                   {isDeloadWeek && (
-                    <AsyncChip promise={deloadInfo(entry.exerciseId)} />
+                    <span data-shape="deload">
+                      <AsyncChip promise={deloadInfo(entry.exerciseId)} />
+                    </span>
                   )}
                   <button
                     aria-label="Remove exercise"
@@ -1016,7 +1024,7 @@ export default function Sessions() {
               </div>
 
               {/* Sets grid with drag-and-drop (desktop) */}
-              <div className="mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center">
+              <div className="mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center" role="list" aria-label={`Sets for exercise ${entry.exerciseId}`}> 
                 <div className="text-sm text-gray-400">Set</div>
                 <div className="text-sm text-gray-400">Weight</div>
                 <div className="text-sm text-gray-400">Reps</div>
@@ -1025,12 +1033,18 @@ export default function Sessions() {
                   <div
                     key={idx}
                     className="contents"
+                    role="listitem"
+                    aria-roledescription="Draggable set row"
+                    aria-label={`Set ${set.setNumber} weight ${set.weightKg||0} reps ${set.reps||0}`}
                     draggable
-                    onDragStart={() => {
+                    onDragStart={(ev) => {
                       (entry as any)._dragSet = idx;
+                      ev.dataTransfer.setData('text/plain', String(idx));
+                      ev.currentTarget.setAttribute('aria-grabbed','true');
                     }}
+                    onDragEnd={(ev)=> ev.currentTarget.removeAttribute('aria-grabbed')}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
+                    onDrop={(e) => {
                       const from = (entry as any)._dragSet;
                       if (typeof from === "number") {
                         reorderSet(entry, from, idx);
@@ -1422,7 +1436,8 @@ function PRChip({
   }, [exerciseId, week]);
   if (score <= 0 || best <= 0 || score < best) return null;
   return (
-    <span className="text-[10px] bg-yellow-600 text-black rounded px-2 py-0.5">
+    <span className="text-[10px] rounded px-2 py-0.5 inline-flex items-center gap-1 bg-yellow-500 text-black border border-yellow-300" data-shape="pr" aria-label="Personal record set">
+      <span className="w-2 h-2 rounded-full bg-black" aria-hidden="true"></span>
       PR
     </span>
   );

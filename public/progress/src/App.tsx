@@ -74,6 +74,7 @@ function Shell() {
       const root = document.documentElement;
       if (s.accentColor) root.style.setProperty("--accent", s.accentColor);
       if (s.cardStyle) root.setAttribute("data-card-style", s.cardStyle);
+  if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
     })();
   }, []);
   // Initialize Supabase sync (pull, push queue, realtime)

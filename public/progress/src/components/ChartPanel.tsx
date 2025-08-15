@@ -1,16 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import GlassCard from "./GlassCard";
-import {
-  LineChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Scatter,
-  ScatterChart,
-} from "recharts";
+import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
 import { Exercise, Measurement } from "../lib/types";
 import {
@@ -107,6 +97,24 @@ export default function ChartPanel({
     kind === "exercise" ? EX_SERIES_KEYS : [{ key: "value", label: "Value" }];
   const glow = css.getPropertyValue("--glow").trim();
 
+  // Lazy-load recharts
+  const [RC, setRC] = useState<any | null>(null);
+  useEffect(() => {
+    let active = true;
+    loadRecharts().then((m) => {
+      if (active) setRC(m);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const Loading = (
+    <div className="h-60 flex items-center justify-center text-xs text-gray-500">
+      Loading chart…
+    </div>
+  );
+
   return (
     <GlassCard>
       <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -173,60 +181,62 @@ export default function ChartPanel({
         ))}
       </div>
       <div className="h-60">
-        <ResponsiveContainer>
-          <LineChart
-            data={data}
-            margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke={grid} />
-            <XAxis dataKey="date" stroke={axis} />
-            <YAxis stroke={axis} />
-            <Tooltip />
-            {kind === "exercise" ? (
-              series.map((k, i) => (
-                <Line
-                  key={k}
+        {!RC && Loading}
+        {RC && (
+          <RC.ResponsiveContainer>
+            <RC.LineChart
+              data={data}
+              margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
+            >
+              <RC.CartesianGrid strokeDasharray="3 3" stroke={grid} />
+              <RC.XAxis dataKey="date" stroke={axis} />
+              <RC.YAxis stroke={axis} />
+              <RC.Tooltip />
+              {kind === "exercise" ? (
+                series.map((k, i) => (
+                  <RC.Line
+                    key={k}
+                    type="monotone"
+                    dataKey={k}
+                    stroke={i % 2 === 0 ? chart1 : chart2}
+                    dot={false}
+                    strokeWidth={i === 0 ? 2 : 1.5}
+                    filter={i === 0 && glow ? "url(#glow)" : undefined}
+                  />
+                ))
+              ) : (
+                <RC.Line
                   type="monotone"
-                  dataKey={k}
-                  stroke={i % 2 === 0 ? chart1 : chart2}
+                  dataKey="value"
+                  stroke={chart1}
                   dot={false}
-                  strokeWidth={i === 0 ? 2 : 1.5}
-                  filter={i === 0 && glow ? "url(#glow)" : undefined}
+                  strokeWidth={2}
                 />
-              ))
-            ) : (
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={chart1}
-                dot={false}
-                strokeWidth={2}
-              />
-            )}
-            {kind === "exercise" && prs.some(Boolean) && (
-              <Scatter
-                data={
-                  (data as ExercisePoint[])
-                    .map((d, i) =>
-                      prs[i] ? { date: d.date, y: d.topWeight } : null
-                    )
-                    .filter(Boolean) as any
-                }
-                fill={chart2}
-              />
-            )}
-            {/* optional SVG glow filter */}
-            <defs>
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-          </LineChart>
-        </ResponsiveContainer>
+              )}
+              {kind === "exercise" && prs.some(Boolean) && (
+                <RC.Scatter
+                  data={
+                    (data as ExercisePoint[])
+                      .map((d, i) =>
+                        prs[i] ? { date: d.date, y: d.topWeight } : null
+                      )
+                      .filter(Boolean) as any
+                  }
+                  fill={chart2}
+                />
+              )}
+              <defs>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+            </RC.LineChart>
+          </RC.ResponsiveContainer>
+        )}
       </div>
     </GlassCard>
   );
