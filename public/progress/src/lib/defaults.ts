@@ -1,4 +1,4 @@
-import { Exercise, Settings, Template } from "./types";
+import { Exercise, Settings, Template, UserProgram } from "./types";
 import { nanoid } from "nanoid";
 
 export const defaultSettings: Settings = {
@@ -161,6 +161,25 @@ export const defaultTemplates: Template[] = (() => {
     ]),
   ];
 })();
+
+export const defaultProgram: UserProgram = {
+  name: 'UL x3 + Rest',
+  weekLengthDays: 7,
+  weeklySplit: [
+    { type: 'Upper' },
+    { type: 'Lower' },
+    { type: 'Upper' },
+    { type: 'Lower' },
+    { type: 'Upper' },
+    { type: 'Lower' },
+    { type: 'Rest' }
+  ],
+  mesoWeeks: 9,
+  deload: { mode: 'last-week' },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  version: 1,
+};
 
 export const catalogNames = [
   "Incline DB Press",

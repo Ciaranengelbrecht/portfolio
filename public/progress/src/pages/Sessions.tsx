@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Session, SessionEntry, SetEntry, Template, Settings } from "../lib/types";
+import { useProgram } from '../state/program'
+import { computeDeloadWeeks, programSummary } from '../lib/program'
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
 import { nanoid } from "nanoid";
 import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
@@ -23,7 +25,8 @@ const DAYS = [
 ];
 
 export default function Sessions() {
-  const [week, setWeek] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9>(1);
+  const { program } = useProgram()
+  const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
   const [day, setDay] = useState(0);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -55,6 +58,14 @@ export default function Sessions() {
     })();
   }, []);
 
+  // Adjust week clamp if program changes
+  useEffect(()=>{
+    if(program){
+      if(week > program.mesoWeeks) setWeek(1)
+      if(day >= program.weekLengthDays) setDay(0)
+    }
+  },[program])
+
   useEffect(() => {
     (async () => {
       const id = `${phase}-${week}-${day}`;
@@ -70,7 +81,8 @@ export default function Sessions() {
         }
       }
       if (!s) {
-        const templateName = DAYS[day];
+        const templateMeta = program ? program.weeklySplit[day] : undefined;
+        const templateName = templateMeta ? (templateMeta.customLabel || templateMeta.type || 'Day') : DAYS[day];
         s = {
           id,
           dateISO: new Date().toISOString(),
@@ -79,8 +91,25 @@ export default function Sessions() {
           phaseNumber: phase,
           dayName: templateName,
           entries: [],
+          templateId: templateMeta?.templateId,
         };
         await db.put("sessions", s);
+        // If there is a templateId, auto-import it
+        if(templateMeta?.templateId){
+          try {
+            const t = await db.get('templates', templateMeta.templateId)
+            if(t){
+              // Reuse import logic manually (append false since brand new)
+              const exs = await db.getAll('exercises')
+              const settings = await getSettings()
+              const exMap = new Map(exs.map((e:any)=>[e.id,e]))
+              const rows = (exId: string) => Math.max(1, Math.min(6, settings.defaultSetRows ?? (exMap.get(exId)?.defaults.sets ?? 3)))
+              const newEntries = (t.exerciseIds||[]).map((exId:string)=>({ id: nanoid(), exerciseId: exId, sets: Array.from({ length: rows(exId) }, (_,i)=>({ setNumber: i+1, weightKg: 0, reps: 0 })) }))
+              s = { ...s, entries: newEntries }
+              await db.put('sessions', s)
+            }
+          } catch(e){ console.warn('[Sessions] auto-import template failed', e) }
+        }
       }
       setSession(s);
       const settings = await getSettings();
@@ -170,6 +199,9 @@ export default function Sessions() {
     setPrevBestMap(buildPrevBestMap(allSessions, week, phase))
   })() }, [week, phase])
 
+  const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>()
+  const isDeloadWeek = deloadWeeks.has(week)
+
   const addSet = (entry: SessionEntry) => {
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
@@ -238,12 +270,10 @@ export default function Sessions() {
     if (!session) return;
     const cfg = await getSettings();
     if (cfg.confirmDestructive) {
-      const ex =
-        exercises.find(
-          (e) =>
-            e.id === session.entries.find((x) => x.id === entryId)?.exerciseId
-        )?.name || "exercise";
-      if (!window.confirm(`Remove ${ex} from this session?`)) return;
+      const exName = exercises.find(
+        (e) => e.id === session.entries.find((x) => x.id === entryId)?.exerciseId
+      )?.name || "exercise";
+      if (!window.confirm(`Remove ${exName} from this session?`)) return;
     }
     const prev = session;
     const updated = {
@@ -252,11 +282,6 @@ export default function Sessions() {
     };
     setSession(updated);
     await db.put("sessions", updated);
-    try {
-      window.dispatchEvent(
-        new CustomEvent("sb-change", { detail: { table: "sessions" } })
-      );
-    } catch {}
     const undo = async () => {
       setSession(prev);
       await db.put("sessions", prev);
@@ -267,10 +292,10 @@ export default function Sessions() {
 
   const addExerciseToSession = async (ex: Exercise) => {
     if (!session) return;
-    const lastSets = await getLastWorkingSets(ex.id, week, phase);
-    let sets: SetEntry[];
-    if (week === 9) {
-      const dl = await getDeloadPrescription(ex.id, week);
+    let sets: SetEntry[] = [];
+  const lastSets = await getLastWorkingSets(ex.id, week, phase);
+    if (isDeloadWeek) {
+      const dl = await getDeloadPrescription(ex.id, week, { deloadWeeks });
       const avgReps = lastSets.length
         ? Math.round(
             lastSets.reduce((a, b) => a + (b.reps || 8), 0) / lastSets.length
@@ -323,7 +348,7 @@ export default function Sessions() {
   };
 
   const deloadInfo = async (exerciseId: string) =>
-    getDeloadPrescription(exerciseId, week);
+    getDeloadPrescription(exerciseId, week, { deloadWeeks });
 
   const reorderEntry = async (from: number, to: number) => {
     if (
@@ -356,28 +381,45 @@ export default function Sessions() {
             await setSettings({ ...s, currentPhase: p });
           }}
         />
-        <select
-          className="bg-card rounded-xl px-2 py-1"
-          value={week}
-          onChange={(e) => setWeek(Number(e.target.value) as any)}
-        >
-          {Array.from({ length: 9 }, (_, i) => i + 1).map((w) => (
-            <option key={w} value={w}>
-              Week {w}
-            </option>
-          ))}
-        </select>
-        <select
-          className="bg-card rounded-xl px-2 py-1"
-          value={day}
-          onChange={(e) => setDay(Number(e.target.value))}
-        >
-          {DAYS.map((d, i) => (
-            <option key={i} value={i}>
-              {d}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            className="bg-card rounded-xl px-2 py-1"
+            value={week}
+            onChange={(e) => setWeek(Number(e.target.value))}
+          >
+            {(program
+              ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
+              : Array.from({ length: 9 }, (_, i) => i + 1)
+            ).map((w) => (
+              <option key={w} value={w}>
+                Week {w}
+                {program && deloadWeeks.has(w) ? " (Deload)" : ""}
+              </option>
+            ))}
+          </select>
+          <select
+            className="bg-card rounded-xl px-2 py-1"
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+          >
+            {(program ? program.weeklySplit.map((d) => d.customLabel || d.type) : DAYS).map(
+              (d, i) => (
+                <option key={i} value={i}>
+                  {d}
+                </option>
+              )
+            )}
+          </select>
+          {program && (
+            <button
+              className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10"
+              onClick={() => (window.location.hash = "#/settings/program")}
+              title="Edit program"
+            >
+              {programSummary(program)}
+            </button>
+          )}
+        </div>
         {/* Desktop: show all actions */}
   <div className="hidden sm:flex items-center gap-2">
           <button
@@ -502,6 +544,9 @@ export default function Sessions() {
           </div>
         )}
       </div>
+      {isDeloadWeek && (
+        <div className="text-xs text-amber-300">Deload adjustments active</div>
+      )}
 
       <div className="space-y-3">
         {session?.entries.map((entry, entryIdx) => {
@@ -539,7 +584,7 @@ export default function Sessions() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {week === 9 && (
+                  {isDeloadWeek && (
                     <AsyncChip promise={deloadInfo(entry.exerciseId)} />
                   )}
                   <button

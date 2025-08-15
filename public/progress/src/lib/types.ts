@@ -43,7 +43,8 @@ export interface SessionEntry {
 export interface Session {
   id: UUID;
   dateISO: string;
-  weekNumber: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  // v6+: allow dynamic mesocycle length; previously union 1-9
+  weekNumber: number;
   // v3+: use phaseNumber; keep legacy phase for BC
   phaseNumber?: number;
   phase?: number;
@@ -125,11 +126,37 @@ export interface Template {
   hidden?: boolean;
 }
 
-export type DBVersion = 5;
+export type DBVersion = 6;
 
 // User profile (server source of truth for theme persistence across devices)
 export interface UserProfile {
   id: string; // auth user id
   themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean }; // stored in DB column 'themev2'
   created_at?: string;
+  program?: UserProgram;
+}
+
+// Program customization types
+export type DayLabel = 'Upper' | 'Lower' | 'Push' | 'Pull' | 'Legs' | 'Full Body' | 'Arms' | 'Rest' | 'Custom'
+
+export type WeeklySplitDay = {
+  type: DayLabel;
+  customLabel?: string; // if type === 'Custom'
+  templateId?: string; // exercise template mapping
+}
+
+export type DeloadConfig =
+  | { mode: 'none' }
+  | { mode: 'last-week' }
+  | { mode: 'interval'; everyNWeeks: number }
+
+export interface UserProgram {
+  name: string;
+  weekLengthDays: number; // default 7 (allow 5-7)
+  weeklySplit: WeeklySplitDay[]; // length = weekLengthDays
+  mesoWeeks: number; // e.g., 9 (weeks in mesocycle)
+  deload: DeloadConfig; // default last-week
+  createdAt: string;
+  updatedAt: string;
+  version: number;
 }

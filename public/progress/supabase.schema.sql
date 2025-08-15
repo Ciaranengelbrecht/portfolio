@@ -6,7 +6,8 @@
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   created_at timestamptz default now(),
-  themeV2 jsonb -- stores { key: 'theme-name', customAccent?, prefersSystem? }
+  themeV2 jsonb, -- stores { key: 'theme-name', customAccent?, prefersSystem? }
+  program jsonb -- stores customizable training program
 );
 
 -- Backfill (safe idempotent add) if the column was added after initial setup
@@ -15,6 +16,11 @@ do $$ begin
     select 1 from information_schema.columns where table_name='profiles' and column_name='themev2'
   ) then
     alter table profiles add column themeV2 jsonb;
+  end if;
+  if not exists (
+    select 1 from information_schema.columns where table_name='profiles' and column_name='program'
+  ) then
+    alter table profiles add column program jsonb;
   end if;
 end $$;
 

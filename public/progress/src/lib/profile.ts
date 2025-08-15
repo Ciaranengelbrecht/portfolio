@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { UserProfile } from './types'
+import { UserProfile, UserProgram } from './types'
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
@@ -46,6 +46,20 @@ export async function saveProfileTheme(themeV2: UserProfile['themeV2']): Promise
       return false
     }
     console.warn('[profile] saveProfileTheme failed', e)
+    return false
+  }
+}
+
+export async function saveProfileProgram(program: UserProgram): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if(!user) throw new Error('Not signed in')
+    const payload: any = { id: user.id, program }
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+    if(error) throw error
+    return true
+  } catch(e){
+    console.warn('[profile] saveProfileProgram failed', e)
     return false
   }
 }

@@ -10,6 +10,7 @@ import { getSettings, setSettings } from "./lib/helpers";
 import { initSupabaseSync } from "./lib/supabaseSync";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
+import { ProgramProvider } from './state/program'
 import "./styles/theme.css";
 import { registerSW } from "./lib/pwa";
 import {
@@ -29,6 +30,7 @@ const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Settings = lazy(() => import("./pages/Settings"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
+const ProgramSettings = lazy(() => import('./pages/ProgramSettings'));
 import RequireAuth from './routes/guards/RequireAuth'
 
 function Shell() {
@@ -358,6 +360,7 @@ function Shell() {
             <Route path="/measurements" element={<RequireAuth><Measurements /></RequireAuth>} />
             <Route path="/templates" element={<RequireAuth><Templates /></RequireAuth>} />
             <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+            <Route path="/settings/program" element={<RequireAuth><ProgramSettings /></RequireAuth>} />
           </Routes>
         </Suspense>
       </main>
@@ -370,7 +373,9 @@ export default function App() {
   return (
     <LegacyThemeProvider>
       <VarsThemeProvider>
-        <Shell />
+        <ProgramProvider>
+          <Shell />
+        </ProgramProvider>
       </VarsThemeProvider>
     </LegacyThemeProvider>
   );

@@ -57,8 +57,15 @@ export async function setSettings(s: Settings) {
 
 export async function getDeloadPrescription(
   exerciseId: string,
-  weekNumber: number
+  weekNumber: number,
+  opts?: { deloadWeeks?: Set<number> }
 ) {
+  // Determine if this week is a deload via provided set (program-aware) else legacy heuristic (week 5 or 9 previously)
+  const isDeload = opts?.deloadWeeks ? opts.deloadWeeks.has(weekNumber) : [5,9].includes(weekNumber);
+  if(!isDeload){
+    // return a pseudo prescription indicating no deload (weight stays, sets default)
+    return { targetWeight: 0, targetSets: 0, loadPct: 1, setPct: 1, inactive: true } as const
+  }
   // default rule: 50–60% of average working weight from prior week, default 55% & 50% sets; allow overrides per exercise
   const [sets, exercises, settings] = await Promise.all([
     getLastWorkingSets(exerciseId, weekNumber),
