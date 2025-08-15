@@ -138,6 +138,8 @@ button:active { transform: scale(.97); }
 
 /* Prevent accidental horizontal scroll on narrow mobile view */
 html, body, #root { overflow-x:hidden; }
+/* Layout variables */
+:root { --app-header-h: 56px; }
 /* Ensure internal scroll areas don't force width expansion */
 .no-scrollbar { scrollbar-width:none; }
 .no-scrollbar::-webkit-scrollbar { display:none; }
