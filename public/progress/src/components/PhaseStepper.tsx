@@ -17,7 +17,13 @@ export default function PhaseStepper({
   }, [value]);
 
   const commit = async (v: number) => {
+    const prevPhase = value ?? n;
     const c = clampPhase(v);
+    if(c > prevPhase){
+      if(!window.confirm('Move to phase '+c+'? You should only advance after completing current phase.')) return;
+    } else if(c < prevPhase){
+      if(!window.confirm('Revert to phase '+c+'? Progress indicators will recalc based on earlier data.')) return;
+    }
     setN(c);
     setHint(c !== v ? "Min phase is 1" : "");
     onChange?.(c);

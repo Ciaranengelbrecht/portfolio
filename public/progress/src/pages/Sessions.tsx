@@ -54,7 +54,7 @@ export default function Sessions() {
   } | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
-  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean}>>({});
+  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean}>>({}); // ephemeral per-set timers
   const [readinessPct, setReadinessPct] = useState(0);
 
   useEffect(() => {
@@ -161,10 +161,20 @@ export default function Sessions() {
   // Keyboard shortcuts
   useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
 
-  // Rest timer tick
-  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ let changed=false; const next={...prev}; for(const [k,v] of Object.entries(prev)) if(v.running){ next[k]={...v, elapsed: Date.now()-v.start}; changed=true } return changed?next:prev }) },1000); return ()=> clearInterval(id) },[])
-  const toggleRestTimer = (entryId:string,setNumber:number)=>{ const key=`${entryId}:${setNumber}`; setRestTimers(prev=>{ const cur=prev[key]; if(cur&&cur.running) return { ...prev, [key]: { ...cur, running:false, elapsed: Date.now()-cur.start } }; return { ...prev, [key]: { start: Date.now(), elapsed:0, running:true } } }) }
-  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const secs=Math.floor(t.elapsed/1000); const mm=Math.floor(secs/60); const ss=String(secs%60).padStart(2,'0'); return <span className={`text-[10px] px-1 rounded ${t.running?'bg-emerald-700':'bg-slate-700'}`}>{mm}:{ss}</span> }
+  // Rest timer: high-res 60fps-ish update; auto-clears when stopped or another set's rest is started.
+  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ let changed=false; const next:{[k:string]:any}={}; for(const [k,v] of Object.entries(prev)){ if(v.running){ next[k]={...v, elapsed: Date.now()-v.start, running:true}; changed=true } else if(v.elapsed>0 && v.elapsed < 300) { /* just finished, keep for a brief flash */ next[k]=v } else { changed=true; /* drop */ } } return changed?next:prev }) }, 80); return ()=> clearInterval(id) },[])
+  const toggleRestTimer = (entryId:string,setNumber:number)=>{
+    const key=`${entryId}:${setNumber}`;
+    setRestTimers(prev=>{
+      // Clear all other timers when starting a new one
+      const cur=prev[key];
+      // If clicking active timer -> stop and remove
+      if(cur?.running){ const { [key]:_, ...rest } = prev; return rest }
+      const cleared: Record<string, any> = {};
+      return { ...cleared, [key]: { start: Date.now(), elapsed:0, running:true } };
+    })
+  }
+  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const msec = Math.floor(ms%1000/10); return <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 border border-emerald-600/40 shadow-inner ${t.running?'text-emerald-300':'text-slate-400'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(msec).padStart(2,'0')}</span></span> }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
 
   // Adjust week clamp if program changes
@@ -586,6 +596,15 @@ export default function Sessions() {
             className="bg-emerald-700 px-3 py-2 rounded-xl"
             title="Start next 9-week phase"
             onClick={async () => {
+              // Require at least one real set in current phase before moving unless user confirms override.
+              const all = await db.getAll<Session>('sessions');
+              const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1)===phase);
+              const hasReal = curPhaseSessions.some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
+              if(!hasReal){
+                if(!window.confirm('No real training data logged in this phase. Advance anyway?')) return;
+              } else {
+                if(!window.confirm('Advance to next phase? This will reset week to 1.')) return;
+              }
               const s = await getSettings();
               const next = (s.currentPhase || 1) + 1;
               await setSettings({ ...s, currentPhase: next });
@@ -593,9 +612,20 @@ export default function Sessions() {
               setWeek(1 as any);
               setDay(0);
             }}
-          >
-            Next phase →
-          </button>
+          >Next phase →</button>
+          {phase>1 && <button
+            className="bg-slate-700 px-3 py-2 rounded-xl"
+            title="Revert to previous phase"
+            onClick={async ()=> {
+              if(!window.confirm('Revert to phase '+(phase-1)+'?')) return;
+              const s = await getSettings();
+              const prev = Math.max(1, (s.currentPhase||1)-1);
+              await setSettings({ ...s, currentPhase: prev });
+              setPhase(prev);
+              setWeek(1 as any);
+              setDay(0);
+            }}
+          >← Prev phase</button>}
           <button
             className="bg-slate-700 px-3 py-2 rounded-xl"
             onClick={async () => {
@@ -663,6 +693,19 @@ export default function Sessions() {
             >
               Next phase →
             </button>
+            {phase>1 && <button
+              className="bg-slate-700 px-3 py-2 rounded-xl"
+              onClick={async ()=>{
+                if(!window.confirm('Revert to phase '+(phase-1)+'?')) return;
+                const s = await getSettings();
+                const prev = Math.max(1,(s.currentPhase||1)-1);
+                await setSettings({ ...s, currentPhase: prev });
+                setPhase(prev);
+                setWeek(1 as any);
+                setDay(0);
+                setMoreOpen(false);
+              }}
+            >Prev phase ←</button>}
             <button
               className="bg-slate-700 px-3 py-2 rounded-xl"
               onClick={async () => {

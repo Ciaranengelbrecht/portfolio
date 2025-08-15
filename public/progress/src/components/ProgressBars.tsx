@@ -253,26 +253,33 @@ export default function ProgressBars() {
             <button
               className="text-xs bg-emerald-600 rounded px-2 py-1"
               onClick={async () => {
+                // Ensure current phase has at least some real data
+                const real = sessions.filter(s=> (s.phaseNumber||s.phase||1)===curPhase).some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
+                if(!real){
+                  if(!window.confirm('No real logged data in this phase. Advance anyway?')) return;
+                } else {
+                  if(!window.confirm('Advance to next phase?')) return;
+                }
                 const s = await getSettings();
                 const next = (s.currentPhase || 1) + 1;
-                await db.put("settings", {
-                  ...s,
-                  id: "app",
-                  currentPhase: next,
-                });
+                await db.put('settings', { ...s, id:'app', currentPhase: next });
                 setCurPhase(next);
-                await setDashboardPrefs({
-                  lastLocation: {
-                    phaseNumber: next,
-                    weekNumber: 1 as any,
-                    dayId: 0,
-                  },
-                });
-                navigate("/sessions");
+                await setDashboardPrefs({ lastLocation: { phaseNumber: next, weekNumber: 1 as any, dayId:0 }});
+                navigate('/sessions');
               }}
-            >
-              Start Phase {curPhase + 1}
-            </button>
+            >Start Phase {curPhase + 1}</button>
+            {curPhase>1 && <button
+              className="text-xs bg-slate-700 rounded px-2 py-1"
+              onClick={async ()=> {
+                if(!window.confirm('Revert to phase '+(curPhase-1)+'?')) return;
+                const s = await getSettings();
+                const prev = Math.max(1,(s.currentPhase||1)-1);
+                await db.put('settings', { ...s, id:'app', currentPhase: prev });
+                setCurPhase(prev);
+                await setDashboardPrefs({ lastLocation: { phaseNumber: prev, weekNumber: 1 as any, dayId: 0 }});
+                navigate('/sessions');
+              }}
+            >Prev Phase ←</button>}
           </div>
         )}
       </GlassCard>
