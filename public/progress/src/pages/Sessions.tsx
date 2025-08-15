@@ -54,6 +54,8 @@ export default function Sessions() {
   } | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
+  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean}>>({});
+  const [readinessPct, setReadinessPct] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -145,6 +147,25 @@ export default function Sessions() {
       }
     })();
   }, [phase]);
+
+  // Phase readiness calculation
+  useEffect(()=>{ (async()=>{
+    if(!program){ setReadinessPct(0); return }
+    const all = await db.getAll<Session>('sessions');
+    const cur = all.filter(s=> (s.phaseNumber||s.phase||1)===phase);
+    const weeks = new Set<number>();
+    for(const s of cur){ if(s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0))) weeks.add(s.weekNumber) }
+    setReadinessPct(Math.min(100, Math.round((weeks.size/(program.mesoWeeks||1))*100)));
+  })() }, [phase, week, session?.id, program]);
+
+  // Keyboard shortcuts
+  useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
+
+  // Rest timer tick
+  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ let changed=false; const next={...prev}; for(const [k,v] of Object.entries(prev)) if(v.running){ next[k]={...v, elapsed: Date.now()-v.start}; changed=true } return changed?next:prev }) },1000); return ()=> clearInterval(id) },[])
+  const toggleRestTimer = (entryId:string,setNumber:number)=>{ const key=`${entryId}:${setNumber}`; setRestTimers(prev=>{ const cur=prev[key]; if(cur&&cur.running) return { ...prev, [key]: { ...cur, running:false, elapsed: Date.now()-cur.start } }; return { ...prev, [key]: { start: Date.now(), elapsed:0, running:true } } }) }
+  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const secs=Math.floor(t.elapsed/1000); const mm=Math.floor(secs/60); const ss=String(secs%60).padStart(2,'0'); return <span className={`text-[10px] px-1 rounded ${t.running?'bg-emerald-700':'bg-slate-700'}`}>{mm}:{ss}</span> }
+  const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
 
   // Adjust week clamp if program changes
   useEffect(() => {
@@ -826,6 +847,9 @@ export default function Sessions() {
                             inputMode="decimal"
                             aria-label="Weight"
                             className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
+                            data-set-input="true"
+                            data-entry-id={entry.id}
+                            data-set-number={set.setNumber}
                             value={set.weightKg}
                             onKeyDown={(e) => {
                               if (e.key === "ArrowUp") {
@@ -922,6 +946,9 @@ export default function Sessions() {
                             inputMode="numeric"
                             aria-label="Reps"
                             className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
+                            data-set-input="true"
+                            data-entry-id={entry.id}
+                            data-set-number={set.setNumber}
                             value={set.reps}
                             onKeyDown={(e) => {
                               if (e.key === "ArrowUp") {
@@ -980,6 +1007,10 @@ export default function Sessions() {
                         </div>
                       </div>
                     </div>
+                    <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+                      <button className="px-2 py-1 rounded bg-slate-700" onClick={()=>toggleRestTimer(entry.id,set.setNumber)}>Rest</button>
+                      {restTimerDisplay(entry.id,set.setNumber)}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1034,6 +1065,9 @@ export default function Sessions() {
                         inputMode="decimal"
                         aria-label="Weight"
                         className="bg-slate-800 rounded-xl px-3 py-2 w-24"
+                        data-set-input="true"
+                        data-entry-id={entry.id}
+                        data-set-number={set.setNumber}
                         value={set.weightKg}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
@@ -1113,6 +1147,9 @@ export default function Sessions() {
                         inputMode="numeric"
                         aria-label="Reps"
                         className="bg-slate-800 rounded-xl px-3 py-2 w-20"
+                        data-set-input="true"
+                        data-entry-id={entry.id}
+                        data-set-number={set.setNumber}
                         value={set.reps}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
@@ -1167,7 +1204,7 @@ export default function Sessions() {
                         +
                       </button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <PRChip
                         exerciseId={entry.exerciseId}
                         score={set.weightKg * set.reps}
@@ -1193,30 +1230,12 @@ export default function Sessions() {
                       >
                         Del
                       </button>
+                      <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=>toggleRestTimer(entry.id,set.setNumber)}>Rest</button>
+                      {restTimerDisplay(entry.id,set.setNumber)}
+                      {idx===entry.sets.length-1 && <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={()=>duplicateLastSet(entry)}>Dup</button>}
                     </div>
                   </div>
                 ))}
-              </div>
-
-              <div className="mt-3">
-                <button
-                  className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
-                  onClick={() => addSet(entry)}
-                  disabled={!session}
-                >
-                  + Add set
-                </button>
-              </div>
-
-              <div className="mt-3">
-                <input
-                  className="w-full bg-slate-800 rounded-xl px-3 py-2"
-                  placeholder="Notes (optional)"
-                  value={entry.notes || ""}
-                  onChange={(e) =>
-                    updateEntry({ ...entry, notes: e.target.value })
-                  }
-                />
               </div>
             </div>
           );
@@ -1253,19 +1272,20 @@ export default function Sessions() {
 
       {/* Add dialog */}
       {showAdd && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 grid place-items-end sm:place-items-center"
-          onClick={() => setShowAdd(false)}
-        >
-          <div
-            className="bg-card rounded-t-2xl sm:rounded-2xl p-4 shadow-soft w-full sm:max-w-md"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="font-medium mb-2">Add exercise</div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur flex items-start sm:items-center justify-center z-50 p-4">
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg p-4 shadow-xl border border-[var(--border)]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-medium">Add exercise</div>
+              <button
+                className="text-xs bg-slate-800 rounded px-2 py-1"
+                onClick={() => setShowAdd(false)}
+              >
+                Close
+              </button>
+            </div>
             <input
-              autoFocus
-              className="w-full bg-slate-800 rounded-xl px-3 py-3"
-              placeholder="Search or type a new exercise"
+              className="w-full bg-slate-800 rounded-xl px-3 py-2"
+              placeholder="Search or type a new exercise name"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
