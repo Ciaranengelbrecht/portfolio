@@ -57,6 +57,9 @@ export default function Sessions() {
   const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean}>>({}); // ephemeral per-set timers with optional finished pulse
   const REST_TIMER_MAX = 180000; // 3 minutes in ms
   const [readinessPct, setReadinessPct] = useState(0);
+  // Manual date editing UI state
+  const [editingDate, setEditingDate] = useState(false);
+  const [dateEditValue, setDateEditValue] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -567,6 +570,48 @@ export default function Sessions() {
     await db.put("sessions", updated);
   };
 
+  // Manually stamp the session with today's local date (overrides previous date)
+  const stampToday = async () => {
+    if (!session) return;
+    const today = new Date();
+    const localDayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+    if (session.localDate === localDayStr) {
+      setSnack({ open: true, msg: "Already stamped for today" });
+      return;
+    }
+    const prev = session;
+    const updated: Session = { ...session, dateISO: startOfDay.toISOString(), localDate: localDayStr };
+    setSession(updated);
+    await db.put('sessions', updated);
+    try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+    setSnack({
+      open: true,
+      msg: `Session dated ${localDayStr}`,
+      undo: async () => {
+        await db.put('sessions', prev);
+        setSession(prev);
+        try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+      }
+    });
+  };
+
+  // Save manually selected date (subtle edit control)
+  const saveManualDate = async () => {
+    if(!session) return;
+    if(!/\d{4}-\d{2}-\d{2}/.test(dateEditValue)) { setSnack({ open:true, msg:'Invalid date' }); return; }
+    if(session.localDate === dateEditValue) { setEditingDate(false); return; }
+    const prev = session;
+    const d = new Date(dateEditValue + 'T00:00:00');
+    d.setHours(0,0,0,0);
+    const updated: Session = { ...session, dateISO: d.toISOString(), localDate: dateEditValue };
+    setSession(updated);
+    await db.put('sessions', updated);
+    try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+    setEditingDate(false);
+    setSnack({ open:true, msg:`Date set to ${dateEditValue}`, undo: async ()=> { await db.put('sessions', prev); setSession(prev); try { window.dispatchEvent(new CustomEvent('sb-change',{detail:{table:'sessions'}})); } catch {} } });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header toolbar - responsive */}
@@ -625,6 +670,36 @@ export default function Sessions() {
         </div>
         {/* Desktop: show all actions */}
         <div className="hidden sm:flex items-center gap-2">
+          {session && (
+            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1" title="Current assigned date (click pencil to edit)">
+              {!editingDate && <span>{session.localDate || session.dateISO.slice(0,10)}</span>}
+              {editingDate && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="date"
+                    className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                    value={dateEditValue}
+                    onChange={e=> setDateEditValue(e.target.value)}
+                  />
+                  <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={saveManualDate}>Save</button>
+                  <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=> setEditingDate(false)}>Cancel</button>
+                </div>
+              )}
+              {!editingDate && (
+                <>
+                  <button
+                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                    onClick={stampToday}
+                  >Stamp Today</button>
+                  <button
+                    aria-label="Edit date"
+                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                    onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}
+                  >✎</button>
+                </>
+              )}
+            </div>
+          )}
           <button
             className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
             onClick={() => setShowImport(true)}
@@ -708,6 +783,14 @@ export default function Sessions() {
         </div>
         {moreOpen && (
           <div className="w-full sm:hidden grid grid-cols-1 gap-2">
+            {session && <button
+              className="bg-slate-700 px-3 py-2 rounded-xl"
+              onClick={()=>{ stampToday(); setMoreOpen(false); }}
+            >Stamp Today ({session.localDate || session.dateISO.slice(0,10)})</button>}
+            {session && <button
+              className="bg-slate-800 px-3 py-2 rounded-xl text-xs"
+              onClick={()=> { const cur = session.localDate || session.dateISO.slice(0,10); const nv = prompt('Set session date (YYYY-MM-DD):', cur); if(nv){ setDateEditValue(nv); saveManualDate.call(null); setMoreOpen(false); } }}
+            >Edit Date…</button>}
             <button
               className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
               onClick={() => {
