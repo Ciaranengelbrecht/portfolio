@@ -21,6 +21,20 @@ export const defaultSettings: Settings = {
     showDeloadHints: true,
     showPrevHints: true,
   },
+  volumeTargets: {
+    chest: 12,
+    back: 14,
+    quads: 12,
+    hamstrings: 10,
+    glutes: 10,
+    shoulders: 10,
+    biceps: 8,
+    triceps: 8,
+    calves: 6,
+    core: 6,
+    legs: 0, // legacy placeholder (should migrate to quads/hamstrings)
+    other: 0,
+  },
   ui: {
     compactMode: false,
     instantThemeTransition: false,

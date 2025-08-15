@@ -18,6 +18,7 @@ import {
 import { db } from "../lib/db";
 import { Session, Exercise } from "../lib/types";
 import { computeLoggedSetVolume } from "../lib/volume";
+import { getSettings } from "../lib/helpers";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -59,6 +60,12 @@ export default function ProgramSettings() {
     setVolumeByWeek(weeks);
     setMuscleVolume(totals);
   })() }, [program?.id, program?.mesoWeeks]);
+
+  // Load volume targets from settings
+  useEffect(()=>{ (async()=>{ const s = await getSettings(); if(s.volumeTargets){ setWeeklySetTargets(s.volumeTargets); } })(); }, []);
+
+  // Persist target edits back into settings (debounced)
+  useEffect(()=>{ const h = setTimeout(async()=> { const s = await getSettings(); await db.put('settings',{ ...(s||{}), id:'app', volumeTargets: weeklySetTargets }); }, 600); return ()=> clearTimeout(h); }, [weeklySetTargets]);
 
   useEffect(() => {
     if (program) setWorking(program);

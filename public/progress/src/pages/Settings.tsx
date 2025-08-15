@@ -928,6 +928,7 @@ export default function SettingsPage() {
 
       <ExerciseOverrides />
   <ExerciseLibraryManager />
+  <WeeklyVolumeTargets />
     </div>
   );
 }
@@ -1075,6 +1076,28 @@ function ExerciseLibraryManager(){
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function WeeklyVolumeTargets(){
+  const [targets,setTargets] = useState<Record<string, number>>({});
+  useEffect(()=>{ (async()=>{ const s = await db.get('settings','app'); setTargets(s?.volumeTargets||{}); })(); },[]);
+  const MUSCLES = ['chest','back','quads','hamstrings','glutes','shoulders','biceps','triceps','calves','core'];
+  const save = async ()=> { const cur = await db.get('settings','app'); await db.put('settings',{ ...(cur||{}), id:'app', volumeTargets: targets }); };
+  return (
+    <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+      <div className="font-medium">Weekly Volume Targets</div>
+      <div className="text-sm text-muted">Set desired weighted set targets per muscle. Used for allocator and dashboard progress bars.</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {MUSCLES.map(m=> (
+          <label key={m} className="space-y-1">
+            <span className="text-xs capitalize text-app">{m}</span>
+            <input type="number" min={0} max={40} value={targets[m]??''} onChange={e=> setTargets(t=> ({...t, [m]: Number(e.target.value)}))} className="input-app rounded-xl px-2 py-2 w-full text-sm" />
+          </label>
+        ))}
+      </div>
+      <button className="btn-primary px-3 py-2 rounded-xl" onClick={save}>Save Volume Targets</button>
     </div>
   );
 }

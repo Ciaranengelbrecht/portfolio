@@ -106,6 +106,8 @@ export interface Settings {
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
   };
+  /** Per-muscle weekly target (weighted sets) */
+  volumeTargets?: Record<string, number>;
   ui?: {
     compactMode?: boolean; // reduced paddings / font-size
     instantThemeTransition?: boolean; // disable animated theme swap
