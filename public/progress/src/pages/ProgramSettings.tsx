@@ -17,6 +17,7 @@ import {
 } from "../lib/profile";
 import { db } from "../lib/db";
 import { Session, Exercise } from "../lib/types";
+import { computeLoggedSetVolume } from "../lib/volume";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -40,8 +41,8 @@ export default function ProgramSettings() {
   const [toast, setToast] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [history, setHistory] = useState<any[]>([]);
-  const [volumeByWeek, setVolumeByWeek] = useState<number[]>([]);
-  const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({});
+  const [volumeByWeek, setVolumeByWeek] = useState<number[]>([]); // logged weighted sets per week (sum of all muscles)
+  const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({}); // logged muscle weighted sets (phase total)
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
   const [showAllocator, setShowAllocator] = useState(false);
   const [weeklySetTargets, setWeeklySetTargets] = useState<Record<string, number>>({ chest:10, back:12, legs:12, shoulders:8, arms:6, core:6 });
@@ -49,30 +50,14 @@ export default function ProgramSettings() {
   const [showDiffConfirm, setShowDiffConfirm] = useState(false);
   const [diffItems, setDiffItems] = useState<string[]>([]);
 
-  // derive simple historical volume (current mesocycle sessions)
+  // Logged set volume (weighted) for current phase (primary +1, secondary +0.5)
   useEffect(()=>{ (async()=>{
     if(!program) return;
-    const all = await db.getAll<Session>('sessions');
-    const cur = all.filter(s=> (s.phaseNumber||s.phase||1) === (program as any).currentPhase || 1);
-    const byWeek: Record<number, number> = {};
-    const mv: Record<string, number> = {};
-    const exMap = new Map((await db.getAll('exercises')).map((e:any)=>[e.id,e]));
-    for(const s of cur){
-      let sessionVol=0;
-      for(const e of s.entries){
-        const ex = exMap.get(e.exerciseId);
-        const m = ex?.muscleGroup || 'other';
-        for(const set of e.sets){
-          const vol = (set.weightKg||0) * (set.reps||0);
-          sessionVol += vol;
-          mv[m] = (mv[m]||0)+vol;
-        }
-      }
-      byWeek[s.weekNumber] = (byWeek[s.weekNumber]||0) + sessionVol;
-    }
-    const weeks = Array.from({length: program.mesoWeeks}, (_,i)=> byWeek[i+1]||0);
+    const phase = (program as any).currentPhase || 1;
+    const { perWeek, totals, weeklyTotals } = await computeLoggedSetVolume(phase);
+    const weeks = Array.from({length: program.mesoWeeks}, (_,i)=> weeklyTotals[i+1]||0);
     setVolumeByWeek(weeks);
-    setMuscleVolume(mv);
+    setMuscleVolume(totals);
   })() }, [program?.id, program?.mesoWeeks]);
 
   useEffect(() => {
@@ -290,7 +275,7 @@ export default function ProgramSettings() {
       <div className="glass-card rounded-2xl p-4 space-y-4">
         {/* Mesocycle timeline */}
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">Mesocycle Timeline (Weekly Volume)</div>
+          <div className="text-xs uppercase tracking-wide text-gray-400">Mesocycle Timeline (Logged Weighted Sets)</div>
           <div className="flex items-end gap-1 h-24">
             {volumeByWeek.map((v,i)=>{ const max=Math.max(1,...volumeByWeek); const pct=Math.round((v/max)*100); return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -304,7 +289,7 @@ export default function ProgramSettings() {
         </div>
         {/* Muscle group heatmap */}
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">Muscle Volume Split</div>
+          <div className="text-xs uppercase tracking-wide text-gray-400">Muscle Logged Volume (Weighted Sets)</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {Object.entries(muscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=>{ const max=Math.max(1,...Object.values(muscleVolume)); const pct=(v/max)*100; return (
               <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
