@@ -160,7 +160,7 @@ export async function getExerciseTimeSeries(
   const sessions = await db.getAll<Session>("sessions");
   const days = sessions
     .map((s) => ({
-      date: s.dateISO,
+      date: (s as any).localDate ? (s as any).localDate + 'T00:00:00' : s.dateISO,
       entry: s.entries.find((e) => e.exerciseId === exerciseId),
     }))
     .filter((x) => x.entry)

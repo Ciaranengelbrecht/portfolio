@@ -225,10 +225,13 @@ export default function Sessions() {
         const templateName = templateMeta
           ? templateMeta.customLabel || templateMeta.type || "Day"
           : DAYS[day];
+        const now = new Date();
+        const localDayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
         s = {
           id,
-          // Normalize date to start-of-day UTC to avoid duplicates across TZ boundaries
-          dateISO: (()=> { const d=new Date(); d.setUTCHours(0,0,0,0); return d.toISOString(); })(),
+          // Preserve original UTC start-of-day for backward compat but add localDate for UI grouping
+          dateISO: (()=> { const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); })(),
+          localDate: localDayStr,
           weekNumber: week,
           phase,
           phaseNumber: phase,
@@ -420,10 +423,22 @@ export default function Sessions() {
 
   const updateEntry = async (entry: SessionEntry) => {
     if (!session) return;
-    const newEntries = session.entries.map((e) =>
-      e.id === entry.id ? entry : e
-    );
-    const updated = { ...session, entries: newEntries };
+    const prevSession = session;
+    const prevEntry = session.entries.find(e=> e.id===entry.id);
+    const newEntries = session.entries.map((e) => e.id === entry.id ? entry : e);
+    let updated = { ...session, entries: newEntries } as Session;
+    // If session previously had no working sets and now has at least one, re-stamp date to today
+    const hadWorkBefore = prevSession.entries.some(en => en.sets.some(s=> (s.reps||0)>0 || (s.weightKg||0)>0));
+    const hasWorkNow = newEntries.some(en => en.sets.some(s=> (s.reps||0)>0 || (s.weightKg||0)>0));
+    if(!hadWorkBefore && hasWorkNow){
+      const today = new Date();
+      const localDayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+      const prevLocal = prevSession.localDate || prevSession.dateISO.slice(0,10);
+      if(prevLocal !== localDayStr){
+        const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+        updated = { ...updated, dateISO: startOfDay.toISOString(), localDate: localDayStr };
+      }
+    }
     setSession(updated);
     await db.put("sessions", updated);
     try {

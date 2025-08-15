@@ -47,6 +47,8 @@ export interface SessionEntry {
 export interface Session {
   id: UUID;
   dateISO: string;
+  /** Local calendar date (YYYY-MM-DD) captured at creation/logging time for timezone-correct charts */
+  localDate?: string;
   // v6+: allow dynamic mesocycle length; previously union 1-9
   weekNumber: number;
   // v3+: use phaseNumber; keep legacy phase for BC
