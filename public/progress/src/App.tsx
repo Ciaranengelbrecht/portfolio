@@ -28,6 +28,8 @@ const Sessions = lazy(() => import("./pages/Sessions"));
 const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Settings = lazy(() => import("./pages/Settings"));
+const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
+import RequireAuth from './routes/guards/RequireAuth'
 
 function Shell() {
   const navigate = useNavigate();
@@ -235,10 +237,12 @@ function Shell() {
     </NavLink>
   );
 
+  // Hide app shell (nav etc) on /auth route
+  const authRoute = locationRef.pathname.startsWith('/auth')
   return (
     <div className="min-h-screen flex flex-col">
-      <BackgroundFX />
-      <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
+      {!authRoute && <BackgroundFX />}
+      {!authRoute && <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
           <h1 className="text-base sm:text-lg font-semibold shrink-0">
             LiftLog
@@ -317,8 +321,8 @@ function Shell() {
             </div>
           </div>
         </div>
-      </header>
-      <AuthModal
+      </header>}
+      {!authRoute && <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}
         onSignedIn={() => {
@@ -326,13 +330,13 @@ function Shell() {
           setToast("Signed in");
           setBigFlash("Signed in successfully");
         }}
-      />
-      <BigFlash
+      />}
+      {!authRoute && <BigFlash
         open={!!bigFlash}
         message={bigFlash || ""}
         onClose={() => setBigFlash(null)}
-      />
-      {toast && (
+      />}
+      {!authRoute && toast && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
           <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
             {toast}
@@ -345,37 +349,17 @@ function Shell() {
           </div>
         </div>
       )}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-4">
-        {/* Auth gate: only allow viewing data routes when signed in; Settings always accessible */}
-        {authChecked && !authEmail && locationRef.pathname !== "/settings" ? (
-          <div className="flex flex-col items-center justify-center text-center gap-3 py-16">
-            <div className="text-lg font-medium">
-              Please sign in to view your data
-            </div>
-            <div className="text-sm text-gray-400">
-              Your local data remains on this device but is hidden until you
-              sign in.
-            </div>
-            <div className="flex gap-2">
-              <button
-                className="btn-primary px-3 py-2 rounded-xl"
-                onClick={() => setAuthOpen(true)}
-              >
-                Sign in
-              </button>
-            </div>
-          </div>
-        ) : (
-          <Suspense fallback={<div>Loading…</div>}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/sessions" element={<Sessions />} />
-              <Route path="/measurements" element={<Measurements />} />
-              <Route path="/templates" element={<Templates />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </Suspense>
-        )}
+      <main className="flex-1 w-full px-0 py-0">
+        <Suspense fallback={<div className='p-6'>Loading…</div>}>
+          <Routes>
+            <Route path="/auth" element={<IntroAuthPage />} />
+            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/sessions" element={<RequireAuth><Sessions /></RequireAuth>} />
+            <Route path="/measurements" element={<RequireAuth><Measurements /></RequireAuth>} />
+            <Route path="/templates" element={<RequireAuth><Templates /></RequireAuth>} />
+            <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );
