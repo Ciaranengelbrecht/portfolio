@@ -44,6 +44,7 @@ export default function Sessions() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [prevBestMap, setPrevBestMap] = useState<{[id:string]: { week:number; set:SetEntry }} | null>(null)
   const [settingsState, setSettingsState] = useState<Settings | null>(null)
+  const [autoNavDone, setAutoNavDone] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -57,6 +58,53 @@ export default function Sessions() {
       }
     })();
   }, []);
+
+  // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
+  // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
+  useEffect(()=>{ (async()=>{
+    if(autoNavDone) return
+    const all = await db.getAll<Session>('sessions')
+    if(!all.length){ setAutoNavDone(true); return }
+    // Filter by current phase (legacy sessions may store phase or phaseNumber)
+    const byPhase = all.filter(s=> (s.phaseNumber||s.phase||1) === phase)
+    // Determine weeks with real data (any set with weight>0 or reps>0)
+    const weekHasData = new Map<number, boolean>()
+    for(const s of byPhase){
+      const real = s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) > 0 || (st.reps||0) > 0))
+      if(real){ weekHasData.set(s.weekNumber, true) }
+    }
+    if(weekHasData.size === 0){
+      // stay on current (default 1)
+      setAutoNavDone(true); return
+    }
+    // Highest week in this phase with data
+    const targetWeek = [...weekHasData.keys()].sort((a,b)=>a-b).pop()!
+    if(targetWeek !== week){ setWeek(targetWeek) }
+    setAutoNavDone(true)
+  })() }, [phase, autoNavDone])
+
+  // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
+  useEffect(()=>{ (async()=>{
+    const all = await db.getAll<Session>('sessions')
+    const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1) === phase)
+    // If user is beyond phase 1 and there is zero real data in phase weeks, revert to previous phase with data
+    if(phase > 1){
+      const haveReal = curPhaseSessions.some(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) >0 || (st.reps||0)>0)))
+      if(!haveReal){
+        // find latest phase that has data
+        const phasesWithData = new Set<number>()
+        for(const s of all){ if(s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0))) phasesWithData.add((s.phaseNumber||s.phase||1)) }
+        if(phasesWithData.size){
+          const back = [...phasesWithData].sort((a,b)=>b-a)[0]
+          if(back !== phase){
+            setPhase(back)
+            const settings = await getSettings();
+            await setSettings({ ...settings, currentPhase: back })
+          }
+        }
+      }
+    }
+  })() }, [phase])
 
   // Adjust week clamp if program changes
   useEffect(()=>{
