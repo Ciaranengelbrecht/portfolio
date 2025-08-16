@@ -22,6 +22,8 @@ import {
 } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
 import BackgroundFX from "./components/BackgroundFX";
+import HeartbeatBackground from "./components/decor/HeartbeatBackground";
+import { db } from "./lib/db";
 import BigFlash from "./components/BigFlash";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
@@ -288,8 +290,13 @@ function Shell() {
 
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
+  const [ecgEnabled, setEcgEnabled] = useState(true);
+  const [ecgIntensity, setEcgIntensity] = useState<'low'|'medium'|'off'>('low');
+  useEffect(()=>{ (async()=>{ const s = await db.get<any>('settings','app'); const ecg = s?.themeV2?.ecg; if(ecg){ setEcgEnabled(ecg.enabled); setEcgIntensity(ecg.intensity||'low'); } })(); }, []);
+  useEffect(()=>{ document.documentElement.setAttribute('data-ecg-intensity', ecgIntensity); }, [ecgIntensity]);
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative z-0">
+      {ecgEnabled && <HeartbeatBackground enabled={ecgEnabled} />}
       {!authRoute && <BackgroundFX />}
       {!authRoute && (
         <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">

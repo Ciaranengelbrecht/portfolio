@@ -1,0 +1,11 @@
+/* ECG Heartbeat background */
+.ecg-layer { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.ecg-svg { width:300vw; height:100%; display:block; }
+.ecg-scroll { animation: ecg-drift 28s linear infinite; will-change: transform; }
+.ecg-line { stroke: var(--ecg-line); opacity: var(--ecg-opacity); fill:none; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 6px rgba(0 0 0 / 0.25)); }
+.ecg-glow { stroke: var(--ecg-glow); opacity: var(--ecg-glow-opacity); filter: blur(4px); stroke-width:2; fill:none; }
+@keyframes ecg-drift { from { transform: translateX(0); } to { transform: translateX(-100vw); } }
+/* Pulse spike subtle luminance modulation */
+@keyframes ecg-pulse { 0%,92%,100% { opacity: var(--ecg-opacity); } 96% { opacity: calc(var(--ecg-opacity) + 0.03); } }
+.ecg-line.ecg-animate { animation: ecg-pulse 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce){ .ecg-scroll, .ecg-line.ecg-animate { animation:none; } }

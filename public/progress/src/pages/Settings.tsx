@@ -820,6 +820,16 @@ export default function SettingsPage() {
                 <input type="checkbox" checked={!!s.ui?.compactMode} onChange={async(e)=>{
                   const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), compactMode: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.setAttribute('data-density', val? 'compact':'normal'); }} />
               </label>
+              <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>ECG</span>
+                <input type="checkbox" checked={!!(s.themeV2 as any)?.ecg?.enabled !== false} onChange={async(e)=>{
+                  const val=e.target.checked; const next={ ...s, themeV2:{ ...(s.themeV2||{ key: themeKey }), ecg:{ enabled: val, intensity: (s.themeV2 as any)?.ecg?.intensity||'low' } } } as any; setS(next); await db.put('settings',{ ...next, id:'app'} as any); document.documentElement.setAttribute('data-ecg-intensity', (next.themeV2 as any).ecg.intensity); }} />
+                <select className="bg-transparent outline-none" value={(s.themeV2 as any)?.ecg?.intensity||'low'} onChange={async(e)=>{ const val=e.target.value as any; const next={ ...s, themeV2:{ ...(s.themeV2||{ key: themeKey }), ecg:{ enabled: (s.themeV2 as any)?.ecg?.enabled!==false, intensity: val } } }; setS(next); await db.put('settings',{ ...next, id:'app'} as any); document.documentElement.setAttribute('data-ecg-intensity', val); }}>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="off">Off</option>
+                </select>
+              </div>
               <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Instant theme</span>
                 <input type="checkbox" checked={!!s.ui?.instantThemeTransition} onChange={async(e)=>{ const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), instantThemeTransition: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); if(val) document.documentElement.classList.remove('theme-animate'); else document.documentElement.classList.add('theme-animate'); }} />
