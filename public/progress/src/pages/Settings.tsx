@@ -854,7 +854,16 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                     <span>Speed</span>
-                    <input type="range" min={8000} max={90000} step={1000} value={s.ecg?.speedMs||42000} onChange={async(e)=>{ const speedMs=Number(e.target.value); const next={ ...s, ecg:{ ...(s.ecg||{}), speedMs, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.style.setProperty('--ecg-custom-speed-ms', String(speedMs)); }} />
+                    <input type="range" min={4000} max={180000} step={1000} value={s.ecg?.speedMs||42000} onChange={async(e)=>{ const speedMs=Number(e.target.value); const next={ ...s, ecg:{ ...(s.ecg||{}), speedMs, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.style.setProperty('--ecg-custom-speed-ms', String(speedMs)); }} />
+                  </div>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Trail</span>
+                    <input title={String(s.ecg?.trailMs||2000)+ ' ms'} type="range" min={400} max={8000} step={100} value={s.ecg?.trailMs||2000} onChange={async(e)=>{ const trailMs=Number(e.target.value); const next={ ...s, ecg:{ ...(s.ecg||{}), trailMs, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.style.setProperty('--ecg-trail-ms', String(trailMs)); }} />
+                  </div>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Spikes</span>
+                    <input type="range" min={1} max={5} step={1} value={s.ecg?.spikes||1} onChange={async(e)=>{ const spikes=Number(e.target.value); const next={ ...s, ecg:{ ...(s.ecg||{}), spikes, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); /* waveform picks up via settings fetch on next animation cycle */ }} />
+                    <span className="text-xs opacity-70">{s.ecg?.spikes||1}</span>
                   </div>
                   <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                     <span>Color</span>

@@ -28,13 +28,13 @@ export default function ECGBackground(){
       const base = intensityCfg[intensity];
       let effectiveSpeed = s.ecg.speedMs || base.speed;
       // Interpret stored speedMs as control value (higher => faster). If within expected control range, remap.
-      const CTRL_MIN = 8000, CTRL_MAX = 90000;
+  const CTRL_MIN = 4000, CTRL_MAX = 180000; // extended control range
       if(s.ecg.speedMs && s.ecg.speedMs >= CTRL_MIN && s.ecg.speedMs <= CTRL_MAX){
         const control = s.ecg.speedMs;
         const factor = (control - CTRL_MIN) / (CTRL_MAX - CTRL_MIN); // 0..1
-        const fastest = base.speed * 0.3; // 30% of base
-        const slowest = base.speed * 2;   // 200% of base
-        effectiveSpeed = slowest - factor * (slowest - fastest); // invert so higher control => faster (shorter duration)
+        const fastest = base.speed * 0.18; // ~5-6s sweep at high intensity
+        const slowest = base.speed * 2.4;  // allow slower than before
+        effectiveSpeed = slowest - factor * (slowest - fastest);
       }
       const canvas = canvasRef.current;
       if(!canvas) return;
@@ -71,31 +71,29 @@ export default function ECGBackground(){
       let lastX = 0, lastY = 0;
 
       function fx(normX: number): number {
-        // Flat baseline with single sharp spike at center; no dips or curvature.
         if(!canvas) return 0;
         const h = canvas.height / (window.devicePixelRatio||1);
         const mid = h * 0.5;
-        const spikeTotal = 0.10; // width of total spike window (10% of width)
-        const center = 0.5;
-        const left = center - spikeTotal/2;
-        const right = center + spikeTotal/2;
-        if(normX < left || normX > right) return mid; // baseline outside spike window
-        const local = (normX - left) / spikeTotal; // 0..1 across spike window
-        // Define quick linear rise (0..0.25), brief plateau (0.25..0.35), linear fall (0.35..0.55), then baseline.
-        if(local < 0.25) {
-          return mid - (local/0.25) * h * 0.28; // rise
-        } else if(local < 0.35) {
-          return mid - h * 0.28; // plateau
-        } else if(local < 0.55) {
-          const t = (local - 0.35) / 0.20; // 0..1
-          return mid - (1 - t) * h * 0.28; // descend back to baseline
+  const spikes = Math.max(1, (s.ecg?.spikes) || 1);
+        const spikeWidth = 0.10; // width per spike
+        for(let i=0;i<spikes;i++){
+          const center = (i + 0.5)/spikes; // normalize center
+          const left = center - spikeWidth/2;
+            const right = center + spikeWidth/2;
+          if(normX >= left && normX <= right){
+            const local = (normX - left)/spikeWidth;
+            if(local < 0.25) return mid - (local/0.25) * h * 0.28; // rise
+            if(local < 0.35) return mid - h * 0.28; // plateau
+            if(local < 0.55){ const t=(local-0.35)/0.20; return mid - (1-t)*h*0.28; } // fall
+            return mid;
+          }
         }
-        return mid; // rest of window baseline
+        return mid;
       }
 
-  // Point history for trail fade (2s lifespan)
+  // Point history for trail fade
   const points: {x:number; y:number; t:number}[] = [];
-  const trailDuration = 2000; // ms for full disappearance
+  let trailDuration = s.ecg.trailMs || 2000;
 
   function step(ts: number){
         if(stop) return;
@@ -109,8 +107,8 @@ export default function ECGBackground(){
             const v = parseInt(cssVal,10);
             if(!isNaN(v)){
               const factor = Math.min(1, Math.max(0, (v-CTRL_MIN)/(CTRL_MAX-CTRL_MIN)));
-              const fastest = base.speed * 0.3;
-              const slowest = base.speed * 2;
+              const fastest = base.speed * 0.18; // allow much faster
+              const slowest = base.speed * 2.4;  // allow slower
               effectiveSpeed = slowest - factor * (slowest - fastest);
             }
           }
@@ -127,6 +125,8 @@ export default function ECGBackground(){
           // clear fully
           ctx.clearRect(0,0,w,h);
           // prune old
+          // Allow live update of trail duration via CSS var
+          try { const cssTrail = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ecg-trail-ms').trim(), 10); if(!isNaN(cssTrail)) trailDuration = cssTrail; } catch {}
           while(points.length && ts - points[0].t > trailDuration) points.shift();
           // draw trail segments with fading alpha
           ctx.lineCap='butt';
@@ -176,6 +176,7 @@ export default function ECGBackground(){
           // continue fading existing trail
           if(points.length){
             ctx.clearRect(0,0,w,h);
+            try { const cssTrail = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ecg-trail-ms').trim(), 10); if(!isNaN(cssTrail)) trailDuration = cssTrail; } catch {}
             while(points.length && ts - points[0].t > trailDuration) points.shift();
             for(let i=1;i<points.length;i++){
               const p0 = points[i-1];

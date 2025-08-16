@@ -90,6 +90,7 @@ function Shell() {
   root.style.setProperty('--ecg-stroke-w', cfg.strokeWidth);
   root.style.setProperty('--ecg-dash', cfg.dash);
   if(s.ecg.speedMs){ root.style.setProperty('--ecg-custom-speed-ms', String(s.ecg.speedMs)); }
+  if(s.ecg.trailMs){ root.style.setProperty('--ecg-trail-ms', String(s.ecg.trailMs)); }
   if(s.ecg.color){ root.style.setProperty('--ecg-custom-color', s.ecg.color); }
       } else document.body.dataset.ecg = 'off';
       // Theme mode handling
