@@ -828,6 +828,32 @@ export default function SettingsPage() {
                 <span>Smoothing default</span>
                 <input type="checkbox" checked={!!s.ui?.smoothingDefault} onChange={async(e)=>{ const val=e.target.checked; const next={ ...s, ui:{ ...(s.ui||{}), smoothingDefault: val } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); }} />
               </label>
+              {/* ECG background toggle */}
+              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                <span>ECG bg</span>
+                <input type="checkbox" checked={!!s.ecg?.enabled} onChange={async(e)=>{ const enabled=e.target.checked; const next ={ ...s, ecg:{ ...(s.ecg||{}), enabled } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.body.dataset.ecg = enabled? 'on':'off'; }} />
+              </label>
+              {s.ecg?.enabled && (
+                <>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Intensity</span>
+                    <select className="bg-transparent outline-none" value={s.ecg?.intensity||'low'} onChange={async(e)=>{ const intensity=e.target.value as any; const next={ ...s, ecg:{ ...(s.ecg||{}), intensity, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); const root=document.documentElement; const map: Record<string,{opacity:string; speed:string; strokeWidth:string; dash:string}>={ low:{opacity:'0.15',speed:'46s', strokeWidth:'1.6', dash:'5 7'}, med:{opacity:'0.25',speed:'34s', strokeWidth:'2', dash:'5 5'}, high:{opacity:'0.35',speed:'26s', strokeWidth:'2.4', dash:'4 4'} }; const cfg=map[intensity]; root.style.setProperty('--ecg-opacity', cfg.opacity); root.style.setProperty('--ecg-speed', cfg.speed); root.style.setProperty('--ecg-stroke-w', cfg.strokeWidth); root.style.setProperty('--ecg-dash', cfg.dash); }}>
+                      <option value="low">Low</option>
+                      <option value="med">Med</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Shape</span>
+                    <select className="bg-transparent outline-none" value={s.ecg?.shape||'classic'} onChange={async(e)=>{ const shape=e.target.value as any; const next={ ...s, ecg:{ ...(s.ecg||{}), shape, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); /* rerender component picks up shape via settings */ }}>
+                      <option value="classic">Classic</option>
+                      <option value="smooth">Smooth</option>
+                      <option value="spikes">Spikes</option>
+                      <option value="minimal">Minimal</option>
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

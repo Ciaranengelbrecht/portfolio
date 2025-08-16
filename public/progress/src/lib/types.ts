@@ -110,6 +110,8 @@ export interface Settings {
   };
   /** Per-muscle weekly target (weighted sets) */
   volumeTargets?: Record<string, number>;
+  /** Subtle animated ECG background settings */
+  ecg?: { enabled?: boolean; intensity?: 'low' | 'med' | 'high'; shape?: 'classic' | 'smooth' | 'spikes' | 'minimal' };
   ui?: {
     compactMode?: boolean; // reduced paddings / font-size
     instantThemeTransition?: boolean; // disable animated theme swap

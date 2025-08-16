@@ -23,6 +23,7 @@ import {
 import AuthModal from "./components/AuthModal";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
+import ECGBackground from "./components/ECGBackground";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -78,6 +79,17 @@ function Shell() {
       if (s.accentColor) root.style.setProperty("--accent", s.accentColor);
       if (s.cardStyle) root.setAttribute("data-card-style", s.cardStyle);
       if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
+      // ECG background settings
+      if (s.ecg?.enabled) {
+        document.body.dataset.ecg = 'on';
+        const intensity = s.ecg.intensity || 'low';
+  const map: Record<string,{opacity:string; speed:string; strokeWidth:string; dash:string}> = { low:{opacity:'0.15',speed:'46s', strokeWidth:'1.6', dash:'5 7'}, med:{opacity:'0.25',speed:'34s', strokeWidth:'2', dash:'5 5'}, high:{opacity:'0.35',speed:'26s', strokeWidth:'2.4', dash:'4 4'} };
+  const cfg = map[intensity];
+  root.style.setProperty('--ecg-opacity', cfg.opacity);
+  root.style.setProperty('--ecg-speed', cfg.speed);
+  root.style.setProperty('--ecg-stroke-w', cfg.strokeWidth);
+  root.style.setProperty('--ecg-dash', cfg.dash);
+      } else document.body.dataset.ecg = 'off';
       // Theme mode handling
       const applyThemeMode = () => {
         const mode = s.ui?.themeMode || 'dark';
@@ -289,8 +301,10 @@ function Shell() {
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col relative" id="app-shell">
       {!authRoute && <BackgroundFX />}
+      {/* ECG background (behind everything); toggled via body data attribute & settings */}
+      {!authRoute && <ECGBackground />}
       {!authRoute && (
         <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">

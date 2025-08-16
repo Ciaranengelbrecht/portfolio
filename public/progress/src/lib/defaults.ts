@@ -35,6 +35,7 @@ export const defaultSettings: Settings = {
     legs: 0, // legacy placeholder (should migrate to quads/hamstrings)
     other: 0,
   },
+  ecg: { enabled: false, intensity: 'low', shape: 'classic' },
   ui: {
     compactMode: false,
     instantThemeTransition: false,
