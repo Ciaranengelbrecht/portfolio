@@ -852,6 +852,14 @@ export default function SettingsPage() {
                       <option value="minimal">Minimal</option>
                     </select>
                   </div>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Speed</span>
+                    <input type="range" min={8000} max={90000} step={1000} value={s.ecg?.speedMs||42000} onChange={async(e)=>{ const speedMs=Number(e.target.value); const next={ ...s, ecg:{ ...(s.ecg||{}), speedMs, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.style.setProperty('--ecg-custom-speed-ms', String(speedMs)); }} />
+                  </div>
+                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <span>Color</span>
+                    <input type="color" value={s.ecg?.color || '#22c55e'} onChange={async(e)=>{ const color=e.target.value; const next={ ...s, ecg:{ ...(s.ecg||{}), color, enabled:true } }; setS(next); await db.put('settings',{ ...next, id:'app' } as any); document.documentElement.style.setProperty('--ecg-custom-color', color); }} />
+                  </div>
                 </>
               )}
             </div>

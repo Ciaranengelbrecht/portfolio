@@ -19,13 +19,14 @@ export default function ECGBackground(){
       const s = await getSettings();
       if(!s.ecg?.enabled) return; // disabled
       setShape(s.ecg.shape || 'classic');
-      const intensity = s.ecg.intensity || 'low';
+  const intensity = s.ecg.intensity || 'low';
       const intensityCfg = {
         low:  { speed: 60_000, lineWidth: 1.4, fade: 0.055, glow: 4 }, // duration ms for full sweep
         med:  { speed: 42_000, lineWidth: 1.8, fade: 0.045, glow: 6 },
         high: { speed: 30_000, lineWidth: 2.2, fade: 0.035, glow: 8 }
       } as const;
-      const cfg = intensityCfg[intensity];
+  const base = intensityCfg[intensity];
+  const effectiveSpeed = s.ecg.speedMs || base.speed;
       const canvas = canvasRef.current;
       if(!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -43,12 +44,11 @@ export default function ECGBackground(){
       resize();
       window.addEventListener('resize', resize);
 
-      const cs = getComputedStyle(document.documentElement);
-      const accent = cs.getPropertyValue('--accent').trim() || '#22c55e';
-      const bg = cs.getPropertyValue('--bg').trim() || '#0b0f14';
-      // Precompute color strings
-      const lineColor = accent;
-      const fadeFill = hexToRGBA(bg, cfg.fade);
+  const cs = getComputedStyle(document.documentElement);
+  const accent = (s.ecg?.color || cs.getPropertyValue('--ecg-custom-color').trim() || cs.getPropertyValue('--accent').trim() || '#22c55e');
+  // Instead of drawing semi-transparent bg (which tints), we manually fade previous pixels by drawing a translucent rectangle using composite 'destination-out'
+  const fadeAlpha = base.fade; // 0..1 amount removed each frame
+  const lineColor = accent;
 
       let start: number | null = null;
       const pauseMs = 900; // pause before restarting
@@ -76,15 +76,20 @@ export default function ECGBackground(){
         }
         // classic: flat until near spike window
         if(dist > spikeW) return mid;
-        // Map to spike profile: rise, peak, drop below, recover
-        const t = 1 - dist / spikeW; // 0..1
-        // piecewise: first half up to peak, then dip then recover
-        if(normX < center) {
-          return mid - easeOutCubic(t) * h*0.26;
-        } else {
-          // after center: overshoot dip then recover
-          const dipT = t;
-          return mid + easeInOutQuad(dipT) * h*0.18 - dipT * h*0.26; // combine peak decay + dip
+        // Sharp spike: construct a linear spike shape: rise -> peak -> plunge -> recover
+        const local = (normX - (center-spikeW)) / (spikeW*2); // 0..1 across window
+        if(local < 0.25) { // rising edge
+          return mid - (local/0.25) * h*0.28; // linear rise
+        } else if(local < 0.30) { // immediate peak plateau (very short)
+          return mid - h*0.28;
+        } else if(local < 0.45) { // drop sharply past baseline into dip
+          const t = (local-0.30)/(0.15);
+          return mid + t * h*0.20 - (1-t)*h*0.05; // drive downward
+        } else if(local < 0.60) { // recover upward toward baseline
+          const t = (local-0.45)/0.15; // 0..1
+          return mid + (1-t) * h*0.15; // ascend
+        } else { // settle flat remainder
+          return mid;
         }
       }
 
@@ -96,19 +101,22 @@ export default function ECGBackground(){
         const w = canvas.width / (window.devicePixelRatio||1);
         const h = canvas.height / (window.devicePixelRatio||1);
         if(phase==='draw') {
-          // fade previous trail lightly
           if(!ctx) return;
-          ctx.fillStyle = fadeFill;
+          // fade previous trail using destination-out to erase alpha gradually
+          ctx.save();
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
           ctx.fillRect(0,0,w,h);
-          const progress = Math.min(1, elapsed / cfg.speed);
+          ctx.restore();
+          const progress = Math.min(1, elapsed / effectiveSpeed);
           const x = progress * w;
           const y = fx(progress);
           ctx.lineCap='round';
           ctx.lineJoin='round';
           ctx.strokeStyle = lineColor;
           ctx.shadowColor = lineColor;
-            ctx.shadowBlur = cfg.glow;
-          ctx.lineWidth = cfg.lineWidth;
+            ctx.shadowBlur = base.glow;
+            ctx.lineWidth = base.lineWidth;
           ctx.beginPath();
           if(lastX===0 && lastY===0) { lastX = x; lastY = y; }
           ctx.moveTo(lastX,lastY);
@@ -117,7 +125,7 @@ export default function ECGBackground(){
           // pulse bubble
           ctx.beginPath();
           ctx.fillStyle = lineColor;
-          ctx.arc(x,y, cfg.lineWidth*2.2, 0, Math.PI*2);
+          ctx.arc(x,y, base.lineWidth*2.2, 0, Math.PI*2);
           ctx.fill();
           lastX = x; lastY = y;
           if(progress>=1){
@@ -125,10 +133,12 @@ export default function ECGBackground(){
             start = ts; // reset timer for pause
           }
         } else if(phase==='pause') {
-          // continue fading out rest
           if(!ctx) return;
-          ctx.fillStyle = fadeFill;
+          ctx.save();
+          ctx.globalCompositeOperation='destination-out';
+          ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
           ctx.fillRect(0,0,w,h);
+          ctx.restore();
           if(elapsed > pauseMs){
             // reset for new loop
             phase='draw';
