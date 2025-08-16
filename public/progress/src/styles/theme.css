@@ -140,14 +140,6 @@ button:active { transform: scale(.97); }
 html, body, #root { overflow-x:hidden; }
 /* Layout variables */
 :root { --app-header-h: 56px; }
-:root { --ecg-line: var(--accent); --ecg-glow: var(--accent); --ecg-opacity: 0.12; --ecg-glow-opacity: 0.06; }
-[data-theme='light'] { --ecg-opacity: 0.10; --ecg-glow-opacity: 0.05; }
-[data-theme='dark'] { --ecg-opacity: 0.11; --ecg-glow-opacity: 0.055; }
-
-/* ECG overrides via intensity attribute */
-[data-ecg-intensity='low'] { --ecg-opacity: 0.06; --ecg-glow-opacity: 0.035; }
-[data-ecg-intensity='medium'] { --ecg-opacity: 0.11; --ecg-glow-opacity: 0.06; }
-[data-ecg-intensity='off'] { --ecg-opacity: 0; --ecg-glow-opacity: 0; }
 /* Ensure internal scroll areas don't force width expansion */
 .no-scrollbar { scrollbar-width:none; }
 .no-scrollbar::-webkit-scrollbar { display:none; }
