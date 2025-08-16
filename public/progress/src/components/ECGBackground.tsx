@@ -71,44 +71,33 @@ export default function ECGBackground(){
       let lastX = 0, lastY = 0;
 
       function fx(normX: number): number {
-        if(!canvas) return 0; // fallback
+        // Flat baseline with single sharp spike at center; no dips or curvature.
+        if(!canvas) return 0;
         const h = canvas.height / (window.devicePixelRatio||1);
         const mid = h * 0.5;
-        const spikeW = 0.08; // width of activity zone
+        const spikeTotal = 0.10; // width of total spike window (10% of width)
         const center = 0.5;
-        const dist = Math.abs(normX - center);
-        if(shape==='minimal') return mid; // flat
-        if(shape==='smooth') {
-          // single smooth bell / dip pattern
-            const bell = Math.exp(-((dist*8)**2));
-            return mid - bell * h*0.18 + Math.sin(normX*12*Math.PI)*2; // subtle ripple
+        const left = center - spikeTotal/2;
+        const right = center + spikeTotal/2;
+        if(normX < left || normX > right) return mid; // baseline outside spike window
+        const local = (normX - left) / spikeTotal; // 0..1 across spike window
+        // Define quick linear rise (0..0.25), brief plateau (0.25..0.35), linear fall (0.35..0.55), then baseline.
+        if(local < 0.25) {
+          return mid - (local/0.25) * h * 0.28; // rise
+        } else if(local < 0.35) {
+          return mid - h * 0.28; // plateau
+        } else if(local < 0.55) {
+          const t = (local - 0.35) / 0.20; // 0..1
+          return mid - (1 - t) * h * 0.28; // descend back to baseline
         }
-        if(shape==='spikes') {
-          // multiple smaller spikes around center
-          const spikes = Math.max(0, 1 - (dist/0.25));
-          const micro = Math.sin(normX*60*Math.PI)*0.5 + Math.sin(normX*14*Math.PI);
-          return mid - spikes* h*0.15 + micro;
-        }
-        // classic: flat until near spike window
-        if(dist > spikeW) return mid;
-        // Sharp spike: construct a linear spike shape: rise -> peak -> plunge -> recover
-        const local = (normX - (center-spikeW)) / (spikeW*2); // 0..1 across window
-        if(local < 0.25) { // rising edge
-          return mid - (local/0.25) * h*0.28; // linear rise
-        } else if(local < 0.30) { // immediate peak plateau (very short)
-          return mid - h*0.28;
-        } else if(local < 0.45) { // drop sharply past baseline into dip
-          const t = (local-0.30)/(0.15);
-          return mid + t * h*0.20 - (1-t)*h*0.05; // drive downward
-        } else if(local < 0.60) { // recover upward toward baseline
-          const t = (local-0.45)/0.15; // 0..1
-          return mid + (1-t) * h*0.15; // ascend
-        } else { // settle flat remainder
-          return mid;
-        }
+        return mid; // rest of window baseline
       }
 
-      function step(ts: number){
+  // Point history for trail fade (2s lifespan)
+  const points: {x:number; y:number; t:number}[] = [];
+  const trailDuration = 2000; // ms for full disappearance
+
+  function step(ts: number){
         if(stop) return;
         if(start==null) start = ts;
         if(!canvas || !ctx){ return; }
@@ -130,52 +119,80 @@ export default function ECGBackground(){
         const h = canvas.height / (window.devicePixelRatio||1);
         const dt = lastFrameTs==null ? 16 : (ts - lastFrameTs);
         lastFrameTs = ts;
-        // compute fade alpha for this frame based on half-life decay
-        const removalAlpha = 1 - Math.pow(0.5, dt / halfLife); // portion to erase this frame
         if(phase==='draw') {
-          if(!ctx) return;
-          // fade previous trail using destination-out to erase alpha gradually
-          ctx.save();
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.fillStyle = `rgba(0,0,0,${removalAlpha})`;
-          ctx.fillRect(0,0,w,h);
-          ctx.restore();
           const progress = Math.min(1, elapsed / effectiveSpeed);
           const x = progress * w;
           const y = fx(progress);
-          ctx.lineCap='round';
-          ctx.lineJoin='round';
-          ctx.strokeStyle = lineColor;
+          points.push({x,y,t:ts});
+          // clear fully
+          ctx.clearRect(0,0,w,h);
+          // prune old
+          while(points.length && ts - points[0].t > trailDuration) points.shift();
+          // draw trail segments with fading alpha
+          ctx.lineCap='butt';
+          ctx.lineJoin='miter';
           ctx.shadowColor = lineColor;
-            ctx.shadowBlur = base.glow;
+          ctx.shadowBlur = base.glow;
+          for(let i=1;i<points.length;i++){
+            const p0 = points[i-1];
+            const p1 = points[i];
+            const age = ts - p1.t;
+            const alpha = Math.max(0, 1 - age / trailDuration);
+            if(alpha<=0) continue;
+            ctx.strokeStyle = withAlpha(lineColor, alpha);
             ctx.lineWidth = base.lineWidth;
-          ctx.beginPath();
-          if(lastX===0 && lastY===0) { lastX = x; lastY = y; }
-          ctx.moveTo(lastX,lastY);
-          ctx.lineTo(x,y);
-          ctx.stroke();
-          // pulse bubble
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            // interpolate if large gap to avoid dotted look
+            const dx = p1.x - p0.x; const dy = p1.y - p0.y;
+            const dist = Math.hypot(dx,dy);
+            if(dist > 40){
+              const steps = Math.ceil(dist / 30);
+              let prevx=p0.x, prevy=p0.y;
+              for(let sIdx=1; sIdx<=steps; sIdx++){
+                const tfrac = sIdx/steps;
+                const ix = p0.x + dx*tfrac; const iy = p0.y + dy*tfrac;
+                ctx.moveTo(prevx, prevy);
+                ctx.lineTo(ix, iy);
+                prevx=ix; prevy=iy;
+              }
+            } else {
+              ctx.lineTo(p1.x, p1.y);
+            }
+            ctx.stroke();
+          }
+          // draw leading pulse bubble
           ctx.beginPath();
           ctx.fillStyle = lineColor;
-          ctx.arc(x,y, base.lineWidth*2.2, 0, Math.PI*2);
+          ctx.shadowColor = lineColor;
+          ctx.shadowBlur = base.glow * 1.2;
+          ctx.arc(x,y, base.lineWidth*1.4, 0, Math.PI*2);
           ctx.fill();
-          lastX = x; lastY = y;
           if(progress>=1){
             phase='pause';
-            start = ts; // reset timer for pause
+            start = ts;
           }
         } else if(phase==='pause') {
-          if(!ctx) return;
-          ctx.save();
-          ctx.globalCompositeOperation='destination-out';
-          ctx.fillStyle = `rgba(0,0,0,${removalAlpha})`;
-          ctx.fillRect(0,0,w,h);
-          ctx.restore();
+          // continue fading existing trail
+          if(points.length){
+            ctx.clearRect(0,0,w,h);
+            while(points.length && ts - points[0].t > trailDuration) points.shift();
+            for(let i=1;i<points.length;i++){
+              const p0 = points[i-1];
+              const p1 = points[i];
+              const age = ts - p1.t;
+              const alpha = Math.max(0, 1 - age / trailDuration);
+              if(alpha<=0) continue;
+              ctx.strokeStyle = withAlpha(lineColor, alpha);
+              ctx.lineWidth = base.lineWidth;
+              ctx.beginPath();
+              ctx.moveTo(p0.x, p0.y);
+              ctx.lineTo(p1.x, p1.y);
+              ctx.stroke();
+            }
+          }
           if(elapsed > pauseMs){
-            // reset for new loop
-            phase='draw';
-            start = ts;
-            lastX=0; lastY=0;
+            phase='draw'; start = ts; lastX=0; lastY=0; points.length=0;
           }
         }
         if(!stop) requestAnimationFrame(step);
@@ -187,14 +204,13 @@ export default function ECGBackground(){
       return ()=> { stop=true; window.removeEventListener('resize', resize); };
     })();
 
-    function easeOutCubic(t:number){ return 1-Math.pow(1-t,3); }
-    function easeInOutQuad(t:number){ return t<0.5? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
-    function hexToRGBA(hex:string, alpha:number){
-      if(hex.startsWith('rgba')) return hex;
+    function withAlpha(hex:string, a:number){
+      if(hex.startsWith('rgb')) return hex.replace(/rgba?\(([^)]+)\)/, (_,vals)=>`rgba(${vals.split(',').slice(0,3).join(',')},${a})`);
       const h = hex.replace('#','');
-      const bigint = parseInt(h.length===3? h.split('').map(c=>c+c).join(''): h,16);
-      const r=(bigint>>16)&255, g=(bigint>>8)&255, b=bigint&255;
-      return `rgba(${r},${g},${b},${alpha})`;
+      const full = h.length===3? h.split('').map(c=>c+c).join(''): h;
+      const num = parseInt(full,16);
+      const r=(num>>16)&255,g=(num>>8)&255,b=num&255;
+      return `rgba(${r},${g},${b},${a})`;
     }
   },[]);
 
