@@ -25,8 +25,17 @@ export default function ECGBackground(){
         med:  { speed: 42_000, lineWidth: 1.8, fade: 0.045, glow: 6 },
         high: { speed: 30_000, lineWidth: 2.2, fade: 0.035, glow: 8 }
       } as const;
-  const base = intensityCfg[intensity];
-  const effectiveSpeed = s.ecg.speedMs || base.speed;
+      const base = intensityCfg[intensity];
+      let effectiveSpeed = s.ecg.speedMs || base.speed;
+      // Interpret stored speedMs as control value (higher => faster). If within expected control range, remap.
+      const CTRL_MIN = 8000, CTRL_MAX = 90000;
+      if(s.ecg.speedMs && s.ecg.speedMs >= CTRL_MIN && s.ecg.speedMs <= CTRL_MAX){
+        const control = s.ecg.speedMs;
+        const factor = (control - CTRL_MIN) / (CTRL_MAX - CTRL_MIN); // 0..1
+        const fastest = base.speed * 0.3; // 30% of base
+        const slowest = base.speed * 2;   // 200% of base
+        effectiveSpeed = slowest - factor * (slowest - fastest); // invert so higher control => faster (shorter duration)
+      }
       const canvas = canvasRef.current;
       if(!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -47,7 +56,13 @@ export default function ECGBackground(){
   const cs = getComputedStyle(document.documentElement);
   const accent = (s.ecg?.color || cs.getPropertyValue('--ecg-custom-color').trim() || cs.getPropertyValue('--accent').trim() || '#22c55e');
   // Instead of drawing semi-transparent bg (which tints), we manually fade previous pixels by drawing a translucent rectangle using composite 'destination-out'
-  const fadeAlpha = base.fade; // 0..1 amount removed each frame
+      const halfLife = ( ()=>{
+        // derive half-life from base.fade heuristic (smaller fade -> longer half-life)
+        // Map base.fade (approx 0.035-0.055) to ms range 1400-2600
+        const norm = (base.fade - 0.035) / (0.055 - 0.035); // 0..1
+        return 1400 + (1-norm) * 1200;
+      })();
+      let lastFrameTs: number | null = null;
   const lineColor = accent;
 
       let start: number | null = null;
@@ -98,14 +113,31 @@ export default function ECGBackground(){
         if(start==null) start = ts;
         if(!canvas || !ctx){ return; }
         const elapsed = ts - start;
+        // dynamic speed update if CSS variable changed (user moved slider)
+        try {
+          const cssVal = getComputedStyle(document.documentElement).getPropertyValue('--ecg-custom-speed-ms').trim();
+          if(cssVal){
+            const v = parseInt(cssVal,10);
+            if(!isNaN(v)){
+              const factor = Math.min(1, Math.max(0, (v-CTRL_MIN)/(CTRL_MAX-CTRL_MIN)));
+              const fastest = base.speed * 0.3;
+              const slowest = base.speed * 2;
+              effectiveSpeed = slowest - factor * (slowest - fastest);
+            }
+          }
+        } catch {}
         const w = canvas.width / (window.devicePixelRatio||1);
         const h = canvas.height / (window.devicePixelRatio||1);
+        const dt = lastFrameTs==null ? 16 : (ts - lastFrameTs);
+        lastFrameTs = ts;
+        // compute fade alpha for this frame based on half-life decay
+        const removalAlpha = 1 - Math.pow(0.5, dt / halfLife); // portion to erase this frame
         if(phase==='draw') {
           if(!ctx) return;
           // fade previous trail using destination-out to erase alpha gradually
           ctx.save();
           ctx.globalCompositeOperation = 'destination-out';
-          ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
+          ctx.fillStyle = `rgba(0,0,0,${removalAlpha})`;
           ctx.fillRect(0,0,w,h);
           ctx.restore();
           const progress = Math.min(1, elapsed / effectiveSpeed);
@@ -136,7 +168,7 @@ export default function ECGBackground(){
           if(!ctx) return;
           ctx.save();
           ctx.globalCompositeOperation='destination-out';
-          ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
+          ctx.fillStyle = `rgba(0,0,0,${removalAlpha})`;
           ctx.fillRect(0,0,w,h);
           ctx.restore();
           if(elapsed > pauseMs){
