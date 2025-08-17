@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
 import {
@@ -424,7 +424,33 @@ export default function Sessions() {
     updateEntry({ ...entry, sets: renum });
   };
 
-  const updateEntry = async (entry: SessionEntry) => {
+  // Debounced write buffer for session updates to avoid lag while typing
+  const pendingRef = useRef<number | null>(null);
+  const latestSessionRef = useRef<Session | null>(null);
+  useEffect(()=>{ latestSessionRef.current = session || null; }, [session]);
+  const flushSession = async ()=> {
+    const sToWrite = latestSessionRef.current; if(!sToWrite) return;
+    await db.put('sessions', sToWrite);
+    try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'sessions' }})); } catch {}
+    const s = await getSettings();
+    await setSettings({
+      ...s,
+      dashboardPrefs: {
+        ...(s.dashboardPrefs || {}),
+        lastLocation: {
+          phaseNumber: phase,
+          weekNumber: week,
+          dayId: day,
+          sessionId: sToWrite.id,
+        },
+      },
+    });
+  };
+  const scheduleFlush = ()=> {
+    if(pendingRef.current) window.clearTimeout(pendingRef.current);
+    pendingRef.current = window.setTimeout(()=> { flushSession(); pendingRef.current = null; }, 750); // 750ms debounce
+  };
+  const updateEntry = (entry: SessionEntry) => {
     if (!session) return;
     const prevSession = session;
     const prevEntry = session.entries.find(e=> e.id===entry.id);
@@ -442,26 +468,9 @@ export default function Sessions() {
         updated = { ...updated, dateISO: startOfDay.toISOString(), localDate: localDayStr };
       }
     }
-    setSession(updated);
-    await db.put("sessions", updated);
-    try {
-      window.dispatchEvent(
-        new CustomEvent("sb-change", { detail: { table: "sessions" } })
-      );
-    } catch {}
-    const s = await getSettings();
-    await setSettings({
-      ...s,
-      dashboardPrefs: {
-        ...(s.dashboardPrefs || {}),
-        lastLocation: {
-          phaseNumber: phase,
-          weekNumber: week,
-          dayId: day,
-          sessionId: updated.id,
-        },
-      },
-    });
+  setSession(updated);
+  latestSessionRef.current = updated;
+  scheduleFlush();
   };
 
   const removeEntry = async (entryId: string) => {
@@ -1002,6 +1011,10 @@ export default function Sessions() {
                     </div>
                   </div>
                 ))}
+                <button
+                  className="w-full text-center text-[11px] bg-slate-700 rounded-xl px-3 py-2"
+                  onClick={()=> addSet(entry)}
+                >Add Set</button>
               </div>
 
               {/* Sets grid with drag-and-drop (desktop) */}
@@ -1231,6 +1244,17 @@ export default function Sessions() {
                     </div>
                   </div>
                 ))}
+                <div className="contents">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                  <div>
+                    <button
+                      className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                      onClick={()=> addSet(entry)}
+                    >Add Set</button>
+                  </div>
+                </div>
               </div>
             </div>
           );
