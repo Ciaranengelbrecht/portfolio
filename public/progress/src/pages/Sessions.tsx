@@ -626,8 +626,8 @@ export default function Sessions() {
   return (
     <div className="space-y-4 overflow-x-hidden">
       {/* Fixed selectors bar under main app header */}
-      <div className="fixed left-0 right-0" style={{ top: 'var(--app-header-h)' }}>
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10">
+      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }}>
+        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
         <h2 className="text-xl font-semibold">Sessions</h2>
         <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
         <div className="flex items-center gap-2">
@@ -640,36 +640,61 @@ export default function Sessions() {
           {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
           {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
         </div>
-  {session && (
-          <div className="hidden sm:flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
-            {!editingDate && <span>{session.localDate || session.dateISO.slice(0,10)}</span>}
+        {session && (
+          <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
+            {!editingDate && (
+              <span className="font-mono tracking-tight">{session.localDate || session.dateISO.slice(0,10)}</span>
+            )}
             {editingDate && (
               <div className="flex items-center gap-1">
-                <input type="date" className="bg-slate-900 rounded px-1 py-0.5 text-[11px]" value={dateEditValue} onChange={e=> setDateEditValue(e.target.value)} />
-                <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={saveManualDate}>Save</button>
-                <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=> setEditingDate(false)}>Cancel</button>
+                <input
+                  type="date"
+                  className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                  value={dateEditValue}
+                  onChange={(e) => setDateEditValue(e.target.value)}
+                />
+                <button
+                  className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                  onClick={saveManualDate}
+                >
+                  Save
+                </button>
+                <button
+                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
+                  onClick={() => setEditingDate(false)}
+                >
+                  Cancel
+                </button>
               </div>
             )}
             {!editingDate && (
               <>
-                <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600" onClick={stampToday}>Stamp Today</button>
-                <button aria-label="Edit date" className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600" onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}>✎</button>
+                <button
+                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                  onClick={stampToday}
+                >
+                  Stamp
+                </button>
+                <button
+                  aria-label="Edit date"
+                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                  onClick={() => {
+                    setDateEditValue(
+                      session.localDate || session.dateISO.slice(0, 10)
+                    );
+                    setEditingDate(true);
+                  }}
+                >
+                  ✎
+                </button>
               </>
             )}
           </div>
         )}
         </div>
       </div>
-      {/* Mobile date + stamp shortcut */}
-      {session && (
-        <div className="sm:hidden flex items-center gap-2 px-4 mt-2 text-[11px]">
-          <span className="bg-slate-800 rounded-lg px-2 py-1">{session.localDate || session.dateISO.slice(0,10)}</span>
-          <button className="bg-slate-700 rounded-lg px-2 py-1" onClick={stampToday}>Stamp Today</button>
-          <button className="bg-slate-700 rounded-lg px-2 py-1" onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}>Edit</button>
-        </div>
-      )}
   {/* Spacer to offset fixed toolbar height (approx 56 header + 48 toolbar) */}
-  <div className="h-[calc(var(--app-header-h)_+_48px)]" aria-hidden="true"></div>
+  <div className="h-[calc(var(--app-header-h)_+_52px)]" aria-hidden="true"></div>
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-2">
         <div className="hidden sm:flex items-center gap-2">
