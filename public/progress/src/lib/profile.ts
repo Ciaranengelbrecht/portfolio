@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import { UserProfile, UserProgram, ArchivedProgram, Session } from "./types";
 import { db } from "./db";
+import { ensureProgram } from './program';
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
@@ -86,6 +87,35 @@ export async function saveProfileProgram(
   } catch (e) {
     console.warn("[profile] saveProfileProgram failed", e);
     return false;
+  }
+}
+
+// ---- Lightweight cached program fetch (client side) ----
+let _programCache: { value: UserProgram; ts: number } | null = null;
+const PROGRAM_TTL_MS = 15_000; // short cache; program rarely changes
+export async function getProfileProgram(): Promise<UserProgram> {
+  const now = Date.now();
+  if (_programCache && now - _programCache.ts < PROGRAM_TTL_MS) {
+    return _programCache.value;
+  }
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if(!user) throw new Error('Not signed in');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('program')
+      .eq('id', user.id)
+      .single();
+    if(error) throw error;
+    const progRaw = data?.program as UserProgram | undefined;
+    const prog = ensureProgram(progRaw);
+    _programCache = { value: prog, ts: now };
+    return prog;
+  } catch(e){
+    // Fallback to default ensure
+    const fallback = ensureProgram(null);
+    _programCache = { value: fallback, ts: now };
+    return fallback;
   }
 }
 

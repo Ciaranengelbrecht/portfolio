@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { volumeByMuscleGroup } from "../lib/helpers";
 import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
-import { Measurement, Session, Settings, Exercise } from "../lib/types";
+import { Measurement, Session, Settings, Exercise, UserProgram } from "../lib/types";
+import { getProfileProgram } from '../lib/profile';
 import UnifiedTooltip from "../components/UnifiedTooltip";
 // Recharts is lazy loaded; see RC state
 import DashboardDeloadTable from "./DashboardDeloadTable";
@@ -70,9 +71,12 @@ export default function Dashboard() {
       let curStreak=0; let cursor = new Date();
       while(sessionDays.has(dayKey(cursor))){ curStreak++; cursor.setDate(cursor.getDate()-1); }
       setStreak(curStreak);
-      // target days from settings
-      const settings = await db.get<Settings>('settings','app');
-      setTargetDays(settings?.progress?.weeklyTargetDays || 6);
+  // target days derived from program (non-Rest days) else settings fallback
+  const settings = await db.get<Settings>('settings','app');
+  let program: UserProgram | undefined;
+  try { program = await getProfileProgram(); } catch {}
+  const nonRest = program ? program.weeklySplit.filter(d=> d.type!=='Rest').length : undefined;
+  setTargetDays(nonRest || settings?.progress?.weeklyTargetDays || 6);
       // simple XP: total sets logged * 5 + PR count * 20
       let totalSets=0; let prCount=0; // naive: PR if heaviest set weight*reps highest for exercise in history
       const byEx: Record<string, number> = {};
@@ -93,8 +97,10 @@ export default function Dashboard() {
       let weekVolume=0; let weekSessions=0; let weekPR=0;
       sessions.filter(s=> new Date(s.dateISO)>=weekAgo).forEach(s=> { let sessionVol=0; s.entries.forEach(e=> e.sets.forEach(st=> { weekVolume += (st.weightKg||0)*(st.reps||0); sessionVol += (st.weightKg||0)*(st.reps||0);})); if(sessionVol>0) weekSessions++; });
       weekPR = prCount; // reuse naive count
-      const weekDaysLogged = Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-i); return sessionDays.has(dayKey(d)); }).filter(Boolean).length;
-      const adherence = (weekDaysLogged/(targetDays||6))*100;
+  const windowLen = program ? program.weeklySplit.length : 7;
+  const loggedInWindow = Array.from({length: windowLen},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-i); return sessionDays.has(dayKey(d)); }).filter(Boolean).length;
+  const denominator = targetDays || 6;
+  const adherence = (loggedInWindow/denominator)*100;
       const bwLast7 = m.filter(x=> new Date(x.dateISO)>=weekAgo).sort((a,b)=> a.dateISO.localeCompare(b.dateISO));
       let bodyDelta: number|undefined = undefined;
       if(bwLast7.length>=2) bodyDelta = (bwLast7[bwLast7.length-1].weightKg||0) - (bwLast7[0].weightKg||0);

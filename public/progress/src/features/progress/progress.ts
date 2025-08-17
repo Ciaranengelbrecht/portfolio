@@ -1,4 +1,4 @@
-import { Session } from "../../lib/types";
+import { Session, UserProgram } from "../../lib/types";
 
 // Days: 0..5 are training slots; 6 is Rest (ignored for completion)
 export type DayId = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -15,38 +15,33 @@ export function getWeekCompletion(
   phaseNumber: number,
   weekNumber: number,
   sessions: Session[],
-  opts?: { weeklyTargetDays?: number }
+  opts?: { weeklyTargetDays?: number; program?: Pick<UserProgram, 'weekLengthDays' | 'weeklySplit'> }
 ): {
   completedDays: number;
   totalDays: number;
   percent: number;
-  dayMap: Record<DayId, boolean>;
+  dayMap: Record<number, boolean>;
 } {
-  const target = Math.max(3, Math.min(6, opts?.weeklyTargetDays ?? 6));
-  const dayMap: Record<DayId, boolean> = {
-    0: false,
-    1: false,
-    2: false,
-    3: false,
-    4: false,
-    5: false,
-    6: false,
-  };
+  const progLen = opts?.program?.weekLengthDays || 7; // support >7 (up to 10) from program
+  const target = Math.max(3, Math.min(progLen-1, opts?.weeklyTargetDays ?? Math.min(6, progLen-1)));
+  const dayMap: Record<number, boolean> = {};
   const inWeek = sessions.filter(
-    (s) =>
-      (s.phaseNumber ?? s.phase ?? 1) === phaseNumber &&
-      s.weekNumber === (weekNumber as any)
+    (s) => (s.phaseNumber ?? s.phase ?? 1) === phaseNumber && s.weekNumber === (weekNumber as any)
   );
-  for (let d = 0 as DayId; d <= 6; d = (d + 1) as DayId) {
+  for (let d = 0; d < progLen; d++) {
     const idPrefix = `${phaseNumber}-${weekNumber}-${d}`;
     const session = inWeek.find((s) => s.id === idPrefix);
     dayMap[d] = getDayCompletion(session);
   }
-  // Completed days are training slots only (0..5)
-  const completedDays = [0, 1, 2, 3, 4, 5].reduce(
-    (a, d) => a + (dayMap[d as DayId] ? 1 : 0),
-    0
-  );
+  // Completed days are all non-Rest days if program provided; else legacy first 6 slots
+  let completedDays = 0;
+  if (opts?.program) {
+    opts.program.weeklySplit.forEach((day, idx) => {
+      if (day.type !== 'Rest' && dayMap[idx]) completedDays++;
+    });
+  } else {
+    completedDays = [0,1,2,3,4,5].reduce((a,d)=> a + (dayMap[d]?1:0),0);
+  }
   const totalDays = target;
   const percent = Math.min(100, Math.round((completedDays / totalDays) * 100));
   return { completedDays, totalDays, percent, dayMap };

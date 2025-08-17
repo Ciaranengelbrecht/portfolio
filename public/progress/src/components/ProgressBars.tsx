@@ -7,7 +7,8 @@ import {
   setDashboardPrefs,
   getDashboardPrefs,
 } from "../lib/helpers";
-import { Session, Settings, Exercise } from "../lib/types";
+import { Session, Settings, Exercise, UserProgram } from "../lib/types";
+import { getProfileProgram } from '../lib/profile';
 import {
   getWeekCompletion,
   getPhaseCompletion,
@@ -62,17 +63,20 @@ export default function ProgressBars() {
   const [settings, setSettingsState] = useState<Settings | undefined>();
   const [curPhase, setCurPhase] = useState(1);
   const [curWeek, setCurWeek] = useState(1);
+  const [program,setProgram] = useState<UserProgram|undefined>();
+  const [extraRestDays,setExtraRestDays] = useState<number[]>([]); // indices (in original base array tail) of injected ad-hoc rest days (append model)
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      setSessions(await db.getAll("sessions"));
+  setSessions(await db.getAll("sessions"));
   const s = await getSettings();
       setSettingsState(s);
       setCurPhase(s.currentPhase || 1);
       const prefs = await getDashboardPrefs();
       if (prefs.lastLocation) setCurWeek(prefs.lastLocation.weekNumber);
   setExercises(await db.getAll('exercises'));
+      try { const prog = await getProfileProgram(); setProgram(prog); } catch {}
     })();
   }, []);
 
@@ -102,13 +106,26 @@ export default function ProgressBars() {
     Math.min(6, settings?.progress?.weeklyTargetDays ?? 6)
   );
 
-  const week = useMemo(
-    () =>
-      getWeekCompletion(curPhase, curWeek, sessions, {
-        weeklyTargetDays: weeklyTarget,
-      }),
-    [curPhase, curWeek, sessions, weeklyTarget]
-  );
+  // Dynamic cycle day labels derived from current program weeklySplit; fallback to legacy weekday abbreviations
+  const [programSplit,setProgramSplit] = useState<string[]|null>(null);
+  useEffect(()=> { (async()=> {
+    try {
+      if(program){ setProgramSplit(program.weeklySplit.map(d=> d.customLabel || d.type)); return; }
+      const sess = sessions.filter(s=> s.weekNumber===1).slice(0,10);
+      if(sess.length){ const labels = sess.sort((a,b)=> a.id.localeCompare(b.id)).map(s=> s.dayName).filter((x): x is string=> !!x); if(labels.length>=5){ setProgramSplit(labels); return; } }
+    } catch {}
+    setProgramSplit(null);
+  })(); },[sessions,program]);
+
+  // Determine program metadata from inferred programSplit.
+  const syntheticProgram: UserProgram | undefined = useMemo(()=> {
+    if(program) return program;
+    if(programSplit && programSplit.length>=5){
+      return { id:'synthetic', name:'Program', weekLengthDays: programSplit.length, weeklySplit: programSplit.map(l=> ({ type: (/rest/i.test(l)? 'Rest':'Custom') as any, customLabel: (/rest/i.test(l)? undefined: l) })), mesoWeeks:9, deload:{mode:'last-week'}, createdAt:'', updatedAt:'', version:1 } as UserProgram;
+    }
+    return undefined;
+  },[programSplit,program]);
+  const week = useMemo(() => getWeekCompletion(curPhase, curWeek, sessions, { weeklyTargetDays: weeklyTarget, program: syntheticProgram && { weekLengthDays: syntheticProgram.weekLengthDays, weeklySplit: syntheticProgram.weeklySplit } as any }), [curPhase, curWeek, sessions, weeklyTarget, syntheticProgram]);
   const phase = useMemo(
     () =>
       getPhaseCompletion(curPhase, sessions, {
@@ -124,9 +141,14 @@ export default function ProgressBars() {
     return pts.slice(0, Math.max(maxIdx+1,0));
   },[phase.weekPercents]);
 
-  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const sessionForDay = (dayId: number) =>
-    sessions.find((s) => s.id === `${curPhase}-${curWeek}-${dayId}`);
+  const dayLabelsBase = programSplit || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const dayLabels = useMemo(()=> {
+    if(!dayLabelsBase) return dayLabelsBase;
+    if(!extraRestDays.length) return dayLabelsBase;
+    // Our model simply appends rest days; represent them as virtual labels after base length
+    return [...dayLabelsBase, ...extraRestDays.map(()=> 'Rest')];
+  },[dayLabelsBase,extraRestDays]);
+  const sessionForDay = (dayId: number) => sessions.find((s) => s.id === `${curPhase}-${curWeek}-${dayId}`);
 
   const openDay = async (dayId: number) => {
     // Navigate to sessions; Sessions page will create missing session
@@ -230,7 +252,7 @@ export default function ProgressBars() {
       )}
       <GlassCard className="p-4">
         <div className="flex items-center gap-2 mb-2">
-          <div className="font-medium">This Week</div>
+          <div className="font-medium">This Cycle</div>
           {isPhaseEnd(curWeek) && (
             <span className="text-[10px] bg-slate-700 rounded px-2 py-0.5">
               Deload Week
@@ -257,24 +279,43 @@ export default function ProgressBars() {
             </button>
           </div>
         )}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2 items-center">
           {dayLabels.map((d, i) => {
+            // If program has >7 days we only have sessions addressing those indexes; reuse id format `${phase}-${week}-${i}`
             const sess = sessionForDay(i);
-            const tip = sess
-              ? `${new Date(sess.dateISO).toLocaleDateString()} • ${
-                  sess.entries.length
-                } exercises`
-              : "No session yet";
+            const isRest = /rest/i.test(d);
+            const completed = week.dayMap.hasOwnProperty(i) ? (week.dayMap as any)[i] : !!(sess && sess.entries.some(e=> e.sets.some(st=> (st.reps||0)>0)));
+            const tip = sess ? `${new Date(sess.dateISO).toLocaleDateString()} • ${sess.entries.length} exercises` : (isRest? 'Planned rest day':'No session yet');
+            const isAdHoc = i >= dayLabelsBase.length; // appended rest indicator
             return (
-              <Pill
-                key={i}
-                active={!!week.dayMap[i as 0 | 1 | 2 | 3 | 4 | 5 | 6]}
-                label={d}
-                onClick={() => openDay(i)}
-                title={tip}
-              />
+              <div key={i} className="relative group">
+                <Pill
+                  active={completed}
+                  label={d}
+                  onClick={() => { if(isRest) return; openDay(i); }}
+                  title={isAdHoc? 'Ad-hoc Rest (click X to remove)': tip}
+                />
+                {isAdHoc && (
+                  <button
+                    onClick={()=> setExtraRestDays(r=> r.slice(0,-1))}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-slate-900 border border-slate-600 text-[9px] leading-4 text-gray-300 hover:bg-slate-700"
+                    title="Remove ad-hoc rest day"
+                  >×</button>
+                )}
+                {isAdHoc && (
+                  <span className="pointer-events-none absolute inset-0 rounded-full border-2 border-dashed border-amber-400/70"></span>
+                )}
+              </div>
             );
           })}
+          {programSplit && programSplit.length>7 && (
+            <span className="text-[10px] text-gray-500 ml-1">Cycle {programSplit.length}d</span>
+          )}
+          <button
+            className="text-[10px] px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600"
+            onClick={()=> setExtraRestDays(r=> [...r, dayLabels.length])}
+            title="Insert ad-hoc Rest day (not persisted)"
+          >+ Rest</button>
         </div>
       </GlassCard>
 
