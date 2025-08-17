@@ -60,6 +60,8 @@ export default function Sessions() {
   // Manual date editing UI state
   const [editingDate, setEditingDate] = useState(false);
   const [dateEditValue, setDateEditValue] = useState("");
+  // Ephemeral weight input strings (to allow user to type trailing '.')
+  const weightInputEditing = useRef<Record<string,string>>({});
 
   useEffect(() => {
     (async () => {
@@ -842,13 +844,14 @@ export default function Sessions() {
                             -
                           </button>
                           <input
-                            inputMode="decimal"
+                            pattern="[0-9]*[.,]?[0-9]*"
                             aria-label="Weight"
                             className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
                             data-set-input="true"
                             data-entry-id={entry.id}
                             data-set-number={set.setNumber}
-                            value={set.weightKg}
+                            value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.weightKg || set.weightKg===0 ? String(set.weightKg) : '')}
+                            placeholder="0.0"
                             onKeyDown={(e) => {
                               if (e.key === "ArrowUp") {
                                 e.preventDefault();
@@ -882,19 +885,31 @@ export default function Sessions() {
                               }
                             }}
                             onChange={(e) => {
-                              const v = e.target.value;
-                              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                              let v = e.target.value;
+                              // normalize comma to period
+                              if(v.includes(',')) v = v.replace(',','.');
+                              if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                              weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
+                              // Only commit numeric if not ending with decimal separator
+                              if(v === '' || /[.,]$/.test(v)) return; // wait for more input
+                              const num = Number(v);
+                              if(!isNaN(num)){
+                                updateEntry({
+                                  ...entry,
+                                  sets: entry.sets.map((s, i) => i===idx ? { ...s, weightKg: num } : s)
+                                });
+                              }
+                            }}
+                            onBlur={(e)=> {
+                              let v = e.target.value;
+                              if(v.includes(',')) v = v.replace(',','.');
+                              if(!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                              const num = v === ''? 0 : Number(v.replace(/\.$/,''));
                               updateEntry({
                                 ...entry,
-                                sets: entry.sets.map((s, i) =>
-                                  i === idx
-                                    ? {
-                                        ...s,
-                                        weightKg: v === "" ? 0 : Number(v),
-                                      }
-                                    : s
-                                ),
+                                sets: entry.sets.map((s,i)=> i===idx ? { ...s, weightKg: isNaN(num)? 0 : num } : s)
                               });
+                              delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
                             }}
                           />
                           <button
@@ -1071,12 +1086,14 @@ export default function Sessions() {
                       </button>
                       <input
                         inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
                         aria-label="Weight"
                         className="bg-slate-800 rounded-xl px-3 py-2 w-24"
                         data-set-input="true"
                         data-entry-id={entry.id}
                         data-set-number={set.setNumber}
-                        value={set.weightKg}
+                        value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.weightKg || set.weightKg===0 ? String(set.weightKg) : '')}
+                        placeholder="0.0"
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
                             e.preventDefault();
@@ -1107,16 +1124,29 @@ export default function Sessions() {
                           }
                         }}
                         onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                          let v = e.target.value;
+                          if(v.includes(',')) v = v.replace(',','.');
+                          if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                          weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
+                          if(v === '' || /[.,]$/.test(v)) return;
+                          const num = Number(v);
+                          if(!isNaN(num)){
+                            updateEntry({
+                              ...entry,
+                              sets: entry.sets.map((s, i) => i===idx ? { ...s, weightKg: num } : s)
+                            });
+                          }
+                        }}
+                        onBlur={(e)=> {
+                          let v = e.target.value;
+                          if(v.includes(',')) v = v.replace(',','.');
+                          if(!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                          const num = v === ''? 0 : Number(v.replace(/\.$/,''));
                           updateEntry({
                             ...entry,
-                            sets: entry.sets.map((s, i) =>
-                              i === idx
-                                ? { ...s, weightKg: v === "" ? 0 : Number(v) }
-                                : s
-                            ),
+                            sets: entry.sets.map((s,i)=> i===idx ? { ...s, weightKg: isNaN(num)? 0 : num } : s)
                           });
+                          delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
                         }}
                       />
                       <button
