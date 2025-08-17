@@ -660,6 +660,14 @@ export default function Sessions() {
         )}
         </div>
       </div>
+      {/* Mobile date + stamp shortcut */}
+      {session && (
+        <div className="sm:hidden flex items-center gap-2 px-4 mt-2 text-[11px]">
+          <span className="bg-slate-800 rounded-lg px-2 py-1">{session.localDate || session.dateISO.slice(0,10)}</span>
+          <button className="bg-slate-700 rounded-lg px-2 py-1" onClick={stampToday}>Stamp Today</button>
+          <button className="bg-slate-700 rounded-lg px-2 py-1" onClick={()=> { setDateEditValue(session.localDate || session.dateISO.slice(0,10)); setEditingDate(true); }}>Edit</button>
+        </div>
+      )}
   {/* Spacer to offset fixed toolbar height (approx 56 header + 48 toolbar) */}
   <div className="h-[calc(var(--app-header-h)_+_48px)]" aria-hidden="true"></div>
   {/* Non-sticky actions */}
@@ -725,23 +733,46 @@ export default function Sessions() {
           return (
             <div
               key={entry.id}
-              className="bg-card rounded-2xl p-4 shadow-soft fade-in"
+              className="bg-card rounded-2xl p-4 shadow-soft fade-in reorder-anim group"
               draggable
-              onDragStart={() => setDragEntryIdx(entryIdx)}
+              onDragStart={(e) => { setDragEntryIdx(entryIdx); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(entryIdx)); }}
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (dragEntryIdx != null) {
-                  reorderEntry(dragEntryIdx, entryIdx);
+              onDrop={(e) => {
+                e.preventDefault();
+                const from = dragEntryIdx ?? Number(e.dataTransfer.getData('text/plain'));
+                if (from != null) {
+                  reorderEntry(from, entryIdx);
                   setDragEntryIdx(null);
+                  try { if('vibrate' in navigator) (navigator as any).vibrate?.(10); } catch {}
                 }
               }}
+              onTouchStart={(e)=> {
+                // Long press (550ms) to start reorder; provides haptic feedback
+                const target = e.currentTarget; let started=false; const idx=entryIdx;
+                const timer = window.setTimeout(()=> {
+                  started=true; setDragEntryIdx(idx);
+                  target.classList.add('ring-app');
+                  try { if('vibrate' in navigator) (navigator as any).vibrate?.(18); } catch {}
+                  setTimeout(()=> target.classList.remove('ring-app'), 900);
+                }, 550);
+                const cancel = ()=> { clearTimeout(timer); if(!started) target.classList.remove('ring-app'); target.removeEventListener('touchend', cancel); target.removeEventListener('touchmove', cancel); target.removeEventListener('touchcancel', cancel); };
+                target.addEventListener('touchend', cancel, { passive:true });
+                target.addEventListener('touchmove', cancel, { passive:true });
+                target.addEventListener('touchcancel', cancel, { passive:true });
+              }}
             >
-              <div className="flex items-center justify-between">
-                <div className="font-medium flex items-center gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-medium flex items-center gap-2 flex-wrap">
+                  <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
                   {ex?.name || "Exercise"}
                   {ex?.isOptional && (
                     <span className="text-[10px] text-gray-400">optional</span>
                   )}
+                  {/* Mobile reorder buttons */}
+                  <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto">
+                    <button disabled={entryIdx===0} className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40" onClick={()=> reorderEntry(entryIdx, Math.max(0, entryIdx-1))}>Up</button>
+                    <button disabled={entryIdx=== (session.entries.length-1)} className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40" onClick={()=> reorderEntry(entryIdx, Math.min(session.entries.length-1, entryIdx+1))}>Down</button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isDeloadWeek && (
