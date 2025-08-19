@@ -64,6 +64,8 @@ export default function Sessions() {
   // Manual date editing UI state
   const [editingDate, setEditingDate] = useState(false);
   const [dateEditValue, setDateEditValue] = useState("");
+  // Stamp animation state
+  const [stampAnimating, setStampAnimating] = useState(false);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string,string>>({});
   // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
@@ -628,9 +630,10 @@ export default function Sessions() {
     setSession(updated);
     await db.put('sessions', updated);
     try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+    try { navigator.vibrate?.(15); } catch {}
     setSnack({
       open: true,
-      msg: `Session dated ${localDayStr}`,
+      msg: `Session dated ${displayDate(localDayStr)}`,
       undo: async () => {
         await db.put('sessions', prev);
         setSession(prev);
@@ -655,6 +658,13 @@ export default function Sessions() {
     setSnack({ open:true, msg:`Date set to ${dateEditValue}`, undo: async ()=> { await db.put('sessions', prev); setSession(prev); try { window.dispatchEvent(new CustomEvent('sb-change',{detail:{table:'sessions'}})); } catch {} } });
   };
 
+  // Display helper: convert yyyy-mm-dd to dd/mm/yyyy for UI
+  const displayDate = (isoLike?: string) => {
+    if(!isoLike) return '';
+    if(/\d{4}-\d{2}-\d{2}/.test(isoLike)) { const [y,m,d] = isoLike.split('-'); return `${d}/${m}/${y}`; }
+    return isoLike;
+  };
+
   return (
     <div className="space-y-4 overflow-x-hidden">
       {/* Fixed selectors bar under main app header */}
@@ -677,7 +687,7 @@ export default function Sessions() {
         {session && (
           <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
             {!editingDate && (
-              <span className="font-mono tracking-tight">{session.localDate || session.dateISO.slice(0,10)}</span>
+              <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
             )}
             {editingDate && (
               <div className="flex items-center gap-1">
@@ -704,10 +714,11 @@ export default function Sessions() {
             {!editingDate && (
               <>
                 <button
-                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                  onClick={stampToday}
+                  className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
+                  onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
+                  aria-label="Stamp with today's date"
                 >
-                  Stamp
+                  <span className="pointer-events-none select-none">Stamp</span>
                 </button>
                 <button
                   aria-label="Edit date"
