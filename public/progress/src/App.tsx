@@ -21,6 +21,8 @@ import {
   waitForSession,
 } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
+import NavDrawer from "./components/NavDrawer";
+import MobileTabs from "./components/MobileTabs";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
@@ -303,26 +305,28 @@ function Shell() {
 
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
+  const [drawerOpen,setDrawerOpen] = useState(false);
   return (
-    <div className="min-h-screen flex flex-col relative" id="app-shell">
+    <div className="min-h-screen flex flex-col relative pb-12 md:pb-0" id="app-shell">
       {!authRoute && <BackgroundFX />}
       {/* ECG background (behind everything); toggled via body data attribute & settings */}
       {!authRoute && <ECGBackground />}
       {!authRoute && (
-        <header className="sticky top-0 z-10 backdrop-blur bg-bg/70 border-b border-white/5">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
-            <h1 className="text-base sm:text-lg font-semibold shrink-0">
-              LiftLog
-            </h1>
-            <div className="flex items-center gap-2 sm:gap-3 w-full">
-              <nav className="flex gap-2 overflow-x-auto no-scrollbar max-w-[62vw] sm:max-w-none">
+        <header className="sticky top-0 z-20 backdrop-blur bg-bg/70 border-b border-white/5">
+          <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <button className="md:hidden px-2 py-1 rounded-lg bg-slate-800 border border-white/10" aria-label="Open navigation" onClick={()=> setDrawerOpen(true)}>☰</button>
+              <h1 className="hidden md:block text-base sm:text-lg font-semibold shrink-0">LiftLog</h1>
+              <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1">
                 <Tab to="/" label="Dashboard" />
                 <Tab to="/sessions" label="Sessions" />
                 <Tab to="/measurements" label="Measurements" />
-                <Tab to="/templates" label="Templates" />
+                <Tab to="/templates" label="Programs" />
+                <Tab to="/store" label="Store" />
                 <Tab to="/settings" label="Settings" />
               </nav>
-              <div className="flex items-center gap-2">
+            </div>
+            <div className="flex items-center gap-2 ml-auto shrink-0">
                 {!authChecked ? (
                   <span className="text-xs text-gray-400">…</span>
                 ) : authEmail ? (
@@ -389,7 +393,6 @@ function Shell() {
                     Sign in
                   </button>
                 )}
-              </div>
             </div>
           </div>
         </header>
@@ -425,7 +428,7 @@ function Shell() {
           </div>
         </div>
       )}
-      <main className="flex-1 w-full px-0 py-0">
+  <main className="flex-1 w-full px-0 py-0">
         <Suspense fallback={<div className="p-6">Loading…</div>}>
           <Routes>
             <Route path="/auth" element={<IntroAuthPage />} />
@@ -480,6 +483,8 @@ function Shell() {
           </Routes>
         </Suspense>
       </main>
+      {!authRoute && <MobileTabs />}
+      <NavDrawer open={drawerOpen} onClose={()=> setDrawerOpen(false)} authEmail={authEmail} onSignOut={async()=>{ if(signingOut) return; setSigningOut(true); try { await supabase.auth.signOut({scope:'global'} as any); } finally { clearAuthStorage(); setAuthEmail(null); setSigningOut(false); setDrawerOpen(false); } }} />
     </div>
   );
 }
