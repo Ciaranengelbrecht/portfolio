@@ -329,63 +329,7 @@ function Shell() {
             <div className="flex items-center gap-2 ml-auto shrink-0">
                 {!authChecked ? (
                   <span className="text-xs text-gray-400">…</span>
-                ) : authEmail ? (
-                  <>
-                    <span className="text-xs text-emerald-400">Signed in</span>
-                    <button
-                      className={`px-2 py-1 rounded-lg text-xs ${
-                        signingOut ? "btn-outline" : "btn-primary"
-                      }`}
-                      disabled={signingOut}
-                      onClick={async () => {
-                        setSigningOut(true);
-                        try {
-                          await supabase.auth.signOut({
-                            scope: "global",
-                          } as any);
-                        } finally {
-                          console.log(
-                            "[App] signOut clicked: clearing storage & verify loop"
-                          );
-                          try {
-                            localStorage.removeItem("sb_pw_reset");
-                            clearAuthStorage();
-                          } catch {}
-                          // Double-check session is gone
-                          try {
-                            let tries = 0;
-                            while (tries++ < 10) {
-                              const s = await waitForSession({
-                                timeoutMs: 800,
-                              });
-                              console.log(
-                                "[App] signOut verify try",
-                                tries,
-                                "session?",
-                                !!s
-                              );
-                              if (!s) break;
-                              await new Promise((r) => setTimeout(r, 100));
-                            }
-                          } catch {}
-                          setAuthEmail(null);
-                          navigate("/");
-                          setSigningOut(false);
-                          setToast("Signed out");
-                          setBigFlash("Signed out successfully");
-                          // Ensure a clean slate in PWA by reloading the page
-                          setTimeout(() => {
-                            try {
-                              window.location.reload();
-                            } catch {}
-                          }, 200);
-                        }
-                      }}
-                    >
-                      Sign out
-                    </button>
-                  </>
-                ) : (
+                ) : authEmail ? null : (
                   <button
                     className="btn-outline px-2 py-1 rounded-lg text-xs"
                     onClick={() => setAuthOpen(true)}
