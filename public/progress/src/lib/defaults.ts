@@ -41,7 +41,8 @@ export const defaultSettings: Settings = {
     instantThemeTransition: false,
     smoothingDefault: false,
     themeMode: 'dark'
-  }
+  },
+  restTimerTargetSeconds: 90
 };
 
 export const defaultExercises: Exercise[] = [

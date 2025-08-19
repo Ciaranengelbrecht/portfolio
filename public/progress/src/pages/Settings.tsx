@@ -227,6 +227,29 @@ export default function SettingsPage() {
         onClose={() => setBigFlash(null)}
       />
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div>
+          <div className="font-medium mb-1">Rest Timer</div>
+          <div className="text-xs text-muted mb-2">Default target rest time (seconds). Timer flashes & haptics (if enabled) when this threshold is reached.</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="number"
+              min={30}
+              max={300}
+              className="input-app rounded-xl px-3 py-2 w-28"
+              value={s.restTimerTargetSeconds ?? ''}
+              onChange={(e)=> { const v=Number(e.target.value); if(isNaN(v)) return; setS(prev=> ({ ...prev, restTimerTargetSeconds: Math.max(30, Math.min(300,v)) })); }}
+            />
+            <div className="flex gap-2">
+              {[60,90,120,150].map(preset=> (
+                <button key={preset} className={`px-3 py-2 rounded-xl text-xs ${ (s.restTimerTargetSeconds||0)===preset? 'bg-emerald-600':'bg-slate-700' }`} onClick={()=> setS(prev=> ({ ...prev, restTimerTargetSeconds: preset }))}>{preset}s</button>
+              ))}
+            </div>
+            <button
+              className="btn-primary px-3 py-2 rounded-xl text-xs"
+              onClick={async ()=> { await db.put('settings', { ...s, id:'app' } as any); setToast('Rest timer saved'); }}
+            >Save</button>
+          </div>
+        </div>
         <div className="mb-2">
           <div className="font-medium">Account (Supabase)</div>
           <div className="text-sm text-muted">

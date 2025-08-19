@@ -177,7 +177,7 @@ export default function Sessions() {
   useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
 
   // Rest timer: periodic update & alert when target reached (per-exercise single timer)
-  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ const now=Date.now(); const targetMs=(settingsState?.restTimerTargetSeconds||90)*1000; const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
+  useEffect(()=>{ let frame:number; const tick=()=>{ setRestTimers(prev=>{ const now=performance.now(); const targetMs=(settingsState?.restTimerTargetSeconds||90)*1000; const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
           if(v.finished){ // keep briefly for finish pulse then drop
             if(now - (v.start + v.elapsed) < 1200){ next[k]=v; }
             continue;
@@ -191,7 +191,7 @@ export default function Sessions() {
           // trigger alert when crossing target threshold once
           if(elapsed >= targetMs && !v.alerted){ if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} } next[k] = { ...v, elapsed, alerted:true }; }
           else { next[k] = { ...v, elapsed }; }
-        } return next }) }, 90); return ()=> clearInterval(id) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics])
+        } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics])
   const toggleRestTimer = (entryId:string)=>{
     const key=entryId;
     setRestTimers(prev=>{
