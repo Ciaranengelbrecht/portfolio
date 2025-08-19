@@ -34,8 +34,9 @@ export interface Exercise {
 
 export interface SetEntry {
   setNumber: number;
-  weightKg: number;
-  reps: number;
+  /** Optional to allow true null/blank state distinct from 0 */
+  weightKg?: number | null;
+  reps?: number | null;
   rpe?: number;
 }
 export interface SessionEntry {
@@ -137,6 +138,8 @@ export interface Settings {
     lastPushedAt?: string; // ISO timestamp of last successful push
     lastError?: string;
   };
+  /** Enable subtle vibration feedback (mobile). Default true on first run */
+  haptics?: boolean;
 }
 
 export interface Template {

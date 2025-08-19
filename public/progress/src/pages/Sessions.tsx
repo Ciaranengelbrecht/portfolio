@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from 'react-dom';
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
 import {
@@ -14,6 +15,7 @@ import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
 import { nanoid } from "nanoid";
 import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
+import { parseOptionalNumber, formatOptionalNumber } from '../lib/parse';
 import { getSettings, setSettings } from "../lib/helpers";
 import PhaseStepper from "../components/PhaseStepper";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
@@ -62,6 +64,8 @@ export default function Sessions() {
   const [dateEditValue, setDateEditValue] = useState("");
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string,string>>({});
+  // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
+  const repsInputEditing = useRef<Record<string,string>>({});
 
   useEffect(() => {
     (async () => {
@@ -186,13 +190,16 @@ export default function Sessions() {
     setRestTimers(prev=>{
       const cur=prev[key];
       if(cur?.running){ // mark finished with elapsed, non-running; keep for pulse then remove via tick cleanup
+        // haptic stop
+        if(settingsState?.haptics !== false){ try{ navigator.vibrate?.(12);}catch{} }
         return { ...prev, [key]: { ...cur, running:false, finished:true, elapsed: Date.now()-cur.start } };
       }
       // start new; clear others
+      if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([8,30,14]); }catch{} }
       return { [key]: { start: Date.now(), elapsed:0, running:true } };
     });
   }
-  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const msec = Math.floor(ms%1000/10); return <span title="Rest timer" className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 border border-emerald-600/40 shadow-inner ${t.running?'text-emerald-300':'text-slate-400'} ${t.finished?'rest-finished':''}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(msec).padStart(2,'0')}</span></span> }
+  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const pct = Math.min(1, ms/REST_TIMER_MAX); return <span aria-live={t.finished? 'polite':'off'} aria-label={`Rest time ${mm} minutes ${ss} seconds`} className={`inline-flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full border ${t.running? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200':'border-slate-600 bg-slate-800/60 text-slate-300'} relative overflow-hidden`}>{mm}:{String(ss).padStart(2,'0')}<span className="absolute left-0 top-0 h-full bg-emerald-500/15" style={{width: `${pct*100}%`}} />{t.finished && <span className="ml-1 text-emerald-400 animate-pulse">✔</span>}</span> }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
 
   // Adjust week clamp if program changes
@@ -393,8 +400,8 @@ export default function Sessions() {
   const addSet = (entry: SessionEntry) => {
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
-      weightKg: 0,
-      reps: 0,
+      weightKg: null,
+      reps: null,
     };
     updateEntry({ ...entry, sets: [...entry.sets, next] });
   };
@@ -634,9 +641,11 @@ export default function Sessions() {
           <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
             {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
           </select>
-          <select className="bg-card rounded-xl px-2 py-1" value={day} onChange={(e)=> setDay(Number(e.target.value))}>
-            {(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS).map((d:string,i:number)=> <option key={i} value={i}>{d}</option>)}
-          </select>
+          <DaySelector
+            labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
+            value={day}
+            onChange={setDay}
+          />
           {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
           {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
         </div>
@@ -742,7 +751,7 @@ export default function Sessions() {
             : undefined;
           const currentBest = (() => {
             const best = [...entry.sets].sort((a, b) => {
-              if (b.weightKg !== a.weightKg) return b.weightKg - a.weightKg;
+              if ((b.weightKg ?? 0) !== (a.weightKg ?? 0)) return (b.weightKg ?? 0) - (a.weightKg ?? 0);
               return (b.reps || 0) - (a.reps || 0);
             })[0];
             return best;
@@ -845,7 +854,7 @@ export default function Sessions() {
                         </span>
                         <PRChip
                           exerciseId={entry.exerciseId}
-                          score={set.weightKg * set.reps}
+                          score={(set.weightKg ?? 0) * (set.reps ?? 0)}
                           week={week}
                         />
                       </div>
@@ -906,67 +915,16 @@ export default function Sessions() {
                             data-set-input="true"
                             data-entry-id={entry.id}
                             data-set-number={set.setNumber}
-                            value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.weightKg || set.weightKg===0 ? String(set.weightKg) : '')}
-                            placeholder="0.0"
+                            value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? formatOptionalNumber(set.weightKg)}
+                            placeholder="0"
                             onKeyDown={(e) => {
-                              if (e.key === "ArrowUp") {
-                                e.preventDefault();
-                                updateEntry({
-                                  ...entry,
-                                  sets: entry.sets.map((s, i) =>
-                                    i === idx
-                                      ? {
-                                          ...s,
-                                          weightKg: (s.weightKg || 0) + 2.5,
-                                        }
-                                      : s
-                                  ),
-                                });
-                              } else if (e.key === "ArrowDown") {
-                                e.preventDefault();
-                                updateEntry({
-                                  ...entry,
-                                  sets: entry.sets.map((s, i) =>
-                                    i === idx
-                                      ? {
-                                          ...s,
-                                          weightKg: Math.max(
-                                            0,
-                                            (s.weightKg || 0) - 2.5
-                                          ),
-                                        }
-                                      : s
-                                  ),
-                                });
-                              }
+                              if (e.key === 'ArrowUp') { e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: (s.weightKg||0)+2.5 }: s) }); }
+                              else if (e.key === 'ArrowDown') { e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: Math.max(0,(s.weightKg||0)-2.5) }: s) }); }
                             }}
-                            onChange={(e) => {
-                              let v = e.target.value;
-                              // normalize comma to period
-                              if(v.includes(',')) v = v.replace(',','.');
-                              if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
-                              weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
-                              // Only commit numeric if not ending with decimal separator
-                              if(v === '' || /[.,]$/.test(v)) return; // wait for more input
-                              const num = Number(v);
-                              if(!isNaN(num)){
-                                updateEntry({
-                                  ...entry,
-                                  sets: entry.sets.map((s, i) => i===idx ? { ...s, weightKg: num } : s)
-                                });
-                              }
+                            onChange={(e)=> {
+                              let v=e.target.value; if(v.includes(',')) v=v.replace(',','.'); if(!/^\d*(?:[.,]\d*)?$/.test(v)) return; weightInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v===''||/[.,]$/.test(v)) return; const num = parseOptionalNumber(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: num }: s) });
                             }}
-                            onBlur={(e)=> {
-                              let v = e.target.value;
-                              if(v.includes(',')) v = v.replace(',','.');
-                              if(!/^\d*(?:[.,]\d*)?$/.test(v)) return;
-                              const num = v === ''? 0 : Number(v.replace(/\.$/,''));
-                              updateEntry({
-                                ...entry,
-                                sets: entry.sets.map((s,i)=> i===idx ? { ...s, weightKg: isNaN(num)? 0 : num } : s)
-                              });
-                              delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
-                            }}
+                            onBlur={(e)=> { let v=e.target.value; if(v.includes(',')) v=v.replace(',','.'); const num = parseOptionalNumber(v.replace(/\.$/,'')); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: num }: s) }); delete weightInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
                           />
                           <button
                             className="bg-slate-700 rounded px-3 py-2"
@@ -1018,45 +976,26 @@ export default function Sessions() {
                             data-set-input="true"
                             data-entry-id={entry.id}
                             data-set-number={set.setNumber}
-                            value={set.reps}
-                            onKeyDown={(e) => {
-                              if (e.key === "ArrowUp") {
+                            value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
+                            placeholder="0"
+                            onKeyDown={(e)=> {
+                              if(e.key==='ArrowUp'){
                                 e.preventDefault();
-                                updateEntry({
-                                  ...entry,
-                                  sets: entry.sets.map((s, i) =>
-                                    i === idx
-                                      ? { ...s, reps: (s.reps || 0) + 1 }
-                                      : s
-                                  ),
-                                });
-                              } else if (e.key === "ArrowDown") {
+                                updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0)+1 }: s) });
+                              } else if(e.key==='ArrowDown'){
                                 e.preventDefault();
-                                updateEntry({
-                                  ...entry,
-                                  sets: entry.sets.map((s, i) =>
-                                    i === idx
-                                      ? {
-                                          ...s,
-                                          reps: Math.max(0, (s.reps || 0) - 1),
-                                        }
-                                      : s
-                                  ),
-                                });
+                                updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0,(s.reps||0)-1) }: s) });
+                              } else if(e.key==='Enter'){
+                                const buf = repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                                if(buf!==undefined){
+                                  const num = buf===''? null: Number(buf);
+                                  updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) });
+                                  delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                                }
                               }
                             }}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              if (!/^\d*$/.test(v)) return;
-                              updateEntry({
-                                ...entry,
-                                sets: entry.sets.map((s, i) =>
-                                  i === idx
-                                    ? { ...s, reps: v === "" ? 0 : Number(v) }
-                                    : s
-                                ),
-                              });
-                            }}
+                            onChange={(e)=> { const v=e.target.value; if(!/^\d*$/.test(v)) return; repsInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v==='') return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Number(v) }: s) }); }}
+                            onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
                           />
                           <button
                             className="bg-slate-700 rounded px-3 py-2"
@@ -1077,8 +1016,8 @@ export default function Sessions() {
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                      <button className="px-2 py-1 rounded bg-slate-700" onClick={()=>toggleRestTimer(entry.id,set.setNumber)}>Rest</button>
-                      {restTimerDisplay(entry.id,set.setNumber)}
+                      <button className={`px-2 py-1 rounded bg-slate-700 transition-colors ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-btn-running bg-emerald-700 text-emerald-50':''}`} onClick={()=>toggleRestTimer(entry.id,set.setNumber)} aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running} aria-label="Toggle rest timer">{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
+                      <span className={restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-timer-chip running': restTimers[`${entry.id}:${set.setNumber}`]?.finished? 'rest-timer-chip finished':'rest-timer-chip'}>{restTimerDisplay(entry.id,set.setNumber)}</span>
                     </div>
                   </div>
                 ))}
@@ -1244,45 +1183,26 @@ export default function Sessions() {
                         data-set-input="true"
                         data-entry-id={entry.id}
                         data-set-number={set.setNumber}
-                        value={set.reps}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
+                        value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
+                        placeholder="0"
+                        onKeyDown={(e)=> {
+                          if(e.key==='ArrowUp'){
                             e.preventDefault();
-                            updateEntry({
-                              ...entry,
-                              sets: entry.sets.map((s, i) =>
-                                i === idx
-                                  ? { ...s, reps: (s.reps || 0) + 1 }
-                                  : s
-                              ),
-                            });
-                          } else if (e.key === "ArrowDown") {
+                            updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0)+1 }: s) });
+                          } else if(e.key==='ArrowDown'){
                             e.preventDefault();
-                            updateEntry({
-                              ...entry,
-                              sets: entry.sets.map((s, i) =>
-                                i === idx
-                                  ? {
-                                      ...s,
-                                      reps: Math.max(0, (s.reps || 0) - 1),
-                                    }
-                                  : s
-                              ),
-                            });
+                            updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0,(s.reps||0)-1) }: s) });
+                          } else if(e.key==='Enter'){
+                            const buf = repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                            if(buf!==undefined){
+                              const num = buf===''? null: Number(buf);
+                              updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) });
+                              delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                            }
                           }
                         }}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*$/.test(v)) return;
-                          updateEntry({
-                            ...entry,
-                            sets: entry.sets.map((s, i) =>
-                              i === idx
-                                ? { ...s, reps: v === "" ? 0 : Number(v) }
-                                : s
-                            ),
-                          });
-                        }}
+                        onChange={(e)=> { const v=e.target.value; if(!/^\d*$/.test(v)) return; repsInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v==='') return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Number(v) }: s) }); }}
+                        onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
                       />
                       <button
                         className="text-xs bg-slate-700 rounded px-2"
@@ -1301,7 +1221,7 @@ export default function Sessions() {
                     <div className="flex items-center gap-1">
                       <PRChip
                         exerciseId={entry.exerciseId}
-                        score={set.weightKg * set.reps}
+                        score={(set.weightKg ?? 0) * (set.reps ?? 0)}
                         week={week}
                       />
                       <button
@@ -1324,8 +1244,8 @@ export default function Sessions() {
                       >
                         Del
                       </button>
-                      <button className="text-[10px] bg-slate-700 rounded px-2 py-0.5" onClick={()=>toggleRestTimer(entry.id,set.setNumber)}>Rest</button>
-                      {restTimerDisplay(entry.id,set.setNumber)}
+                      <button className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 transition-colors ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-btn-running bg-emerald-700 text-emerald-50':''}`} onClick={()=>toggleRestTimer(entry.id,set.setNumber)} aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running} aria-label="Toggle rest timer">{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
+                      <span className={restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-timer-chip running': restTimers[`${entry.id}:${set.setNumber}`]?.finished? 'rest-timer-chip finished':'rest-timer-chip'}>{restTimerDisplay(entry.id,set.setNumber)}</span>
                       {idx===entry.sets.length-1 && <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={()=>duplicateLastSet(entry)}>Dup</button>}
                     </div>
                   </div>
@@ -1465,6 +1385,103 @@ export default function Sessions() {
           });
         }}
       />
+    </div>
+  );
+}
+
+// Adaptive Workout Day Selector Component
+function DaySelector({ labels, value, onChange }: { labels:string[]; value:number; onChange:(v:number)=>void }){
+  const [open,setOpen] = useState(false);
+  const [rendered,setRendered] = useState(false); // for exit animation
+  const [mobile,setMobile] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement|null>(null);
+  const listRef = useRef<HTMLDivElement|null>(null);
+  const touchStartY = useRef<number|null>(null);
+  const liveRef = useRef<HTMLDivElement|null>(null);
+  // Persist last selection across reload (sessionStorage scope)
+  useEffect(()=> { try { sessionStorage.setItem('lastDayIdx', String(value)); } catch {} },[value]);
+  useEffect(()=> { if(value===0){ try { const v = sessionStorage.getItem('lastDayIdx'); if(v) onChange(Number(v)); } catch {} } },[]);
+  useEffect(()=> { const mq = window.matchMedia('(max-width:768px)'); const handler=()=> setMobile(mq.matches); handler(); mq.addEventListener('change',handler); return ()=> mq.removeEventListener('change',handler); },[]);
+  useEffect(()=> { if(open){ setRendered(true); requestAnimationFrame(()=> { const el=listRef.current?.querySelector(`[data-idx='${value}']`) as HTMLElement|undefined; el?.scrollIntoView({block:'center'}); try{ navigator.vibrate?.(12);}catch{}; }); } else { // closing
+    if(rendered){ const t = setTimeout(()=> setRendered(false), 180); return ()=> clearTimeout(t); }
+    triggerRef.current?.focus();
+  } },[open,value,rendered]);
+  const openList = ()=> setOpen(true);
+  const closeList = ()=> setOpen(false);
+  const choose = (i:number)=> { onChange(i); closeList(); if(liveRef.current){ liveRef.current.textContent = `Selected ${labels[i]}`; } };
+  const onTriggerKey = (e:React.KeyboardEvent)=> { if(['Enter',' ','ArrowDown','ArrowUp'].includes(e.key)){ e.preventDefault(); openList(); } };
+  const onOptionKey = (e:React.KeyboardEvent, idx:number)=> { if(e.key==='Enter'){ e.preventDefault(); choose(idx);} else if(e.key==='ArrowDown'){ e.preventDefault(); const n = listRef.current?.querySelector(`[data-idx='${idx+1}']`) as HTMLElement|undefined; n?.focus(); } else if(e.key==='ArrowUp'){ e.preventDefault(); const p = listRef.current?.querySelector(`[data-idx='${idx-1}']`) as HTMLElement|undefined; p?.focus(); } else if(e.key==='Escape'){ e.preventDefault(); closeList(); } };
+  const sheetTouchStart = (e:React.TouchEvent)=> { touchStartY.current = e.touches[0].clientY; };
+  const sheetTouchMove = (e:React.TouchEvent)=> { if(touchStartY.current!=null){ const dy = e.touches[0].clientY - touchStartY.current; if(dy>90){ closeList(); touchStartY.current=null; } } };
+  const overlay = rendered && (
+    <div className={mobile? 'fixed inset-0 z-[1000] flex flex-col justify-end':'fixed z-[1000]'}>
+      {mobile && <div className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-180 ${open? 'opacity-100':'opacity-0'} anim-motion-safe`} onClick={closeList} />}
+      <div
+        className={mobile?
+          `relative rounded-t-2xl border border-white/10 bg-slate-900/95 backdrop-blur max-h-[60vh] overflow-hidden flex flex-col shadow-xl will-change-transform transition-transform duration-180 ease-[cubic-bezier(.32,.72,.33,1)] ${open? 'translate-y-0 opacity-100':'translate-y-full opacity-0'} anim-motion-safe`:
+          `absolute rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur shadow-xl max-h-[48vh] overflow-hidden flex flex-col will-change-transform transition-all duration-160 ease-out ${open? 'scale-100 opacity-100 translate-y-0':'scale-95 opacity-0 -translate-y-1'} anim-motion-safe`}
+        style={!mobile? (()=> { const r=triggerRef.current?.getBoundingClientRect(); if(!r) return {}; const top=r.bottom+4; const left=Math.min(window.innerWidth-260,r.left); return { top, left, width:Math.min(260, window.innerWidth-16) }; })(): {}}
+        role="dialog"
+        aria-modal={mobile? 'true': undefined}
+        onKeyDown={(e)=> { if(e.key==='Escape'){ e.preventDefault(); closeList(); } }}
+        onTouchStart={mobile? sheetTouchStart: undefined}
+        onTouchMove={mobile? sheetTouchMove: undefined}
+      >
+        {mobile && (
+          <div className="h-6 flex items-center justify-center relative">
+            <div className="w-10 h-1.5 rounded-full bg-slate-600" />
+            <button className="absolute right-2 top-1 text-xs text-gray-400 px-2 py-1" onClick={closeList}>Close</button>
+          </div>
+        )}
+        <div ref={listRef} className="relative selector-scroll overflow-y-auto px-1 pb-2 focus:outline-none max-h-full" role="listbox" aria-activedescendant={`day-opt-${value}`} tabIndex={-1}>
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[rgba(15,23,42,0.95)] to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-[rgba(15,23,42,0.95)] to-transparent" />
+          {labels.map((l,i)=> { const selected = i===value; return (
+            <button
+              key={i}
+              id={`day-opt-${i}`}
+              data-idx={i}
+              role="option"
+              aria-selected={selected}
+              className={`w-full text-left px-3 py-3 flex items-center justify-between gap-2 rounded-md mt-1 first:mt-0 focus:outline-none transition-colors duration-120 ${selected? 'bg-emerald-600/90 text-black font-medium':'hover:bg-white/5 text-gray-200'}`}
+              onClick={()=> choose(i)}
+              onKeyDown={(e)=> onOptionKey(e,i)}
+            >
+              <span className="flex-1 text-sm break-words leading-snug max-w-[200px]">{l}</span>
+              {selected && <span className="text-xs">✓</span>}
+            </button>
+          ); })}
+        </div>
+      </div>
+    </div>
+  );
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={()=> setOpen(o=> !o)}
+        onKeyDown={onTriggerKey}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="day-selector"
+        className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+        title={labels[value]}
+      >
+        <span className="truncate max-w-[140px]">{labels[value]}</span>
+        <span className="opacity-70 text-[10px]">▼</span>
+      </button>
+      {mobile && (
+        <div className="mt-2 -mb-1 overflow-x-auto no-scrollbar flex gap-2 snap-x relative px-0.5">
+          {labels.map((l,i)=> (
+            <button key={i} onClick={()=> choose(i)} className={`min-w-[96px] snap-start px-3 py-2 rounded-full text-xs border ${(i===value)?'border-emerald-500 bg-emerald-600/20':'border-white/10 bg-slate-800/70 hover:bg-slate-700/70'} truncate`} title={l}>{l}</button>
+          ))}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[rgba(15,23,42,0.95)] to-transparent" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[rgba(15,23,42,0.95)] to-transparent" />
+        </div>
+      )}
+  {overlay && createPortal(overlay, document.body)}
+  <div ref={liveRef} className="sr-only" aria-live="polite" />
     </div>
   );
 }
