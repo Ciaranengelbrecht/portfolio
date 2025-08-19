@@ -56,7 +56,8 @@ export default function Sessions() {
   } | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
-  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean}>>({}); // ephemeral per-set timers with optional finished pulse
+  // Per-exercise rest timers keyed by entry.id (single timer per exercise)
+  const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean;alerted?:boolean}>>({});
   const REST_TIMER_MAX = 180000; // 3 minutes in ms
   const [readinessPct, setReadinessPct] = useState(0);
   // Manual date editing UI state
@@ -171,22 +172,24 @@ export default function Sessions() {
   // Keyboard shortcuts
   useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
 
-  // Rest timer: high-res 60fps-ish update; auto-clears when stopped or another set's rest is started.
-  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ const now=Date.now(); const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
-          if(v.finished){ // keep briefly for pulse
-            if(now - (v.start + v.elapsed) < 600){ next[k]=v; }
+  // Rest timer: periodic update & alert when target reached (per-exercise single timer)
+  useEffect(()=>{ const id=setInterval(()=>{ setRestTimers(prev=>{ const now=Date.now(); const targetMs=(settingsState?.restTimerTargetSeconds||90)*1000; const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
+          if(v.finished){ // keep briefly for finish pulse then drop
+            if(now - (v.start + v.elapsed) < 1200){ next[k]=v; }
             continue;
           }
-          if(!v.running) continue;
+          if(!v.running){ next[k]=v; continue; }
           const elapsed = now - v.start;
           if(elapsed >= REST_TIMER_MAX){
-            next[k] = { ...v, elapsed: REST_TIMER_MAX, running:false, finished:true };
-          } else {
-            next[k] = { ...v, elapsed };
+            next[k] = { ...v, elapsed: REST_TIMER_MAX, running:false, finished:true, alerted: true };
+            continue;
           }
-        } return next }) }, 80); return ()=> clearInterval(id) },[])
-  const toggleRestTimer = (entryId:string,setNumber:number)=>{
-    const key=`${entryId}:${setNumber}`;
+          // trigger alert when crossing target threshold once
+          if(elapsed >= targetMs && !v.alerted){ if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} } next[k] = { ...v, elapsed, alerted:true }; }
+          else { next[k] = { ...v, elapsed }; }
+        } return next }) }, 90); return ()=> clearInterval(id) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics])
+  const toggleRestTimer = (entryId:string)=>{
+    const key=entryId;
     setRestTimers(prev=>{
       const cur=prev[key];
       if(cur?.running){ // mark finished with elapsed, non-running; keep for pulse then remove via tick cleanup
@@ -199,19 +202,15 @@ export default function Sessions() {
       return { [key]: { start: Date.now(), elapsed:0, running:true } };
     });
   }
-  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); // centiseconds
-    const pct = Math.min(1, ms/REST_TIMER_MAX);
-    const pulseClass = t.running ? 'animate-[timerPulse_1800ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : '';
+  const restTimerDisplay = (entryId:string)=>{ const t=restTimers[entryId]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); const target=(settingsState?.restTimerTargetSeconds||90); const reached = totalSecs >= target; const pulseClass = reached && !t.finished ? 'animate-[timerPulseFast_900ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : (t.running? 'animate-[timerPulse_1800ms_ease-in-out_infinite]':'');
     return (
       <span
-        aria-live={t.finished? 'polite':'off'}
-        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds`}
-        className={`rest-timer relative font-mono tabular-nums select-none text-[11px] px-1.5 py-0.5 ${t.running? 'text-emerald-300':'text-slate-400'} ${pulseClass}`}
+        aria-live={reached? 'polite':'off'}
+        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' target reached':''}`}
+        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-1.5 py-0.5 ${reached? 'text-rose-300':'text-emerald-300'} ${pulseClass}`}
       >
-        <span className="relative z-10">{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
-        <span className="absolute inset-0 rounded-md overflow-hidden">
-          <span className="absolute left-0 top-0 h-full bg-emerald-500/15" style={{width: `${pct*100}%`}} />
-        </span>
+        <span className={`relative z-10 font-semibold ${reached? 'scale-[1.15] drop-shadow-[0_0_8px_rgba(244,63,94,0.55)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
+        {reached && <span className="absolute -inset-1 rounded-md bg-rose-500/10 blur-sm animate-pulse" />}
       </span>
     ); }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
@@ -1029,21 +1028,23 @@ export default function Sessions() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                      <button
-                        className={`px-2 py-1 rounded bg-slate-700 text-[10px] active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
-                        onClick={()=>toggleRestTimer(entry.id,set.setNumber)}
-                        aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running}
-                        aria-label="Toggle rest timer"
-                      >{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
-                      {restTimerDisplay(entry.id,set.setNumber)}
-                    </div>
+                    {/* Removed per-set rest controls */}
                   </div>
                 ))}
                 <button
                   className="w-full text-center text-[11px] bg-slate-700 rounded-xl px-3 py-2"
                   onClick={()=> addSet(entry)}
                 >Add Set</button>
+                {/* Exercise-level rest control (mobile) */}
+                <div className="pt-1 flex items-center justify-end gap-3">
+                  <button
+                    className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
+                    onClick={()=> toggleRestTimer(entry.id)}
+                    aria-pressed={!!restTimers[entry.id]?.running}
+                    aria-label="Toggle rest timer for exercise"
+                  >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
+                  {restTimerDisplay(entry.id)}
+                </div>
               </div>
 
               {/* Sets grid with drag-and-drop (desktop) */}
@@ -1263,13 +1264,7 @@ export default function Sessions() {
                       >
                         Del
                       </button>
-                      <button
-                        className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
-                        onClick={()=>toggleRestTimer(entry.id,set.setNumber)}
-                        aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running}
-                        aria-label="Toggle rest timer"
-                      >{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
-                      {restTimerDisplay(entry.id,set.setNumber)}
+                      {/* Removed per-set rest controls in desktop grid */}
                       {idx===entry.sets.length-1 && <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={()=>duplicateLastSet(entry)}>Dup</button>}
                     </div>
                   </div>
@@ -1284,6 +1279,16 @@ export default function Sessions() {
                       onClick={()=> addSet(entry)}
                     >Add Set</button>
                   </div>
+                </div>
+                {/* Exercise-level rest control (desktop) */}
+                <div className="col-span-4 mt-2 flex items-center justify-end gap-3 text-[11px]">
+                  {restTimerDisplay(entry.id)}
+                  <button
+                    className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
+                    onClick={()=> toggleRestTimer(entry.id)}
+                    aria-pressed={!!restTimers[entry.id]?.running}
+                    aria-label="Toggle rest timer for exercise"
+                  >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
                 </div>
               </div>
             </div>

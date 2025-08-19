@@ -57,6 +57,7 @@ export async function getSettings(): Promise<Settings> {
     } as any);
   // Backfill new fields if missing
   if (base.reducedMotion == null) (base as any).reducedMotion = false;
+  if ((base as any).restTimerTargetSeconds == null) (base as any).restTimerTargetSeconds = 90;
   _settingsCache = { value: base, ts: now };
   return base;
 }

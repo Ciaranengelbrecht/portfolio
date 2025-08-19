@@ -140,6 +140,8 @@ export interface Settings {
   };
   /** Enable subtle vibration feedback (mobile). Default true on first run */
   haptics?: boolean;
+  /** Target rest duration in seconds for alert (timer flashes when reached) */
+  restTimerTargetSeconds?: number;
 }
 
 export interface Template {
