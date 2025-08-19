@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { createPortal } from 'react-dom';
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
@@ -66,6 +66,10 @@ export default function Sessions() {
   const [dateEditValue, setDateEditValue] = useState("");
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
+  // Scroll state for hiding mobile More button after user scrolls
+  const [scrolled, setScrolled] = useState(false);
+  const toolbarRef = useRef<HTMLDivElement|null>(null);
+  const [toolbarHeight, setToolbarHeight] = useState(56);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string,string>>({});
   // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
@@ -82,6 +86,27 @@ export default function Sessions() {
         setDay(last.dayId);
       }
     })();
+  }, []);
+
+  // Track scroll position to toggle More button visibility
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || document.documentElement.scrollTop;
+      setScrolled(y > 40);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Measure toolbar height for spacer (updates on resize)
+  useLayoutEffect(() => {
+    const measure = () => {
+      if (toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
   }, []);
 
   // After initial mount, choose the most recent session (by dateISO/localDate) that has real logged data (>0 weight or reps) and navigate to its phase/week/day.
@@ -637,7 +662,6 @@ export default function Sessions() {
       undo: async () => {
         await db.put('sessions', prev);
         setSession(prev);
-        try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
       }
     });
   };
@@ -668,78 +692,79 @@ export default function Sessions() {
   return (
     <div className="space-y-4 overflow-x-hidden">
       {/* Fixed selectors bar under main app header */}
-      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }}>
-        <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
-        <h2 className="text-xl font-semibold">Sessions</h2>
-        <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
-        <div className="flex items-center gap-2">
-          <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
-            {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
-          </select>
-          <DaySelector
-            labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
-            value={day}
-            onChange={setDay}
-          />
-          {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
-          {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
-        </div>
-        {session && (
-          <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
-            {!editingDate && (
-              <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
-            )}
-            {editingDate && (
-              <div className="flex items-center gap-1">
-                <input
-                  type="date"
-                  className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
-                  value={dateEditValue}
-                  onChange={(e) => setDateEditValue(e.target.value)}
-                />
-                <button
-                  className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
-                  onClick={saveManualDate}
-                >
-                  Save
-                </button>
-                <button
-                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
-                  onClick={() => setEditingDate(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            {!editingDate && (
-              <>
-                <button
-                  className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
-                  onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
-                  aria-label="Stamp with today's date"
-                >
-                  <span className="pointer-events-none select-none">Stamp</span>
-                </button>
-                <button
-                  aria-label="Edit date"
-                  className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                  onClick={() => {
-                    setDateEditValue(
-                      session.localDate || session.dateISO.slice(0, 10)
-                    );
-                    setEditingDate(true);
-                  }}
-                >
-                  ✎
-                </button>
-              </>
-            )}
+      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
+        <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
+          <h2 className="text-xl font-semibold">Sessions</h2>
+          <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
+          <div className="flex items-center gap-2">
+            <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+              {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
+            </select>
+            <DaySelector
+              labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
+              value={day}
+              onChange={setDay}
+            />
+            {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
+            {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
           </div>
-        )}
+          {/* Date / stamp block */}
+          {session && (
+            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
+              {!editingDate && (
+                <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
+              )}
+              {editingDate && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="date"
+                    className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                    value={dateEditValue}
+                    onChange={(e) => setDateEditValue(e.target.value)}
+                  />
+                  <button
+                    className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                    onClick={saveManualDate}
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
+                    onClick={() => setEditingDate(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {!editingDate && (
+                <>
+                  <button
+                    className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
+                    onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
+                    aria-label="Stamp with today's date"
+                  >
+                    <span className="pointer-events-none select-none">Stamp</span>
+                  </button>
+                  <button
+                    aria-label="Edit date"
+                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                    onClick={() => {
+                      setDateEditValue(
+                        session.localDate || session.dateISO.slice(0, 10)
+                      );
+                      setEditingDate(true);
+                    }}
+                  >
+                    ✎
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
-  {/* Spacer to offset fixed toolbar height (approx 56 header + 48 toolbar) */}
-  <div className="h-[calc(var(--app-header-h)_+_52px)]" aria-hidden="true"></div>
+  {/* Spacer dynamic */}
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px)` }} aria-hidden="true" />
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-2">
         <div className="hidden sm:flex items-center gap-2">
@@ -754,8 +779,11 @@ export default function Sessions() {
           {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
-        <div className="sm:hidden">
-          <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=> setMoreOpen(o=> !o)}>{moreOpen ? 'Close' : 'More'}</button>
+        {/* Mobile More button row */}
+        <div className="w-full sm:hidden px-0 mt-1">
+          <div className={`transition-opacity duration-300 ${scrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <button className="bg-slate-700 px-3 py-2 rounded-xl w-full" onClick={()=> setMoreOpen(o=> !o)}>{moreOpen ? 'Close' : 'More'}</button>
+          </div>
         </div>
       </div>
       {moreOpen && (
