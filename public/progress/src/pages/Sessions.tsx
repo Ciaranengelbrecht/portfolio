@@ -1422,6 +1422,8 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
   const listRef = useRef<HTMLDivElement|null>(null);
   const touchStartY = useRef<number|null>(null);
   const liveRef = useRef<HTMLDivElement|null>(null);
+  // Guard against stale index (e.g., program shrink) so selector always has a valid label
+  useEffect(()=> { if(value >= labels.length && labels.length){ onChange(0); } }, [value, labels.length]);
   // Persist last selection across reload (sessionStorage scope)
   useEffect(()=> { try { sessionStorage.setItem('lastDayIdx', String(value)); } catch {} },[value]);
   useEffect(()=> { if(value===0){ try { const v = sessionStorage.getItem('lastDayIdx'); if(v) onChange(Number(v)); } catch {} } },[]);
@@ -1437,14 +1439,14 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
   const onOptionKey = (e:React.KeyboardEvent, idx:number)=> { if(e.key==='Enter'){ e.preventDefault(); choose(idx);} else if(e.key==='ArrowDown'){ e.preventDefault(); const n = listRef.current?.querySelector(`[data-idx='${idx+1}']`) as HTMLElement|undefined; n?.focus(); } else if(e.key==='ArrowUp'){ e.preventDefault(); const p = listRef.current?.querySelector(`[data-idx='${idx-1}']`) as HTMLElement|undefined; p?.focus(); } else if(e.key==='Escape'){ e.preventDefault(); closeList(); } };
   const sheetTouchStart = (e:React.TouchEvent)=> { touchStartY.current = e.touches[0].clientY; };
   const sheetTouchMove = (e:React.TouchEvent)=> { if(touchStartY.current!=null){ const dy = e.touches[0].clientY - touchStartY.current; if(dy>90){ closeList(); touchStartY.current=null; } } };
-  const overlay = rendered && (
-    <div className={mobile? 'fixed inset-0 z-[1000] flex flex-col justify-end':'fixed z-[1000]'}>
+  const overlay = (rendered || open) && (
+    <div className={mobile? 'fixed inset-0 z-[1000] flex flex-col justify-end':'fixed inset-0 z-[1000] pointer-events-none'}>
       {mobile && <div className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-180 ${open? 'opacity-100':'opacity-0'} anim-motion-safe`} onClick={closeList} />}
       <div
         className={mobile?
           `relative rounded-t-2xl border border-white/10 bg-slate-900/95 backdrop-blur max-h-[60vh] overflow-hidden flex flex-col shadow-xl will-change-transform transition-transform duration-180 ease-[cubic-bezier(.32,.72,.33,1)] ${open? 'translate-y-0 opacity-100':'translate-y-full opacity-0'} anim-motion-safe`:
-          `absolute rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur shadow-xl max-h-[48vh] overflow-hidden flex flex-col will-change-transform transition-all duration-160 ease-out ${open? 'scale-100 opacity-100 translate-y-0':'scale-95 opacity-0 -translate-y-1'} anim-motion-safe`}
-        style={!mobile? (()=> { const r=triggerRef.current?.getBoundingClientRect(); if(!r) return {}; const top=r.bottom+4; const left=Math.min(window.innerWidth-260,r.left); return { top, left, width:Math.min(260, window.innerWidth-16) }; })(): {}}
+          `absolute pointer-events-auto rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur shadow-xl max-h-[48vh] overflow-hidden flex flex-col will-change-transform transition-all duration-160 ease-out ${open? 'scale-100 opacity-100 translate-y-0':'scale-95 opacity-0 -translate-y-1'} anim-motion-safe`}
+        style={!mobile? (()=> { const r=triggerRef.current?.getBoundingClientRect(); if(!r) return { top:0,left:0 }; const top=Math.min(window.innerHeight- (window.innerHeight*0.4), r.bottom+4); const left=Math.min(window.innerWidth-260, Math.max(8,r.left)); return { position:'absolute', top, left, width:Math.min(260, window.innerWidth-16) }; })(): {}}
         role="dialog"
         aria-modal={mobile? 'true': undefined}
         onKeyDown={(e)=> { if(e.key==='Escape'){ e.preventDefault(); closeList(); } }}
