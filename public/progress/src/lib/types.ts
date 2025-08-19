@@ -102,6 +102,15 @@ export interface Settings {
     };
     openToLast?: boolean;
     startPage?: "last" | "dashboard" | "sessions" | "measurements";
+    /** Per-dashboard-section visibility flags (true = hidden) */
+    hidden?: {
+      trainingChart?: boolean;
+      bodyChart?: boolean;
+      weekVolume?: boolean;
+      phaseTotals?: boolean;
+      compliance?: boolean;
+      weeklyMuscleBar?: boolean; // new aggregated weekly muscle bar chart
+    };
   };
   progress?: {
     weeklyTargetDays?: number; // default 6, min 3, max 6

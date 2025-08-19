@@ -4,7 +4,8 @@ import ProgressBars from "../../components/ProgressBars";
 import { useEffect, useState } from "react";
 import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
-import { getDashboardPrefs, getSettings } from "../../lib/helpers";
+import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
+import { Settings } from "../../lib/types";
 
 export default function Dashboard() {
   const [phase, setPhase] = useState(1);
@@ -13,6 +14,8 @@ export default function Dashboard() {
   const [muscleTotals, setMuscleTotals] = useState<Record<string, number>>({});
   const [targets, setTargets] = useState<Record<string, number>>({});
   const [perWeek, setPerWeek] = useState<Record<number, Record<string, number>>>({});
+  const [hidden,setHidden] = useState<NonNullable<Settings['dashboardPrefs']>['hidden']>({});
+  const [weeklyBar,setWeeklyBar] = useState<{muscle:string; value:number}[]>([]);
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
@@ -20,6 +23,7 @@ export default function Dashboard() {
         setPhase(prefs.lastLocation.phaseNumber);
         setWeek(prefs.lastLocation.weekNumber);
       }
+      setHidden(prefs.hidden || {});
       // compute logged sets
       const phaseNum = prefs.lastLocation?.phaseNumber || 1;
   const settings = await getSettings();
@@ -28,57 +32,94 @@ export default function Dashboard() {
   setPerWeek(perWeek);
   setMuscleWeek(perWeek[prefs.lastLocation?.weekNumber || 1] || {});
   setMuscleTotals(totals);
+  const wk = perWeek[prefs.lastLocation?.weekNumber || 1] || {};
+  setWeeklyBar(Object.entries(wk).map(([m,v])=> ({ muscle:m, value:v })).sort((a,b)=> b.value-a.value));
     })();
   }, []);
   // refresh when sessions change realtime
   useEffect(()=>{
-  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const { perWeek, totals } = await computeLoggedSetVolume(phase); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); })(); } };
+  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const { perWeek, totals } = await computeLoggedSetVolume(phase); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); })(); } };
     window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
   }, [phase, week]);
+  const toggle = async (key: HiddenKey) => {
+    const next = { ...(hidden||{}), [key]: !hidden?.[key] };
+    setHidden(next);
+    await setDashboardPrefs({ hidden: next });
+  };
+
+  type HiddenKey = 'trainingChart' | 'bodyChart' | 'weekVolume' | 'phaseTotals' | 'compliance' | 'weeklyMuscleBar';
+  const SectionToggle = ({label, flag}:{label:string; flag:HiddenKey}) => (
+    <button onClick={()=> toggle(flag)} className={`text-[10px] px-2 py-1 rounded-lg border ${hidden?.[flag]? 'bg-slate-800 text-gray-400 border-white/5':'bg-emerald-600/70 text-white border-emerald-500/40'}`}>{hidden?.[flag]? `Show ${label}`:`Hide ${label}`}</button>
+  );
+
+  const WeeklyMuscleBar = () => (
+    <GlassCard>
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-medium text-sm">Weekly Muscle Volume</div>
+        <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
+      </div>
+      <div className="h-48 flex items-end gap-2 overflow-x-auto pb-2">
+        {weeklyBar.map(r=> { const max = Math.max(1,...weeklyBar.map(x=> x.value)); const h = (r.value/max)*100; return (
+          <div key={r.muscle} className="flex flex-col items-center w-10">
+            <div className="w-full bg-slate-700/50 rounded-t-md relative" style={{height: `${h}%`}}>
+              <div className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-white/80">{r.value.toFixed(1)}</div>
+            </div>
+            <div className="text-[9px] mt-1 capitalize truncate w-full text-center">{r.muscle}</div>
+          </div>
+        ); })}
+        {!weeklyBar.length && <div className="text-[11px] text-gray-500">No data.</div>}
+      </div>
+    </GlassCard>
+  );
+
   return (
     <div className="space-y-4">
-      <ProgressBars />
-      <div className="grid md:grid-cols-2 gap-4">
-        <div>
-          <div className="font-medium mb-2">Training</div>
-          <ChartPanel kind="exercise" />
-        </div>
-        <div>
-          <div className="font-medium mb-2">Body</div>
-          <ChartPanel kind="measurement" />
-        </div>
+      <div className="flex flex-wrap gap-2 text-[10px]">
+        <SectionToggle label="Training" flag="trainingChart" />
+        <SectionToggle label="Body" flag="bodyChart" />
+        <SectionToggle label="Week Volume" flag="weekVolume" />
+        <SectionToggle label="Phase Totals" flag="phaseTotals" />
+        <SectionToggle label="Compliance" flag="compliance" />
+        <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
       </div>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <div className="font-medium">Week {week} Logged Volume (Weighted Sets)</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const tgt = targets[m]||0; const pct = tgt? Math.min(100,(v/tgt)*100): 100; const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500'; return (
-              <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}{tgt?`/${tgt}`:''}</span></div>
-                <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
-                  <div className={`h-full ${status}`} style={{width:`${pct}%`}} />
-                  {tgt? <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">{Math.round(pct)}%</span>: null}
-                </div>
+      {!hidden?.trainingChart && <div>
+        <div className="font-medium mb-2">Training</div>
+        <ChartPanel kind="exercise" />
+      </div>}
+      {!hidden?.bodyChart && <div>
+        <div className="font-medium mb-2">Body</div>
+        <ChartPanel kind="measurement" />
+      </div>}
+      {!hidden?.weekVolume && <div className="space-y-2">
+        <div className="font-medium">Week {week} Logged Volume (Weighted Sets)</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const tgt = targets[m]||0; const pct = tgt? Math.min(100,(v/tgt)*100): 100; const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500'; return (
+            <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}{tgt?`/${tgt}`:''}</span></div>
+              <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
+                <div className={`h-full ${status}`} style={{width:`${pct}%`}} />
+                {tgt? <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">{Math.round(pct)}%</span>: null}
               </div>
-            ); })}
-            {!Object.keys(muscleWeek).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
-          </div>
+            </div>
+          ); })}
+          {!Object.keys(muscleWeek).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
-        <div className="space-y-2">
-          <div className="font-medium">Phase Totals (Weighted Sets)</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(muscleTotals).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(muscleTotals)); const pct=(v/max)*100; return (
-              <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}</span></div>
-                <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden"><div className="h-full bg-indigo-500" style={{width:`${pct}%`}} /></div>
-              </div>
-            ); })}
-            {!Object.keys(muscleTotals).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
-          </div>
+      </div>}
+      {!hidden?.phaseTotals && <div className="space-y-2">
+        <div className="font-medium">Phase Totals (Weighted Sets)</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {Object.entries(muscleTotals).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(muscleTotals)); const pct=(v/max)*100; return (
+            <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
+              <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}</span></div>
+              <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden"><div className="h-full bg-indigo-500" style={{width:`${pct}%`}} /></div>
+            </div>
+          ); })}
+          {!Object.keys(muscleTotals).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
-      </div>
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+      </div>}
+      {!hidden?.weeklyMuscleBar && <WeeklyMuscleBar />}
+      {!hidden?.compliance && <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Phase Weekly Compliance</div>
   <div className="text-[11px] text-gray-400">Color shows adherence vs target (green &gt;=100%, amber 70-99%, red &lt;70%).</div>
         <div className="space-y-2">
@@ -102,7 +143,7 @@ export default function Dashboard() {
             );
           })}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
