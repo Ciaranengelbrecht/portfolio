@@ -199,7 +199,21 @@ export default function Sessions() {
       return { [key]: { start: Date.now(), elapsed:0, running:true } };
     });
   }
-  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const pct = Math.min(1, ms/REST_TIMER_MAX); return <span aria-live={t.finished? 'polite':'off'} aria-label={`Rest time ${mm} minutes ${ss} seconds`} className={`inline-flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full border ${t.running? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200':'border-slate-600 bg-slate-800/60 text-slate-300'} relative overflow-hidden`}>{mm}:{String(ss).padStart(2,'0')}<span className="absolute left-0 top-0 h-full bg-emerald-500/15" style={{width: `${pct*100}%`}} />{t.finished && <span className="ml-1 text-emerald-400 animate-pulse">✔</span>}</span> }
+  const restTimerDisplay = (entryId:string,setNumber:number)=>{ const t=restTimers[`${entryId}:${setNumber}`]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); // centiseconds
+    const pct = Math.min(1, ms/REST_TIMER_MAX);
+    const pulseClass = t.running ? 'animate-[timerPulse_1800ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : '';
+    return (
+      <span
+        aria-live={t.finished? 'polite':'off'}
+        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds`}
+        className={`rest-timer relative font-mono tabular-nums select-none text-[11px] px-1.5 py-0.5 ${t.running? 'text-emerald-300':'text-slate-400'} ${pulseClass}`}
+      >
+        <span className="relative z-10">{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
+        <span className="absolute inset-0 rounded-md overflow-hidden">
+          <span className="absolute left-0 top-0 h-full bg-emerald-500/15" style={{width: `${pct*100}%`}} />
+        </span>
+      </span>
+    ); }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
 
   // Adjust week clamp if program changes
@@ -1016,8 +1030,13 @@ export default function Sessions() {
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                      <button className={`px-2 py-1 rounded bg-slate-700 transition-colors ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-btn-running bg-emerald-700 text-emerald-50':''}`} onClick={()=>toggleRestTimer(entry.id,set.setNumber)} aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running} aria-label="Toggle rest timer">{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
-                      <span className={restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-timer-chip running': restTimers[`${entry.id}:${set.setNumber}`]?.finished? 'rest-timer-chip finished':'rest-timer-chip'}>{restTimerDisplay(entry.id,set.setNumber)}</span>
+                      <button
+                        className={`px-2 py-1 rounded bg-slate-700 text-[10px] active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
+                        onClick={()=>toggleRestTimer(entry.id,set.setNumber)}
+                        aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running}
+                        aria-label="Toggle rest timer"
+                      >{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
+                      {restTimerDisplay(entry.id,set.setNumber)}
                     </div>
                   </div>
                 ))}
@@ -1244,8 +1263,13 @@ export default function Sessions() {
                       >
                         Del
                       </button>
-                      <button className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 transition-colors ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-btn-running bg-emerald-700 text-emerald-50':''}`} onClick={()=>toggleRestTimer(entry.id,set.setNumber)} aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running} aria-label="Toggle rest timer">{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
-                      <span className={restTimers[`${entry.id}:${set.setNumber}`]?.running? 'rest-timer-chip running': restTimers[`${entry.id}:${set.setNumber}`]?.finished? 'rest-timer-chip finished':'rest-timer-chip'}>{restTimerDisplay(entry.id,set.setNumber)}</span>
+                      <button
+                        className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 ${restTimers[`${entry.id}:${set.setNumber}`]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
+                        onClick={()=>toggleRestTimer(entry.id,set.setNumber)}
+                        aria-pressed={!!restTimers[`${entry.id}:${set.setNumber}`]?.running}
+                        aria-label="Toggle rest timer"
+                      >{restTimers[`${entry.id}:${set.setNumber}`]?.running? 'Stop':'Rest'}</button>
+                      {restTimerDisplay(entry.id,set.setNumber)}
                       {idx===entry.sets.length-1 && <button className="text-[10px] bg-emerald-700 rounded px-2 py-0.5" onClick={()=>duplicateLastSet(entry)}>Dup</button>}
                     </div>
                   </div>
