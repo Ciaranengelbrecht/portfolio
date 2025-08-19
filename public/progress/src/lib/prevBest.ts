@@ -21,8 +21,10 @@ export function buildPrevBestMap(
       if (map[entry.exerciseId]) continue; // already have more recent
       // Determine best set in this session (highest weight, tie reps)
       const best = [...entry.sets].sort((a, b) => {
-        if (b.weightKg !== a.weightKg) return b.weightKg - a.weightKg;
-        return (b.reps || 0) - (a.reps || 0);
+        const bw = b.weightKg ?? 0;
+        const aw = a.weightKg ?? 0;
+        if (bw !== aw) return bw - aw;
+        return (b.reps ?? 0) - (a.reps ?? 0);
       })[0];
       if (best) map[entry.exerciseId] = { week: sess.weekNumber, set: best };
     }

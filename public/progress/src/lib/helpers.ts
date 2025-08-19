@@ -120,7 +120,7 @@ export async function volumeByMuscleGroup(weekNumber: number) {
       s.entries.forEach((e: SessionEntry) => {
         const ex = exMap.get(e.exerciseId);
         const mg = ex?.muscleGroup || "other";
-        const ton = e.sets.reduce((t, set) => t + set.weightKg * set.reps, 0);
+  const ton = e.sets.reduce((t, set) => t + ((set.weightKg ?? 0) * (set.reps ?? 0)), 0);
         acc[mg] = acc[mg] || { tonnage: 0, sets: 0 };
         acc[mg].tonnage += ton;
         acc[mg].sets += e.sets.length;
@@ -135,7 +135,7 @@ export async function rollingPRs(exerciseId: string) {
     s.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets)
   );
   let best = 0;
-  for (const s of allSets) best = Math.max(best, s.weightKg * s.reps);
+  for (const s of allSets) best = Math.max(best, (s.weightKg ?? 0) * (s.reps ?? 0));
   return { estimated1RM: Math.round(best), bestTonnageSet: best };
 }
 
@@ -166,12 +166,12 @@ export async function getExerciseTimeSeries(
     .filter((x) => x.entry)
     .map((x) => {
       const sets = (x.entry as SessionEntry).sets;
-      const topWeight = sets.reduce((m, s) => Math.max(m, s.weightKg), 0);
+      const topWeight = sets.reduce((m, s) => Math.max(m, s.weightKg ?? 0), 0);
       const avgWeight = sets.length
-        ? Math.round(sets.reduce((a, b) => a + b.weightKg, 0) / sets.length)
+        ? Math.round(sets.reduce((a, b) => a + (b.weightKg ?? 0), 0) / sets.length)
         : 0;
-      const repsTotal = sets.reduce((a, b) => a + b.reps, 0);
-      const volume = sets.reduce((a, b) => a + b.weightKg * b.reps, 0);
+      const repsTotal = sets.reduce((a, b) => a + (b.reps ?? 0), 0);
+      const volume = sets.reduce((a, b) => a + ((b.weightKg ?? 0) * (b.reps ?? 0)), 0);
       return {
         date: x.date.slice(0, 10),
         topWeight,
