@@ -56,6 +56,7 @@ export default function Sessions() {
   } | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
+  const lastRealSessionAppliedRef = useRef(false);
   // Per-exercise rest timers keyed by entry.id (single timer per exercise)
   const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean;alerted?:boolean}>>({});
   const REST_TIMER_MAX = 180000; // 3 minutes in ms
@@ -80,6 +81,9 @@ export default function Sessions() {
       }
     })();
   }, []);
+
+  // After initial mount, choose the most recent session (by dateISO/localDate) that has real logged data (>0 weight or reps) and navigate to its phase/week/day.
+  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try { const all = await db.getAll<Session>('sessions'); const real = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) > 0 || (st.reps||0) > 0))); if(!real.length) { lastRealSessionAppliedRef.current = true; return; } real.sort((a,b)=> { const da = new Date(a.dateISO || a.localDate || '').getTime(); const dbt = new Date(b.dateISO || b.localDate || '').getTime(); return dbt - da; }); const last = real[0]; const parts = last.id.split('-'); if(parts.length===3){ const p = Number(parts[0]); const w = Number(parts[1]); const d = Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } } lastRealSessionAppliedRef.current = true; } catch(e){ console.warn('Failed picking last real session', e); } })(); },[]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -1444,12 +1448,15 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
   const onOptionKey = (e:React.KeyboardEvent, idx:number)=> { if(e.key==='Enter'){ e.preventDefault(); choose(idx);} else if(e.key==='ArrowDown'){ e.preventDefault(); const n = listRef.current?.querySelector(`[data-idx='${idx+1}']`) as HTMLElement|undefined; n?.focus(); } else if(e.key==='ArrowUp'){ e.preventDefault(); const p = listRef.current?.querySelector(`[data-idx='${idx-1}']`) as HTMLElement|undefined; p?.focus(); } else if(e.key==='Escape'){ e.preventDefault(); closeList(); } };
   const sheetTouchStart = (e:React.TouchEvent)=> { touchStartY.current = e.touches[0].clientY; };
   const sheetTouchMove = (e:React.TouchEvent)=> { if(touchStartY.current!=null){ const dy = e.touches[0].clientY - touchStartY.current; if(dy>90){ closeList(); touchStartY.current=null; } } };
+  // Close on outside click (desktop)
+  useEffect(()=> { if(!open) return; const onDown = (e:MouseEvent|TouchEvent)=> { const t=e.target as Node; if(listRef.current && listRef.current.contains(t)) return; if(triggerRef.current && triggerRef.current.contains(t)) return; setOpen(false); }; document.addEventListener('mousedown', onDown, true); document.addEventListener('touchstart', onDown, true); return ()=> { document.removeEventListener('mousedown', onDown, true); document.removeEventListener('touchstart', onDown, true); }; },[open]);
+
   const overlay = (rendered || open) && (
     <div className={mobile? 'fixed inset-0 z-[1000] flex flex-col justify-end':'fixed inset-0 z-[1000] pointer-events-none'}>
       {mobile && <div className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-180 ${open? 'opacity-100':'opacity-0'} anim-motion-safe`} onClick={closeList} />}
       <div
         className={mobile?
-          `relative rounded-t-2xl border border-white/10 bg-slate-900/95 backdrop-blur max-h-[60vh] overflow-hidden flex flex-col shadow-xl will-change-transform transition-transform duration-180 ease-[cubic-bezier(.32,.72,.33,1)] ${open? 'translate-y-0 opacity-100':'translate-y-full opacity-0'} anim-motion-safe`:
+          `relative w-full rounded-t-2xl border border-white/10 bg-slate-900/95 backdrop-blur max-h-[70vh] overflow-hidden flex flex-col shadow-xl will-change-transform transition-transform duration-180 ease-[cubic-bezier(.32,.72,.33,1)] ${open? 'translate-y-0 opacity-100':'translate-y-full opacity-0'} anim-motion-safe`:
           `absolute pointer-events-auto rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur shadow-xl max-h-[48vh] overflow-hidden flex flex-col will-change-transform transition-all duration-160 ease-out ${open? 'scale-100 opacity-100 translate-y-0':'scale-95 opacity-0 -translate-y-1'} anim-motion-safe`}
         style={!mobile? (()=> { const r=triggerRef.current?.getBoundingClientRect(); if(!r) return { top:0,left:0 }; const top=Math.min(window.innerHeight- (window.innerHeight*0.4), r.bottom+4); const left=Math.min(window.innerWidth-260, Math.max(8,r.left)); return { position:'absolute', top, left, width:Math.min(260, window.innerWidth-16) }; })(): {}}
         role="dialog"
@@ -1502,15 +1509,7 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
         <span className="truncate max-w-[140px]">{labels[value]}</span>
         <span className="opacity-70 text-[10px]">▼</span>
       </button>
-      {mobile && (
-        <div className="mt-2 -mb-1 overflow-x-auto no-scrollbar flex gap-2 snap-x relative px-0.5">
-          {labels.map((l,i)=> (
-            <button key={i} onClick={()=> choose(i)} className={`min-w-[96px] snap-start px-3 py-2 rounded-full text-xs border ${(i===value)?'border-emerald-500 bg-emerald-600/20':'border-white/10 bg-slate-800/70 hover:bg-slate-700/70'} truncate`} title={l}>{l}</button>
-          ))}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[rgba(15,23,42,0.95)] to-transparent" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[rgba(15,23,42,0.95)] to-transparent" />
-        </div>
-      )}
+  {/* Mobile pills removed: only dropdown selector retained */}
   {overlay && createPortal(overlay, document.body)}
   <div ref={liveRef} className="sr-only" aria-live="polite" />
     </div>
