@@ -206,26 +206,228 @@ export const EXERCISE_SEED: SeedItem[] = [
 ];
 
 const norm = (s:string)=> s.trim().toLowerCase();
+/** Additional expansion list (V2) bringing catalogue toward 400+ entries */
+const ADDITIONAL_EXERCISES_V2: SeedItem[] = [
+  // Olympic lift derivatives
+  { name: 'Power Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','core'] },
+  { name: 'Hang Power Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','core'] },
+  { name: 'Clean Pull', muscleGroup: 'legs', secondaryMuscles: ['glutes','back'] },
+  { name: 'Snatch Grip High Pull', muscleGroup: 'back', secondaryMuscles: ['hamstrings','glutes'] },
+  { name: 'Snatch Pull', muscleGroup: 'back', secondaryMuscles: ['hamstrings','glutes'] },
+  { name: 'Muscle Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back'] },
+  // Specialty bar presses / rows
+  { name: 'Swiss Bar Bench Press', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Swiss Bar Overhead Press', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core'] },
+  { name: 'Trap Bar Deadlift (High Handle)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back','quads'] },
+  { name: 'Trap Bar Deadlift (Low Handle)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back','quads'] },
+  { name: 'Trap Bar Carry', muscleGroup: 'other', secondaryMuscles: ['core','back','forearm' as any] },
+  // Smith / Machine variants
+  { name: 'Smith Machine Incline Bench', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Smith Machine RDL', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Smith Machine Calf Raise', muscleGroup: 'calves' },
+  { name: 'Smith Machine Split Squat', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Lever Row (Machine)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Chest Supported Machine Row (Neutral Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Hammer Strength Chest Press', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Hammer Strength Incline Press', muscleGroup: 'chest', secondaryMuscles: ['shoulders','triceps'] },
+  { name: 'Hammer Strength Row', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Hammer Strength High Row', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Pendulum Squat (Machine)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Belt Squat (Machine)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  // Cable / unilateral & isolation expansion
+  { name: 'Cable Lateral Raise (Single Arm)', muscleGroup: 'shoulders' },
+  { name: 'Cable Lateral Raise (Dual)', muscleGroup: 'shoulders' },
+  { name: 'Cable Chest Press (Standing)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Cable Chest Fly (Standing Mid)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Chest Fly (Low to High Single Arm)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Chest Fly (High to Low Single Arm)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Rear Delt Fly (Bent Over)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Cable Curl (Single Arm)', muscleGroup: 'biceps' },
+  { name: 'Cable Overhead Triceps Extension (Single Arm)', muscleGroup: 'triceps' },
+  { name: 'Cable Kickback (Single Arm)', muscleGroup: 'triceps' },
+  { name: 'Cable Hip Abduction (Standing)', muscleGroup: 'glutes' },
+  { name: 'Cable Hip Adduction (Standing)', muscleGroup: 'legs', secondaryMuscles: ['glutes'] },
+  { name: 'Cable Woodchopper (High to Low)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Woodchopper (Low to High)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Pallof Press (Half Kneeling)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Romanian Deadlift', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes'] },
+  // Bodyweight / calisthenics expansion
+  { name: 'Chin-Up (Weighted)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Pull-Up (Wide Grip Weighted)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Push-Up (Weighted Plate)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Ring Dip', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Ring Push-Up', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Ring Row', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Inverted Row (Feet Elevated)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Nordic Curl (Assisted Band)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes'] },
+  { name: 'Pistol Squat (Assisted)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Pistol Squat (Full)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Handstand Push-Up (Wall)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core'] },
+  // Conditioning / carries / sleds
+  { name: 'Farmer Carry (Trap Bar)', muscleGroup: 'other', secondaryMuscles: ['core','forearm' as any,'shoulders'] },
+  { name: 'Sandbag Carry', muscleGroup: 'other', secondaryMuscles: ['core','back','glutes'] },
+  { name: 'Sandbag Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','core'] },
+  { name: 'Sled Push (Light Speed)', muscleGroup: 'legs', secondaryMuscles: ['glutes','quads','hamstrings'] },
+  { name: 'Sled Drag (Lateral)', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Yoke Carry (Run)', muscleGroup: 'other', secondaryMuscles: ['core','back','shoulders'] },
+  { name: 'Kettlebell Swing (Russian)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','core'] },
+  { name: 'Kettlebell Swing (American)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','core','shoulders'] },
+  { name: 'Kettlebell Clean and Press', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core','glutes'] },
+  { name: 'Kettlebell Snatch', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core','glutes'] },
+  { name: 'Kettlebell Goblet Lateral Lunge', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  // Plyometric / explosive
+  { name: 'Box Jump', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Broad Jump', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Depth Jump', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Med Ball Slam', muscleGroup: 'core', secondaryMuscles: ['shoulders','back'] },
+  { name: 'Med Ball Rotational Throw', muscleGroup: 'core', secondaryMuscles: ['shoulders','back'] },
+  { name: 'Med Ball Chest Pass', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  // Rotator cuff / prehab
+  { name: 'Cable External Rotation (Elbow 90)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Cable Internal Rotation (Elbow 90)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Band Pull-Apart', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Cuban Press', muscleGroup: 'shoulders', secondaryMuscles: ['back','triceps'] },
+  { name: 'Scap Push-Up', muscleGroup: 'chest', secondaryMuscles: ['shoulders','core'] },
+  // Core expansion
+  { name: 'Hanging Knee Raise (Captain Chair)', muscleGroup: 'core', secondaryMuscles: ['hip flexors' as any] },
+  { name: 'Reverse Crunch', muscleGroup: 'core' },
+  { name: 'Dragon Flag (Progression)', muscleGroup: 'core', secondaryMuscles: ['shoulders','lats' as any] },
+  { name: 'Cable Anti-Rotation Press (Standing)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Ab Wheel Rollout (Knees Elevated)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Weighted Plank (Plate Back)', muscleGroup: 'core', secondaryMuscles: ['shoulders','glutes'] },
+  { name: 'Stir the Pot (Swiss Ball)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  // Glute / posterior chain extras
+  { name: 'Single Leg Hip Thrust (Bench)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: 'Single Leg RDL (Dumbbell)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','core'] },
+  { name: 'Single Leg RDL (Barbell)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','core'] },
+  { name: 'Cable Glute Pull-Through (Kneeling)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: '45 Degree Back Extension (Glute Bias)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings','back'] },
+  // Arms extra isolation
+  { name: 'Dumbbell Spider Curl', muscleGroup: 'biceps' },
+  { name: 'Machine Preacher Curl', muscleGroup: 'biceps' },
+  { name: 'Incline Hammer Curl', muscleGroup: 'biceps', secondaryMuscles: ['forearm' as any] },
+  { name: 'Cable Reverse Curl (Straight Bar)', muscleGroup: 'biceps', secondaryMuscles: ['forearm' as any] },
+  { name: 'Overhead Cable Curl', muscleGroup: 'biceps' },
+  { name: 'Machine Dip Press', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders'] },
+  { name: 'Cable Triceps Extension (Straight Bar)', muscleGroup: 'triceps' },
+  { name: 'Cable Triceps Extension (V Bar)', muscleGroup: 'triceps' },
+  { name: 'Reverse Grip Triceps Pushdown', muscleGroup: 'triceps' },
+  // Shoulder isolation extras
+  { name: 'Dumbbell Upright Row (Wide Grip)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','back'] },
+  { name: 'Cable Upright Row', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Machine Reverse Fly', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Incline Y Raise (Dumbbell)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  // Misc strongman / odd object
+  { name: 'Sandbag Over Shoulder', muscleGroup: 'other', secondaryMuscles: ['glutes','back','core'] },
+  { name: 'Sandbag to Shoulder (Alternating)', muscleGroup: 'other', secondaryMuscles: ['glutes','back','core'] },
+  { name: 'Keg Carry', muscleGroup: 'other', secondaryMuscles: ['core','back','glutes'] },
+  { name: 'Log Press (Clean and Press)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core','glutes'] },
+  { name: 'Farmer Carry (Uneven)', muscleGroup: 'other', secondaryMuscles: ['core','forearm' as any,'shoulders'] },
+  { name: 'Sled Row (Cable / Strap)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Sled Chest Press (Horizontal)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+];
+
+// Basic tag inference (deterministic, idempotent)
+function inferTags(name: string, mg: MuscleGroup, secondary?: MuscleGroup[]): string[] {
+  const n = name.toLowerCase();
+  const tags = new Set<string>();
+  // Equipment
+  if(/barbell|smith/.test(n)) tags.add('barbell');
+  if(/dumbbell|db /.test(n) || /dumbbell/.test(n)) tags.add('dumbbell');
+  if(/cable|rope|pulldown/.test(n)) tags.add('cable');
+  if(/machine|lever|hammer strength|pendulum|belt squat/.test(n)) tags.add('machine');
+  if(/kettlebell|kb /.test(n)) tags.add('kettlebell');
+  if(/trap bar/.test(n)) tags.add('trap-bar');
+  if(/sled/.test(n)) tags.add('sled');
+  if(/sandbag/.test(n)) tags.add('sandbag');
+  if(/ring/.test(n)) tags.add('rings');
+  if(/band/.test(n)) tags.add('band');
+  if(/bodyweight|push-up|pull-up|chin-up|plank|row \(trx|inverted row/.test(n)) tags.add('bodyweight');
+  // Movement pattern
+  if(/squat|split squat|pistol|lunge|step-up|pendulum squat|belt squat/.test(n)) tags.add('squat');
+  if(/deadlift|rdl|good morning|clean|snatch|pull|hip thrust|glute bridge|swing/.test(n)) tags.add('hinge');
+  if(/bench|press|push-up|dip|chest press|overhead press|log press|machine dip/.test(n)) tags.add('press');
+  if(/row|pulldown|pull-up|chin-up|upright row|face pull|meadows/.test(n)) tags.add('pull');
+  if(/curl/.test(n)) tags.add('curl');
+  if(/extension|kickback|skull crusher|jm press/.test(n)) tags.add('extension');
+  if(/fly/.test(n)) tags.add('fly');
+  if(/raise/.test(n)) tags.add('raise');
+  if(/carry|farmer|yoke|sandbag carry|keg carry|trap bar carry/.test(n)) tags.add('carry');
+  if(/woodchopper|rotational throw/.test(n)) tags.add('rotation');
+  if(/pallof|anti-rotation/.test(n)) tags.add('anti-rotation');
+  if(/plank|hollow|stir the pot|dragon flag|ab wheel|dead bug/.test(n)) tags.add('anti-extension');
+  if(/swing|jump|throw|slam/.test(n)) tags.add('power');
+  // Directional / plane heuristics
+  if(/pulldown|pull-up|chin-up|overhead press|handstand/.test(n)) tags.add('vertical');
+  if(/row|bench|chest press|push-up/.test(n)) tags.add('horizontal');
+  // Unilateral
+  if(/single|split|bulgarian|lunge|step-up|pistol|kickback|one arm|single arm/.test(n)) tags.add('unilateral');
+  // Core classification
+  if(mg==='core' || tags.has('anti-rotation') || tags.has('anti-extension')) tags.add('core');
+  // Compound vs isolation (rough)
+  const isIsolation = /(curl|extension|raise|fly|kickback|pullover|abduction|adduction|rotation)/.test(n) && !/(squat|deadlift|press|row|pull-up|chin-up|lunge|clean|snatch|thrust|swing)/.test(n);
+  tags.add(isIsolation? 'isolation':'compound');
+  // Primary muscle group tag for filtering ease
+  tags.add('mg:'+mg);
+  (secondary||[]).forEach(s=> tags.add('sec:'+s));
+  return Array.from(tags);
+}
 
 export async function seedExercises() {
-  try {
-    if(localStorage.getItem('exerciseSeedV1')) return; // already seeded
-  } catch {}
+  // Phase 1 seed (original list)
   const existing = await db.getAll<Exercise>('exercises');
-  const existingNames = new Set(existing.map(e=> norm(e.name)));
-  const toInsert: Exercise[] = [];
-  for(const item of EXERCISE_SEED){
-    if(existingNames.has(norm(item.name))) continue;
-    toInsert.push({
-      id: nanoid(),
-      name: item.name,
-      muscleGroup: item.muscleGroup,
-      secondaryMuscles: item.secondaryMuscles,
-      defaults: { sets: 3, targetRepRange: '8-12' },
-      active: true
-    });
+  const existingByName = new Map(existing.map(e=> [norm(e.name), e]));
+  if(!localStorage.getItem('exerciseSeedV1')){
+    const toInsert: Exercise[] = [];
+    for(const item of EXERCISE_SEED){
+      if(existingByName.has(norm(item.name))) continue;
+      const ex: Exercise = {
+        id: nanoid(),
+        name: item.name,
+        muscleGroup: item.muscleGroup,
+        secondaryMuscles: item.secondaryMuscles,
+        defaults: { sets: 3, targetRepRange: '8-12' },
+        active: true,
+      };
+      toInsert.push(ex);
+      existingByName.set(norm(ex.name), ex);
+    }
+    for(const ex of toInsert) await db.put('exercises', ex);
+    if(toInsert.length) try { localStorage.setItem('exerciseSeedV1','1'); } catch {}
   }
-  for(const ex of toInsert){ await db.put('exercises', ex); }
-  try { localStorage.setItem('exerciseSeedV1','1'); } catch {}
-  if(toInsert.length){ try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {} }
+
+  // Phase 2: expansion + tag inference
+  if(!localStorage.getItem('exerciseSeedV2')){
+    const toInsert: Exercise[] = [];
+    for(const item of ADDITIONAL_EXERCISES_V2){
+      if(existingByName.has(norm(item.name))) continue;
+      const ex: Exercise = {
+        id: nanoid(),
+        name: item.name,
+        muscleGroup: item.muscleGroup,
+        secondaryMuscles: item.secondaryMuscles,
+        defaults: { sets: 3, targetRepRange: '8-12' },
+        active: true,
+      };
+      toInsert.push(ex);
+      existingByName.set(norm(ex.name), ex);
+    }
+    for(const ex of toInsert) await db.put('exercises', ex);
+    // Infer & attach tags for ALL (existing + new) where missing or outdated
+    const allNow = await db.getAll<Exercise>('exercises');
+    let updatedCount = 0;
+    for(const ex of allNow){
+      const inferred = inferTags(ex.name, ex.muscleGroup, ex.secondaryMuscles);
+      // Merge (avoid overwrite of custom tags later?) For first pass just set if empty
+      if(!ex.tags || ex.tags.length===0){
+        const next = { ...ex, tags: inferred };
+        await db.put('exercises', next);
+        updatedCount++;
+      }
+    }
+    if(toInsert.length || updatedCount){
+      try { localStorage.setItem('exerciseSeedV2','1'); } catch {}
+      try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
+    }
+  }
 }

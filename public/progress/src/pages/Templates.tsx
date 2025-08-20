@@ -179,15 +179,45 @@ export default function Templates() {
     }
     return ti===term.length? score : 0;
   };
+  // Multi-token + tag aware search: tokens separated by space. Support prefix filters:
+  // tag:xyz (matches tags) mg:group sec:group eq:equipment (equipment tag)
   const searchedExercises = useMemo(()=> {
-    const q = exerciseQuery.trim();
-    if(!q){ return showAllExercises? exercises : []; }
-    return exercises
-      .map(e=> ({ e, s: fuzzyScore(q, e.name) }))
-      .filter(x=> x.s>0)
-      .sort((a,b)=> b.s - a.s || a.e.name.localeCompare(b.e.name))
-      .slice(0,200)
-      .map(x=> x.e);
+    const raw = exerciseQuery.trim();
+    const all = exercises;
+    if(!raw){ return showAllExercises? all : []; }
+    const tokens = raw.split(/\s+/).slice(0,6); // cap tokens
+    const scored: { e: Exercise; score: number }[] = [];
+    outer: for(const e of all){
+      const nameL = e.name.toLowerCase();
+      const tags = (e.tags||[]).map(t=> t.toLowerCase());
+      let total = 0;
+      for(const t of tokens){
+        const tl = t.toLowerCase();
+        if(tl.startsWith('tag:')){
+          const want = tl.slice(4);
+            if(!tags.some(x=> x===want)) continue outer;
+            total += 30;
+            continue;
+        }
+        if(tl.startsWith('mg:')){
+          const want = tl.slice(3);
+          if(!tags.includes('mg:'+want)) continue outer;
+          total += 25; continue;
+        }
+        if(tl.startsWith('sec:')){
+          const want = tl.slice(4);
+          if(!tags.includes('sec:'+want)) continue outer;
+          total += 15; continue;
+        }
+        // Plain token: match name OR tags subsequence
+        const tagHit = tags.some(tag=> tag.includes(tl));
+        const sName = fuzzyScore(tl, nameL);
+        if(sName===0 && !tagHit){ continue outer; }
+        total += sName + (tagHit? 10:0);
+      }
+      if(total>0) scored.push({ e, score: total });
+    }
+    return scored.sort((a,b)=> b.score - a.score || a.e.name.localeCompare(b.e.name)).slice(0, 250).map(x=> x.e);
   }, [exerciseQuery, exercises, showAllExercises]);
 
   return (
@@ -428,6 +458,13 @@ export default function Templates() {
                       <SecondaryMusclePicker ex={ex} update={async(next)=> { await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }} />
                     </div>
                   </div>
+                  {ex.tags && ex.tags.length>0 && (
+                    <div className="mt-1 flex flex-wrap gap-1 max-w-full">
+                      {ex.tags.slice(0,12).map(tag=> (
+                        <span key={tag} className="text-[9px] bg-slate-700/70 px-1.5 py-0.5 rounded">{tag}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button
                   className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2"
