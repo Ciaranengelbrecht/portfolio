@@ -1051,53 +1051,66 @@ function Toast({
 
 function ExerciseOverrides() {
   const [list, setList] = useState<any[]>([]);
+  const [collapsed, setCollapsed] = useState(true); // collapsed by default
   useEffect(() => {
     (async () => setList(await db.getAll("exercises")))();
   }, []);
-  const save = async (
-    i: number,
-    k: "deloadLoadPct" | "deloadSetPct",
-    v: number
-  ) => {
+  const save = async (i: number, k: "deloadLoadPct" | "deloadSetPct", v: number) => {
     const ex = list[i];
     const updated = { ...ex, defaults: { ...ex.defaults, [k]: v } };
     await db.put("exercises", updated);
     setList(list.map((e, idx) => (idx === i ? updated : e)));
   };
+  // Persist collapse preference (session scope for now)
+  useEffect(()=> { try { const raw = sessionStorage.getItem('exOverridesCollapsed'); if(raw!==null) setCollapsed(raw==='1'); } catch {} },[]);
+  useEffect(()=> { try { sessionStorage.setItem('exOverridesCollapsed', collapsed? '1':'0'); } catch {} },[collapsed]);
   return (
-    <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-      <div className="font-medium">Exercise deload overrides</div>
-      <div className="text-sm text-muted">
-        Set specific deload % for load and sets. Leave blank to use global
-        defaults.
-      </div>
-      <div className="grid gap-2">
-        {list.map((ex, i) => (
-          <div
-            key={ex.id}
-            className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2"
-          >
-            <div className="truncate">{ex.name}</div>
-            <input
-              aria-label="Load %"
-              className="input-app rounded-xl px-3 py-2"
-              placeholder="Load %"
-              value={Math.round((ex.defaults.deloadLoadPct ?? NaN) * 100) || ""}
-              onChange={(e) =>
-                save(i, "deloadLoadPct", Number(e.target.value) / 100)
-              }
-            />
-            <input
-              aria-label="Set %"
-              className="input-app rounded-xl px-3 py-2"
-              placeholder="Set %"
-              value={Math.round((ex.defaults.deloadSetPct ?? NaN) * 100) || ""}
-              onChange={(e) =>
-                save(i, "deloadSetPct", Number(e.target.value) / 100)
-              }
-            />
-          </div>
-        ))}
+    <div className="bg-card rounded-2xl shadow-soft overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-emerald-600/50"
+        onClick={() => setCollapsed(c => !c)}
+        aria-expanded={!collapsed}
+        aria-controls="exercise-overrides-body"
+      >
+        <span className="font-medium flex items-center gap-2">
+          <span className={`inline-block transform transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`}>▾</span>
+          Exercise deload overrides
+        </span>
+        <span className="text-xs text-muted">{list.length} exercises</span>
+      </button>
+      <div
+        id="exercise-overrides-body"
+        className={`transition-all duration-400 ease-out ${collapsed ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-[640px] opacity-100'} px-4 ${collapsed? '' : 'pb-4'}`}
+        aria-hidden={collapsed}
+      >
+        <div className="text-sm text-muted mb-3">
+          Set specific deload % for load and sets. Leave blank to use global defaults.
+        </div>
+        <div className="grid gap-2">
+          {list.map((ex, i) => (
+            <div
+              key={ex.id}
+              className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2 bg-slate-800/40 rounded-xl px-3 py-2"
+            >
+              <div className="truncate text-xs sm:text-sm">{ex.name}</div>
+              <input
+                aria-label="Load %"
+                className="input-app rounded-xl px-3 py-2"
+                placeholder="Load %"
+                value={Math.round((ex.defaults.deloadLoadPct ?? NaN) * 100) || ""}
+                onChange={(e) => save(i, "deloadLoadPct", Number(e.target.value) / 100)}
+              />
+              <input
+                aria-label="Set %"
+                className="input-app rounded-xl px-3 py-2"
+                placeholder="Set %"
+                value={Math.round((ex.defaults.deloadSetPct ?? NaN) * 100) || ""}
+                onChange={(e) => save(i, "deloadSetPct", Number(e.target.value) / 100)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
