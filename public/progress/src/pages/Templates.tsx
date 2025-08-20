@@ -66,13 +66,22 @@ export default function Templates() {
     return () => window.removeEventListener("sb-change", onChange as any);
   }, []);
 
+  const buildDefaultPlan = (ex: Exercise) => ({
+    exerciseId: ex.id,
+    plannedSets: ex.defaults?.sets || 3,
+    repRange: ex.defaults?.targetRepRange || "8-12",
+    progression: { scheme: 'linear' as const, incrementKg: 2.5, addRepsFirst: true }
+  });
+
   const addTemplate = async () => {
     const raw = name || `Template ${templates.length + 1}`;
     const clean = raw.trim().replace(/\s+/g,' ').slice(0,60) || `Template ${templates.length + 1}`;
+    const initial = exercises.slice(0, 4);
     const t: Template = {
       id: nanoid(),
       name: clean,
-      exerciseIds: exercises.slice(0, 4).map((e) => e.id),
+      exerciseIds: initial.map((e) => e.id),
+      plan: initial.map(buildDefaultPlan)
     };
     await db.put("templates", t);
     setTemplates([t, ...templates]);
@@ -90,6 +99,7 @@ export default function Templates() {
       id: nanoid(),
       name: `${t.name} (copy)`,
       exerciseIds: [...t.exerciseIds],
+      plan: t.plan ? t.plan.map(p=> ({ ...p })) : undefined,
     };
     await db.put("templates", copy);
     setTemplates([copy, ...templates]);
@@ -110,7 +120,8 @@ export default function Templates() {
       setQuery("");
       return;
     }
-    const nt = { ...t, exerciseIds: [...t.exerciseIds, ex.id] };
+    const planEntry = buildDefaultPlan(ex);
+    const nt: Template = { ...t, exerciseIds: [...t.exerciseIds, ex.id], plan: [...(t.plan||[]), planEntry] };
     await db.put("templates", nt);
     setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
     setShowAddFor(null);
@@ -118,7 +129,7 @@ export default function Templates() {
   };
 
   const removeExerciseFromTemplate = async (t: Template, id: string) => {
-    const nt = { ...t, exerciseIds: t.exerciseIds.filter((x) => x !== id) };
+    const nt: Template = { ...t, exerciseIds: t.exerciseIds.filter((x) => x !== id), plan: t.plan?.filter(p=> p.exerciseId!==id) };
     await db.put("templates", nt);
     setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
   };
@@ -279,62 +290,143 @@ export default function Templates() {
             <div className="mt-3 space-y-2">
               {t.exerciseIds.map((id, idx) => {
                 const ex = exercises.find((e) => e.id === id);
+                const planEntry = t.plan?.find(p=> p.exerciseId===id);
                 return (
-                  <div
-                    key={id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
-                  >
-                    <div className="w-full sm:flex-1 text-sm sm:text-base break-words">
-                      {ex?.name || "Unknown"}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
-                        disabled={idx === 0}
-                        onClick={() => moveExercise(t, idx, idx - 1)}
-                      >
-                        Up
-                      </button>
-                      <button
-                        className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
-                        disabled={idx === t.exerciseIds.length - 1}
-                        onClick={() => moveExercise(t, idx, idx + 1)}
-                      >
-                        Down
-                      </button>
-                      <button
-                        className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                        onClick={() => ex && toggleOptional(ex)}
-                      >
-                        {ex?.isOptional ? (
-                          <>
-                            <span className="hidden sm:inline">Optional ✓</span>
-                            <span className="inline sm:hidden">Opt ✓</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="hidden sm:inline">Optional</span>
-                            <span className="inline sm:hidden">Opt</span>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        className="text-[11px] sm:text-xs bg-red-600 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                        onClick={() => removeExerciseFromTemplate(t, id)}
-                      >
-                        Remove
-                      </button>
-                      {ex && (
+                  <div key={id} className="bg-slate-800 rounded-xl px-3 py-3 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <div className="w-full sm:flex-1 text-sm sm:text-base break-words">
+                        {ex?.name || "Unknown"}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
-                          className="text-[11px] sm:text-xs bg-red-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                          onClick={() => deleteExercise(ex)}
+                          className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
+                          disabled={idx === 0}
+                          onClick={() => moveExercise(t, idx, idx - 1)}
                         >
-                          <span className="hidden sm:inline">
-                            Delete exercise
-                          </span>
-                          <span className="inline sm:hidden">Delete</span>
+                          Up
                         </button>
-                      )}
+                        <button
+                          className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
+                          disabled={idx === t.exerciseIds.length - 1}
+                          onClick={() => moveExercise(t, idx, idx + 1)}
+                        >
+                          Down
+                        </button>
+                        <button
+                          className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
+                          onClick={() => ex && toggleOptional(ex)}
+                        >
+                          {ex?.isOptional ? (
+                            <>
+                              <span className="hidden sm:inline">Optional ✓</span>
+                              <span className="inline sm:hidden">Opt ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="hidden sm:inline">Optional</span>
+                              <span className="inline sm:hidden">Opt</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          className="text-[11px] sm:text-xs bg-red-600 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
+                          onClick={() => removeExerciseFromTemplate(t, id)}
+                        >
+                          Remove
+                        </button>
+                        {ex && (
+                          <button
+                            className="text-[11px] sm:text-xs bg-red-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
+                            onClick={() => deleteExercise(ex)}
+                          >
+                            <span className="hidden sm:inline">Delete exercise</span>
+                            <span className="inline sm:hidden">Delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid sm:grid-cols-5 gap-2 text-[11px] sm:text-xs bg-slate-900/40 rounded-lg p-2">
+                      <label className="flex flex-col gap-1">
+                        <span className="opacity-70">Sets</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={planEntry?.plannedSets ?? ex?.defaults.sets ?? 3}
+                          onChange={(e)=> {
+                            const v = Math.min(10, Math.max(1, Number(e.target.value)||1));
+                            const nextPlan = [...(t.plan||[])];
+                            const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
+                            if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], plannedSets: v };
+                            else nextPlan.push({ ...buildDefaultPlan(ex!), plannedSets: v });
+                            const nt: Template = { ...t, plan: nextPlan };
+                            setTemplates(templates.map(x=> x.id===t.id? nt: x));
+                            db.put('templates', nt);
+                          }}
+                          className="bg-slate-700 rounded px-2 py-1"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="opacity-70">Rep Range</span>
+                        <input
+                          type="text"
+                          value={planEntry?.repRange ?? ex?.defaults.targetRepRange ?? '8-12'}
+                          onChange={(e)=> {
+                            const v = e.target.value.replace(/[^0-9\-–]/g,'').slice(0,9);
+                            const nextPlan = [...(t.plan||[])];
+                            const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
+                            if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], repRange: v };
+                            else nextPlan.push({ ...buildDefaultPlan(ex!), repRange: v });
+                            const nt: Template = { ...t, plan: nextPlan };
+                            setTemplates(templates.map(x=> x.id===t.id? nt: x));
+                            db.put('templates', nt);
+                          }}
+                          placeholder="8-12"
+                          className="bg-slate-700 rounded px-2 py-1"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="opacity-70">Increment (kg)</span>
+                        <input
+                          type="number"
+                          step={0.5}
+                          value={planEntry?.progression?.incrementKg ?? 2.5}
+                          onChange={(e)=> {
+                            const v = Number(e.target.value)||0;
+                            const nextPlan = [...(t.plan||[])];
+                            const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
+                            if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], progression: { ...(nextPlan[idxP].progression||{ scheme:'linear'}), incrementKg: v } };
+                            else nextPlan.push({ ...buildDefaultPlan(ex!), progression: { scheme:'linear', incrementKg: v, addRepsFirst: true } });
+                            const nt: Template = { ...t, plan: nextPlan };
+                            setTemplates(templates.map(x=> x.id===t.id? nt: x));
+                            db.put('templates', nt);
+                          }}
+                          className="bg-slate-700 rounded px-2 py-1"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="opacity-70">Reps First?</span>
+                        <select
+                          value={String(planEntry?.progression?.addRepsFirst ?? true)}
+                          onChange={(e)=> {
+                            const v = e.target.value === 'true';
+                            const nextPlan = [...(t.plan||[])];
+                            const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
+                            if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], progression: { ...(nextPlan[idxP].progression||{ scheme:'linear'}), addRepsFirst: v } };
+                            else nextPlan.push({ ...buildDefaultPlan(ex!), progression: { scheme:'linear', incrementKg: 2.5, addRepsFirst: v } });
+                            const nt: Template = { ...t, plan: nextPlan };
+                            setTemplates(templates.map(x=> x.id===t.id? nt: x));
+                            db.put('templates', nt);
+                          }}
+                          className="bg-slate-700 rounded px-2 py-1"
+                        >
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </select>
+                      </label>
+                      <div className="flex flex-col gap-1 text-[10px] sm:text-xs justify-end">
+                        <div className="opacity-60 leading-tight">Guides next session progression (editable on import)</div>
+                      </div>
                     </div>
                   </div>
                 );

@@ -23,6 +23,8 @@ export async function importFromTemplate(
     preload = { sessions, exercises, settings };
   }
   const makeSets = async (exId: string): Promise<SetEntry[]> => {
+    // Check template plan override first
+    const planEntry = template.plan?.find(p=> p.exerciseId === exId);
     if (opts.deloadWeeks && opts.deloadWeeks.has(opts.weekNumber)) {
       const dl = await getDeloadPrescription(exId, opts.weekNumber, {
         deloadWeeks: opts.deloadWeeks,
@@ -36,25 +38,19 @@ export async function importFromTemplate(
         }));
       }
     }
-    const rows = Math.max(
-      1,
-      Math.min(
-        6,
-        settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3
-      )
-    );
-    return Array.from({ length: rows }, (_, i) => ({
-      setNumber: i + 1,
-      weightKg: 0,
-      reps: 0,
-    }));
+    const plannedRows = planEntry?.plannedSets;
+    const fallbackRows = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
+    const rows = Math.max(1, Math.min(12, plannedRows || fallbackRows));
+    return Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 }));
   };
   const newEntries: SessionEntry[] = [];
   for (const exId of template.exerciseIds) {
+    const planEntry = template.plan?.find(p=> p.exerciseId === exId);
     const entry: SessionEntry = {
       id: nanoid(),
       exerciseId: exId,
       sets: await makeSets(exId),
+      targetRepRange: planEntry?.repRange || exMap.get(exId)?.defaults.targetRepRange,
     };
     newEntries.push(entry);
   }
