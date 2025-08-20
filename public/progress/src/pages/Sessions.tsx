@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { createPortal } from 'react-dom';
 import { db } from "../lib/db";
+import { getAllCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
 import {
   Exercise,
@@ -362,12 +363,15 @@ export default function Sessions() {
     })();
   }, [phase, week, day]);
 
+  const [initialLoading,setInitialLoading] = useState(true);
   useEffect(() => {
     (async () => {
       console.log("[Sessions] init: waitForSession then fetch lists");
       await waitForSession({ timeoutMs: 4000 });
-      const t = await db.getAll("templates");
-      const e = await db.getAll("exercises");
+      const [t,e] = await Promise.all([
+        getAllCached('templates'),
+        getAllCached('exercises')
+      ]);
       console.log(
         "[Sessions] init: templates",
         t.length,
@@ -377,10 +381,11 @@ export default function Sessions() {
       setTemplates(t);
       setExercises(e);
       // Preload sessions for prev best map
-      const allSessions = await db.getAll<Session>("sessions");
+      const allSessions = await getAllCached<Session>('sessions');
       setPrevBestMap(buildPrevBestMap(allSessions, week, phase));
       const st = await getSettings();
       setSettingsState(st as any);
+      setInitialLoading(false);
     })();
   }, []);
 
@@ -390,8 +395,10 @@ export default function Sessions() {
       (async () => {
         console.log("[Sessions] sb-auth: waitForSession then refetch lists");
         await waitForSession({ timeoutMs: 4000 });
-        const t = await db.getAll("templates");
-        const e = await db.getAll("exercises");
+        const [t,e] = await Promise.all([
+          getAllCached('templates', { force: true }),
+          getAllCached('exercises', { force: true })
+        ]);
         console.log(
           "[Sessions] sb-auth: templates",
           t.length,
@@ -401,7 +408,7 @@ export default function Sessions() {
         setTemplates(t);
         setExercises(e);
         if (session) {
-          const fresh = await db.get<Session>("sessions", session.id);
+          const fresh = await db.get<Session>("sessions", session.id); // single fetch; not cached (ensure latest entry data)
           console.log(
             "[Sessions] sb-auth: refreshed session entries",
             fresh?.entries?.length || 0
@@ -807,6 +814,10 @@ export default function Sessions() {
       )}
 
   <div className="space-y-3">
+        {initialLoading && <div className="space-y-2">
+          <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
+          <div className="h-24 bg-white/5 rounded animate-pulse" />
+        </div>}
         {session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge

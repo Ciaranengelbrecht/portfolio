@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
 import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
+import { getAllCached } from "../../lib/dataCache";
 import { Settings } from "../../lib/types";
 
 export default function Dashboard() {
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [perWeek, setPerWeek] = useState<Record<number, Record<string, number>>>({});
   const [hidden,setHidden] = useState<NonNullable<Settings['dashboardPrefs']>['hidden']>({});
   const [weeklyBar,setWeeklyBar] = useState<{muscle:string; value:number}[]>([]);
+  const [loading,setLoading] = useState(true);
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
@@ -26,14 +28,17 @@ export default function Dashboard() {
       setHidden(prefs.hidden || {});
       // compute logged sets
       const phaseNum = prefs.lastLocation?.phaseNumber || 1;
-  const settings = await getSettings();
-  setTargets(settings.volumeTargets || {});
-  const { perWeek, totals } = await computeLoggedSetVolume(phaseNum);
-  setPerWeek(perWeek);
-  setMuscleWeek(perWeek[prefs.lastLocation?.weekNumber || 1] || {});
-  setMuscleTotals(totals);
-  const wk = perWeek[prefs.lastLocation?.weekNumber || 1] || {};
-  setWeeklyBar(Object.entries(wk).map(([m,v])=> ({ muscle:m, value:v })).sort((a,b)=> b.value-a.value));
+      const settings = await getSettings();
+      setTargets(settings.volumeTargets || {});
+      // Use cached sessions/exercises for volume compute (computeLoggedSetVolume already fetches internally; could refactor later)
+      const { perWeek, totals } = await computeLoggedSetVolume(phaseNum);
+      setPerWeek(perWeek);
+      const wkNum = prefs.lastLocation?.weekNumber || 1;
+      setMuscleWeek(perWeek[wkNum] || {});
+      setMuscleTotals(totals);
+      const wk = perWeek[wkNum] || {};
+      setWeeklyBar(Object.entries(wk).map(([m,v])=> ({ muscle:m, value:v })).sort((a,b)=> b.value-a.value));
+      setLoading(false);
     })();
   }, []);
   // refresh when sessions change realtime
@@ -85,11 +90,11 @@ export default function Dashboard() {
       </div>
       {!hidden?.trainingChart && <div>
         <div className="font-medium mb-2">Training</div>
-        <ChartPanel kind="exercise" />
+        {loading ? <div className="h-60 rounded-xl bg-white/5 animate-pulse" /> : <ChartPanel kind="exercise" />}
       </div>}
       {!hidden?.bodyChart && <div>
         <div className="font-medium mb-2">Body</div>
-        <ChartPanel kind="measurement" />
+        {loading ? <div className="h-60 rounded-xl bg-white/5 animate-pulse" /> : <ChartPanel kind="measurement" />}
       </div>}
       {!hidden?.weekVolume && <div className="space-y-2">
         <div className="font-medium">Week {week} Logged Volume (Weighted Sets)</div>
