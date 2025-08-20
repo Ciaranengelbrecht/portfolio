@@ -1275,9 +1275,7 @@ export default function Sessions() {
                               updateEntry({
                                 ...entry,
                                 sets: entry.sets.map((s, i) =>
-                                  i === idx
-                                    ? { ...s, reps: (s.reps || 0) + 1 }
-                                    : s
+                                  i === idx ? { ...s, reps: (s.reps || 0) + 1 } : s
                                 ),
                               })
                             }
@@ -1565,33 +1563,23 @@ export default function Sessions() {
       <div className="h-40 sm:h-0" aria-hidden="true" />
       {/* Mobile sticky summary bar */}
       {session && !!session.entries.length && (
-        <div className="fixed sm:hidden bottom-0 left-0 right-0 z-30 backdrop-blur bg-slate-900/80 border-t border-white/10 px-4 py-3 flex items-center gap-4 overflow-x-auto">
+        <MobileSummaryFader visibleThreshold={0.5}>
           <MobileSessionMetrics session={session} exercises={exercises} />
-        </div>
-      )}
+        </MobileSummaryFader>
+       )}
 
-      <div className="bg-card rounded-2xl p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm">Add exercise</div>
-          <button
-            className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
-            onClick={() => setShowAdd(true)}
-          >
-            Search
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto sm:overflow-visible sm:flex-nowrap sm:overflow-x-auto">
-          {exercises.map((ex) => (
-            <button
-              key={ex.id}
-              className="px-3 py-2 bg-slate-800 rounded-xl"
-              onClick={() => addExerciseToSession(ex)}
-            >
-              {ex.name}
-            </button>
-          ))}
-        </div>
-      </div>
+       <div className="bg-card rounded-2xl p-3">
+         <div className="flex items-center justify-between mb-2">
+           <div className="text-sm">Add exercise</div>
+           <button
+             className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
+             onClick={() => setShowAdd(true)}
+           >
+             Search
+           </button>
+         </div>
+        {/* Removed full exercise chip list to avoid rendering hundreds; user opens Search to query */}
+       </div>
 
       {/* Add dialog */}
       {showAdd && (
@@ -1867,6 +1855,30 @@ function MobileSessionMetrics({ session, exercises }: { session: Session; exerci
       <span><span className="opacity-60">Sets</span> {stats.sets}</span>
       <span><span className="opacity-60">Vol</span> {stats.volume}</span>
       <span><span className="opacity-60">PR</span> {stats.prs}</span>
+    </div>
+  );
+}
+
+// Add helper component near bottom before export (or after existing components)
+function MobileSummaryFader({ children, visibleThreshold = 0.5 }: { children: React.ReactNode; visibleThreshold?: number }) {
+  const [visible, setVisible] = useState(true);
+  useEffect(()=> {
+    const onScroll = ()=> {
+      const doc = document.documentElement;
+      const max = (doc.scrollHeight - window.innerHeight) || 1;
+      const ratio = window.scrollY / max;
+      setVisible(ratio < visibleThreshold);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return ()=> window.removeEventListener('scroll', onScroll);
+  }, [visibleThreshold]);
+  return (
+    <div
+      className={`fixed sm:hidden bottom-0 left-0 right-0 z-30 px-4 py-3 flex items-center gap-4 overflow-x-auto transition-all duration-500 ease-out will-change-transform backdrop-blur border-t border-white/10 bg-slate-900/80 ${visible? 'opacity-100 translate-y-0':'opacity-0 translate-y-4 pointer-events-none'}`}
+      aria-hidden={visible? undefined: 'true'}
+    >
+      {children}
     </div>
   );
 }
