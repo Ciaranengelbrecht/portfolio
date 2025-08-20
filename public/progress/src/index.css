@@ -8,6 +8,40 @@
   --accent-hover: #16a34a;
   --card-bg: #111826;
   --card-border: rgba(255, 255, 255, 0.05);
+  /* Spacing scale (soft 1.25 ratio) */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem;  /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-7: 1.875rem; /* 30px */
+  --space-8: 2.25rem; /* 36px */
+  --space-9: 2.75rem; /* 44px */
+  --space-10: 3.5rem; /* 56px */
+
+  /* Radius tokens */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Typography scale (fluid clamp) */
+  --font-display-lg: clamp(2.4rem, 4vw + 1.6rem, 3.25rem);
+  --font-display: clamp(2rem, 3.2vw + 1.2rem, 2.6rem);
+  --font-title: clamp(1.5rem, 1.7vw + 1rem, 1.9rem);
+  --font-subtitle: clamp(1.25rem, 1.2vw + 0.9rem, 1.4rem);
+  --font-body-lg: clamp(1.05rem, 0.6vw + .85rem, 1.15rem);
+  --font-body: clamp(.94rem, 0.45vw + .78rem, 1rem);
+  --font-body-sm: clamp(.78rem, 0.35vw + .68rem, .88rem);
+  --font-label: clamp(.68rem, 0.3vw + .6rem, .75rem);
+
+  /* Line heights */
+  --leading-tight: 1.1;
+  --leading-title: 1.15;
+  --leading-body: 1.4;
+  --leading-small: 1.2;
 }
 
 html,
@@ -22,6 +56,28 @@ input[type="number"] {
 }
 
 /* simple shadcn-like tokens via tailwind */
+
+/* Utility classes for typography tokens */
+@layer utilities {
+  .text-display-lg { font-size: var(--font-display-lg); line-height: var(--leading-tight); font-weight:600; letter-spacing:-0.02em; }
+  .text-display { font-size: var(--font-display); line-height: var(--leading-tight); font-weight:600; letter-spacing:-0.02em; }
+  .text-title { font-size: var(--font-title); line-height: var(--leading-title); font-weight:600; letter-spacing:-0.015em; }
+  .text-subtitle { font-size: var(--font-subtitle); line-height: var(--leading-title); font-weight:500; letter-spacing:-0.01em; }
+  .text-body-lg { font-size: var(--font-body-lg); line-height: var(--leading-body); font-weight:450; }
+  .text-body { font-size: var(--font-body); line-height: var(--leading-body); font-weight:450; }
+  .text-body-sm { font-size: var(--font-body-sm); line-height: var(--leading-small); font-weight:500; letter-spacing:0; }
+  .text-label { font-size: var(--font-label); line-height: var(--leading-small); font-weight:600; letter-spacing:0.02em; text-transform:uppercase; }
+  .leading-tight { line-height: var(--leading-tight); }
+}
+
+/* Stack utility (vertical rhythm) */
+@layer utilities {
+  .stack-2 > * + * { margin-top: var(--space-2); }
+  .stack-3 > * + * { margin-top: var(--space-3); }
+  .stack-4 > * + * { margin-top: var(--space-4); }
+  .stack-5 > * + * { margin-top: var(--space-5); }
+  .stack-6 > * + * { margin-top: var(--space-6); }
+}
 
 /* Accent overrides */
 .bg-brand-600 {

@@ -14,7 +14,21 @@ export default {
           700: '#1d4ed8'
         }
       },
+      spacing: {
+        '1.5': '0.375rem',
+        '2.5': '0.625rem',
+        '3.5': '0.875rem'
+      },
+      fontSize: {
+        '2xs': ['0.68rem', { lineHeight: '1.1' }],
+        'xs': ['0.75rem', { lineHeight: '1.15' }],
+      },
       borderRadius: {
+        'xs': 'var(--radius-xs)',
+        'sm': 'var(--radius-sm)',
+        'md': 'var(--radius-md)',
+        'lg': 'var(--radius-lg)',
+        'xl': 'var(--radius-xl)',
         '2xl': '1rem'
       },
       boxShadow: {
