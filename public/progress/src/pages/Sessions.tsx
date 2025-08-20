@@ -847,17 +847,7 @@ export default function Sessions() {
 
   return (
     <div className="space-y-4 overflow-x-hidden">
-      {/* Mobile floating Add Exercise button */}
-      {session && (
-        <div className="fixed sm:hidden z-40 right-4 bottom-[calc(env(safe-area-inset-bottom,0)+82px)] drop-shadow-lg">
-          <button
-            aria-label="Add exercise"
-            className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-3xl leading-none flex items-center justify-center font-light shadow-lg border border-white/10"
-            onClick={()=> { setShowAdd(true); try { navigator.vibrate?.(12); } catch {} }}
-          >+
-          </button>
-        </div>
-      )}
+  {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
         <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
@@ -877,7 +867,7 @@ export default function Sessions() {
             {/* Mobile expand/collapse all toggle */}
             {session && !!session.entries.length && (
               <button
-                className="sm:hidden w-8 h-8 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px]"
+                className="sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
                 aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
