@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Exercise } from '../lib/types';
+import { Exercise, UserProgram } from '../lib/types';
 import { db } from '../lib/db';
 import { PRESET_PROGRAMS, resolvePreset } from '../lib/presets';
+import { archiveCurrentProgram } from '../lib/profile';
+import { ensureProgram } from '../lib/program';
+import { nanoid } from 'nanoid';
+import { useProgram } from '../state/program';
 
 interface DisplayPreset {
   id: string;
@@ -21,6 +25,9 @@ export default function Store() {
   const [presets,setPresets] = useState<DisplayPreset[]>([]);
   const [open,setOpen] = useState<string | null>(null);
   const [loading,setLoading] = useState(true);
+  const [importing,setImporting] = useState<string|null>(null);
+  const [toast,setToast] = useState<string|null>(null);
+  const { program } = useProgram();
   useEffect(()=> {
     (async ()=> {
       try {
@@ -79,6 +86,40 @@ export default function Store() {
               <div className="mt-auto flex items-center gap-2 pt-2">
                 <button disabled className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black text-sm font-semibold opacity-60 cursor-not-allowed" title="Purchases coming soon">Purchase</button>
                 <button onClick={()=> setOpen(isOpen? null : p.id)} className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">{isOpen? 'Hide' : 'Preview'}</button>
+                {isOpen && (
+                  <button
+                    disabled={!!importing}
+                    onClick={async ()=> {
+                      setImporting(p.id);
+                      try {
+                        // Resolve raw preset again to capture program specification
+                        const raw = PRESET_PROGRAMS.find(pr=> pr.id===p.id);
+                        if(!raw) throw new Error('Preset not found');
+                        // Build new program object
+                        const deload = raw.deload === 'none' ? { mode: 'none' } : (raw.deload === 'last-week' ? { mode: 'last-week' } : { mode: 'interval', everyNWeeks: 5 });
+                        const newProgram: UserProgram = ensureProgram({
+                          id: `prog_${nanoid(8)}`,
+                          name: raw.name,
+                          weekLengthDays: raw.weekLengthDays,
+                          weeklySplit: raw.weeklySplit.map(d=> ({ ...d })),
+                          mesoWeeks: raw.weeks,
+                          deload,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                          version: 1
+                        } as any);
+                        const ok = await archiveCurrentProgram(newProgram);
+                        if(ok){
+                          setToast('Archived current (if existed) & switched to '+raw.name);
+                        } else setToast('Archive failed');
+                      } catch(e:any){
+                        console.warn('[store] import failed', e);
+                        setToast(e.message||'Import failed');
+                      } finally { setImporting(null); }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold disabled:opacity-50"
+                  >{importing===p.id? 'Importing...' : program?.name===p.name? 'Active' : 'Use'}</button>
+                )}
               </div>
               {isOpen && (
                 <div className="mt-2 space-y-3 text-sm border-t border-white/10 pt-3">
@@ -100,6 +141,9 @@ export default function Store() {
           );
         })}
       </div>
+      {toast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-lg text-sm shadow-lg border border-white/10" role="status" onAnimationEnd={()=> setTimeout(()=> setToast(null), 2500)}>{toast}</div>
+      )}
     </div>
   );
 }

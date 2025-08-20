@@ -1371,71 +1371,78 @@ export default function Sessions() {
                       >
                         -
                       </button>
-                      <input
-                        inputMode="decimal"
-                        pattern="[0-9]*[.,]?[0-9]*"
-                        aria-label="Weight"
-                        className="bg-slate-800 rounded-xl px-3 py-2 w-24"
-                        data-set-input="true"
-                        data-entry-id={entry.id}
-                        data-set-number={set.setNumber}
-                        value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.weightKg || set.weightKg===0 ? String(set.weightKg) : '')}
-                        placeholder="0.0"
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
-                            e.preventDefault();
+                      <div className="relative w-24">
+                        <input
+                          inputMode="decimal"
+                          pattern="[0-9]*[.,]?[0-9]*"
+                          aria-label="Weight"
+                          className="bg-slate-800 rounded-xl px-3 py-2 w-full text-center"
+                          data-set-input="true"
+                          data-entry-id={entry.id}
+                          data-set-number={set.setNumber}
+                          value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.weightKg || set.weightKg===0 ? String(set.weightKg) : '')}
+                          placeholder={(() => { if((set.weightKg||0)>0) return '0'; const sug = suggestions.get(entry.exerciseId); return sug?.weightKg ? String(sug.weightKg) : '0.0'; })()}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              updateEntry({
+                                ...entry,
+                                sets: entry.sets.map((s, i) =>
+                                  i === idx
+                                    ? { ...s, weightKg: (s.weightKg || 0) + 2.5 }
+                                    : s
+                                ),
+                              });
+                            } else if (e.key === "ArrowDown") {
+                              e.preventDefault();
+                              updateEntry({
+                                ...entry,
+                                sets: entry.sets.map((s, i) =>
+                                  i === idx
+                                    ? {
+                                        ...s,
+                                        weightKg: Math.max(
+                                          0,
+                                          (s.weightKg || 0) - 2.5
+                                        ),
+                                      }
+                                    : s
+                                ),
+                              });
+                            }
+                          }}
+                          onChange={(e) => {
+                            let v = e.target.value;
+                            if(v.includes(',')) v = v.replace(',','.');
+                            if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                            weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
+                            if(v === '' || /[.,]$/.test(v)) return;
+                            const num = Number(v);
+                            if(!isNaN(num)){
+                              updateEntry({
+                                ...entry,
+                                sets: entry.sets.map((s, i) => i===idx ? { ...s, weightKg: num } : s)
+                              });
+                            }
+                          }}
+                          onBlur={(e)=> {
+                            let v = e.target.value;
+                            if(v.includes(',')) v = v.replace(',','.');
+                            if(!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                            const num = v === ''? 0 : Number(v.replace(/\.$/,''));
                             updateEntry({
                               ...entry,
-                              sets: entry.sets.map((s, i) =>
-                                i === idx
-                                  ? { ...s, weightKg: (s.weightKg || 0) + 2.5 }
-                                  : s
-                              ),
+                              sets: entry.sets.map((s,i)=> i===idx ? { ...s, weightKg: isNaN(num)? 0 : num } : s)
                             });
-                          } else if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            updateEntry({
-                              ...entry,
-                              sets: entry.sets.map((s, i) =>
-                                i === idx
-                                  ? {
-                                      ...s,
-                                      weightKg: Math.max(
-                                        0,
-                                        (s.weightKg || 0) - 2.5
-                                      ),
-                                    }
-                                  : s
-                              ),
-                            });
-                          }
-                        }}
-                        onChange={(e) => {
-                          let v = e.target.value;
-                          if(v.includes(',')) v = v.replace(',','.');
-                          if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
-                          weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
-                          if(v === '' || /[.,]$/.test(v)) return;
-                          const num = Number(v);
-                          if(!isNaN(num)){
-                            updateEntry({
-                              ...entry,
-                              sets: entry.sets.map((s, i) => i===idx ? { ...s, weightKg: num } : s)
-                            });
-                          }
-                        }}
-                        onBlur={(e)=> {
-                          let v = e.target.value;
-                          if(v.includes(',')) v = v.replace(',','.');
-                          if(!/^\d*(?:[.,]\d*)?$/.test(v)) return;
-                          const num = v === ''? 0 : Number(v.replace(/\.$/,''));
-                          updateEntry({
-                            ...entry,
-                            sets: entry.sets.map((s,i)=> i===idx ? { ...s, weightKg: isNaN(num)? 0 : num } : s)
-                          });
-                          delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
-                        }}
-                      />
+                            delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
+                          }}
+                        />
+                        {(!set.weightKg || set.weightKg===0) && suggestions.get(entry.exerciseId)?.weightKg && (
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-500/40 font-medium">
+                            {suggestions.get(entry.exerciseId)?.weightKg}kg
+                          </span>
+                        )}
+                      </div>
                       <button
                         className="text-xs bg-slate-700 rounded px-2"
                         onClick={() =>
@@ -1468,34 +1475,41 @@ export default function Sessions() {
                       >
                         -
                       </button>
-                      <input
-                        inputMode="numeric"
-                        aria-label="Reps"
-                        className="bg-slate-800 rounded-xl px-3 py-2 w-20"
-                        data-set-input="true"
-                        data-entry-id={entry.id}
-                        data-set-number={set.setNumber}
-                        value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
-                        placeholder="0"
-                        onKeyDown={(e)=> {
-                          if(e.key==='ArrowUp'){
-                            e.preventDefault();
-                            updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0)+1 }: s) });
-                          } else if(e.key==='ArrowDown'){
-                            e.preventDefault();
-                            updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0,(s.reps||0)-1) }: s) });
-                          } else if(e.key==='Enter'){
-                            const buf = repsInputEditing.current[`${entry.id}:${set.setNumber}`];
-                            if(buf!==undefined){
-                              const num = buf===''? null: Number(buf);
-                              updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) });
-                              delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                      <div className="relative w-20">
+                        <input
+                          inputMode="numeric"
+                          aria-label="Reps"
+                          className="bg-slate-800 rounded-xl px-3 py-2 w-full text-center"
+                          data-set-input="true"
+                          data-entry-id={entry.id}
+                          data-set-number={set.setNumber}
+                          value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
+                          placeholder={(() => { if((set.reps||0)>0) return '0'; const sug = suggestions.get(entry.exerciseId); return sug?.reps ? String(sug.reps) : (entry.targetRepRange? entry.targetRepRange : '0'); })()}
+                          onKeyDown={(e)=> {
+                            if(e.key==='ArrowUp'){
+                              e.preventDefault();
+                              updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: (s.reps||0)+1 }: s) });
+                            } else if(e.key==='ArrowDown'){
+                              e.preventDefault();
+                              updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Math.max(0,(s.reps||0)-1) }: s) });
+                            } else if(e.key==='Enter'){
+                              const buf = repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                              if(buf!==undefined){
+                                const num = buf===''? null: Number(buf);
+                                updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) });
+                                delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                              }
                             }
-                          }
-                        }}
-                        onChange={(e)=> { const v=e.target.value; if(!/^\d*$/.test(v)) return; repsInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v==='') return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Number(v) }: s) }); }}
-                        onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
-                      />
+                          }}
+                          onChange={(e)=> { const v=e.target.value; if(!/^\d*$/.test(v)) return; repsInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v==='') return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Number(v) }: s) }); }}
+                          onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
+                        />
+                        {(!set.reps || set.reps===0) && (suggestions.get(entry.exerciseId)?.reps || entry.targetRepRange) && (
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-400/35 font-medium">
+                            {suggestions.get(entry.exerciseId)?.reps ?? entry.targetRepRange}
+                          </span>
+                        )}
+                      </div>
                       <button
                         className="text-xs bg-slate-700 rounded px-2"
                         onClick={() =>
