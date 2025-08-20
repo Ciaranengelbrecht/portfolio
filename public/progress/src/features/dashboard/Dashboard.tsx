@@ -2,6 +2,8 @@ import ChartPanel from "../../components/ChartPanel";
 import GlassCard from "../../components/GlassCard";
 import ProgressBars from "../../components/ProgressBars";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeSlideUp, maybeDisable } from '../../lib/motion';
 import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
 import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
@@ -99,43 +101,44 @@ export default function Dashboard() {
         <SectionToggle label="Compliance" flag="compliance" />
         <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
       </div>
-      {!hidden?.trainingChart && <div className="space-y-2">
+      <AnimatePresence initial={false}>
+      {!hidden?.trainingChart && <motion.div key="training" className="space-y-2" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
         <div className="text-subtitle">Training</div>
         {loading ? <div className="h-60 rounded-xl bg-white/5 animate-pulse" /> : <ChartPanel kind="exercise" />}
-      </div>}
-      {!hidden?.bodyChart && <div className="space-y-2">
+      </motion.div>}
+      {!hidden?.bodyChart && <motion.div key="body" className="space-y-2" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
         <div className="text-subtitle">Body</div>
         {loading ? <div className="h-60 rounded-xl bg-white/5 animate-pulse" /> : <ChartPanel kind="measurement" />}
-      </div>}
-  {!hidden?.weekVolume && <div className="space-y-3">
+      </motion.div>}
+  {!hidden?.weekVolume && <motion.div key="weekVol" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
         <div className="text-title">Week {week} Logged Volume <span className="text-body-sm text-slate-400 ml-1 align-middle">(Weighted Sets)</span></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const tgt = targets[m]||0; const pct = tgt? Math.min(100,(v/tgt)*100): 100; const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500'; return (
-            <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
+            <motion.div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" initial={{opacity:0, y:12}} animate={{opacity:1, y:0}} exit={{opacity:0, y:4}} transition={{duration:.25}}>
               <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}{tgt?`/${tgt}`:''}</span></div>
               <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
-                <div className={`h-full ${status}`} style={{width:`${pct}%`}} />
+                <motion.div className={`h-full ${status}`} initial={{width:0}} animate={{width:`${pct}%`}} transition={{type:'spring', stiffness:150, damping:26}} />
                 {tgt? <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">{Math.round(pct)}%</span>: null}
               </div>
-            </div>
+            </motion.div>
           ); })}
           {!Object.keys(muscleWeek).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
-      </div>}
-  {!hidden?.phaseTotals && <div className="space-y-3">
+      </motion.div>}
+  {!hidden?.phaseTotals && <motion.div key="phaseTotals" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
         <div className="text-title">Phase Totals <span className="text-body-sm text-slate-400 ml-1 align-middle">(Weighted Sets)</span></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Object.entries(muscleTotals).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(muscleTotals)); const pct=(v/max)*100; return (
-            <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
+            <motion.div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" initial={{opacity:0, y:12}} animate={{opacity:1, y:0}} exit={{opacity:0, y:4}} transition={{duration:.25}}>
               <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}</span></div>
-              <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden"><div className="h-full bg-indigo-500" style={{width:`${pct}%`}} /></div>
-            </div>
+              <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden"><motion.div className="h-full bg-indigo-500" initial={{width:0}} animate={{width:`${pct}%`}} transition={{type:'spring', stiffness:150, damping:26}} /></div>
+            </motion.div>
           ); })}
           {!Object.keys(muscleTotals).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
-      </div>}
-  {!hidden?.weeklyMuscleBar && <div className="space-y-3"><WeeklyMuscleBar /></div>}
-  {!hidden?.compliance && <div className="bg-card rounded-2xl p-5 shadow-soft space-y-4">
+      </motion.div>}
+  {!hidden?.weeklyMuscleBar && <motion.div key="weeklyBar" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit"><WeeklyMuscleBar /></motion.div>}
+  {!hidden?.compliance && <motion.div key="compliance" className="bg-card rounded-2xl p-5 shadow-soft space-y-4" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
     <div className="text-title">Phase Weekly Compliance</div>
   <div className="text-body-sm text-gray-400">Color shows adherence vs target (green &gt;=100%, amber 70-99%, red &lt;70%).</div>
         <div className="space-y-2">
@@ -148,7 +151,7 @@ export default function Dashboard() {
                   {rows.map(([wk, rec])=> { const v = rec[m]||0; const tgt=targets[m]; const ratio = tgt? v/tgt:1; const color = ratio>=1? 'bg-emerald-600': ratio>=0.7? 'bg-amber-500':'bg-red-600'; return (
                     <div key={wk} className="flex-1">
                       <div className="h-8 rounded-md relative overflow-hidden bg-slate-700/40">
-                        <div className={`${color} absolute bottom-0 left-0 w-full`} style={{height:`${Math.min(100,ratio*100)}%`}} />
+                        <motion.div className={`${color} absolute bottom-0 left-0 w-full`} initial={{height:0}} animate={{height:`${Math.min(100,ratio*100)}%`}} transition={{type:'spring', stiffness:150, damping:26}} />
                         <div className="absolute inset-0 flex items-center justify-center text-[9px] text-white/80 font-medium">{v.toFixed(1)}</div>
                       </div>
                       <div className="text-center text-[8px] mt-0.5 text-gray-500">W{wk}</div>
@@ -159,7 +162,8 @@ export default function Dashboard() {
             );
           })}
         </div>
-      </div>}
+      </motion.div>}
+      </AnimatePresence>
     </div>
   );
 }
