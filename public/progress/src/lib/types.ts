@@ -30,6 +30,8 @@ export interface Exercise {
   isOptional?: boolean;
   /** Additional secondary muscle groups contributing indirect volume */
   secondaryMuscles?: MuscleGroup[]; // e.g. lat pulldown: ['biceps']
+  /** Free-form tags for filtering (equipment, pattern, modality, plane, etc.) */
+  tags?: string[];
 }
 
 export interface SetEntry {
