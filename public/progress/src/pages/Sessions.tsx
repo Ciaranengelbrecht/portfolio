@@ -80,6 +80,18 @@ export default function Sessions() {
   const toggleEntryCollapsed = (id:string)=> setCollapsedEntries(prev=> ({ ...prev, [id]: !prev[id] }));
   // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
   const pickedLatestRef = useRef(false);
+  // Persist collapsed state per-session (mobile UX enhancement)
+  useEffect(()=> {
+    if(!session?.id) return;
+    try { const raw = sessionStorage.getItem(`collapsedEntries:${session.id}`); if(raw) setCollapsedEntries(JSON.parse(raw)); } catch {}
+  }, [session?.id]);
+  useEffect(()=> {
+    if(!session?.id) return; try { sessionStorage.setItem(`collapsedEntries:${session.id}`, JSON.stringify(collapsedEntries)); } catch {}
+  }, [collapsedEntries, session?.id]);
+  const collapseAll = ()=> { if(!session) return; const next:Record<string,boolean>={}; for(const e of session.entries){ next[e.id]=true; } setCollapsedEntries(next); };
+  const expandAll = ()=> { if(!session) return; const next:Record<string,boolean>={}; for(const e of session.entries){ next[e.id]=false; } setCollapsedEntries(next); };
+  const anyCollapsed = useMemo(()=> Object.values(collapsedEntries).some(v=> v), [collapsedEntries]);
+  const allCollapsed = useMemo(()=> session?.entries.length? session.entries.every(e=> collapsedEntries[e.id]) : false, [collapsedEntries, session?.entries.length]);
   // Enable verbose session selection debugging by setting localStorage.debugSessions = '1'
   const debugSessions = useRef<boolean>(false);
   useEffect(()=> { try { debugSessions.current = localStorage.getItem('debugSessions')==='1'; } catch {} }, []);
@@ -835,6 +847,17 @@ export default function Sessions() {
 
   return (
     <div className="space-y-4 overflow-x-hidden">
+      {/* Mobile floating Add Exercise button */}
+      {session && (
+        <div className="fixed sm:hidden z-40 right-4 bottom-[calc(env(safe-area-inset-bottom,0)+82px)] drop-shadow-lg">
+          <button
+            aria-label="Add exercise"
+            className="w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-3xl leading-none flex items-center justify-center font-light shadow-lg border border-white/10"
+            onClick={()=> { setShowAdd(true); try { navigator.vibrate?.(12); } catch {} }}
+          >+
+          </button>
+        </div>
+      )}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
         <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
@@ -950,6 +973,8 @@ export default function Sessions() {
               <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
               {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
               {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
+              {session && <button className="tool-btn" onClick={()=> { collapseAll(); }} title="Collapse all exercises">Collapse All</button>}
+              {session && <button className="tool-btn" onClick={()=> { expandAll(); }} title="Expand all exercises">Expand All</button>}
               {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
             </div>
           </div>
@@ -1535,6 +1560,20 @@ export default function Sessions() {
       {session && !!session.entries.length && (
         <SessionSummary session={session} exercises={exercises} />
       )}
+      {/* Spacer for mobile summary bar & FAB */}
+      <div className="h-40 sm:h-0" aria-hidden="true" />
+      {/* Mobile sticky summary bar */}
+      {session && !!session.entries.length && (
+        <div className="fixed sm:hidden bottom-0 left-0 right-0 z-30 backdrop-blur bg-slate-900/80 border-t border-white/10 px-4 py-3 flex items-center gap-4 overflow-x-auto">
+          <MobileSessionMetrics session={session} exercises={exercises} />
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              className="text-[11px] px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95"
+              onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); }}
+            >{allCollapsed? 'Expand All':'Collapse All'}</button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl p-3">
         <div className="flex items-center justify-between mb-2">
@@ -1809,5 +1848,30 @@ function PRChip({
       <span className="w-2 h-2 rounded-full bg-black" aria-hidden="true"></span>
       PR
     </span>
+  );
+}
+
+// Compact metrics bar for mobile (mirrors SessionSummary but denser)
+function MobileSessionMetrics({ session, exercises }: { session: Session; exercises: Exercise[] }){
+  const exMap = useMemo(()=> new Map(exercises.map(e=> [e.id,e])), [exercises]);
+  const stats = useMemo(()=> {
+    let sets=0, volume=0, prs=0;
+    for(const entry of session.entries){
+      for(const s of entry.sets){
+        if((s.reps||0)>0 || (s.weightKg||0)>0){
+          sets++;
+          const ton=(s.weightKg||0)*(s.reps||0); volume+=ton;
+          if(ton>0 && ton >= (exMap.get(entry.exerciseId)?.defaults.sets||3)*50) prs++;
+        }
+      }
+    }
+    return { sets, volume, prs };
+  }, [session, exMap]);
+  return (
+    <div className="flex items-center gap-4 text-[11px] font-medium">
+      <span><span className="opacity-60">Sets</span> {stats.sets}</span>
+      <span><span className="opacity-60">Vol</span> {stats.volume}</span>
+      <span><span className="opacity-60">PR</span> {stats.prs}</span>
+    </div>
   );
 }
