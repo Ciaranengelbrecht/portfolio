@@ -110,8 +110,8 @@ export default function Sessions() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // After initial mount, choose the most recent session (by dateISO/localDate) that has real logged data (>0 weight or reps) and navigate to its phase/week/day.
-  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try { const all = await db.getAll<Session>('sessions'); const real = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0) > 0 || (st.reps||0) > 0))); if(!real.length) { lastRealSessionAppliedRef.current = true; return; } real.sort((a,b)=> { const da = new Date(a.dateISO || a.localDate || '').getTime(); const dbt = new Date(b.dateISO || b.localDate || '').getTime(); return dbt - da; }); const last = real[0]; const parts = last.id.split('-'); if(parts.length===3){ const p = Number(parts[0]); const w = Number(parts[1]); const d = Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } } lastRealSessionAppliedRef.current = true; } catch(e){ console.warn('Failed picking last real session', e); } })(); },[]);
+  // After initial mount, choose the most recently modified session (loggedEndAt or updatedAt) with any real data.
+  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try { const all = await db.getAll<Session>('sessions'); const withData = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0))); if(!withData.length){ lastRealSessionAppliedRef.current=true; return; } withData.sort((a,b)=> { const ta = new Date(b.loggedEndAt || b.updatedAt || b.dateISO).getTime(); const tb = new Date(a.loggedEndAt || a.updatedAt || a.dateISO).getTime(); return ta - tb; }); const last = withData[0]; const parts = last.id.split('-'); if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } } lastRealSessionAppliedRef.current=true; } catch(e){ console.warn('Failed picking last modified session', e); } })(); },[]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -202,7 +202,7 @@ export default function Sessions() {
   })() }, [phase, week, session?.id, program]);
 
   // Keyboard shortcuts
-  useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntry({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
+  useEffect(()=>{ const handler=(e:KeyboardEvent)=>{ if(e.key==='/'&&!e.metaKey&&!e.ctrlKey){ e.preventDefault(); setShowAdd(true) } if(e.key==='Enter'&&e.shiftKey){ const active=document.activeElement as HTMLElement|null; if(active?.tagName==='INPUT'){ const inputs=[...document.querySelectorAll('input[data-set-input="true"]')] as HTMLInputElement[]; const idx=inputs.indexOf(active as HTMLInputElement); if(idx>=0&&idx<inputs.length-1){ inputs[idx+1].focus(); e.preventDefault(); } } } if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='d'){ const active=document.activeElement as HTMLElement|null; const entryId=active?.dataset.entryId; const setNumber=Number(active?.dataset.setNumber); if(entryId&&setNumber){ const ent=session?.entries.find(en=>en.id===entryId); const src=ent?.sets.find(s=> s.setNumber===setNumber); if(ent&&src){ const clone: SetEntry={...src,setNumber: ent.sets.length+1}; updateEntryPatched({...ent, sets:[...ent.sets, clone]}); e.preventDefault(); } } } }; window.addEventListener('keydown', handler); return ()=> window.removeEventListener('keydown', handler) }, [session]);
 
   // Rest timer: periodic update & alert when target reached (per-exercise single timer)
   useEffect(()=>{ let frame:number; const tick=()=>{ setRestTimers(prev=>{ const now=Date.now(); const targetMs=(settingsState?.restTimerTargetSeconds||90)*1000; const next: typeof prev = {}; for(const [k,v] of Object.entries(prev)){
@@ -292,19 +292,21 @@ export default function Sessions() {
           : DAYS[day];
         const now = new Date();
         const localDayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        const nowISO = new Date().toISOString();
         s = {
           id,
-          // Preserve original UTC start-of-day for backward compat but add localDate for UI grouping
           dateISO: (()=> { const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); })(),
-          localDate: localDayStr,
-          weekNumber: week,
-          phase,
-          phaseNumber: phase,
-          dayName: templateName,
-          entries: [],
-          templateId: templateMeta?.templateId,
-          programId: program?.id,
-        };
+            localDate: localDayStr,
+            weekNumber: week,
+            phase,
+            phaseNumber: phase,
+            dayName: templateName,
+            entries: [],
+            templateId: templateMeta?.templateId,
+            programId: program?.id,
+            createdAt: nowISO,
+            updatedAt: nowISO,
+        } as Session;
         await db.put("sessions", s);
         // If there is a templateId, auto-import it
         if (templateMeta?.templateId) {
@@ -346,7 +348,7 @@ export default function Sessions() {
           }
         }
       }
-      setSession(s);
+  setSession(s);
       const settings = await getSettings();
       await setSettings({
         ...settings,
@@ -362,6 +364,26 @@ export default function Sessions() {
       });
     })();
   }, [phase, week, day]);
+
+  // Wrap entry update to stamp loggedStartAt / loggedEndAt
+  const stampActivity = async (sess: Session, updated: Session) => {
+    const now = new Date().toISOString();
+    let changed = false;
+    const hadDataBefore = sess.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
+    const hasDataAfter = updated.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
+    if(hasDataAfter && !hadDataBefore && !updated.loggedStartAt){ (updated as any).loggedStartAt = now; changed=true; }
+    if(hasDataAfter){ (updated as any).loggedEndAt = now; changed=true; }
+    (updated as any).updatedAt = now; changed=true;
+    if(changed){ await db.put('sessions', updated); }
+    setSession(updated);
+  };
+
+  // Monkey patch updateEntry references by defining function used below via closure
+  function updateEntryPatched(entry: SessionEntry){
+    if(!session) return;
+    const next: Session = { ...session, entries: session.entries.map(e=> e.id===entry.id? entry: e) };
+    stampActivity(session, next);
+  }
 
   const [initialLoading,setInitialLoading] = useState(true);
   useEffect(() => {

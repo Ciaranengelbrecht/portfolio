@@ -61,6 +61,13 @@ export interface Session {
   autoImportedTemplateId?: string; // if auto-imported at creation, record template id for provenance badge
   entries: SessionEntry[];
   deletedAt?: string | null;
+  /** Timestamp when user first entered any non-zero weight or reps in this session */
+  loggedStartAt?: string;
+  /** Timestamp of most recent change to any set (non-zero edit) */
+  loggedEndAt?: string;
+  /** Creation + update timestamps (added via migration v6) */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Measurement {
