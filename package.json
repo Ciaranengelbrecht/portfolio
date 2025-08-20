@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.1.1",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.55.0",
     "framer-motion": "^10.17.6",
     "next": "14.0.4",
     "react": "18.2.0",
@@ -18,14 +18,14 @@
     "react-type-animation": "^3.2.0"
   },
   "devDependencies": {
+    "@types/node": "^18.19.0",
+    "@types/react": "^18.2.21",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
-    "typescript": "^5.5.4",
-    "@types/react": "^18.2.21",
-    "@types/node": "^18.19.0"
+    "typescript": "^5.5.4"
   },
   "eslintIgnore": [
     "public/progress/**/*"
