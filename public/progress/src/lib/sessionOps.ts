@@ -16,12 +16,17 @@ export async function importFromTemplate(
 ): Promise<Session> {
   const settings = await getSettings();
   const exMap = new Map(exercises.map((e) => [e.id, e]));
+  // Preload shared datasets once if deload prescriptions will be computed
+  let preload: { sessions?: Session[]; exercises?: Exercise[]; settings?: any } | undefined;
+  if (opts.deloadWeeks && opts.deloadWeeks.has(opts.weekNumber)) {
+    const sessions = await import('./db').then(m=> m.db.getAll<Session>('sessions'));
+    preload = { sessions, exercises, settings };
+  }
   const makeSets = async (exId: string): Promise<SetEntry[]> => {
-    // Program-aware deload: if week is in provided deloadWeeks, apply prescription
     if (opts.deloadWeeks && opts.deloadWeeks.has(opts.weekNumber)) {
       const dl = await getDeloadPrescription(exId, opts.weekNumber, {
         deloadWeeks: opts.deloadWeeks,
-      });
+      }, preload);
       if (!dl.inactive) {
         const avgReps = 8;
         return Array.from({ length: dl.targetSets }, (_, i) => ({

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db } from '../lib/db'
 import { Exercise } from '../lib/types'
-import { getDeloadPrescription } from '../lib/helpers'
+import { getDeloadPrescriptionsBulk } from '../lib/helpers'
 
 export default function DashboardDeloadTable(){
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -9,8 +9,10 @@ export default function DashboardDeloadTable(){
   const [week, setWeek] = useState(1)
   useEffect(() => { db.getAll<Exercise>('exercises').then(setExercises) }, [])
   useEffect(() => { (async () => {
-    const nextWeek = week === 9 ? 1 : week + 1
-    const arr = await Promise.all(exercises.map(async e => ({ name: e.name, ...await getDeloadPrescription(e.id, nextWeek) })))
+    if(!exercises.length){ setRows([]); return; }
+    const nextWeek = week === 9 ? 1 : week + 1;
+    const bulk = await getDeloadPrescriptionsBulk(exercises.map(e=> e.id), nextWeek, undefined, { exercises });
+    const arr = exercises.map(e => ({ name: e.name, ...(bulk as any)[e.id] }));
     setRows(arr)
   })() }, [exercises, week])
   return (

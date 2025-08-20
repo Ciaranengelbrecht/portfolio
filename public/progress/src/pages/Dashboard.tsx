@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { volumeByMuscleGroup } from "../lib/helpers";
 import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
+import { getAllCached } from '../lib/dataCache';
 import { Measurement, Session, Settings, Exercise, UserProgram } from "../lib/types";
 import { getProfileProgram } from '../lib/profile';
 import UnifiedTooltip from "../components/UnifiedTooltip";
@@ -41,11 +42,16 @@ export default function Dashboard() {
   useEffect(() => { loadRecharts().then(m => setRC(m)); }, []);
 
   useEffect(() => {
-    volumeByMuscleGroup(week).then(setVolume);
+    // SWR: immediate stale data then background refresh
+    (async()=> {
+      const sessions = await getAllCached('sessions', { swr:true });
+      const exercises = await getAllCached('exercises', { swr:true });
+      setVolume(await volumeByMuscleGroup(week, { sessions: sessions as any, exercises: exercises as any }));
+    })();
   }, [week]);
   useEffect(() => {
     (async () => {
-      const m = await db.getAll<Measurement>("measurements");
+      const m = await getAllCached('measurements', { swr:true }) as Measurement[];
       setWeights(
         m
           .filter((x) => x.weightKg)
@@ -62,7 +68,7 @@ export default function Dashboard() {
           .map((x) => ({ date: x.dateISO.slice(5), value: x.upperArm! }))
       );
       // streaks / xp / achievements
-      const sessions = await db.getAll<Session>('sessions');
+  const sessions = await getAllCached('sessions', { swr:true }) as Session[];
       // simple streak: consecutive days with at least one session entry (weight or reps logged) ending today
       const today = new Date();
       const dayKey = (d:Date)=> d.toISOString().slice(0,10);
@@ -107,7 +113,7 @@ export default function Dashboard() {
       setWeeklyRecap({ volume: weekVolume, prCount: weekPR, bodyDelta, adherence });
 
       // ----- Analytics & Insight Features (web worker) -----
-      const exercises = await db.getAll<Exercise>('exercises');
+  const exercises = await getAllCached('exercises', { swr:true }) as Exercise[];
       try {
         const worker = new Worker(new URL('../workers/analyticsWorker.ts', import.meta.url), { type: 'module' });
         worker.onmessage = (evt) => {

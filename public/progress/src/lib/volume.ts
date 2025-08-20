@@ -17,10 +17,10 @@ export function countValidSets(entrySets: any[]): number {
   return c;
 }
 
-export async function computeLoggedSetVolume(phaseNumber?: number): Promise<LoggedSetVolumeResult> {
+export async function computeLoggedSetVolume(phaseNumber?: number, deps?: { sessions?: Session[]; exercises?: Exercise[] }): Promise<LoggedSetVolumeResult> {
   const [sessions, exercises] = await Promise.all([
-    db.getAll<Session>('sessions'),
-    db.getAll<Exercise>('exercises')
+    (async()=> deps?.sessions || (await db.getAll<Session>('sessions')))(),
+    (async()=> deps?.exercises || (await db.getAll<Exercise>('exercises')))()
   ]);
   const exMap = new Map(exercises.map(e=> [e.id, e]));
   const perWeek: Record<number, Record<string, number>> = {};

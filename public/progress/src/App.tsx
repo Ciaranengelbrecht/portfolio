@@ -38,6 +38,8 @@ import RequireAuth from "./routes/guards/RequireAuth";
 import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
+import { warmPreload } from './lib/dataCache';
+import { computeAggregates } from './lib/aggregates';
 
 function Shell() {
   const navigate = useNavigate();
@@ -71,6 +73,10 @@ function Shell() {
       console.log("[App] init: session?", !!s, "user:", s?.user?.id || null);
       if (s?.user?.email) setAuthEmail(s.user.email);
       setAuthChecked(true);
+      // Preload core datasets (stale-while-revalidate) for snappier first navigation
+  warmPreload(['sessions','exercises','measurements','templates','settings'], { swr: true });
+  // Kick off aggregate computation (non-blocking)
+  computeAggregates().catch(()=>{});
     })();
   }, []);
   useEffect(() => {

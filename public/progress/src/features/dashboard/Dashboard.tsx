@@ -26,12 +26,15 @@ export default function Dashboard() {
         setWeek(prefs.lastLocation.weekNumber);
       }
       setHidden(prefs.hidden || {});
-      // compute logged sets
+      // compute logged sets (preload data once to avoid duplicate queries)
       const phaseNum = prefs.lastLocation?.phaseNumber || 1;
       const settings = await getSettings();
       setTargets(settings.volumeTargets || {});
-      // Use cached sessions/exercises for volume compute (computeLoggedSetVolume already fetches internally; could refactor later)
-      const { perWeek, totals } = await computeLoggedSetVolume(phaseNum);
+      const [sessions, exercises] = await Promise.all([
+        getAllCached('sessions'),
+        getAllCached('exercises')
+      ]);
+      const { perWeek, totals } = await computeLoggedSetVolume(phaseNum, { sessions, exercises });
       setPerWeek(perWeek);
       const wkNum = prefs.lastLocation?.weekNumber || 1;
       setMuscleWeek(perWeek[wkNum] || {});
@@ -43,7 +46,7 @@ export default function Dashboard() {
   }, []);
   // refresh when sessions change realtime
   useEffect(()=>{
-  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const { perWeek, totals } = await computeLoggedSetVolume(phase); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); })(); } };
+  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); })(); } };
     window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
   }, [phase, week]);

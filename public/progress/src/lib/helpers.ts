@@ -8,12 +8,14 @@ import {
 } from "./types";
 import { addDays, subDays, isAfter, parseISO } from "date-fns";
 
+// Optionally inject pre-fetched sessions to avoid repeated full-table reads (prevents N+1)
 export async function getLastWorkingSets(
   exerciseId: string,
   weekNumber: number,
-  phase?: number
+  phase?: number,
+  deps?: { sessions?: Session[] }
 ) {
-  const sessions = await db.getAll<Session>("sessions");
+  const sessions = deps?.sessions || (await db.getAll<Session>("sessions"));
   // try same phase first (if provided), then earlier phases
   const candidates = sessions
     .filter(
@@ -67,10 +69,12 @@ export async function setSettings(s: Settings) {
   _settingsCache = { value: s, ts: Date.now() }; // update cache immediately
 }
 
+// Accept optional injected datasets to remove N+1 patterns (sessions/exercises/settings)
 export async function getDeloadPrescription(
   exerciseId: string,
   weekNumber: number,
-  opts?: { deloadWeeks?: Set<number> }
+  opts?: { deloadWeeks?: Set<number> },
+  deps?: { sessions?: Session[]; exercises?: Exercise[]; settings?: Settings }
 ) {
   // Determine if this week is a deload via provided set (program-aware) else legacy heuristic (week 5 or 9 previously)
   const isDeload = opts?.deloadWeeks
@@ -87,11 +91,12 @@ export async function getDeloadPrescription(
     } as const;
   }
   // default rule: 50–60% of average working weight from prior week, default 55% & 50% sets; allow overrides per exercise
-  const [sets, exercises, settings] = await Promise.all([
-    getLastWorkingSets(exerciseId, weekNumber),
-    db.getAll<Exercise>("exercises"),
-    getSettings(),
+  const [sessions, exercises, settings] = await Promise.all([
+    (async () => deps?.sessions || (await db.getAll<Session>("sessions")))(),
+    (async () => deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
+    (async () => deps?.settings || (await getSettings()))(),
   ]);
+  const sets = await getLastWorkingSets(exerciseId, weekNumber, undefined, { sessions });
   const ex = exercises.find((e) => e.id === exerciseId);
   const specialW5 = weekNumber === 5;
   const loadPct =
@@ -108,10 +113,33 @@ export async function getDeloadPrescription(
   return { targetWeight, targetSets, loadPct, setPct };
 }
 
-export async function volumeByMuscleGroup(weekNumber: number) {
+// Batch helper: compute deload prescriptions for many exercises with shared datasets (prevents N+1)
+export async function getDeloadPrescriptionsBulk(
+  exerciseIds: string[],
+  weekNumber: number,
+  opts?: { deloadWeeks?: Set<number> },
+  deps?: { sessions?: Session[]; exercises?: Exercise[]; settings?: Settings }
+) {
+  const [sessions, exercises, settings] = await Promise.all([
+    (async () => deps?.sessions || (await db.getAll<Session>("sessions")))(),
+    (async () => deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
+    (async () => deps?.settings || (await getSettings()))(),
+  ]);
+  const out: Record<string, any> = {};
+  for (const id of exerciseIds) {
+    out[id] = await getDeloadPrescription(id, weekNumber, opts, {
+      sessions,
+      exercises,
+      settings,
+    });
+  }
+  return out as Record<string, ReturnType<typeof getDeloadPrescription> extends Promise<infer R> ? R : never>;
+}
+
+export async function volumeByMuscleGroup(weekNumber: number, deps?: { sessions?: Session[]; exercises?: Exercise[] }) {
   const [sessions, exercises] = await Promise.all([
-    db.getAll<Session>("sessions"),
-    db.getAll<Exercise>("exercises"),
+    (async ()=> deps?.sessions || (await db.getAll<Session>("sessions")))(),
+    (async ()=> deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
   ]);
   const exMap = new Map(exercises.map((e) => [e.id, e]));
   const acc: Record<string, { tonnage: number; sets: number }> = {};
@@ -130,8 +158,8 @@ export async function volumeByMuscleGroup(weekNumber: number) {
   return acc;
 }
 
-export async function rollingPRs(exerciseId: string) {
-  const sessions = await db.getAll<Session>("sessions");
+export async function rollingPRs(exerciseId: string, deps?: { sessions?: Session[] }) {
+  const sessions = deps?.sessions || (await db.getAll<Session>("sessions"));
   const allSets = sessions.flatMap((s) =>
     s.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets)
   );
@@ -156,9 +184,10 @@ function sliceByRange<T extends { dateISO?: string; date?: string }>(
 
 export async function getExerciseTimeSeries(
   exerciseId: string,
-  range: RangeKey
+  range: RangeKey,
+  deps?: { sessions?: Session[] }
 ) {
-  const sessions = await db.getAll<Session>("sessions");
+  const sessions = deps?.sessions || (await db.getAll<Session>("sessions"));
   const days = sessions
     .map((s) => ({
       date: (s as any).localDate ? (s as any).localDate + 'T00:00:00' : s.dateISO,
@@ -187,9 +216,10 @@ export async function getExerciseTimeSeries(
 
 export async function getMeasurementTimeSeries(
   metric: keyof Measurement,
-  range: RangeKey
+  range: RangeKey,
+  deps?: { measurements?: Measurement[] }
 ) {
-  const list = (await db.getAll<Measurement>("measurements"))
+  const list = (deps?.measurements || (await db.getAll<Measurement>("measurements")))
     .filter((m) => (m as any)[metric] != null)
     .map((m) => ({
       date: m.dateISO.slice(0, 10),
