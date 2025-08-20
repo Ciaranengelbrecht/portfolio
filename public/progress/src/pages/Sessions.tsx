@@ -75,6 +75,9 @@ export default function Sessions() {
   const weightInputEditing = useRef<Record<string,string>>({});
   // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
   const repsInputEditing = useRef<Record<string,string>>({});
+  // Collapsed exercise card state (entry.id -> collapsed?)
+  const [collapsedEntries, setCollapsedEntries] = useState<Record<string,boolean>>({});
+  const toggleEntryCollapsed = (id:string)=> setCollapsedEntries(prev=> ({ ...prev, [id]: !prev[id] }));
 
   useEffect(() => {
     (async () => {
@@ -917,7 +920,7 @@ export default function Sessions() {
           <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
           <div className="h-24 bg-white/5 rounded animate-pulse" />
         </div>}
-        {session?.entries.map((entry, entryIdx) => {
+  {session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge
           const prev = prevBestMap
@@ -938,6 +941,11 @@ export default function Sessions() {
             currentBest.weightKg === prev.set.weightKg &&
             currentBest.reps === prev.set.reps
           );
+          const isCollapsed = !!collapsedEntries[entry.id];
+          // quick metrics for collapsed overview
+          const setsLogged = entry.sets.filter(s=> (s.reps||0)>0 || (s.weightKg||0)>0);
+          const tonnage = setsLogged.reduce((a,s)=> a + (s.weightKg||0)*(s.reps||0),0);
+          const bestSet = setsLogged.slice().sort((a,b)=> ((b.weightKg||0)*(b.reps||0)) - ((a.weightKg||0)*(a.reps||0)))[0];
           return (
             <div
               key={entry.id}
@@ -970,11 +978,21 @@ export default function Sessions() {
               }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="font-medium flex items-center gap-2 flex-wrap">
+                <div className="font-medium flex items-center gap-2 flex-wrap cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-                  {ex?.name || "Exercise"}
+                  <span className="inline-flex items-center gap-1">
+                    <span>{ex?.name || "Exercise"}</span>
+                    <span className={`transition-transform text-xs opacity-70 ${isCollapsed? 'rotate-180':''}`}>▾</span>
+                  </span>
                   {ex?.isOptional && (
                     <span className="text-[10px] text-gray-400">optional</span>
+                  )}
+                  {isCollapsed && (
+                    <span className="ml-2 text-[10px] px-2 py-1 rounded bg-slate-700/60 text-slate-200 flex items-center gap-2">
+                      <span>{entry.sets.length} sets</span>
+                      {tonnage>0 && <span className="opacity-70">• {(tonnage).toLocaleString()}</span>}
+                      {bestSet && <span className="opacity-70">• {bestSet.weightKg}×{bestSet.reps}</span>}
+                    </span>
                   )}
                   {/* Mobile reorder buttons */}
                   <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto">
@@ -997,7 +1015,7 @@ export default function Sessions() {
                   </button>
                 </div>
               </div>
-              {showPrevHints && prev && (
+              {!isCollapsed && showPrevHints && prev && (
                 <div className="mt-1 flex items-center gap-2 flex-wrap">
                   <span
                     className="prev-hint-pill"
@@ -1016,9 +1034,10 @@ export default function Sessions() {
                   )}
                 </div>
               )}
-
+              {!isCollapsed && (
+              <>
               {/* Sets - mobile friendly list */}
-              <div className="mt-3 sm:hidden space-y-2">
+              <div id={`entry-${entry.id}-sets`} className="mt-3 sm:hidden space-y-2">
                 {entry.sets.map((set, idx) => (
                   <div key={idx} className="rounded-xl bg-slate-800 px-2 py-2">
                     <div className="flex items-center justify-between mb-2">
@@ -1454,6 +1473,8 @@ export default function Sessions() {
                   >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
                 </div>
               </div>
+              </>
+              )}
             </div>
           );
         })}
