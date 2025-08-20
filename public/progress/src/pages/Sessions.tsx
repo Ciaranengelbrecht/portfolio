@@ -718,6 +718,19 @@ export default function Sessions() {
     return isoLike;
   };
 
+  const sessionDuration = (()=> {
+    if(!session?.loggedStartAt || !session.loggedEndAt) return null;
+    const start = new Date(session.loggedStartAt).getTime();
+    const end = new Date(session.loggedEndAt).getTime();
+    if(isNaN(start)||isNaN(end)|| end < start) return null;
+    const ms = end - start;
+    const mins = Math.floor(ms/60000);
+    const hrs = Math.floor(mins/60);
+    const remMins = mins % 60;
+    if(hrs>0) return `${hrs}h ${remMins}m`;
+    return `${mins}m`;
+  })();
+
   return (
     <div className="space-y-4 overflow-x-hidden">
       {/* Fixed selectors bar under main app header */}
@@ -788,6 +801,9 @@ export default function Sessions() {
                   </button>
                 </>
               )}
+              {sessionDuration && !editingDate && (
+                <span className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium" title="Active logging duration (first to last non-zero set)">⏱ {sessionDuration}</span>
+              )}
             </div>
           )}
         </div>
@@ -818,6 +834,7 @@ export default function Sessions() {
       {moreOpen && (
         <div className="w-full sm:hidden grid grid-cols-1 gap-2">
           {session && <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={()=> { stampToday(); setMoreOpen(false); }}>Stamp Today ({session.localDate || session.dateISO.slice(0,10)})</button>}
+          {sessionDuration && <div className="text-[11px] text-indigo-300 px-1">Session duration: <span className="font-semibold">{sessionDuration}</span></div>}
           {session && <button className="bg-slate-800 px-3 py-2 rounded-xl text-xs" onClick={()=> { const cur = session.localDate || session.dateISO.slice(0,10); const nv = prompt('Set session date (YYYY-MM-DD):', cur); if(nv){ setDateEditValue(nv); saveManualDate(); setMoreOpen(false); } }}>Edit Date…</button>}
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> { setShowImport(true); setMoreOpen(false); }}>Import from Template</button>
           <button className="bg-emerald-700 px-3 py-2 rounded-xl" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }}>Next phase →</button>
