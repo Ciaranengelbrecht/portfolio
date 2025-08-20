@@ -78,16 +78,20 @@ export default function Sessions() {
   // Collapsed exercise card state (entry.id -> collapsed?)
   const [collapsedEntries, setCollapsedEntries] = useState<Record<string,boolean>>({});
   const toggleEntryCollapsed = (id:string)=> setCollapsedEntries(prev=> ({ ...prev, [id]: !prev[id] }));
+  // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
+  const pickedLatestRef = useRef(false);
 
   useEffect(() => {
     (async () => {
-      // load current phase from settings
       const s = await getSettings();
-      setPhase(s.currentPhase || 1);
-      const last = s.dashboardPrefs?.lastLocation;
-      if (last) {
-        setWeek(last.weekNumber as any);
-        setDay(last.dayId);
+      // Only apply stored lastLocation if we haven't already picked the most recent session
+      if (!pickedLatestRef.current) {
+        setPhase(s.currentPhase || 1);
+        const last = s.dashboardPrefs?.lastLocation;
+        if (last) {
+          setWeek(last.weekNumber as any);
+          setDay(last.dayId);
+        }
       }
     })();
   }, []);
@@ -143,6 +147,23 @@ export default function Sessions() {
     const parts = last.id.split('-');
     if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } }
     lastRealSessionAppliedRef.current=true;
+    pickedLatestRef.current = true;
+    // Persist this choice immediately so next load aligns
+    try {
+      const settings = await getSettings();
+      await setSettings({
+        ...settings,
+        dashboardPrefs: {
+          ...(settings.dashboardPrefs||{}),
+          lastLocation: {
+            phaseNumber: Number(parts[0])||last.phaseNumber||last.phase||1,
+            weekNumber: Number(parts[1])||last.weekNumber,
+            dayId: Number(parts[2])||0,
+            sessionId: last.id
+          }
+        }
+      });
+    } catch(e){ /* non-fatal */ }
   } catch(e){ console.warn('Failed picking last active session', e); } })(); },[]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
