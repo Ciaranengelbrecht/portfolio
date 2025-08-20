@@ -109,6 +109,8 @@ export default function Sessions() {
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
+  // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
+  useEffect(()=> { const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 340); return ()=> clearTimeout(t); }, []);
 
   // After initial mount, choose the most recently active session (prefers loggedEndAt, then updatedAt/createdAt/dateISO) with any real data.
   // Also retroactively backfill missing loggedEndAt for older sessions that have data but never got stamped.
@@ -855,7 +857,7 @@ export default function Sessions() {
         </div>
       </div>
   {/* Spacer dynamic */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px)` }} aria-hidden="true" />
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 14px)` }} aria-hidden="true" />
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-2">
         <div className="hidden sm:flex items-center gap-2">
@@ -870,31 +872,31 @@ export default function Sessions() {
           {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
-        {/* Mobile inline expanded tools */}
-        <div className="w-full sm:hidden mt-1">
-          <button
-            className="w-full flex items-center justify-between bg-slate-700/70 hover:bg-slate-600 px-3 py-2 rounded-xl text-sm transition-colors"
-            onClick={()=> setMoreOpen(o=> !o)}
-            aria-expanded={moreOpen}
-            aria-controls="mobile-more-panel"
-          >
-            <span className="font-medium">Tools</span>
-            <span className="text-[11px] opacity-80">{moreOpen? 'Hide' : 'Show'}</span>
-          </button>
+        {/* Mobile inline compact tools */}
+        <div className="w-full sm:hidden relative mt-2">
+          <div className="flex items-center">
+            <button
+              className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
+              onClick={()=> setMoreOpen(o=> !o)}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-tools-panel"
+              aria-label={moreOpen? 'Hide tools' : 'Show tools'}
+            >
+              <span className="text-base leading-none select-none">▾</span>
+            </button>
+          </div>
           <div
-            id="mobile-more-panel"
-            className={`overflow-hidden transition-[grid-template-rows,padding] duration-300 ${moreOpen? 'grid grid-rows-[1fr] pt-2' : 'grid grid-rows-[0fr]'} `}
+            id="mobile-tools-panel"
+            className={`transition-all overflow-hidden ${moreOpen? 'mt-3 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
             aria-hidden={!moreOpen}
           >
-            <div className="min-h-0">
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                {session && <button className="bg-slate-700 px-2 py-2 rounded-lg" onClick={()=> { stampToday(); setMoreOpen(false); }}>Stamp Today</button>}
-                <button className="bg-brand-600 hover:bg-brand-700 px-2 py-2 rounded-lg" onClick={()=> { setShowImport(true); setMoreOpen(false); }}>Import Template</button>
-                <button className="bg-emerald-700 px-2 py-2 rounded-lg" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }}>Next Phase →</button>
-                {phase>1 && <button className="bg-slate-700 px-2 py-2 rounded-lg" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }}>← Prev Phase</button>}
-                {session && <button className="bg-slate-700 px-2 py-2 rounded-lg col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }}>Copy Last Session</button>}
-                {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
-              </div>
+            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-800/70 border border-white/10 backdrop-blur-sm">
+              {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
+              <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
+              <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
+              {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
+              {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
+              {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
             </div>
           </div>
         </div>
