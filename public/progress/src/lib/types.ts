@@ -158,6 +158,10 @@ export interface Settings {
   haptics?: boolean;
   /** Target rest duration in seconds for alert (timer flashes when reached) */
   restTimerTargetSeconds?: number;
+  /** Emphasize rest timer on target reached with strong pulse */
+  restTimerStrongAlert?: boolean;
+  /** Also flash screen background briefly when rest ends */
+  restTimerScreenFlash?: boolean;
 }
 
 export interface Template {

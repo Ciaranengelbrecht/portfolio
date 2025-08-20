@@ -229,7 +229,7 @@ export default function SettingsPage() {
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div>
           <div className="font-medium mb-1">Rest Timer</div>
-          <div className="text-xs text-muted mb-2">Default target rest time (seconds). Timer flashes & haptics (if enabled) when this threshold is reached.</div>
+          <div className="text-xs text-muted mb-2">Default target rest time (seconds). Timer animates & haptics (if enabled) when this threshold is reached.</div>
           <div className="flex items-center gap-3 flex-wrap">
             <input
               type="number"
@@ -244,10 +244,29 @@ export default function SettingsPage() {
                 <button key={preset} className={`px-3 py-2 rounded-xl text-xs ${ (s.restTimerTargetSeconds||0)===preset? 'bg-emerald-600':'bg-slate-700' }`} onClick={()=> setS(prev=> ({ ...prev, restTimerTargetSeconds: preset }))}>{preset}s</button>
               ))}
             </div>
+            <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
+              <input
+                type="checkbox"
+                checked={s.restTimerStrongAlert !== false}
+                onChange={(e)=> setS(prev=> ({ ...prev, restTimerStrongAlert: e.target.checked }))}
+              />
+              <span>Strong pulse</span>
+            </label>
+            <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1" title="Brief white flash behind app when rest target first reached. Accessibility: may be intense for some users.">
+              <input
+                type="checkbox"
+                checked={!!s.restTimerScreenFlash}
+                onChange={(e)=> setS(prev=> ({ ...prev, restTimerScreenFlash: e.target.checked }))}
+              />
+              <span>Screen flash</span>
+            </label>
             <button
               className="btn-primary px-3 py-2 rounded-xl text-xs"
               onClick={async ()=> { await db.put('settings', { ...s, id:'app' } as any); setToast('Rest timer saved'); }}
             >Save</button>
+          </div>
+          <div className="text-[10px] text-muted mt-1 leading-snug max-w-[580px]">
+            Strong pulse enlarges and pulses the timer once target is reached. Screen flash briefly inverts/whitens the background (single flash) for high visibility. Disable if you prefer minimal motion or have sensitivity. Respects the global Reduce motion toggle for most animations.
           </div>
         </div>
         <div className="mb-2">

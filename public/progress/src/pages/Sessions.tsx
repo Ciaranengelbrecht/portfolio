@@ -242,15 +242,17 @@ export default function Sessions() {
       return { [key]: { start: Date.now(), elapsed:0, running:true } };
     });
   }
-  const restTimerDisplay = (entryId:string)=>{ const t=restTimers[entryId]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); const target=(settingsState?.restTimerTargetSeconds||90); const reached = totalSecs >= target; const pulseClass = reached && !t.finished ? 'animate-[timerPulseFast_900ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : (t.running? 'animate-[timerPulse_1800ms_ease-in-out_infinite]':'');
+  const restTimerDisplay = (entryId:string)=>{ const t=restTimers[entryId]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); const target=(settingsState?.restTimerTargetSeconds||90); const strong=settingsState?.restTimerStrongAlert!==false; const flash=settingsState?.restTimerScreenFlash===true; const reached = totalSecs >= target; const basePulse = reached && !t.finished ? 'animate-[timerPulseFast_900ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : (t.running? 'animate-[timerPulse_1800ms_ease-in-out_infinite]':'');
+    // On first reach event add screen flash if enabled
+    if(reached && !t.alerted && flash){ try { document.body.classList.add('rest-screen-flash'); setTimeout(()=> document.body.classList.remove('rest-screen-flash'), 520); } catch {} }
     return (
       <span
         aria-live={reached? 'polite':'off'}
         aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' target reached':''}`}
-        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-1.5 py-0.5 ${reached? 'text-rose-300':'text-emerald-300'} ${pulseClass}`}
+        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-1.5 py-0.5 ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''}`}
       >
-        <span className={`relative z-10 font-semibold ${reached? 'scale-[1.15] drop-shadow-[0_0_8px_rgba(244,63,94,0.55)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
-        {reached && <span className="absolute -inset-1 rounded-md bg-rose-500/10 blur-sm animate-pulse" />}
+        <span className={`rest-timer-value relative z-10 font-semibold ${reached? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
+        {reached && <span className="absolute -inset-1 rounded-md bg-rose-500/20 blur-md" />}
       </span>
     ); }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
