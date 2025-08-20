@@ -1127,8 +1127,9 @@ export default function Sessions() {
                 </motion.div>
               )}
               </AnimatePresence>
+              <AnimatePresence initial={false}>
               {!isCollapsed && (
-              <>
+                <motion.div key="setsBlock" initial={{height:0, opacity:0}} animate={{height:'auto', opacity:1}} exit={{height:0, opacity:0}} transition={{duration:.28, ease:[0.32,0.72,0.33,1]}} style={{overflow:'hidden'}}>
               {/* Sets - mobile friendly list */}
               <div id={`entry-${entry.id}-sets`} className="mt-3 sm:hidden space-y-2">
                 {entry.sets.map((set, idx) => (
@@ -1583,8 +1584,9 @@ export default function Sessions() {
                   >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
                 </div>
               </div>
-              </>
+              </motion.div>
               )}
+              </AnimatePresence>
             </div>
           );
         })}
