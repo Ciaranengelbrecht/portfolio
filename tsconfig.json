@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noEmit": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "types": ["node", "react"],
+    "baseUrl": "."
+  },
+  "include": ["app/**/*", "next-env.d.ts"],
+  "exclude": ["node_modules", "public/progress/**"]
+}
