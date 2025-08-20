@@ -32,6 +32,7 @@ const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
+const Store = lazy(() => import("./pages/Store"));
 const Settings = lazy(() => import("./pages/Settings"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
 const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
@@ -431,6 +432,14 @@ function Shell() {
               element={
                 <RequireAuth>
                   <ProgramSettings />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/store"
+              element={
+                <RequireAuth>
+                  <Store />
                 </RequireAuth>
               }
             />
