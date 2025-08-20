@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { prefersReducedMotion } from '../lib/motion';
 
 interface TabDef { to: string; label: string; icon: (active:boolean)=> JSX.Element }
 
@@ -29,23 +30,27 @@ export default function MobileTabs(){
     if(active && indicatorRef.current){
       const r = active.getBoundingClientRect();
       const pr = containerRef.current!.getBoundingClientRect();
+      const reduce = prefersReducedMotion();
       indicatorRef.current.style.transform = `translateX(${r.left - pr.left}px)`;
       indicatorRef.current.style.width = r.width + 'px';
+      if(reduce){
+        indicatorRef.current.style.transition = 'none';
+      }
     }
   }, [loc.pathname, mounted]);
 
   return (
     <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-      <div ref={containerRef} className="relative mx-auto flex justify-around rounded-t-2xl bg-slate-950/75 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-2 pt-1 pb-[calc(.4rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_-6px_rgba(0,0,0,.6)]">
-        <div ref={indicatorRef} aria-hidden className="absolute -z-10 h-9 rounded-xl bg-emerald-500/15 shadow-[0_0_0_1px_rgba(16,185,129,0.15)] transition-all duration-300 ease-[cubic-bezier(.35,.7,.25,1)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <div ref={containerRef} className="relative mx-auto flex justify-around rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
+          <div ref={indicatorRef} aria-hidden className="absolute -z-10 h-[32px] rounded-lg bg-emerald-400/12 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.25),0_4px_10px_-6px_rgba(16,185,129,0.35)] transition-all duration-300 ease-[cubic-bezier(.35,.7,.25,1)]" />
         {tabs.map(t=> (
           <NavLink
             key={t.to}
             to={t.to}
-            className={({isActive})=>`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0`}
+              className={({isActive})=>`relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 rounded-lg text-[10px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
-            {t.icon(Boolean(loc.pathname === t.to))}
+              <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>
             <span className="leading-none">{t.label}</span>
           </NavLink>
         ))}

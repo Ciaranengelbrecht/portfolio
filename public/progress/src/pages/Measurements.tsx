@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import { loadRecharts } from "../lib/loadRecharts";
 import MeasurementsInfoModal from "./MeasurementsInfoModal";
 import UnifiedTooltip from "../components/UnifiedTooltip";
-import Snackbar from "../components/Snackbar";
+import { useSnack } from "../state/snackbar";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -25,11 +25,7 @@ export default function Measurements() {
     dateISO: new Date().toISOString(),
   });
   const [data, setData] = useState<Measurement[]>([]);
-  const [snack, setSnack] = useState<{
-    open: boolean;
-    msg: string;
-    undo?: () => void;
-  }>({ open: false, msg: "" });
+  const { push } = useSnack();
 
   useEffect(() => {
     (async()=>{
@@ -65,13 +61,13 @@ export default function Measurements() {
     const prev = data;
     await db.delete("measurements", id);
     setData(data.filter((x) => x.id !== id));
-    setSnack({
-      open: true,
-      msg: "Measurement deleted",
-      undo: async () => {
+    push({
+      message: "Measurement deleted",
+      actionLabel: 'Undo',
+      onAction: async () => {
         for (const it of prev) await db.put("measurements", it);
         setData(prev);
-      },
+      }
     });
   };
 
@@ -460,16 +456,7 @@ export default function Measurements() {
         </div>
       </div>
 
-      <Snackbar
-        open={snack.open}
-        message={snack.msg}
-        actionLabel={snack.undo ? "Undo" : undefined}
-        onAction={() => {
-          snack.undo?.();
-          setSnack({ open: false, msg: "" });
-        }}
-        onClose={() => setSnack({ open: false, msg: "" })}
-      />
+  {/* Snackbar migrated to global snack queue */}
     </div>
   );
 }

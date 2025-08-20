@@ -19,11 +19,14 @@ import { nanoid } from "nanoid";
 import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
 import { parseOptionalNumber, formatOptionalNumber } from '../lib/parse';
 import { getSettings, setSettings } from "../lib/helpers";
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeSlideUp, maybeDisable } from '../lib/motion';
 import PhaseStepper from "../components/PhaseStepper";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
 import { setLastAction, undo as undoLast } from "../lib/undo";
-import Snackbar from "../components/Snackbar";
+// Using global snack queue instead of legacy Snackbar
+import { useSnack } from "../state/snackbar";
 
 const DAYS = [
   "Upper A",
@@ -47,11 +50,7 @@ export default function Sessions() {
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState("");
   const [dragEntryIdx, setDragEntryIdx] = useState<number | null>(null);
-  const [snack, setSnack] = useState<{
-    open: boolean;
-    msg: string;
-    undo?: () => void;
-  }>({ open: false, msg: "" });
+  const { push } = useSnack();
   const [showImport, setShowImport] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [prevBestMap, setPrevBestMap] = useState<{
@@ -595,15 +594,15 @@ export default function Sessions() {
       .map((s, i) => ({ ...s, setNumber: i + 1 }));
     const prev = session;
     updateEntry({ ...entry, sets: after });
-    setSnack({
-      open: true,
-      msg: "Set deleted",
-      undo: async () => {
+    push({
+      message: "Set deleted",
+      actionLabel: "Undo",
+      onAction: async () => {
         if (prev) {
           await db.put("sessions", prev);
           setSession(prev);
         }
-      },
+      }
     });
   };
 
@@ -701,8 +700,8 @@ export default function Sessions() {
       setSession(prev);
       await db.put("sessions", prev);
     };
-    setLastAction({ undo });
-    setSnack({ open: true, msg: "Exercise removed", undo });
+  setLastAction({ undo });
+  push({ message: "Exercise removed", actionLabel: "Undo", onAction: undo });
   };
 
   const addExerciseToSession = async (ex: Exercise) => {
@@ -800,7 +799,7 @@ export default function Sessions() {
     const localDayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
     if (session.localDate === localDayStr) {
-      setSnack({ open: true, msg: "Already stamped for today" });
+      push({ message: "Already stamped for today" });
       return;
     }
     const prev = session;
@@ -809,10 +808,10 @@ export default function Sessions() {
     await db.put('sessions', updated);
     try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
     try { navigator.vibrate?.(15); } catch {}
-    setSnack({
-      open: true,
-      msg: `Session dated ${displayDate(localDayStr)}`,
-      undo: async () => {
+    push({
+      message: `Session dated ${displayDate(localDayStr)}`,
+      actionLabel: 'Undo',
+      onAction: async () => {
         await db.put('sessions', prev);
         setSession(prev);
       }
@@ -822,7 +821,7 @@ export default function Sessions() {
   // Save manually selected date (subtle edit control)
   const saveManualDate = async () => {
     if(!session) return;
-    if(!/\d{4}-\d{2}-\d{2}/.test(dateEditValue)) { setSnack({ open:true, msg:'Invalid date' }); return; }
+  if(!/\d{4}-\d{2}-\d{2}/.test(dateEditValue)) { push({ message:'Invalid date' }); return; }
     if(session.localDate === dateEditValue) { setEditingDate(false); return; }
     const prev = session;
     const d = new Date(dateEditValue + 'T00:00:00');
@@ -832,7 +831,7 @@ export default function Sessions() {
     await db.put('sessions', updated);
     try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
     setEditingDate(false);
-    setSnack({ open:true, msg:`Date set to ${dateEditValue}`, undo: async ()=> { await db.put('sessions', prev); setSession(prev); try { window.dispatchEvent(new CustomEvent('sb-change',{detail:{table:'sessions'}})); } catch {} } });
+  push({ message:`Date set to ${dateEditValue}`, actionLabel:'Undo', onAction: async ()=> { await db.put('sessions', prev); setSession(prev); try { window.dispatchEvent(new CustomEvent('sb-change',{detail:{table:'sessions'}})); } catch {} } });
   };
 
   // Display helper: convert yyyy-mm-dd to dd/mm/yyyy for UI
@@ -1102,8 +1101,14 @@ export default function Sessions() {
                   </button>
                 </div>
               </div>
+              <AnimatePresence initial={false}>
               {!isCollapsed && showPrevHints && prev && (
-                <div className="mt-1 flex items-center gap-2 flex-wrap">
+                <motion.div
+                  className="mt-1 flex items-center gap-2 flex-wrap"
+                  key="prevhints"
+                  variants={maybeDisable(fadeSlideUp)}
+                  initial="initial" animate="animate" exit="exit"
+                >
                   <span
                     className="prev-hint-pill"
                     aria-label={`Previous best set: ${prev.set.weightKg} kilograms for ${prev.set.reps} reps`}
@@ -1119,8 +1124,9 @@ export default function Sessions() {
                       Try +1 rep or +2.5kg?
                     </span>
                   )}
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
               {!isCollapsed && (
               <>
               {/* Sets - mobile friendly list */}
@@ -1677,16 +1683,7 @@ export default function Sessions() {
         </button>
       </div>
 
-      <Snackbar
-        open={snack.open}
-        message={snack.msg}
-        actionLabel={snack.undo ? "Undo" : undefined}
-        onAction={() => {
-          snack.undo?.();
-          setSnack({ open: false, msg: "" });
-        }}
-        onClose={() => setSnack({ open: false, msg: "" })}
-      />
+  {/* Snackbar removed; using global queue */}
       <ImportTemplateDialog
         open={showImport}
         onClose={() => setShowImport(false)}
@@ -1694,10 +1691,7 @@ export default function Sessions() {
         weekNumber={week}
         onImported={(updated, count, name) => {
           setSession(updated);
-          setSnack({
-            open: true,
-            msg: `Imported ${count} exercises from "${name}"`,
-          });
+          push({ message: `Imported ${count} exercises from "${name}"` });
         }}
       />
     </div>

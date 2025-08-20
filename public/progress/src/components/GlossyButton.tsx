@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { prefersReducedMotion } from '../lib/motion';
 import { clsx } from 'clsx';
 
 // Relaxed typing to avoid friction during UI polish; refine later with proper union merging.
@@ -50,7 +51,8 @@ export default function GlossyButton({
 
   const base = 'relative inline-flex items-center font-medium transition-all duration-200 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70 focus-visible:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed select-none';
   const gloss = variant === 'solid' ? 'before:absolute before:inset-0 before:[background:linear-gradient(140deg,rgba(255,255,255,0.35),rgba(255,255,255,0)_40%)] before:opacity-60 before:mix-blend-overlay before:rounded-inherit' : 'before:absolute before:inset-0 before:rounded-inherit before:bg-[linear-gradient(160deg,rgba(255,255,255,0.25),rgba(255,255,255,0)_55%)] before:opacity-40';
-  const motionProps = {
+  const rm = prefersReducedMotion();
+  const motionProps = rm ? {} : {
     whileTap: { scale: 0.96 },
     whileHover: { y: -2 },
     transition: { type: 'spring', stiffness: 300, damping: 20 }
