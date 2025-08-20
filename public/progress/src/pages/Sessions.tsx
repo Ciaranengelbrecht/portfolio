@@ -874,6 +874,17 @@ export default function Sessions() {
             />
             {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
             {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
+            {/* Mobile expand/collapse all toggle */}
+            {session && !!session.entries.length && (
+              <button
+                className="sm:hidden w-8 h-8 rounded-lg border border-white/10 bg-slate-800 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px]"
+                aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+                title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+                onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
+              >
+                <span className="leading-none select-none">{allCollapsed? '↓':'↑'}</span>
+              </button>
+            )}
           </div>
           {/* Date / stamp block */}
           {session && (
@@ -1566,12 +1577,6 @@ export default function Sessions() {
       {session && !!session.entries.length && (
         <div className="fixed sm:hidden bottom-0 left-0 right-0 z-30 backdrop-blur bg-slate-900/80 border-t border-white/10 px-4 py-3 flex items-center gap-4 overflow-x-auto">
           <MobileSessionMetrics session={session} exercises={exercises} />
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              className="text-[11px] px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95"
-              onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); }}
-            >{allCollapsed? 'Expand All':'Collapse All'}</button>
-          </div>
         </div>
       )}
 
