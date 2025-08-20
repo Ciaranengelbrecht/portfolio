@@ -1037,6 +1037,8 @@ export default function Sessions() {
                             -
                           </button>
                           <input
+                            type="text"
+                            inputMode="decimal"
                             pattern="[0-9]*[.,]?[0-9]*"
                             aria-label="Weight"
                             className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
