@@ -33,4 +33,18 @@ export default defineConfig({
   ],
   // Use relative base so the app works from a subfolder like /progress
   base: "./",
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: [
+            'react','react-dom','@supabase/supabase-js'
+          ],
+          charts: [
+            'recharts'
+          ]
+        }
+      }
+    }
+  }
 });

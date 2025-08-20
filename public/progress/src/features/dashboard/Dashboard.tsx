@@ -7,6 +7,7 @@ import { computeLoggedSetVolume } from "../../lib/volume";
 import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
 import { getAllCached } from "../../lib/dataCache";
 import { Settings } from "../../lib/types";
+import { useAggregates } from '../../lib/useAggregates';
 
 export default function Dashboard() {
   const [phase, setPhase] = useState(1);
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const [hidden,setHidden] = useState<NonNullable<Settings['dashboardPrefs']>['hidden']>({});
   const [weeklyBar,setWeeklyBar] = useState<{muscle:string; value:number}[]>([]);
   const [loading,setLoading] = useState(true);
+  const { data: aggs } = useAggregates();
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
@@ -37,9 +39,15 @@ export default function Dashboard() {
       const { perWeek, totals } = await computeLoggedSetVolume(phaseNum, { sessions, exercises });
       setPerWeek(perWeek);
       const wkNum = prefs.lastLocation?.weekNumber || 1;
-      setMuscleWeek(perWeek[wkNum] || {});
+      // Prefer precomputed weekly volume (aggregates) if available
+      if(aggs){
+        const key = `P${phaseNum}-W${wkNum}`;
+        setMuscleWeek(aggs.weeklyVolume[key] || {});
+      } else {
+        setMuscleWeek(perWeek[wkNum] || {});
+      }
       setMuscleTotals(totals);
-      const wk = perWeek[wkNum] || {};
+  const wk = aggs ? (aggs.weeklyVolume[`P${phaseNum}-W${wkNum}`]||{}) : (perWeek[wkNum] || {});
       setWeeklyBar(Object.entries(wk).map(([m,v])=> ({ muscle:m, value:v })).sort((a,b)=> b.value-a.value));
       setLoading(false);
     })();
@@ -47,7 +55,7 @@ export default function Dashboard() {
   // refresh when sessions change realtime
   useEffect(()=>{
   const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); })(); } };
-    window.addEventListener('sb-change', onChange as any);
+  window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
   }, [phase, week]);
   const toggle = async (key: HiddenKey) => {
@@ -99,7 +107,7 @@ export default function Dashboard() {
         <div className="font-medium mb-2">Body</div>
         {loading ? <div className="h-60 rounded-xl bg-white/5 animate-pulse" /> : <ChartPanel kind="measurement" />}
       </div>}
-      {!hidden?.weekVolume && <div className="space-y-2">
+  {!hidden?.weekVolume && <div className="space-y-2">
         <div className="font-medium">Week {week} Logged Volume (Weighted Sets)</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const tgt = targets[m]||0; const pct = tgt? Math.min(100,(v/tgt)*100): 100; const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500'; return (
@@ -114,7 +122,7 @@ export default function Dashboard() {
           {!Object.keys(muscleWeek).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
       </div>}
-      {!hidden?.phaseTotals && <div className="space-y-2">
+  {!hidden?.phaseTotals && <div className="space-y-2">
         <div className="font-medium">Phase Totals (Weighted Sets)</div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Object.entries(muscleTotals).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(muscleTotals)); const pct=(v/max)*100; return (

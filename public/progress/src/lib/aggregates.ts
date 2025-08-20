@@ -1,13 +1,14 @@
 import { getAllCached } from './dataCache';
 
 // Version for sessionStorage persistence; bump when aggregate schema changes
-const AGG_VERSION = 1;
+// Incremented to 2 after adding sessionId/dateISO metadata for PRs & new event wiring.
+const AGG_VERSION = 2;
 const KEY = 'pp_aggregates_v'+AGG_VERSION;
 
 export interface AggregatesBundle {
-  weeklyVolume: Record<string, Record<string, number>>;
-  exercisePRs: Record<string, { bestScore: number; est1RM: number }>;
-  weeklyPRCounts: Record<string, number>;
+  weeklyVolume: Record<string, Record<string, number>>; // key P{phase}-W{week}
+  exercisePRs: Record<string, { bestScore: number; est1RM: number; sessionId?: string; dateISO?: string }>;
+  weeklyPRCounts: Record<string, number>; // key P#-W# -> count of new PRs that week
   lastComputed: number;
   version: number;
 }
@@ -43,7 +44,12 @@ export async function computeAggregates(force?: boolean): Promise<AggregatesBund
           const data = evt.data || {};
           if(data.error){ console.warn('[aggregates] worker error', data.error); worker.terminate(); reject(new Error(data.error)); return; }
           const bundle: AggregatesBundle = { weeklyVolume: data.weeklyVolume||{}, exercisePRs: data.exercisePRs||{}, weeklyPRCounts: data.weeklyPRCounts||{}, lastComputed: data.lastComputed||Date.now(), version: data.version||AGG_VERSION };
-            persist(bundle); worker.terminate(); resolve(bundle);
+            persist(bundle);
+            // Broadcast so hooks/components can refresh immediately
+            if(typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('aggregates-updated', { detail: { source: 'worker', at: Date.now() } }));
+            }
+            worker.terminate(); resolve(bundle);
         };
         worker.postMessage({ sessions, exercises, measurements });
       } catch(err){ reject(err as any); }
