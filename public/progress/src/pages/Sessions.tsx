@@ -110,8 +110,35 @@ export default function Sessions() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
-  // After initial mount, choose the most recently modified session (loggedEndAt or updatedAt) with any real data.
-  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try { const all = await db.getAll<Session>('sessions'); const withData = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0))); if(!withData.length){ lastRealSessionAppliedRef.current=true; return; } withData.sort((a,b)=> { const ta = new Date(b.loggedEndAt || b.updatedAt || b.dateISO).getTime(); const tb = new Date(a.loggedEndAt || a.updatedAt || a.dateISO).getTime(); return ta - tb; }); const last = withData[0]; const parts = last.id.split('-'); if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } } lastRealSessionAppliedRef.current=true; } catch(e){ console.warn('Failed picking last modified session', e); } })(); },[]);
+  // After initial mount, choose the most recently active session (prefers loggedEndAt, then updatedAt/createdAt/dateISO) with any real data.
+  // Also retroactively backfill missing loggedEndAt for older sessions that have data but never got stamped.
+  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try {
+    const all = await db.getAll<Session>('sessions');
+    let mutated = false;
+    for(const s of all){
+      const hasData = s.entries?.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
+      if(hasData && !s.loggedEndAt){ // legacy session missing end stamp
+        // Use updatedAt or createdAt as best guess for last activity
+        (s as any).loggedEndAt = s.updatedAt || s.createdAt || s.dateISO;
+        mutated = true;
+      }
+      if(hasData && !s.loggedStartAt){
+        (s as any).loggedStartAt = s.loggedEndAt || s.updatedAt || s.createdAt || s.dateISO;
+        mutated = true;
+      }
+    }
+    if(mutated){
+      // Bulk write only mutated sessions
+      for(const s of all){ if(s.loggedEndAt && s.loggedStartAt){ try{ await db.put('sessions', s); }catch{} } }
+    }
+    const withData = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
+    if(!withData.length){ lastRealSessionAppliedRef.current=true; return; }
+    withData.sort((a,b)=> (new Date(b.loggedEndAt || b.updatedAt || b.createdAt || b.dateISO).getTime()) - (new Date(a.loggedEndAt || a.updatedAt || a.createdAt || a.dateISO).getTime()));
+    const last = withData[0];
+    const parts = last.id.split('-');
+    if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } }
+    lastRealSessionAppliedRef.current=true;
+  } catch(e){ console.warn('Failed picking last active session', e); } })(); },[]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -562,6 +589,13 @@ export default function Sessions() {
         updated = { ...updated, dateISO: startOfDay.toISOString(), localDate: localDayStr };
       }
     }
+    // Stamp activity (debounced write later)
+    if(hasWorkNow){
+      const nowIso = new Date().toISOString();
+      if(!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
+      (updated as any).loggedEndAt = nowIso;
+    }
+    (updated as any).updatedAt = new Date().toISOString();
   setSession(updated);
   latestSessionRef.current = updated;
   scheduleFlush();
@@ -616,6 +650,14 @@ export default function Sessions() {
     }
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
     const updated = { ...session, entries: [...session.entries, entry] };
+    // If this addition brings in working data immediately, stamp
+    const hasWorkNow = updated.entries.some(en => en.sets.some(s=> (s.reps||0)>0 || (s.weightKg||0)>0));
+    if(hasWorkNow){
+      const nowIso = new Date().toISOString();
+      if(!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
+      (updated as any).loggedEndAt = nowIso;
+    }
+    (updated as any).updatedAt = new Date().toISOString();
     setSession(updated);
     await db.put("sessions", updated);
     try {
