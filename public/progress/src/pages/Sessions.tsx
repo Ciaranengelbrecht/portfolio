@@ -80,6 +80,9 @@ export default function Sessions() {
   const toggleEntryCollapsed = (id:string)=> setCollapsedEntries(prev=> ({ ...prev, [id]: !prev[id] }));
   // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
   const pickedLatestRef = useRef(false);
+  // Enable verbose session selection debugging by setting localStorage.debugSessions = '1'
+  const debugSessions = useRef<boolean>(false);
+  useEffect(()=> { try { debugSessions.current = localStorage.getItem('debugSessions')==='1'; } catch {} }, []);
 
   useEffect(() => {
     (async () => {
@@ -119,52 +122,71 @@ export default function Sessions() {
   // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
   useEffect(()=> { const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 340); return ()=> clearTimeout(t); }, []);
 
-  // After initial mount, choose the most recently active session (prefers loggedEndAt, then updatedAt/createdAt/dateISO) with any real data.
-  // Also retroactively backfill missing loggedEndAt for older sessions that have data but never got stamped.
-  useEffect(()=>{ (async()=> { if(lastRealSessionAppliedRef.current) return; try {
-    const all = await db.getAll<Session>('sessions');
-    let mutated = false;
-    for(const s of all){
-      const hasData = s.entries?.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
-      if(hasData && !s.loggedEndAt){ // legacy session missing end stamp
-        // Use updatedAt or createdAt as best guess for last activity
-        (s as any).loggedEndAt = s.updatedAt || s.createdAt || s.dateISO;
-        mutated = true;
-      }
-      if(hasData && !s.loggedStartAt){
-        (s as any).loggedStartAt = s.loggedEndAt || s.updatedAt || s.createdAt || s.dateISO;
-        mutated = true;
-      }
-    }
-    if(mutated){
-      // Bulk write only mutated sessions
-      for(const s of all){ if(s.loggedEndAt && s.loggedStartAt){ try{ await db.put('sessions', s); }catch{} } }
-    }
-    const withData = all.filter(s=> s.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0)));
-    if(!withData.length){ lastRealSessionAppliedRef.current=true; return; }
-    withData.sort((a,b)=> (new Date(b.loggedEndAt || b.updatedAt || b.createdAt || b.dateISO).getTime()) - (new Date(a.loggedEndAt || a.updatedAt || a.createdAt || a.dateISO).getTime()));
-    const last = withData[0];
-    const parts = last.id.split('-');
-    if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } }
-    lastRealSessionAppliedRef.current=true;
-    pickedLatestRef.current = true;
-    // Persist this choice immediately so next load aligns
+  // After initial mount, choose the most recently ACTIVE session with data.
+  // Priority order:
+  // 1. Latest calendar date (localDate or dateISO day) that has any non-zero set
+  // 2. Within same date, latest activity timestamp (loggedEndAt > loggedStartAt > updatedAt > createdAt > dateISO)
+  // 3. Tie-breaker: higher weekNumber then higher day index (parsed from id)
+  // Also retroactively backfill missing loggedStart/End stamps.
+  useEffect(()=>{ (async()=> {
+    if(lastRealSessionAppliedRef.current) return;
     try {
-      const settings = await getSettings();
-      await setSettings({
-        ...settings,
-        dashboardPrefs: {
-          ...(settings.dashboardPrefs||{}),
-          lastLocation: {
-            phaseNumber: Number(parts[0])||last.phaseNumber||last.phase||1,
-            weekNumber: Number(parts[1])||last.weekNumber,
-            dayId: Number(parts[2])||0,
-            sessionId: last.id
-          }
-        }
+      const all = await db.getAll<Session>('sessions');
+      let mutated = false;
+      const hasWork = (s:Session)=> s.entries?.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
+      for(const s of all){
+        if(hasWork(s) && !s.loggedEndAt){ (s as any).loggedEndAt = s.updatedAt || s.createdAt || s.dateISO; mutated = true; }
+        if(hasWork(s) && !s.loggedStartAt){ (s as any).loggedStartAt = s.loggedEndAt || s.updatedAt || s.createdAt || s.dateISO; mutated = true; }
+      }
+      if(mutated){
+        for(const s of all){ if(s.loggedEndAt && s.loggedStartAt){ try{ await db.put('sessions', s); }catch{} } }
+      }
+  const dayVal = (s:Session)=> { const d = (s.localDate || s.dateISO?.slice(0,10) || '').replace(/-/g,''); return /^\d{8}$/.test(d)? Number(d): 0; };
+      const activityMs = (s:Session)=> { const t = (v?:string)=> v? new Date(v).getTime() || 0 : 0; return Math.max(t(s.loggedEndAt), t(s.loggedStartAt), t(s.updatedAt), t(s.createdAt), t(s.dateISO)); };
+      const withData = all.filter(hasWork);
+      if(!withData.length){ lastRealSessionAppliedRef.current=true; return; }
+      withData.sort((a,b)=> {
+        const dv = dayVal(b) - dayVal(a); if(dv!==0) return dv;
+        const av = activityMs(b) - activityMs(a); if(av!==0) return av;
+        if((b.weekNumber||0)!==(a.weekNumber||0)) return (b.weekNumber||0)-(a.weekNumber||0);
+        const ad = Number(a.id.split('-')[2]||0); const bd = Number(b.id.split('-')[2]||0); return bd - ad;
       });
-    } catch(e){ /* non-fatal */ }
-  } catch(e){ console.warn('Failed picking last active session', e); } })(); },[]);
+      const chosen = withData[0];
+      if(debugSessions.current){
+        // Sanity: ensure no candidate has strictly newer calendar day than chosen
+        const newer = withData.find(s=> dayVal(s) > dayVal(chosen));
+        if(newer){ console.warn('[Sessions debug] Found newer calendar session not chosen', { chosen: chosen.id, newer: newer.id }); }
+      }
+      if(debugSessions.current){
+        try {
+          console.groupCollapsed('[Sessions debug] selection');
+          console.log('Candidates (top 12):');
+          withData.slice(0,12).forEach(s=> console.log(s.id, { localDate: s.localDate, dateISO: s.dateISO?.slice(0,10), dayVal: dayVal(s), loggedStartAt: s.loggedStartAt, loggedEndAt: s.loggedEndAt, updatedAt: s.updatedAt, createdAt: s.createdAt, activity: activityMs(s) }));
+          console.log('Chosen:', chosen.id);
+          console.groupEnd();
+        } catch {}
+      }
+      const parts = chosen.id.split('-');
+      if(parts.length===3){ const p=Number(parts[0]); const w=Number(parts[1]); const d=Number(parts[2]); if(!isNaN(p)&&!isNaN(w)&&!isNaN(d)){ setPhase(p); setWeek(w as any); setDay(d); } }
+      lastRealSessionAppliedRef.current=true; pickedLatestRef.current=true;
+      // Persist immediately so settings don't point to an older session later
+      try {
+        const settings = await getSettings();
+        await setSettings({
+          ...settings,
+          dashboardPrefs: {
+            ...(settings.dashboardPrefs||{}),
+            lastLocation: {
+              phaseNumber: Number(parts[0])||chosen.phaseNumber||chosen.phase||1,
+              weekNumber: Number(parts[1])||chosen.weekNumber,
+              dayId: Number(parts[2])||0,
+              sessionId: chosen.id
+            }
+          }
+        });
+      } catch {}
+    } catch(e){ console.warn('Failed picking last active session', e); }
+  })(); },[]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -597,6 +619,14 @@ export default function Sessions() {
     if(pendingRef.current) window.clearTimeout(pendingRef.current);
     pendingRef.current = window.setTimeout(()=> { flushSession(); pendingRef.current = null; }, 750); // 750ms debounce
   };
+  // Flush pending session edits when page becomes hidden or before unload to preserve latest activity timestamps
+  useEffect(()=> {
+    const onVis = ()=> { if(document.hidden && pendingRef.current){ flushSession(); } };
+    const onBefore = ()=> { if(pendingRef.current){ flushSession(); } };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('beforeunload', onBefore);
+    return ()=> { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('beforeunload', onBefore); };
+  }, []);
   const updateEntry = (entry: SessionEntry) => {
     if (!session) return;
     const prevSession = session;
