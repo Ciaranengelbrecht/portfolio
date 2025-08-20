@@ -479,10 +479,12 @@ export default function Sessions() {
   }, [session?.id, program?.id]);
 
   const addSet = (entry: SessionEntry) => {
+    const last = [...entry.sets].sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).slice(-1)[0];
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
-      weightKg: null,
-      reps: null,
+      weightKg: last?.weightKg ?? null,
+      reps: last?.reps ?? null,
+      rpe: last?.rpe
     };
     updateEntry({ ...entry, sets: [...entry.sets, next] });
   };
