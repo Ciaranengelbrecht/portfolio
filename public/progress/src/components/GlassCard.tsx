@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { clsx } from "clsx";
+import { fadeSlideUp, maybeDisable } from "../lib/motion";
 
 export default function GlassCard({
   className,
@@ -10,9 +11,10 @@ export default function GlassCard({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      variants={maybeDisable(fadeSlideUp)}
+      initial="initial"
+      animate="animate"
+      exit="exit"
       className={clsx(
         "rounded-2xl p-4 card-surface border border-card relative overflow-hidden",
         className

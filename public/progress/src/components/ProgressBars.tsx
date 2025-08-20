@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import GlassCard from "./GlassCard";
 import { db } from "../lib/db";
 import {
@@ -390,11 +390,18 @@ export default function ProgressBars() {
           </div>
         )}
       </GlassCard>
+      <AnimatePresence>
       {showChecklist && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=> !advancing && setShowChecklist(false)} />
-          <div className="relative z-10 w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl p-5 space-y-4 shadow-xl">
-            <h4 className="text-lg font-semibold">Phase {curPhase} Review</h4>
+          <motion.button aria-label="Close" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={()=> !advancing && setShowChecklist(false)} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} />
+          <motion.div
+            initial={{opacity:0, y: 28, scale:.92}}
+            animate={{opacity:1, y:0, scale:1}}
+            exit={{opacity:0, y:16, scale:.94}}
+            transition={{ duration:.28, ease:[0.32,0.72,0.33,1] }}
+            className="relative z-10 w-full max-w-md bg-slate-900/95 border border-white/10 rounded-2xl p-5 space-y-4 shadow-xl"
+          >
+            <h4 className="text-title">Phase {curPhase} Review</h4>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400">Weeks</div>
@@ -427,12 +434,13 @@ export default function ProgressBars() {
               <div className="text-[11px] text-amber-400">Consider adding volume for: {undertrainedMuscles.slice(0,5).map(m=> m.muscle).join(', ')}{undertrainedMuscles.length>5?'…':''}</div>
             )}
             <div className="flex gap-3 justify-end pt-2">
-              <button className="text-xs px-3 py-2 rounded-lg bg-slate-700" disabled={advancing} onClick={()=> setShowChecklist(false)}>Cancel</button>
-              <button className="text-xs px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-50" disabled={advancing} onClick={advancePhaseConfirmed}>{advancing? 'Advancing…':'Confirm & Advance'}</button>
+              <button className="text-xs px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors" disabled={advancing} onClick={()=> setShowChecklist(false)}>Cancel</button>
+              <button className="text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 transition-colors" disabled={advancing} onClick={advancePhaseConfirmed}>{advancing? 'Advancing…':'Confirm & Advance'}</button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
