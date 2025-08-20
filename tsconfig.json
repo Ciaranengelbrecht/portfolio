@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -8,9 +8,32 @@
     "noEmit": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "types": ["node", "react"],
-    "baseUrl": "."
+    "types": [
+      "node",
+      "react"
+    ],
+    "baseUrl": ".",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "incremental": true,
+    "module": "esnext",
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["app/**/*", "next-env.d.ts"],
-  "exclude": ["node_modules", "public/progress/**"]
+  "include": [
+    "app/**/*",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "public/progress/**"
+  ]
 }
