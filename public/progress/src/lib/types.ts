@@ -46,6 +46,8 @@ export interface SessionEntry {
   exerciseId: UUID;
   sets: SetEntry[];
   notes?: string;
+  /** Optional planned rep range like "8-12" imported from template */
+  targetRepRange?: string;
 }
 export interface Session {
   id: UUID;
@@ -126,6 +128,7 @@ export interface Settings {
     gamification?: boolean; // default true
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
+  autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
   };
   /** Per-muscle weekly target (weighted sets) */
   volumeTargets?: Record<string, number>;
@@ -171,6 +174,17 @@ export interface Template {
   name: string;
   exerciseIds: UUID[];
   hidden?: boolean;
+  /** Optional per-exercise plan data (progressive overload guidance) */
+  plan?: {
+    exerciseId: string;
+    plannedSets: number;
+    repRange: string; // e.g. "6-8", "8-10", "10-12"
+    progression?: {
+      scheme: 'linear';
+      incrementKg?: number; // default 2.5
+      addRepsFirst?: boolean; // default true
+    };
+  }[];
 }
 
 export type DBVersion = 7;

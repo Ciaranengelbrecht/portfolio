@@ -11,6 +11,7 @@ import {
   Template,
   Settings,
 } from "../lib/types";
+import { buildSuggestions } from '../lib/progression';
 import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
@@ -40,6 +41,7 @@ export default function Sessions() {
   const [phase, setPhase] = useState<number>(1);
   const [day, setDay] = useState(0);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [suggestions, setSuggestions] = useState<Map<string,{weightKg?:number; reps?:number}>>(new Map());
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -108,6 +110,14 @@ export default function Sessions() {
           setDay(last.dayId);
         }
       }
+      // Build suggestions map (lightweight) if enabled
+      if(s.progress?.autoProgression){
+        try {
+          const ex = await db.getAll<Exercise>('exercises');
+          const sess = await db.getAll<Session>('sessions');
+          setSuggestions(buildSuggestions(ex, sess));
+        } catch {}
+      } else setSuggestions(new Map());
     })();
   }, []);
 
@@ -1122,6 +1132,11 @@ export default function Sessions() {
                         <span className="text-gray-300">
                           Set {set.setNumber}
                         </span>
+                        {idx===0 && (set.weightKg||0)===0 && (set.reps||0)===0 && suggestions.get(entry.exerciseId) && (
+                          <span className="text-[10px] text-emerald-300 bg-emerald-600/20 px-1.5 py-0.5 rounded" title="Suggested progression (enter manually to apply)">
+                            {(() => { const s = suggestions.get(entry.exerciseId)!; return `${s.weightKg ?? ''}${s.weightKg? 'kg':''}${s.reps? ` x ${s.reps}`:''}`; })()}
+                          </span>
+                        )}
                         <PRChip
                           exerciseId={entry.exerciseId}
                           score={(set.weightKg ?? 0) * (set.reps ?? 0)}
