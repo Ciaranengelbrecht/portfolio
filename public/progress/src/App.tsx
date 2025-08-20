@@ -7,6 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { getSettings, setSettings } from "./lib/helpers";
+import { seedExercises } from './lib/seedExercises';
 import { initSupabaseSync } from "./lib/supabaseSync";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
@@ -73,6 +74,8 @@ function Shell() {
       console.log("[App] init: session?", !!s, "user:", s?.user?.id || null);
       if (s?.user?.email) setAuthEmail(s.user.email);
       setAuthChecked(true);
+  // Seed global exercise catalogue once per device (idempotent if already present)
+  seedExercises().catch(()=>{});
       // Preload core datasets (stale-while-revalidate) for snappier first navigation
   warmPreload(['sessions','exercises','measurements','templates','settings'], { swr: true });
   // Kick off aggregate computation (non-blocking)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { db } from "../lib/db";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Template } from "../lib/types";
@@ -11,6 +11,7 @@ export default function Templates() {
   const [showAddFor, setShowAddFor] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [exerciseQuery, setExerciseQuery] = useState("");
+  const [showAllExercises, setShowAllExercises] = useState(false);
 
   const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, " ");
   const findExerciseByName = (n: string) => {
@@ -166,6 +167,28 @@ export default function Templates() {
     setTemplates(nextTemplates);
     await Promise.all(changed.map((t) => db.put("templates", t)));
   };
+
+  // Lightweight fuzzy matcher: returns score (higher = better)
+  const fuzzyScore = (term:string, target:string)=> {
+    term = term.toLowerCase(); target = target.toLowerCase();
+    if(target.includes(term)) return term.length * 4; // direct substring boost
+    // sequential character match score
+    let ti=0, score=0;
+    for(let i=0;i<target.length && ti<term.length;i++){
+      if(target[i]===term[ti]){ score+=2; ti++; }
+    }
+    return ti===term.length? score : 0;
+  };
+  const searchedExercises = useMemo(()=> {
+    const q = exerciseQuery.trim();
+    if(!q){ return showAllExercises? exercises : []; }
+    return exercises
+      .map(e=> ({ e, s: fuzzyScore(q, e.name) }))
+      .filter(x=> x.s>0)
+      .sort((a,b)=> b.s - a.s || a.e.name.localeCompare(b.e.name))
+      .slice(0,200)
+      .map(x=> x.e);
+  }, [exerciseQuery, exercises, showAllExercises]);
 
   return (
     <div className="space-y-4">
@@ -372,12 +395,12 @@ export default function Templates() {
             onChange={(e) => setExerciseQuery(e.target.value)}
           />
         </div>
+        <div className="text-[10px] text-gray-500 mb-2 flex items-center gap-3 flex-wrap">
+          <span>{exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length: 0)} exercise{(exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length:0))===1?'':'s'} shown</span>
+          <button className="px-2 py-1 rounded bg-slate-700 text-[10px]" onClick={()=> setShowAllExercises(v=> !v)}>{showAllExercises? 'Hide All':'Show All'}</button>
+        </div>
         <div className="grid gap-2">
-          {exercises
-            .filter((e) =>
-              e.name.toLowerCase().includes(exerciseQuery.toLowerCase())
-            )
-            .map((ex) => (
+          {searchedExercises.map((ex) => (
               <div
                 key={ex.id}
                 className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
