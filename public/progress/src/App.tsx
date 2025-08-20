@@ -27,6 +27,7 @@ import MobileTabs from "./components/MobileTabs";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
+import { SnackProvider, useSnack } from './state/snackbar';
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -44,6 +45,7 @@ import { warmPreload } from './lib/dataCache';
 import { computeAggregates } from './lib/aggregates';
 
 function Shell() {
+  const { push } = useSnack();
   const navigate = useNavigate();
   const locationRef = useLocation();
   const [authChecked, setAuthChecked] = useState(false);
@@ -52,12 +54,8 @@ function Shell() {
   const [toast, setToast] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
-  // Auto-dismiss small toast notifications
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1800);
-    return () => clearTimeout(t);
-  }, [toast]);
+  push({ message: "Week Complete!" });
+  push({ message: "Phase complete!" });
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -317,7 +315,8 @@ function Shell() {
   const authRoute = locationRef.pathname.startsWith("/auth");
   const [drawerOpen,setDrawerOpen] = useState(false);
   return (
-    <div className="min-h-screen flex flex-col relative pb-12 md:pb-0" id="app-shell">
+    <SnackProvider>
+      <div className="min-h-screen flex flex-col relative pb-12 md:pb-0" id="app-shell">
       {!authRoute && <BackgroundFX />}
       {/* ECG background (behind everything); toggled via body data attribute & settings */}
       {!authRoute && <ECGBackground />}
@@ -352,7 +351,7 @@ function Shell() {
           </div>
         </header>
       )}
-      {!authRoute && (
+  {!authRoute && (
         <AuthModal
           open={authOpen}
           onClose={() => setAuthOpen(false)}
@@ -448,7 +447,8 @@ function Shell() {
       </main>
       {!authRoute && <MobileTabs />}
       <NavDrawer open={drawerOpen} onClose={()=> setDrawerOpen(false)} authEmail={authEmail} onSignOut={async()=>{ if(signingOut) return; setSigningOut(true); try { await supabase.auth.signOut({scope:'global'} as any); } finally { clearAuthStorage(); setAuthEmail(null); setSigningOut(false); setDrawerOpen(false); } }} />
-    </div>
+      </div>
+    </SnackProvider>
   );
 }
 
