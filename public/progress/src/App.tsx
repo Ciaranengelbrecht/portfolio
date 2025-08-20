@@ -27,7 +27,7 @@ import MobileTabs from "./components/MobileTabs";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
-import { SnackProvider, useSnack } from './state/snackbar';
+import { SnackProvider } from './state/snackbar';
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Sessions = lazy(() => import("./pages/Sessions"));
@@ -45,7 +45,6 @@ import { warmPreload } from './lib/dataCache';
 import { computeAggregates } from './lib/aggregates';
 
 function Shell() {
-  const { push } = useSnack();
   const navigate = useNavigate();
   const locationRef = useLocation();
   const [authChecked, setAuthChecked] = useState(false);
@@ -54,8 +53,6 @@ function Shell() {
   const [toast, setToast] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
-  push({ message: "Week Complete!" });
-  push({ message: "Phase complete!" });
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -453,14 +450,15 @@ function Shell() {
 }
 
 export default function App() {
-  const locationRef = useLocation();
   return (
-    <LegacyThemeProvider>
-      <VarsThemeProvider>
-        <ProgramProvider>
-          <Shell />
-        </ProgramProvider>
-      </VarsThemeProvider>
-    </LegacyThemeProvider>
+    <SnackProvider>
+      <LegacyThemeProvider>
+        <VarsThemeProvider>
+          <ProgramProvider>
+            <Shell />
+          </ProgramProvider>
+        </VarsThemeProvider>
+      </LegacyThemeProvider>
+    </SnackProvider>
   );
 }
