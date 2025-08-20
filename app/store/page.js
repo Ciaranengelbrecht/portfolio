@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from 'react';
 
-const PACKS = [
-  { id: 'ul6d-pack', name: 'Upper/Lower 6-Day Pack', price: 12.00, blurb: 'JSON program pack with UL 6-Day split, 9-week meso, adaptive progression ready.' }
-]; // Could fetch dynamically via /api/packs later
+// Static preset IDs mapping to existing progress app presets (client will resolve after import)
+const PRESETS = [
+  { id: 'ul_basic', name: 'Upper/Lower 6-Day', blurb: 'Balanced 6-day upper/lower rotation with adaptive progression.' }
+];
 
 export default function StorePage(){
   const [loading,setLoading] = useState(false);
@@ -66,7 +67,7 @@ export default function StorePage(){
         </div>
       )}
       <div className="grid gap-4 md:grid-cols-2">
-        {PACKS.map(p=> {
+        {PRESETS.map(p=> {
           return (
             <div key={p.id} className="rounded-xl border border-white/10 p-4 bg-[var(--surface)]/60 backdrop-blur flex flex-col gap-2">
               <div className="font-medium">{p.name}</div>
@@ -76,15 +77,13 @@ export default function StorePage(){
                   <button disabled={creating} onClick={async ()=> {
                     setCreating(true);
                     try {
-                      const res = await fetch('/api/program/create-from-pack', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ packId: p.id }) });
+                      const res = await fetch('/api/program/import-preset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ presetId: p.id }) });
                       const data = await res.json();
-                      if(!res.ok) throw new Error(data.error || 'Create failed');
-                      setMessage('Program created. Open training app to start Week 1.');
+                      if(!res.ok) throw new Error(data.error || 'Import failed');
+                      setMessage('Preset imported. Open training app to apply starting weights.');
                     } catch(e){ setMessage(e.message); } finally { setCreating(false); }
-                  }} className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold disabled:opacity-50">{creating? 'Creating…' : 'Create Program'}</button>
-                ) : (
-                  <span className="text-xs text-gray-400">Unlock-all above to create</span>
-                )}
+                  }} className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold disabled:opacity-50">{creating? 'Importing…' : 'Import Preset'}</button>
+                ) : <span className="text-xs text-gray-400">Unlock-all above to import</span>}
               </div>
             </div>
           );
