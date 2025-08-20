@@ -592,6 +592,14 @@ export default function ProgramSettings() {
           </span>
         </div>
       </div>
+      {/* Templates quick access */}
+      <div className="glass-card rounded-2xl p-4 space-y-3">
+        <div className="text-xs uppercase tracking-wide text-gray-400">Templates</div>
+        <p className="text-[11px] text-gray-400 leading-relaxed">Build reusable exercise groupings and import them straight into sessions. Keep core lifts consistent while experimenting with accessory variations.</p>
+        <div>
+          <a href="#/templates" className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-black font-medium shadow transition-colors">Manage Templates →</a>
+        </div>
+      </div>
       {history.length > 0 && (
         <div className="glass-card rounded-2xl p-4 space-y-3">
           <div className="text-xs uppercase tracking-wide text-gray-400">

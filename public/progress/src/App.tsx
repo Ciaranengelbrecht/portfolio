@@ -327,7 +327,8 @@ function Shell() {
                 <Tab to="/" label="Dashboard" />
                 <Tab to="/sessions" label="Sessions" />
                 <Tab to="/measurements" label="Measurements" />
-                <Tab to="/templates" label="Programs" />
+                <Tab to="/settings/program" label="Program" />
+                <Tab to="/templates" label="Templates" />
                 <Tab to="/store" label="Store" />
                 <Tab to="/settings" label="Settings" />
               </nav>
