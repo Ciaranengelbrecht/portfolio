@@ -327,6 +327,215 @@ const ADDITIONAL_EXERCISES_V2: SeedItem[] = [
   { name: 'Sled Chest Press (Horizontal)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
 ];
 
+/** Comprehensive expansion (V3) – broad coverage of common gym movements across equipment & variations */
+const ADDITIONAL_EXERCISES_V3: SeedItem[] = [
+  // Chest - additional presses
+  { name: 'Barbell Bench Press (Touch and Go)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Barbell Bench Press (2-Count Pause)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Barbell Bench Press (Reverse Band)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Barbell Bench Press (Slingshot)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Barbell Bench Press (Board 2")', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Barbell Bench Press (Board 3")', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Close Grip Bench Press (Barbell)', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders'] },
+  { name: 'Wide Grip Bench Press (Barbell)', muscleGroup: 'chest', secondaryMuscles: ['shoulders','triceps'] },
+  { name: 'Incline Bench Press (Dumbbell Neutral)', muscleGroup: 'chest', secondaryMuscles: ['shoulders','triceps'] },
+  { name: 'Decline Bench Press (Dumbbell)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Machine Chest Press (Converging)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Machine Chest Press (Decline)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Machine Chest Press (Vertical)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Smith Machine Bench Press (Incline)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Smith Machine Bench Press (Decline)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
+  { name: 'Landmine Chest Press (Single Arm)', muscleGroup: 'chest', secondaryMuscles: ['shoulders','triceps','core'] },
+  { name: 'Push-Up (Wide Grip)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Push-Up (Diamond)', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders','core'] },
+  { name: 'Push-Up (Archer)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Push-Up (Deficit Parallettes)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Push-Up (Ring)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  { name: 'Push-Up (Plyometric)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders','core'] },
+  // Chest - fly & adduction variants
+  { name: 'Dumbbell Fly (Flat)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Dumbbell Fly (Incline)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Dumbbell Fly (Decline)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Dumbbell Fly (Stretch Focus)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Fly (High to Low Single Arm)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Fly (Low to High Single Arm)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Crossover (High to Low)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Crossover (Low to High)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Crossover (Mid)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Crossover (Single Arm High to Low)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Crossover (Single Arm Low to High)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Pec Deck (Reverse Grip Fly)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Machine Fly (Converging)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  { name: 'Machine Fly (Neutral Seat High)', muscleGroup: 'chest', secondaryMuscles: ['shoulders'] },
+  // Back - pull-up / pulldown variations
+  { name: 'Pull-Up (Wide)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Pull-Up (Close Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Pull-Up (Towel Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps','forearm' as any] },
+  { name: 'Pull-Up (Thick Bar)', muscleGroup: 'back', secondaryMuscles: ['biceps','forearm' as any] },
+  { name: 'Chin-Up (Close)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Lat Pulldown (Behind Neck)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Lat Pulldown (Underhand Close)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Lat Pulldown (Underhand Wide)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Lat Pulldown (Single Arm Kneeling)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Assisted Pull-Up (Machine)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Assisted Dip (Machine)', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders'] },
+  // Back - row variations
+  { name: 'Barbell Row (Conventional)', muscleGroup: 'back', secondaryMuscles: ['biceps','hamstrings','glutes'] },
+  { name: 'Barbell Row (Underhand)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Barbell Row (Wide Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Barbell Row (Paused)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Barbell Row (Chest Supported T-Bar)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Dumbbell Row (Kroc)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Dumbbell Row (Elbow Out)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders'] },
+  { name: 'Cable Row (Wide Neutral Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Cable Row (Underhand)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Cable Row (High Row Kneeling)', muscleGroup: 'back', secondaryMuscles: ['biceps','shoulders','core'] },
+  { name: 'Cable Row (Single Arm Chest Supported)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Machine Row (Iso-Lateral Single Arm)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Machine Row (Underhand)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'T-Bar Row (Meadows)', muscleGroup: 'back', secondaryMuscles: ['biceps'] },
+  { name: 'Landmine Row (Single Arm)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Inverted Row (Supinated)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  { name: 'Inverted Row (Wide Grip)', muscleGroup: 'back', secondaryMuscles: ['biceps','core'] },
+  // Back - isolation / rear delt / traps
+  { name: 'Reverse Pec Deck (Rear Delt)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Rear Delt Raise (Incline Prone)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Rear Delt Row (Cable)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Face Pull (Low to High)', muscleGroup: 'shoulders', secondaryMuscles: ['back','biceps'] },
+  { name: 'Prone Y Raise (Incline)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Prone T Raise (Incline)', muscleGroup: 'shoulders', secondaryMuscles: ['back'] },
+  { name: 'Barbell Shrug', muscleGroup: 'back', secondaryMuscles: ['shoulders'] },
+  { name: 'Dumbbell Shrug', muscleGroup: 'back', secondaryMuscles: ['shoulders'] },
+  { name: 'Trap Bar Shrug', muscleGroup: 'back', secondaryMuscles: ['shoulders'] },
+  { name: 'Smith Machine Shrug', muscleGroup: 'back', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Shrug', muscleGroup: 'back', secondaryMuscles: ['shoulders'] },
+  // Shoulders - presses / specialty
+  { name: 'Overhead Press (Z Press)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core'] },
+  { name: 'Overhead Press (Seated Dumbbell Neutral)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps'] },
+  { name: 'Push Jerk', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','legs','core'] },
+  { name: 'Split Jerk', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','legs','core'] },
+  { name: 'Behind Neck Press (Light)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps'] },
+  { name: 'Landmine Press (Half Kneeling)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','core'] },
+  { name: 'Arnold Press (Seated)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','chest'] },
+  // Shoulders - raises & isolation
+  { name: 'Lateral Raise (Seated)', muscleGroup: 'shoulders' },
+  { name: 'Lateral Raise (Leaning Cable)', muscleGroup: 'shoulders' },
+  { name: 'Lateral Raise (Partial Heavy)', muscleGroup: 'shoulders' },
+  { name: 'Front Raise (Barbell)', muscleGroup: 'shoulders', secondaryMuscles: ['chest'] },
+  { name: 'Front Raise (Cable)', muscleGroup: 'shoulders', secondaryMuscles: ['chest'] },
+  { name: 'Front Raise (Alternating Plate)', muscleGroup: 'shoulders', secondaryMuscles: ['chest'] },
+  { name: 'Upright Row (Barbell Narrow)', muscleGroup: 'shoulders', secondaryMuscles: ['biceps','back'] },
+  // Biceps - extensive
+  { name: 'Barbell Curl (Strict)', muscleGroup: 'biceps' },
+  { name: 'Barbell Curl (Cheat)', muscleGroup: 'biceps', secondaryMuscles: ['forearm' as any] },
+  { name: 'Barbell Curl (Tempo Slow)', muscleGroup: 'biceps' },
+  { name: 'Drag Curl (Barbell)', muscleGroup: 'biceps' },
+  { name: 'Preacher Curl (Barbell)', muscleGroup: 'biceps' },
+  { name: 'Preacher Curl (Machine)', muscleGroup: 'biceps' },
+  { name: 'Dumbbell Curl (Supinating)', muscleGroup: 'biceps' },
+  { name: 'Dumbbell Curl (Cross Body Hammer)', muscleGroup: 'biceps', secondaryMuscles: ['forearm' as any] },
+  { name: 'Hammer Curl (Cable Rope)', muscleGroup: 'biceps', secondaryMuscles: ['forearm' as any] },
+  { name: 'Cable Curl (High Pulley Overhead)', muscleGroup: 'biceps' },
+  { name: 'Cable Curl (Bayesian Single Arm)', muscleGroup: 'biceps' },
+  { name: 'Incline Curl (Dumbbell Supinating)', muscleGroup: 'biceps' },
+  { name: 'Spider Curl (EZ Bar)', muscleGroup: 'biceps' },
+  // Triceps - extensive
+  { name: 'Close Grip Bench Press (Paused)', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders'] },
+  { name: 'Skull Crusher (Flat Bench EZ)', muscleGroup: 'triceps', secondaryMuscles: ['chest'] },
+  { name: 'Skull Crusher (Incline EZ)', muscleGroup: 'triceps', secondaryMuscles: ['chest'] },
+  { name: 'Overhead Triceps Extension (EZ Bar)', muscleGroup: 'triceps', secondaryMuscles: ['shoulders'] },
+  { name: 'Overhead Triceps Extension (Cable Straight Bar)', muscleGroup: 'triceps', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Pushdown (V Bar)', muscleGroup: 'triceps' },
+  { name: 'Cable Pushdown (Reverse Grip)', muscleGroup: 'triceps' },
+  { name: 'Cable Pushdown (Single Arm)', muscleGroup: 'triceps' },
+  { name: 'Dumbbell Kickback (Incline Bench)', muscleGroup: 'triceps' },
+  { name: 'Tate Press', muscleGroup: 'triceps', secondaryMuscles: ['chest'] },
+  // Forearms / grip (classified other)
+  { name: 'Wrist Curl (Barbell)', muscleGroup: 'other' },
+  { name: 'Reverse Wrist Curl (Barbell)', muscleGroup: 'other' },
+  { name: 'Wrist Curl (Dumbbell Single)', muscleGroup: 'other' },
+  { name: 'Farmer Hold (Heavy)', muscleGroup: 'other', secondaryMuscles: ['core','forearm' as any] },
+  { name: 'Plate Pinch Hold', muscleGroup: 'other', secondaryMuscles: ['forearm' as any] },
+  // Squat & knee dominant - more
+  { name: 'Back Squat (Paused 2s)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Back Squat (Pin)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Front Squat (Paused)', muscleGroup: 'quads', secondaryMuscles: ['glutes','core'] },
+  { name: 'Front Squat (Tempo)', muscleGroup: 'quads', secondaryMuscles: ['glutes','core'] },
+  { name: 'Overhead Squat', muscleGroup: 'legs', secondaryMuscles: ['core','shoulders','back'] },
+  { name: 'Smith Machine Front Squat', muscleGroup: 'quads', secondaryMuscles: ['glutes','core'] },
+  { name: 'Hack Squat (Reverse Foot)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Leg Press (Feet High Narrow)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','quads'] },
+  { name: 'Leg Press (Feet Low Wide)', muscleGroup: 'quads', secondaryMuscles: ['glutes'] },
+  { name: 'Leg Press (Calf Press)', muscleGroup: 'calves', secondaryMuscles: ['quads'] },
+  { name: 'Walking Lunge (Barbell)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Forward Lunge (Dumbbell)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Reverse Lunge (Dumbbell)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Lateral Lunge (Dumbbell)', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Cossack Squat (Bodyweight)', muscleGroup: 'legs', secondaryMuscles: ['glutes','hamstrings','core'] },
+  { name: 'Step-Up (Low Box Barbell)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Step-Up (Lateral Dumbbell)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Split Squat (Front Foot Elevated)', muscleGroup: 'quads', secondaryMuscles: ['glutes','hamstrings'] },
+  // Hip hinge / posterior chain extended
+  { name: 'Deadlift (Paused Below Knee)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Deadlift (Block Pull Mid-Shin)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Rack Pull (Above Knee)', muscleGroup: 'back', secondaryMuscles: ['glutes','hamstrings'] },
+  { name: 'Romanian Deadlift (Tempo Slow)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Good Morning (Safety Bar)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Good Morning (Seated)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Hip Thrust (B-Stance)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: 'Hip Thrust (Single Leg)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: 'Glute Bridge (Single Leg)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: 'Reverse Hyperextension (Single Leg)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings','back'] },
+  { name: 'GHD Raise', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes','back'] },
+  { name: 'Nordic Curl (Eccentric Only)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes'] },
+  { name: 'Leg Curl (Cable Standing)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes'] },
+  { name: 'Leg Curl (Slider Single)', muscleGroup: 'hamstrings', secondaryMuscles: ['glutes'] },
+  // Glute isolation extras
+  { name: 'Hip Abduction (Seated Machine Lean Forward)', muscleGroup: 'glutes' },
+  { name: 'Cable Abduction (Side Lying)', muscleGroup: 'glutes' },
+  { name: 'Glute Bridge (Band)', muscleGroup: 'glutes', secondaryMuscles: ['hamstrings'] },
+  { name: 'Monster Walk (Band)', muscleGroup: 'glutes' },
+  { name: 'Lateral Band Walk (Hip)', muscleGroup: 'glutes' },
+  // Calves / lower leg
+  { name: 'Leg Press Calf Raise', muscleGroup: 'calves' },
+  { name: 'Seated Calf Raise (Machine)', muscleGroup: 'calves' },
+  { name: 'Tibialis Raise (Wall Lean)', muscleGroup: 'other' },
+  { name: 'Tibialis Raise (Plate Dorsiflexion)', muscleGroup: 'other' },
+  // Core - anti rotation / extension / flexion
+  { name: 'Pallof Press (Standing)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Pallof Press (Half Kneeling)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Pallof Press (Split Stance)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Cable Woodchopper (Horizontal)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Ab Wheel Rollout (Standing Partial)', muscleGroup: 'core', secondaryMuscles: ['shoulders'] },
+  { name: 'Plank (RKC)', muscleGroup: 'core', secondaryMuscles: ['shoulders','glutes'] },
+  { name: 'Plank (Weighted Plate)', muscleGroup: 'core', secondaryMuscles: ['shoulders','glutes'] },
+  { name: 'Side Plank (Weighted)', muscleGroup: 'core', secondaryMuscles: ['shoulders','glutes'] },
+  { name: 'Hanging Leg Raise (Toes to Bar)', muscleGroup: 'core', secondaryMuscles: ['hip flexors' as any] },
+  { name: 'Hanging Knee Raise (Twist)', muscleGroup: 'core', secondaryMuscles: ['hip flexors' as any] },
+  { name: 'Reverse Crunch (Decline Bench)', muscleGroup: 'core' },
+  { name: 'V-Up', muscleGroup: 'core' },
+  { name: 'Windshield Wiper (Hanging)', muscleGroup: 'core', secondaryMuscles: ['hip flexors' as any] },
+  { name: 'Russian Twist (Medicine Ball)', muscleGroup: 'core' },
+  { name: 'Dead Bug (Opposite Arm/Leg)', muscleGroup: 'core' },
+  { name: 'Bird Dog', muscleGroup: 'core', secondaryMuscles: ['back'] },
+  // Carries & loaded movement
+  { name: 'Suitcase Carry (Single Dumbbell)', muscleGroup: 'other', secondaryMuscles: ['core','forearm' as any] },
+  { name: 'Overhead Carry (Dumbbell)', muscleGroup: 'other', secondaryMuscles: ['core','shoulders'] },
+  { name: 'Front Rack Carry (Kettlebells)', muscleGroup: 'other', secondaryMuscles: ['core','shoulders'] },
+  { name: 'Waiter Carry (Single Arm)', muscleGroup: 'other', secondaryMuscles: ['core','shoulders'] },
+  { name: 'Sandbag Shoulder Carry', muscleGroup: 'other', secondaryMuscles: ['core','back','glutes'] },
+  // Olympic lifts / power
+  { name: 'Clean and Jerk', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','shoulders','triceps','core'] },
+  { name: 'Power Jerk', muscleGroup: 'legs', secondaryMuscles: ['glutes','shoulders','triceps','core'] },
+  { name: 'Split Jerk (From Rack)', muscleGroup: 'legs', secondaryMuscles: ['glutes','shoulders','triceps','core'] },
+  { name: 'Snatch', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','shoulders','triceps','core'] },
+  { name: 'Power Snatch', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','shoulders','core'] },
+  { name: 'Hang Snatch (High Hang)', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','shoulders','core'] },
+  { name: 'Muscle Snatch', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','shoulders'] },
+  { name: 'Snatch Balance', muscleGroup: 'legs', secondaryMuscles: ['glutes','shoulders','core'] },
+  { name: 'Push Press (Barbell)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','legs','core'] },
+];
+
 // Basic tag inference (deterministic, idempotent)
 function inferTags(name: string, mg: MuscleGroup, secondary?: MuscleGroup[]): string[] {
   const n = name.toLowerCase();
@@ -427,6 +636,26 @@ export async function seedExercises() {
     }
     if(toInsert.length || updatedCount){
       try { localStorage.setItem('exerciseSeedV2','1'); } catch {}
+      try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
+    }
+  }
+  // Phase 3: comprehensive expansion
+  if(!localStorage.getItem('exerciseSeedV3')){
+    const toInsert: Exercise[] = [];
+    for(const item of ADDITIONAL_EXERCISES_V3){
+      if(existingByName.has(norm(item.name))) continue;
+      const ex: Exercise = { id: nanoid(), name: item.name, muscleGroup: item.muscleGroup, secondaryMuscles: item.secondaryMuscles, defaults:{ sets:3, targetRepRange:'8-12' }, active:true };
+      toInsert.push(ex); existingByName.set(norm(ex.name), ex);
+    }
+    for(const ex of toInsert) await db.put('exercises', ex);
+    if(toInsert.length){
+      // Tag inference for new ones only (existing already tagged in V2 step)
+      for(const ex of toInsert){
+        const inferred = inferTags(ex.name, ex.muscleGroup, ex.secondaryMuscles);
+        const next = { ...ex, tags: inferred };
+        await db.put('exercises', next);
+      }
+      try { localStorage.setItem('exerciseSeedV3','1'); } catch {}
       try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
     }
   }
