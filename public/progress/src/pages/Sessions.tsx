@@ -61,7 +61,7 @@ export default function Sessions() {
   const lastRealSessionAppliedRef = useRef(false);
   // Per-exercise rest timers keyed by entry.id (single timer per exercise)
   const [restTimers, setRestTimers] = useState<Record<string,{start:number;elapsed:number;running:boolean;finished?:boolean;alerted?:boolean}>>({});
-  const REST_TIMER_MAX = 180000; // 3 minutes in ms
+  const REST_TIMER_MAX = 300000; // 5 minutes auto-reset (was 3min)
   const [readinessPct, setReadinessPct] = useState(0);
   // Manual date editing UI state
   const [editingDate, setEditingDate] = useState(false);
@@ -321,23 +321,16 @@ export default function Sessions() {
           if(elapsed >= targetMs && !v.alerted){ if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} } next[k] = { ...v, start, elapsed, alerted:true }; }
           else { next[k] = { ...v, start, elapsed }; }
         } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics])
-  const toggleRestTimer = (entryId:string)=>{
-    const key=entryId;
-    setRestTimers(prev=>{
-      const cur=prev[key];
-      if(cur?.running){ // mark finished with elapsed, non-running; keep for pulse then remove via tick cleanup
-        // haptic stop
-        if(settingsState?.haptics !== false){ try{ navigator.vibrate?.(12);}catch{} }
-        const now = Date.now();
-        // normalize start if legacy perf.now
-        const start = cur.start < 1e10 ? now - cur.elapsed : cur.start;
-        return { ...prev, [key]: { ...cur, start, running:false, finished:true, elapsed: now - start } };
-      }
-      // start new; clear others
-      if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([8,30,14]); }catch{} }
-      return { [key]: { start: Date.now(), elapsed:0, running:true } };
-    });
-  }
+  // Restart (or start) rest timer in a single tap; always resets elapsed to 0 and runs
+  const restartRestTimer = (entryId:string)=>{
+    setRestTimers(()=> ({ [entryId]: { start: Date.now(), elapsed:0, running:true } }));
+    if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([8,30,14]); }catch{} }
+  };
+  // Stop & clear rest timer (remove entirely)
+  const stopRestTimer = (entryId:string)=>{
+    setRestTimers(prev=>{ const next={...prev}; if(next[entryId]) delete next[entryId]; return next; });
+    if(settingsState?.haptics !== false){ try{ navigator.vibrate?.(12);}catch{} }
+  };
   const restTimerDisplay = (entryId:string)=>{ const t=restTimers[entryId]; if(!t) return null; const ms = t.elapsed; const totalSecs = ms/1000; const mm = Math.floor(totalSecs/60); const ss = Math.floor(totalSecs)%60; const cs = Math.floor((ms%1000)/10); const target=(settingsState?.restTimerTargetSeconds||90); const strong=settingsState?.restTimerStrongAlert!==false; const flash=settingsState?.restTimerScreenFlash===true; const reached = totalSecs >= target; const basePulse = reached && !t.finished ? 'animate-[timerPulseFast_900ms_ease-in-out_infinite]' : t.finished ? 'animate-[timerFinishPop_900ms_ease-in-out_forwards]' : (t.running? 'animate-[timerPulse_1800ms_ease-in-out_infinite]':'');
     // On first reach event add screen flash if enabled
     if(reached && !t.alerted && flash){ try { document.body.classList.add('rest-screen-flash'); setTimeout(()=> document.body.classList.remove('rest-screen-flash'), 520); } catch {} }
@@ -1318,11 +1311,17 @@ export default function Sessions() {
                 <div className="pt-1 flex items-center justify-end gap-3">
                   <button
                     className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
-                    onClick={()=> toggleRestTimer(entry.id)}
-                    aria-pressed={!!restTimers[entry.id]?.running}
-                    aria-label="Toggle rest timer for exercise"
-                  >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
+                    onClick={()=> restartRestTimer(entry.id)}
+                    aria-label={restTimers[entry.id]? 'Restart rest timer':'Start rest timer'}
+                  >{restTimers[entry.id]? 'Restart Rest':'Start Rest'}</button>
                   {restTimerDisplay(entry.id)}
+                  {restTimers[entry.id] && (
+                    <button
+                      className="ml-1 px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                      aria-label="Stop rest timer"
+                      onClick={()=> stopRestTimer(entry.id)}
+                    >×</button>
+                  )}
                 </div>
               </div>
 
@@ -1578,10 +1577,16 @@ export default function Sessions() {
                   {restTimerDisplay(entry.id)}
                   <button
                     className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
-                    onClick={()=> toggleRestTimer(entry.id)}
-                    aria-pressed={!!restTimers[entry.id]?.running}
-                    aria-label="Toggle rest timer for exercise"
-                  >{restTimers[entry.id]?.running? 'Stop Rest':'Start Rest'}</button>
+                    onClick={()=> restartRestTimer(entry.id)}
+                    aria-label={restTimers[entry.id]? 'Restart rest timer':'Start rest timer'}
+                  >{restTimers[entry.id]? 'Restart Rest':'Start Rest'}</button>
+                  {restTimers[entry.id] && (
+                    <button
+                      className="ml-1 px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                      aria-label="Stop rest timer"
+                      onClick={()=> stopRestTimer(entry.id)}
+                    >×</button>
+                  )}
                 </div>
               </div>
               </motion.div>
