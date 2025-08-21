@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fadeSlideUp, maybeDisable } from '../lib/motion';
 import PhaseStepper from "../components/PhaseStepper";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
+import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
 import { setLastAction, undo as undoLast } from "../lib/undo";
 // Using global snack queue instead of legacy Snackbar
@@ -52,6 +53,7 @@ export default function Sessions() {
   const [dragEntryIdx, setDragEntryIdx] = useState<number | null>(null);
   const { push } = useSnack();
   const [showImport, setShowImport] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [prevBestMap, setPrevBestMap] = useState<{
     [id: string]: { week: number; set: SetEntry };
@@ -972,6 +974,7 @@ export default function Sessions() {
   <div className="flex flex-wrap items-center gap-2 -mt-3 sm:mt-0">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
+          <button className="bg-slate-700 px-3 py-2 rounded-xl disabled:opacity-40" disabled={!session || !session.entries.length} onClick={()=> setShowSaveTemplate(true)} title="Save current session as a reusable template">Save as Template</button>
           <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=> {
             const all = await db.getAll<Session>('sessions');
             const curPhaseSessions = all.filter(s=> (s.phaseNumber||s.phase||1)===phase);
@@ -1003,6 +1006,7 @@ export default function Sessions() {
             <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
               {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
               <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
+              <button className="tool-btn" disabled={!session || !session.entries.length} onClick={()=> { setShowSaveTemplate(true); setMoreOpen(false); }} title={session && session.entries.length? 'Save this session as template':'No exercises to save'}>Save</button>
               <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
               {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
               {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
@@ -1737,6 +1741,12 @@ export default function Sessions() {
           setSession(updated);
           push({ message: `Imported ${count} exercises from "${name}"` });
         }}
+      />
+      <SaveTemplateDialog
+        open={showSaveTemplate}
+        onClose={()=> setShowSaveTemplate(false)}
+        session={session}
+        onSaved={(tpl)=> { push({ message: `Saved template "${tpl.name}"` }); }}
       />
     </div>
   );
