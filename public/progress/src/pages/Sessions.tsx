@@ -109,16 +109,34 @@ export default function Sessions() {
           setDay(last.dayId);
         }
       }
-      // Build suggestions map (lightweight) if enabled
-      if(s.progress?.autoProgression){
-        try {
-          const ex = await db.getAll<Exercise>('exercises');
-          const sess = await db.getAll<Session>('sessions');
-          setSuggestions(buildSuggestions(ex, sess));
-        } catch {}
-      } else setSuggestions(new Map());
+      // Do not build suggestions here; defer until we know current session identity for day-specific filtering
     })();
   }, []);
+
+  // Recompute progression suggestions when the active session (day identity) changes
+  useEffect(()=> {
+    (async () => {
+      if(!settingsState?.progress?.autoProgression){ setSuggestions(new Map()); return; }
+      if(!session) return;
+      try {
+        const allExercises = await db.getAll<Exercise>('exercises');
+        const allSessions = await db.getAll<Session>('sessions');
+        const exerciseIds = session.entries.map(e=> e.exerciseId);
+        const filteredExercises = allExercises.filter(e=> exerciseIds.includes(e.id));
+        const next = buildSuggestions(
+          filteredExercises,
+          allSessions,
+          {
+            matchTemplateId: session.templateId,
+            matchDayName: session.templateId ? undefined : session.dayName,
+            onlyExerciseIds: exerciseIds,
+            adaptive: true,
+          }
+        );
+        setSuggestions(next);
+      } catch {}
+    })();
+  }, [session?.id, session?.templateId, session?.dayName, settingsState?.progress?.autoProgression]);
 
   // Track scroll position to toggle More button visibility
   useEffect(() => {

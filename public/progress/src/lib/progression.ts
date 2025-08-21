@@ -122,13 +122,32 @@ export function suggestNext(ctx: ProgressionContext): NextSetSuggestion | null {
 }
 
 /** Build a map exerciseId -> suggestion for quick lookup in session UI */
-export function buildSuggestions(exercises: Exercise[], sessions: Session[], opts: { window?: number, addRepsFirst?: boolean, adaptive?: boolean } = {}) {
-  const windowN = opts.window ?? 6; // look back N sessions
-  const recent = sessions.slice(-windowN);
+export function buildSuggestions(
+  exercises: Exercise[],
+  sessions: Session[],
+  opts: {
+    window?: number;
+    addRepsFirst?: boolean;
+    adaptive?: boolean;
+    matchTemplateId?: string | null | undefined; // only consider sessions from same template (preferred)
+    matchDayName?: string | null | undefined; // fallback identity if templateId not present
+    onlyExerciseIds?: string[]; // optional whitelist of exercise ids to build suggestions for
+  } = {}
+) {
+  const windowN = opts.window ?? 6; // look back N sessions (per matching day identity)
+  let filtered = sessions;
+  if (opts.matchTemplateId) {
+    filtered = filtered.filter(s => s.templateId === opts.matchTemplateId);
+  } else if (opts.matchDayName) {
+    filtered = filtered.filter(s => s.dayName === opts.matchDayName);
+  }
+  const recent = filtered.slice(-windowN);
+  const onlySet = opts.onlyExerciseIds ? new Set(opts.onlyExerciseIds) : null;
   const map = new Map<string, NextSetSuggestion>();
-  for(const ex of exercises){
-  const sugg = suggestNext({ recentSessions: recent, exercise: ex, addRepsFirst: opts.addRepsFirst, adaptive: opts.adaptive });
-    if(sugg) map.set(ex.id, sugg);
+  for (const ex of exercises) {
+    if (onlySet && !onlySet.has(ex.id)) continue;
+    const sugg = suggestNext({ recentSessions: recent, exercise: ex, addRepsFirst: opts.addRepsFirst, adaptive: opts.adaptive });
+    if (sugg) map.set(ex.id, sugg);
   }
   return map;
 }
