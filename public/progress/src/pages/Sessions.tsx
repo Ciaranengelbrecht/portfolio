@@ -881,7 +881,7 @@ export default function Sessions() {
               value={day}
               onChange={setDay}
             />
-            {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
+            {/* Removed inline program summary button (accessible via bottom menu now) */}
             {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
             {/* Mobile expand/collapse all toggle */}
             {session && !!session.entries.length && (
