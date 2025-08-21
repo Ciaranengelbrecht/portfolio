@@ -954,9 +954,9 @@ export default function Sessions() {
         </div>
       </div>
   {/* Spacer dynamic */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 14px)` }} aria-hidden="true" />
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 8px)` }} aria-hidden="true" />
   {/* Non-sticky actions */}
-  <div className="flex flex-wrap items-center gap-2 mt-2">
+  <div className="flex flex-wrap items-center gap-2 mt-1">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
           <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=> {
@@ -970,7 +970,7 @@ export default function Sessions() {
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
         {/* Mobile inline compact tools */}
-        <div className="w-full sm:hidden relative mt-2">
+  <div className="w-full sm:hidden relative mt-1">
           <div className="flex items-center">
             <button
               className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
