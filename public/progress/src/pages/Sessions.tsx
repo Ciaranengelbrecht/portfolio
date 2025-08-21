@@ -160,6 +160,13 @@ export default function Sessions() {
   }, []);
   // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
   useEffect(()=> { const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 340); return ()=> clearTimeout(t); }, []);
+  // Re-measure when mobile tools panel opens/closes (after animation completes)
+  useEffect(()=> {
+    if(!toolbarRef.current) return;
+    setToolbarHeight(toolbarRef.current.offsetHeight);
+    const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 450);
+    return ()=> clearTimeout(t);
+  }, [moreOpen]);
 
   // After initial mount, choose the most recently ACTIVE session with data.
   // Priority order:
@@ -869,92 +876,117 @@ export default function Sessions() {
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
-        <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
-          <h2 className="text-xl font-semibold">Sessions</h2>
-          <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
-          <div className="flex items-center gap-2">
-            <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
-              {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
-            </select>
-            <DaySelector
-              labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
-              value={day}
-              onChange={setDay}
-            />
-            {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
-            {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
-            {/* Mobile expand/collapse all toggle */}
-            {session && !!session.entries.length && (
-              <button
-                className="sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
-                aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
-                title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
-                onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
-              >
-                <span className="leading-none select-none">{allCollapsed? '↓':'↑'}</span>
-              </button>
-            )}
-          </div>
-          {/* Date / stamp block */}
-          {session && (
-            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
-              {!editingDate && (
-                <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
+        <div className="px-4 pt-2 pb-2 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              className={`sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
+              aria-label={moreOpen? 'Hide tools':'Show tools'}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-tools-panel"
+              onClick={()=> setMoreOpen(o=> !o)}
+            >
+              <span className="leading-none select-none">▾</span>
+            </button>
+            <h2 className="text-xl font-semibold">Sessions</h2>
+            <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
+            <div className="flex items-center gap-2">
+              <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+                {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
+              </select>
+              <DaySelector
+                labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
+                value={day}
+                onChange={setDay}
+              />
+              {program && <button className="text-xs px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10" onClick={()=> (window.location.hash = '#/settings/program')} title="Edit program">{programSummary(program)}</button>}
+              {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
+              {session && !!session.entries.length && (
+                <button
+                  className="sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
+                  aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+                  title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+                  onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
+                >
+                  <span className="leading-none select-none">{allCollapsed? '↓':'↑'}</span>
+                </button>
               )}
-              {editingDate && (
-                <div className="flex items-center gap-1">
-                  <input
-                    type="date"
-                    className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
-                    value={dateEditValue}
-                    onChange={(e) => setDateEditValue(e.target.value)}
-                  />
-                  <button
-                    className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
-                    onClick={saveManualDate}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
-                    onClick={() => setEditingDate(false)}
-                  >
-                    Cancel
-                  </button>
+              {session && (
+                <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
+                  {!editingDate && (
+                    <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
+                  )}
+                  {editingDate && (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="date"
+                        className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                        value={dateEditValue}
+                        onChange={(e) => setDateEditValue(e.target.value)}
+                      />
+                      <button
+                        className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                        onClick={saveManualDate}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
+                        onClick={() => setEditingDate(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {!editingDate && (
+                    <>
+                      <button
+                        className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
+                        onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
+                        aria-label="Stamp with today's date"
+                      >
+                        <span className="pointer-events-none select-none">Stamp</span>
+                      </button>
+                      <button
+                        aria-label="Edit date"
+                        className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                        onClick={() => {
+                          setDateEditValue(
+                            session.localDate || session.dateISO.slice(0, 10)
+                          );
+                          setEditingDate(true);
+                        }}
+                      >
+                        ✎
+                      </button>
+                    </>
+                  )}
+                  {sessionDuration && !editingDate && (
+                    <span className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium" title="Active logging duration (first to last non-zero set)">⏱ {sessionDuration}</span>
+                  )}
                 </div>
               )}
-              {!editingDate && (
-                <>
-                  <button
-                    className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
-                    onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
-                    aria-label="Stamp with today's date"
-                  >
-                    <span className="pointer-events-none select-none">Stamp</span>
-                  </button>
-                  <button
-                    aria-label="Edit date"
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                    onClick={() => {
-                      setDateEditValue(
-                        session.localDate || session.dateISO.slice(0, 10)
-                      );
-                      setEditingDate(true);
-                    }}
-                  >
-                    ✎
-                  </button>
-                </>
-              )}
-              {sessionDuration && !editingDate && (
-                <span className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium" title="Active logging duration (first to last non-zero set)">⏱ {sessionDuration}</span>
-              )}
             </div>
-          )}
+            <div
+              id="mobile-tools-panel"
+              className={`sm:hidden overflow-hidden transition-[max-height,opacity,margin] duration-400 ease-in-out ${moreOpen? 'mt-2 max-h-[480px] opacity-100':'max-h-0 opacity-0'} `}
+              aria-hidden={!moreOpen}
+            >
+              <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
+                {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
+                <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
+                <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
+                {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
+                {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
+                {session && <button className="tool-btn" onClick={()=> { collapseAll(); setMoreOpen(false); }} title="Collapse all exercises">Collapse All</button>}
+                {session && <button className="tool-btn" onClick={()=> { expandAll(); setMoreOpen(false); }} title="Expand all exercises">Expand All</button>}
+                {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
   {/* Spacer dynamic */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 8px)` }} aria-hidden="true" />
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 4px)` }} aria-hidden="true" />
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-1">
         <div className="hidden sm:flex items-center gap-2">
@@ -969,36 +1001,7 @@ export default function Sessions() {
           {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
-        {/* Mobile inline compact tools */}
-  <div className="w-full sm:hidden relative mt-1">
-          <div className="flex items-center">
-            <button
-              className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
-              onClick={()=> setMoreOpen(o=> !o)}
-              aria-expanded={moreOpen}
-              aria-controls="mobile-tools-panel"
-              aria-label={moreOpen? 'Hide tools' : 'Show tools'}
-            >
-              <span className="text-base leading-none select-none">▾</span>
-            </button>
-          </div>
-          <div
-            id="mobile-tools-panel"
-            className={`transition-all overflow-hidden ${moreOpen? 'mt-3 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
-            aria-hidden={!moreOpen}
-          >
-            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
-              {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
-              <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
-              <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
-              {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
-              {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
-              {session && <button className="tool-btn" onClick={()=> { collapseAll(); }} title="Collapse all exercises">Collapse All</button>}
-              {session && <button className="tool-btn" onClick={()=> { expandAll(); }} title="Expand all exercises">Expand All</button>}
-              {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
-            </div>
-          </div>
-        </div>
+  {/* (Mobile tools now inside toolbar; old inline block removed) */}
       </div>
       {/* Legacy floating more panel removed in favor of inline collapsible */}
       {isDeloadWeek && (
