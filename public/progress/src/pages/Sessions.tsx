@@ -356,7 +356,7 @@ export default function Sessions() {
       <span
         aria-live={reached? 'polite':'off'}
         aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' target reached':''}`}
-        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 py-0.5 rounded-md min-w-[72px] text-center leading-none ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''} bg-slate-800/60 shadow-inner`}
+  className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 rounded-md min-w-[72px] h-8 flex items-center justify-center text-center leading-none ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''} bg-slate-800/60 shadow-inner`}
       >
         <span className={`rest-timer-value relative z-10 font-semibold tracking-tight ${reached? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
       </span>
@@ -1333,17 +1333,17 @@ export default function Sessions() {
                   onClick={()=> addSet(entry)}
                 >Add Set</button>
                 {/* Exercise-level rest control (mobile) */}
-                <div className="pt-1 flex items-center justify-end gap-3">
+                <div className="pt-2 pb-1 flex items-center justify-end gap-3 min-h-[44px]">
                   <button
-                    className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
+                    className={`px-3 h-8 leading-none rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs flex items-center ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
                     onClick={()=> restartRestTimer(entry.id)}
                     aria-label={restTimers[entry.id]? 'Restart rest timer':'Start rest timer'}
                   >{restTimers[entry.id]? 'Restart Rest':'Start Rest'}</button>
-                  <div className="flex items-center gap-1 ml-1">
+                  <div className="flex items-center gap-1 ml-1 h-8">
                     {restTimerDisplay(entry.id)}
                     {restTimers[entry.id] && (
                       <button
-                        className="px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                        className="px-2 h-8 leading-none flex items-center justify-center rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
                         aria-label="Stop rest timer"
                         onClick={()=> stopRestTimer(entry.id)}
                       >×</button>
@@ -1600,12 +1600,12 @@ export default function Sessions() {
                   </div>
                 </div>
                 {/* Exercise-level rest control (desktop) */}
-                <div className="col-span-4 mt-2 flex items-center justify-end gap-3 text-[11px]">
-                  <div className="flex items-center gap-1">
+                <div className="col-span-4 mt-2 flex items-center justify-end gap-3 text-[11px] min-h-[44px]">
+                  <div className="flex items-center gap-1 h-8">
                     {restTimerDisplay(entry.id)}
                     {restTimers[entry.id] && (
                       <button
-                        className="px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                        className="px-2 h-8 leading-none flex items-center justify-center rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
                         aria-label="Stop rest timer"
                         onClick={()=> stopRestTimer(entry.id)}
                       >×</button>
