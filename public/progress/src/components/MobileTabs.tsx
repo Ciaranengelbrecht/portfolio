@@ -1,6 +1,4 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
-import { prefersReducedMotion } from '../lib/motion';
 
 interface TabDef { to: string; label: string; icon: (active:boolean)=> JSX.Element }
 
@@ -20,30 +18,11 @@ const tabs: TabDef[] = [
 
 export default function MobileTabs(){
   const loc = useLocation();
-  const containerRef = useRef<HTMLDivElement|null>(null);
-  const indicatorRef = useRef<HTMLDivElement|null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(()=> { setMounted(true); },[]);
-  useEffect(()=> {
-    const active = containerRef.current?.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
-    if(active && indicatorRef.current){
-      const r = active.getBoundingClientRect();
-      const pr = containerRef.current!.getBoundingClientRect();
-      const reduce = prefersReducedMotion();
-      indicatorRef.current.style.transform = `translateX(${r.left - pr.left}px)`;
-      indicatorRef.current.style.width = r.width + 'px';
-      if(reduce){
-        indicatorRef.current.style.transition = 'none';
-      }
-    }
-  }, [loc.pathname, mounted]);
 
   return (
-    <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div ref={containerRef} className="relative mx-auto flex justify-around rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
-          <div ref={indicatorRef} aria-hidden className="absolute -z-10 h-[32px] rounded-lg bg-emerald-400/12 shadow-[inset_0_0_0_1px_rgba(16,185,129,0.25),0_4px_10px_-6px_rgba(16,185,129,0.35)] transition-all duration-300 ease-[cubic-bezier(.35,.7,.25,1)]" />
+  <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
+    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+    <div className="relative mx-auto flex justify-around rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
         {tabs.map(t=> (
           <NavLink
             key={t.to}
