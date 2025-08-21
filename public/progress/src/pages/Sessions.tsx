@@ -1027,7 +1027,7 @@ export default function Sessions() {
           return (
             <div
               key={entry.id}
-              className="bg-card rounded-2xl p-4 shadow-soft fade-in reorder-anim group"
+              className="relative bg-slate-900/70 rounded-2xl p-4 shadow-soft fade-in reorder-anim group border border-white/10 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/30 hover:shadow-[0_0_0_1px_rgba(0,185,255,0.25),0_4px_18px_-4px_rgba(0,185,255,0.25)]"
               draggable
               onDragStart={(e) => { setDragEntryIdx(entryIdx); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(entryIdx)); }}
               onDragOver={(e) => e.preventDefault()}
@@ -1055,6 +1055,12 @@ export default function Sessions() {
                 target.addEventListener('touchcancel', cancel, { passive:true });
               }}
             >
+              {/* Glow layers */}
+              <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+                <div className="absolute inset-px rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_25%_20%,rgba(0,185,255,0.18),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(77,91,255,0.15),transparent_60%)]" />
+                <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand-500/15 via-electric-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <div className="relative z-10">
               <div className="flex items-start justify-between gap-2">
                 <div className="font-medium flex items-center gap-2 flex-wrap cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
@@ -1093,6 +1099,8 @@ export default function Sessions() {
                   </button>
                 </div>
               </div>
+              {/* Close inner content wrapper opened earlier */}
+              </div>{/* end relative z-10 */}
               <AnimatePresence initial={false}>
               {!isCollapsed && showPrevHints && prev && (
                 <motion.div
