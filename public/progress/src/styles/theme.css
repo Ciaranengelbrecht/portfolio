@@ -111,11 +111,12 @@ h2.section-heading::after, h3.section-heading::after { content:""; position:abso
 .bg-card,
 .card-surface {
   background: var(--card);
-  box-shadow: var(--shadow);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
+  /* Add subtle always-on neon edge glow */
+  box-shadow: var(--shadow), 0 0 0 1px rgba(var(--accent-rgb,59 130 246)/0.18), 0 0 14px -8px rgba(var(--accent-rgb,59 130 246)/0.35);
 }
 
 
