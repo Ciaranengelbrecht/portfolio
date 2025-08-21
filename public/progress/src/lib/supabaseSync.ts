@@ -22,6 +22,9 @@ async function ensureChannel() {
 }
 
 export async function requestRealtime(table: Table) {
+  try {
+    if ((typeof window !== 'undefined' && (window as any).__DISABLE_REALTIME) || localStorage.getItem('disableRealtime')==='1') return;
+  } catch {}
   if (subscribedTables.has(table)) return;
   const ch = await ensureChannel();
   ch.on('postgres_changes', { event: '*', schema: 'public', table }, (payload: any)=> {

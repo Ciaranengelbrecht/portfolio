@@ -141,6 +141,15 @@ function Shell() {
   }, []);
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => {
+    try {
+      const disabled =
+        (typeof window !== 'undefined' && (window as any).__DISABLE_REALTIME) ||
+        localStorage.getItem('disableRealtime') === '1';
+      if (disabled) {
+        console.log('[Realtime] disabled by flag');
+        return;
+      }
+    } catch {}
     initSupabaseSync();
   }, []);
 
