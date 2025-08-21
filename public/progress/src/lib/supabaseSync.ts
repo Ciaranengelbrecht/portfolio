@@ -22,22 +22,16 @@ export function initSupabaseSync() {
       "templates",
       "settings",
     ];
-    tables.forEach((t) => {
-      supabase
-        .channel(`rt-${t}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: t },
-          (payload: any) => {
-            try {
-              window.dispatchEvent(
-                new CustomEvent("sb-change", { detail: { table: t, payload } })
-              );
-            } catch {}
-          }
-        )
-        .subscribe();
+    // Use a single multiplexed channel to reduce metadata queries & sockets
+    const ch = supabase.channel('rt-all');
+    tables.forEach(t => {
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload: any)=> {
+        try {
+          window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: t, payload }}));
+        } catch {}
+      });
     });
+    ch.subscribe();
   };
   start();
   supabase.auth.onAuthStateChange((_evt, session) => {

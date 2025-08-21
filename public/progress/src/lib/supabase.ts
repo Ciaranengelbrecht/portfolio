@@ -11,6 +11,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 // Cache the last session we heard about from onAuthStateChange.
 let lastAuthSession: any = null;
+// Deduplicate concurrent waitForSession calls
+let pendingWaitForSession: Promise<any> | null = null;
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let t: any;
@@ -111,6 +113,10 @@ export async function forceRefreshSession() {
 export async function waitForSession(
   opts: { timeoutMs?: number; intervalMs?: number } = {}
 ) {
+  // Immediate fast path from cached auth event
+  if (lastAuthSession) return lastAuthSession;
+  if (pendingWaitForSession) return pendingWaitForSession;
+  const run = async () => {
   const timeoutMs = opts.timeoutMs ?? 8000;
   const intervalMs = opts.intervalMs ?? 200;
   const start = Date.now();
@@ -184,6 +190,14 @@ export async function waitForSession(
   }
   console.log("[auth] waitForSession: timeout after", timeoutMs, "ms");
   return null;
+  };
+  try {
+    pendingWaitForSession = run();
+    const s = await pendingWaitForSession;
+    return s;
+  } finally {
+    pendingWaitForSession = null;
+  }
 }
 
 // Safely obtain the current user id without risking a long hang on Safari

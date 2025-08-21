@@ -39,7 +39,7 @@ export default function Templates() {
 
   useEffect(() => {
     (async () => {
-      await waitForSession({ timeoutMs: 4000 });
+      // Avoid blocking UI; rely on cached session or proceed optimistically
       setExercises(await db.getAll("exercises"));
       setTemplates(await db.getAll("templates"));
     })();
@@ -48,7 +48,6 @@ export default function Templates() {
   useEffect(() => {
     const onAuth = () => {
       (async () => {
-        await waitForSession({ timeoutMs: 4000 });
         setExercises(await db.getAll("exercises"));
         setTemplates(await db.getAll("templates"));
       })();

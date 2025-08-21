@@ -511,8 +511,7 @@ export default function Sessions() {
   const [initialLoading,setInitialLoading] = useState(true);
   useEffect(() => {
     (async () => {
-      console.log("[Sessions] init: waitForSession then fetch lists");
-      await waitForSession({ timeoutMs: 4000 });
+  console.log("[Sessions] init: fetch lists (no auth wait)");
       const [t,e] = await Promise.all([
         getAllCached('templates'),
         getAllCached('exercises')
@@ -538,8 +537,7 @@ export default function Sessions() {
   useEffect(() => {
     const onAuth = () => {
       (async () => {
-        console.log("[Sessions] sb-auth: waitForSession then refetch lists");
-        await waitForSession({ timeoutMs: 4000 });
+  console.log("[Sessions] sb-auth: refetch lists (no auth wait)");
         const [t,e] = await Promise.all([
           getAllCached('templates', { force: true }),
           getAllCached('exercises', { force: true })
