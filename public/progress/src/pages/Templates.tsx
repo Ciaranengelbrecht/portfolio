@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { db } from "../lib/db";
+import { requestRealtime } from "../lib/supabaseSync";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Template } from "../lib/types";
 import { nanoid } from "nanoid";
@@ -42,6 +43,9 @@ export default function Templates() {
       // Avoid blocking UI; rely on cached session or proceed optimistically
       setExercises(await db.getAll("exercises"));
       setTemplates(await db.getAll("templates"));
+  // subscribe only once needed
+  requestRealtime('exercises');
+  requestRealtime('templates');
     })();
   }, []);
 

@@ -7,34 +7,34 @@ type Table =
   | "templates"
   | "settings";
 
+// Lazy realtime: subscribe tables only when pages request them
+let channel: ReturnType<typeof supabase.channel> | null = null;
+const subscribedTables = new Set<Table>();
+let authReady = false;
+
+async function ensureChannel() {
+  if (channel) return channel;
+  // Wait (briefly) for a session before creating channel; fallback after timeout
+  await waitForSession({ timeoutMs: 1200 }).catch(()=> null);
+  channel = supabase.channel('rt-all');
+  channel.subscribe();
+  return channel;
+}
+
+export async function requestRealtime(table: Table) {
+  if (subscribedTables.has(table)) return;
+  const ch = await ensureChannel();
+  ch.on('postgres_changes', { event: '*', schema: 'public', table }, (payload: any)=> {
+    try {
+      window.dispatchEvent(new CustomEvent('sb-change', { detail: { table, payload }}));
+    } catch {}
+  });
+  subscribedTables.add(table);
+}
+
 export function initSupabaseSync() {
-  let subscribed = false;
-  const start = async () => {
-    if (subscribed) return;
-    // Avoid hanging on Safari: wait briefly for a session using resilient helper
-    const session = await waitForSession({ timeoutMs: 1500 });
-    if (!session || subscribed) return;
-    subscribed = true;
-    const tables: Table[] = [
-      "exercises",
-      "sessions",
-      "measurements",
-      "templates",
-      "settings",
-    ];
-    // Use a single multiplexed channel to reduce metadata queries & sockets
-    const ch = supabase.channel('rt-all');
-    tables.forEach(t => {
-      ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, (payload: any)=> {
-        try {
-          window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: t, payload }}));
-        } catch {}
-      });
-    });
-    ch.subscribe();
-  };
-  start();
+  // Auth listener so late logins can still attach future table subscriptions
   supabase.auth.onAuthStateChange((_evt, session) => {
-    if (!subscribed && session) start();
+    authReady = !!session;
   });
 }

@@ -9,6 +9,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+// Light runtime flag (set window.__DEBUG_AUTH = true in console to enable logs)
+const DBG = () => (typeof window !== 'undefined' && (window as any).__DEBUG_AUTH);
+
 // Cache the last session we heard about from onAuthStateChange.
 let lastAuthSession: any = null;
 // Deduplicate concurrent waitForSession calls
@@ -29,7 +32,7 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
 // Helper: robustly clear Supabase auth storage for this project
 export function clearAuthStorage() {
   try {
-    console.log("[auth] clearAuthStorage: start");
+  if (DBG()) console.log("[auth] clearAuthStorage: start");
     const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
     const keys = [
       `sb-${ref}-auth-token`,
@@ -42,17 +45,17 @@ export function clearAuthStorage() {
       const k = localStorage.key(i) || "";
       if (k.startsWith("sb-") && k.includes(ref)) localStorage.removeItem(k);
     }
-    console.log("[auth] clearAuthStorage: done");
+  if (DBG()) console.log("[auth] clearAuthStorage: done");
   } catch {}
 }
 
 // Force a quick session validation; returns current session or null
 export async function refreshSessionNow() {
   try {
-    console.log("[auth] refreshSessionNow: getSession()");
+  if (DBG()) console.log("[auth] refreshSessionNow: getSession()");
     const { data, error } = await supabase.auth.getSession();
     if (error) {
-      console.log("[auth] refreshSessionNow: getSession error", error?.message);
+  if (DBG()) console.log("[auth] refreshSessionNow: getSession error", error?.message);
       return null;
     }
     try {
@@ -70,12 +73,7 @@ export async function refreshSessionNow() {
 try {
   supabase.auth.onAuthStateChange((evt, session) => {
     try {
-      console.log(
-        "[auth] onAuthStateChange:",
-        evt,
-        "user:",
-        session?.user?.id || null
-      );
+  if (DBG()) console.log("[auth] onAuthStateChange:", evt, "user:", session?.user?.id || null);
       lastAuthSession = session || lastAuthSession;
       window.dispatchEvent(new CustomEvent("sb-auth", { detail: { session } }));
     } catch {}
@@ -85,19 +83,16 @@ try {
 // Force refresh tokens if a session exists
 export async function forceRefreshSession() {
   try {
-    console.log("[auth] forceRefreshSession: checking current session");
+  if (DBG()) console.log("[auth] forceRefreshSession: checking current session");
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      console.log("[auth] forceRefreshSession: no session");
+  if (DBG()) console.log("[auth] forceRefreshSession: no session");
       return null;
     }
-    console.log("[auth] forceRefreshSession: refreshing...");
+  if (DBG()) console.log("[auth] forceRefreshSession: refreshing...");
     const res = await supabase.auth.refreshSession();
     if (res.error)
-      console.log(
-        "[auth] forceRefreshSession: refresh error",
-        res.error.message
-      );
+  if (DBG()) console.log("[auth] forceRefreshSession: refresh error", res.error.message);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-auth", { detail: { session: res.data.session } })
@@ -120,7 +115,7 @@ export async function waitForSession(
   const timeoutMs = opts.timeoutMs ?? 8000;
   const intervalMs = opts.intervalMs ?? 200;
   const start = Date.now();
-  console.log("[auth] waitForSession: start", { timeoutMs, intervalMs });
+  if (DBG()) console.log("[auth] waitForSession: start", { timeoutMs, intervalMs });
   // Try fast path
   try {
     let { data } = await withTimeout(
@@ -128,28 +123,20 @@ export async function waitForSession(
       800,
       "getSession (initial)"
     );
-    console.log(
-      "[auth] waitForSession: initial getSession session?",
-      !!data.session
-    );
+  if (DBG()) console.log("[auth] waitForSession: initial getSession session?", !!data.session);
     if (data.session) {
-      console.log("[auth] waitForSession: fast path hit");
+  if (DBG()) console.log("[auth] waitForSession: fast path hit");
       return data.session;
     }
   } catch (e: any) {
-    console.log(
-      "[auth] waitForSession: initial getSession timeout/error:",
-      e?.message || e
-    );
+  if (DBG()) console.log("[auth] waitForSession: initial getSession timeout/error:", e?.message || e);
     if (lastAuthSession) {
-      console.log(
-        "[auth] waitForSession: using lastAuthSession from onAuthStateChange"
-      );
+  if (DBG()) console.log("[auth] waitForSession: using lastAuthSession from onAuthStateChange");
       return lastAuthSession;
     }
   }
   // Nudge refresh once
-  console.log("[auth] waitForSession: forceRefresh once");
+  if (DBG()) console.log("[auth] waitForSession: forceRefresh once");
   try {
     await withTimeout(
       supabase.auth.refreshSession(),
@@ -157,10 +144,7 @@ export async function waitForSession(
       "refreshSession (nudge)"
     );
   } catch (e: any) {
-    console.log(
-      "[auth] waitForSession: refresh nudge timeout/error:",
-      e?.message || e
-    );
+  if (DBG()) console.log("[auth] waitForSession: refresh nudge timeout/error:", e?.message || e);
   }
   while (Date.now() - start < timeoutMs) {
     try {
@@ -170,25 +154,17 @@ export async function waitForSession(
         "getSession (loop)"
       );
       if (data.session) {
-        console.log(
-          "[auth] waitForSession: session present after",
-          Date.now() - start,
-          "ms"
-        );
+  if (DBG()) console.log("[auth] waitForSession: session present after", Date.now() - start, "ms");
         return data.session;
       }
     } catch {}
     if (lastAuthSession) {
-      console.log(
-        "[auth] waitForSession: returning lastAuthSession from event after",
-        Date.now() - start,
-        "ms"
-      );
+  if (DBG()) console.log("[auth] waitForSession: returning lastAuthSession from event after", Date.now() - start, "ms");
       return lastAuthSession;
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  console.log("[auth] waitForSession: timeout after", timeoutMs, "ms");
+  if (DBG()) console.log("[auth] waitForSession: timeout after", timeoutMs, "ms");
   return null;
   };
   try {
@@ -216,10 +192,7 @@ export async function getOwnerIdFast(
     const id = data.session?.user?.id;
     if (id) return id;
   } catch (e: any) {
-    console.log(
-      "[auth] getOwnerIdFast: getSession timeout/error:",
-      e?.message || e
-    );
+  if (DBG()) console.log("[auth] getOwnerIdFast: getSession timeout/error:", e?.message || e);
   }
   const s = await waitForSession({ timeoutMs: t });
   if (s?.user?.id) return s.user.id;

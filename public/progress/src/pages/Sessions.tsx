@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
+import { requestRealtime } from "../lib/supabaseSync";
 import {
   Exercise,
   Session,
@@ -530,6 +531,10 @@ export default function Sessions() {
       const st = await getSettings();
       setSettingsState(st as any);
       setInitialLoading(false);
+  // Lazy subscribe to only needed tables
+  requestRealtime('sessions');
+  requestRealtime('exercises');
+  requestRealtime('templates');
     })();
   }, []);
 
