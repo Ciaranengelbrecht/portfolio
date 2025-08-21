@@ -882,7 +882,7 @@ export default function Sessions() {
               onChange={setDay}
             />
             {/* Removed inline program summary button (accessible via bottom menu now) */}
-            {session?.autoImportedTemplateId && <span className="badge" title="Auto-imported template applied">Template</span>}
+            {/* Removed Template badge (autoImportedTemplateId indicator) per request */}
             {/* Mobile expand/collapse all toggle */}
             {session && !!session.entries.length && (
               <button
