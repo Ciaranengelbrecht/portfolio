@@ -160,6 +160,19 @@ export default function Sessions() {
   }, []);
   // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
   useEffect(()=> { const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 340); return ()=> clearTimeout(t); }, []);
+  // Observe toolbar size changes (fonts / wrapping) to avoid transient spacer gap
+  useEffect(()=> {
+    if(!toolbarRef.current || typeof ResizeObserver==='undefined') return;
+    const el = toolbarRef.current;
+    const ro = new ResizeObserver(()=> {
+      if(el) {
+        const h = el.offsetHeight;
+        setToolbarHeight(prev => prev!==h ? h : prev);
+      }
+    });
+    ro.observe(el);
+    return ()=> ro.disconnect();
+  }, []);
 
   // After initial mount, choose the most recently ACTIVE session with data.
   // Priority order:
