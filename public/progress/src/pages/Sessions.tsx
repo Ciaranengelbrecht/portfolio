@@ -953,10 +953,10 @@ export default function Sessions() {
           )}
         </div>
       </div>
-  {/* Spacer dynamic */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 14px)` }} aria-hidden="true" />
-  {/* Non-sticky actions */}
-  <div className="flex flex-wrap items-center gap-2 mt-2">
+  {/* Spacer dynamic (reduced extra gap from 14px -> 6px to bring mobile tools closer) */}
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)` }} aria-hidden="true" />
+  {/* Non-sticky actions (removed extra top margin to tighten spacing below toolbar) */}
+  <div className="flex flex-wrap items-center gap-2">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
           <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=> {
@@ -969,8 +969,8 @@ export default function Sessions() {
           {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
-        {/* Mobile inline compact tools */}
-        <div className="w-full sm:hidden relative mt-2">
+  {/* Mobile inline compact tools (removed mt-2 to position directly under toolbar) */}
+  <div className="w-full sm:hidden relative">
           <div className="flex items-center">
             <button
               className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
@@ -984,7 +984,7 @@ export default function Sessions() {
           </div>
           <div
             id="mobile-tools-panel"
-            className={`transition-all overflow-hidden ${moreOpen? 'mt-3 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
+            className={`transition-all overflow-hidden ${moreOpen? 'mt-1 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
             aria-hidden={!moreOpen}
           >
             <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
