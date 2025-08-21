@@ -338,10 +338,9 @@ export default function Sessions() {
       <span
         aria-live={reached? 'polite':'off'}
         aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' target reached':''}`}
-        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-1.5 py-0.5 ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''}`}
+        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 py-0.5 rounded-md min-w-[72px] text-center leading-none ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''} bg-slate-800/60 shadow-inner`}
       >
-        <span className={`rest-timer-value relative z-10 font-semibold ${reached? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
-        {reached && <span className="absolute -inset-1 rounded-md bg-rose-500/20 blur-md" />}
+        <span className={`rest-timer-value relative z-10 font-semibold tracking-tight ${reached? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
       </span>
     ); }
   const duplicateLastSet = (entry: SessionEntry)=>{ const last=[...entry.sets].pop(); if(!last) return; const clone: SetEntry={...last, setNumber: entry.sets.length+1}; updateEntry({ ...entry, sets:[...entry.sets, clone] }) }
@@ -1314,14 +1313,16 @@ export default function Sessions() {
                     onClick={()=> restartRestTimer(entry.id)}
                     aria-label={restTimers[entry.id]? 'Restart rest timer':'Start rest timer'}
                   >{restTimers[entry.id]? 'Restart Rest':'Start Rest'}</button>
-                  {restTimerDisplay(entry.id)}
-                  {restTimers[entry.id] && (
-                    <button
-                      className="ml-1 px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
-                      aria-label="Stop rest timer"
-                      onClick={()=> stopRestTimer(entry.id)}
-                    >×</button>
-                  )}
+                  <div className="flex items-center gap-1 ml-1">
+                    {restTimerDisplay(entry.id)}
+                    {restTimers[entry.id] && (
+                      <button
+                        className="px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                        aria-label="Stop rest timer"
+                        onClick={()=> stopRestTimer(entry.id)}
+                      >×</button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1574,19 +1575,16 @@ export default function Sessions() {
                 </div>
                 {/* Exercise-level rest control (desktop) */}
                 <div className="col-span-4 mt-2 flex items-center justify-end gap-3 text-[11px]">
-                  {restTimerDisplay(entry.id)}
-                  <button
-                    className={`px-3 py-1.5 rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-xs ${restTimers[entry.id]?.running? 'bg-emerald-700 text-emerald-50 shadow-inner':''}`}
-                    onClick={()=> restartRestTimer(entry.id)}
-                    aria-label={restTimers[entry.id]? 'Restart rest timer':'Start rest timer'}
-                  >{restTimers[entry.id]? 'Restart Rest':'Start Rest'}</button>
-                  {restTimers[entry.id] && (
-                    <button
-                      className="ml-1 px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
-                      aria-label="Stop rest timer"
-                      onClick={()=> stopRestTimer(entry.id)}
-                    >×</button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {restTimerDisplay(entry.id)}
+                    {restTimers[entry.id] && (
+                      <button
+                        className="px-2 py-1 rounded-md bg-slate-700 hover:bg-slate-600 text-[10px] text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                        aria-label="Stop rest timer"
+                        onClick={()=> stopRestTimer(entry.id)}
+                      >×</button>
+                    )}
+                  </div>
                 </div>
               </div>
               </motion.div>
