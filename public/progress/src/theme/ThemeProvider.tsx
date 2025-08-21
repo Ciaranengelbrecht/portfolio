@@ -30,6 +30,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const applyVars = (vars: ThemeVars) => {
     const root = document.documentElement;
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+    // Derive accent-rgb if not provided so glow utilities can adapt
+    try {
+      if(!("--accent-rgb" in vars) && vars["--accent"]) {
+        const a = vars["--accent"];
+        // Support hsl or hex (#rrggbb)
+        let r:number|undefined,g:number|undefined,b:number|undefined;
+        const hslMatch = a.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
+        if(hslMatch){
+          const h=Number(hslMatch[1]); const s=Number(hslMatch[2])/100; const l=Number(hslMatch[3])/100;
+          const c=(1-Math.abs(2*l-1))*s; const x=c*(1-Math.abs(((h/60)%2)-1)); const m=l-c/2; let rp=0,gp=0,bp=0;
+          if(h<60){ rp=c; gp=x; bp=0;} else if(h<120){ rp=x; gp=c; bp=0;} else if(h<180){ rp=0; gp=c; bp=x;} else if(h<240){ rp=0; gp=x; bp=c;} else if(h<300){ rp=x; gp=0; bp=c;} else { rp=c; gp=0; bp=x; }
+          r=Math.round((rp+m)*255); g=Math.round((gp+m)*255); b=Math.round((bp+m)*255);
+        } else if(a.startsWith('#') && (a.length===7)) {
+          r=parseInt(a.slice(1,3),16); g=parseInt(a.slice(3,5),16); b=parseInt(a.slice(5,7),16);
+        }
+        if(r!=null && g!=null && b!=null){ root.style.setProperty('--accent-rgb', `${r} ${g} ${b}`); }
+      }
+    } catch {}
     const glass =
       (vars["--card"] || "").includes("rgba(") ||
       (vars["--card-backdrop"] || "").includes("blur");

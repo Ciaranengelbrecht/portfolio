@@ -1045,7 +1045,7 @@ export default function Sessions() {
           return (
             <div
               key={entry.id}
-              className="relative bg-slate-900/70 rounded-2xl p-4 shadow-soft fade-in reorder-anim group border border-white/10 backdrop-blur-sm transition-colors duration-300 hover:border-brand-500/30 hover:shadow-[0_0_0_1px_rgba(0,185,255,0.25),0_4px_18px_-4px_rgba(0,185,255,0.25)]"
+              className="relative card-enhanced rounded-2xl p-4 fade-in reorder-anim group"
               draggable
               onDragStart={(e) => { setDragEntryIdx(entryIdx); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(entryIdx)); }}
               onDragOver={(e) => e.preventDefault()}
