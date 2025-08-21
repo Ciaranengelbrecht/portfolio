@@ -122,62 +122,152 @@ export default function SettingsPage() {
   // testSync removed with Gist sync
 
   const exportData = async () => {
-    const [exercises, sessions, measurements, templates, settings] =
-      await Promise.all([
-        db.getAll("exercises"),
-        db.getAll("sessions"),
-        db.getAll("measurements"),
-        db.getAll("templates"),
-        db.get("settings", "app"),
-      ]);
+    const [exercises, sessions, measurements, templates, settings] = await Promise.all([
+      db.getAll("exercises"),
+      db.getAll("sessions"),
+      db.getAll("measurements"),
+      db.getAll("templates"),
+      db.get("settings", "app"),
+    ]);
+
+    // Helper: map for lookups
+    const exerciseMap: Record<string, any> = Object.fromEntries(
+      (exercises as any[]).map((e) => [e.id, e])
+    );
+
+    // Generic CSV escaping (wrap if needed)
+    const esc = (v: any) => {
+      if (v === null || v === undefined) return "";
+      const s = String(v);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+
+    // Raw JSON snapshot (for full fidelity restore)
     const json = JSON.stringify(
-      { exercises, sessions, measurements, templates, settings },
+      { exercises, sessions, measurements, templates, settings, exportedAt: new Date().toISOString() },
       null,
       2
     );
     download("liftlog.json", json, "application/json");
-    // CSVs
-    const msCsv = [
-      "dateISO,weightKg,neck,chest,waist,hips,thigh,calf,upperArm,forearm",
+
+    // Measurements CSV (retain original columns + potential localDate later)
+    const measurementsCsv = [
+      ["dateISO","weightKg","neck","chest","waist","hips","thigh","calf","upperArm","forearm"].join(","),
       ...measurements.map((m: any) =>
-        [
-          m.dateISO,
-          m.weightKg || "",
-          m.neck || "",
-          m.chest || "",
-          m.waist || "",
-          m.hips || "",
-          m.thigh || "",
-          m.calf || "",
-          m.upperArm || "",
-          m.forearm || "",
-        ].join(",")
+        [m.dateISO,m.weightKg||"",m.neck||"",m.chest||"",m.waist||"",m.hips||"",m.thigh||"",m.calf||"",m.upperArm||"",m.forearm||""].map(esc).join(",")
       ),
     ].join("\n");
-    download("measurements.csv", msCsv, "text/csv");
-    const ssCsv = [
-      "id,dateISO,phase,weekNumber,templateId,dayName,exerciseId,setNumber,weightKg,reps,notes",
-      ...sessions.flatMap((s: any) =>
-        s.entries.flatMap((e: any) =>
-          e.sets.map((set: any) =>
-            [
-              s.id,
-              s.dateISO,
-              s.phase || "",
-              s.weekNumber,
-              s.templateId || "",
-              s.dayName || "",
-              e.exerciseId,
+    download("measurements.csv", measurementsCsv, "text/csv");
+
+    // Exercises catalog CSV
+    const exercisesCsv = [
+      ["id","name","muscleGroup","secondaryMuscles","tags","defaultSets","defaultRepRange","deloadLoadPct","deloadSetPct","active","isOptional"].join(","),
+      ...(exercises as any[]).map((e) => [
+        e.id,
+        e.name,
+        e.muscleGroup,
+        (e.secondaryMuscles||[]).join("|"),
+        (e.tags||[]).join("|"),
+        e.defaults?.sets ?? '',
+        e.defaults?.targetRepRange ?? '',
+        e.defaults?.deloadLoadPct ?? '',
+        e.defaults?.deloadSetPct ?? '',
+        e.active === false ? "false" : "true",
+        e.isOptional ? "true" : "false",
+      ].map(esc).join(","))
+    ].join("\n");
+    download("exercises.csv", exercisesCsv, "text/csv");
+
+    // Session set-level detail (enhanced)
+    const sessionSetsCsv = [
+      [
+        "sessionId","dateISO","localDate","phaseNumber","weekNumber","dayName","templateId","exerciseId","exerciseName","muscleGroup","setNumber","weightKg","reps","rpe","notes","targetRepRange"
+      ].join(","),
+      ...sessions.flatMap((sess: any) =>
+        (sess.entries||[]).flatMap((entry: any) =>
+          (entry.sets||[]).map((set: any) => {
+            const ex = exerciseMap[entry.exerciseId];
+            return [
+              sess.id,
+              sess.dateISO,
+              sess.localDate || '',
+              sess.phaseNumber || sess.phase || '',
+              sess.weekNumber,
+              sess.dayName || '',
+              sess.templateId || '',
+              entry.exerciseId,
+              ex?.name || '',
+              ex?.muscleGroup || '',
               set.setNumber,
-              set.weightKg,
-              set.reps,
-              (e.notes || "").replaceAll(",", ";"),
-            ].join(",")
-          )
+              set.weightKg ?? '',
+              set.reps ?? '',
+              set.rpe ?? '',
+              (entry.notes || '').replace(/\n/g,' ').slice(0,500),
+              entry.targetRepRange || '',
+            ].map(esc).join(",");
+          })
         )
-      ),
+      )
     ].join("\n");
-    download("sessions.csv", ssCsv, "text/csv");
+    download("session_sets.csv", sessionSetsCsv, "text/csv");
+
+    // Session summary (one row per session)
+    const sessionSummaryCsv = [
+      [
+        "sessionId","dateISO","localDate","phaseNumber","weekNumber","dayName","exerciseCount","totalSets","estimatedVolumeKg","loggedMinutes"
+      ].join(","),
+      ...sessions.map((sess: any) => {
+        let totalSets = 0;
+        let volume = 0;
+        for (const entry of sess.entries || []) {
+          totalSets += (entry.sets||[]).length;
+          for (const set of entry.sets||[]) {
+            if (typeof set.weightKg === 'number' && typeof set.reps === 'number') {
+              volume += (set.weightKg || 0) * (set.reps || 0);
+            }
+          }
+        }
+        let minutes = '';
+        if (sess.loggedStartAt && sess.loggedEndAt) {
+          const ms = new Date(sess.loggedEndAt).getTime() - new Date(sess.loggedStartAt).getTime();
+          if (ms > 0) minutes = (ms/60000).toFixed(1);
+        }
+        return [
+          sess.id,
+            sess.dateISO,
+            sess.localDate || '',
+            sess.phaseNumber || sess.phase || '',
+            sess.weekNumber,
+            sess.dayName || '',
+            (sess.entries||[]).length,
+            totalSets,
+            volume ? volume.toFixed(1) : '',
+            minutes
+        ].map(esc).join(",");
+      })
+    ].join("\n");
+    download("session_summary.csv", sessionSummaryCsv, "text/csv");
+
+    // Templates CSV (plan expanded)
+    const templatesCsv = [
+      ["id","name","exerciseCount","exerciseNames","plan"].join(","),
+      ...templates.map((t: any) => {
+        const names = (t.exerciseIds||[]).map((id:string)=> exerciseMap[id]?.name || id);
+        const plan = (t.plan||[]).map((p:any)=> {
+          const ex = exerciseMap[p.exerciseId];
+          return `${(ex?.name || p.exerciseId)}:${p.plannedSets}x${p.repRange}`;
+        }).join("|");
+        return [
+          t.id,
+          t.name,
+          (t.exerciseIds||[]).length,
+          names.join("|").slice(0,800),
+          plan.slice(0,800)
+        ].map(esc).join(",");
+      })
+    ].join("\n");
+    download("templates.csv", templatesCsv, "text/csv");
   };
 
   // Gist sync removed; Supabase sync is automatic
