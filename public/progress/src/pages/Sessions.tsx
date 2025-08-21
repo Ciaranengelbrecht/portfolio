@@ -4,14 +4,7 @@ import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
 import { requestRealtime } from "../lib/supabaseSync";
-import {
-  Exercise,
-  Session,
-  SessionEntry,
-  SetEntry,
-  Template,
-  Settings,
-} from "../lib/types";
+import { Exercise, Session, SessionEntry, SetEntry, Template, Settings } from "../lib/types";
 import { buildSuggestions } from '../lib/progression';
 import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
@@ -22,11 +15,11 @@ import { parseOptionalNumber, formatOptionalNumber } from '../lib/parse';
 import { getSettings, setSettings } from "../lib/helpers";
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeSlideUp, maybeDisable } from '../lib/motion';
-import PhaseStepper from "../components/PhaseStepper";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
 import { setLastAction, undo as undoLast } from "../lib/undo";
+import PhaseStepper from '../components/PhaseStepper';
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 
@@ -39,15 +32,14 @@ const DAYS = [
   "Lower C",
   "Rest",
 ];
-
 export default function Sessions() {
   const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
   const [day, setDay] = useState(0);
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [suggestions, setSuggestions] = useState<Map<string,{weightKg?:number; reps?:number}>>(new Map());
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [suggestions, setSuggestions] = useState<Map<string,{weightKg?:number; reps?:number}>>(new Map());
   const [session, setSession] = useState<Session | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState("");
@@ -569,14 +561,21 @@ export default function Sessions() {
     return () => window.removeEventListener("sb-auth", onAuth);
   }, [session?.id]);
 
-  // Lightweight realtime auto-refresh: refetch lists when tables change
+  // Lightweight realtime auto-refresh: guarded to prevent clobbering in-progress typing
   useEffect(() => {
     const onChange = (e: any) => {
       const tbl = e?.detail?.table;
       if (tbl === "templates") db.getAll("templates").then(setTemplates);
       if (tbl === "exercises") db.getAll("exercises").then(setExercises);
-      if (tbl === "sessions" && session)
-        db.get<Session>("sessions", session.id).then((s) => s && setSession(s));
+      if (tbl === "sessions" && session) {
+        if (pendingRef.current || (editingFieldsRef.current && editingFieldsRef.current.size > 0)) return; // skip while user typing
+        db.get<Session>("sessions", session.id).then((s) => {
+          if (!s) return;
+          const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
+          if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
+          setSession(s);
+        });
+      }
     };
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
@@ -645,11 +644,21 @@ export default function Sessions() {
   // Debounced write buffer for session updates to avoid lag while typing
   const pendingRef = useRef<number | null>(null);
   const latestSessionRef = useRef<Session | null>(null);
+  const editingFieldsRef = useRef<Set<string>>(new Set()); // Track focused weight/reps inputs to avoid realtime overwrite
+  const lastLocalEditRef = useRef<number>(0); // Timestamp of most recent local mutation
   useEffect(()=>{ latestSessionRef.current = session || null; }, [session]);
   const flushSession = async ()=> {
     const sToWrite = latestSessionRef.current; if(!sToWrite) return;
     await db.put('sessions', sToWrite);
     try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'sessions' }})); } catch {}
+    // Pull fresh if not actively editing to merge remote edits
+    if(editingFieldsRef.current.size===0){
+      const fresh = await db.get<Session>('sessions', sToWrite.id);
+      if(fresh){
+        const remoteTs = fresh.updatedAt? Date.parse(fresh.updatedAt):0;
+        if(remoteTs > lastLocalEditRef.current){ setSession(fresh); }
+      }
+    }
     const s = await getSettings();
     await setSettings({
       ...s,
@@ -666,7 +675,7 @@ export default function Sessions() {
   };
   const scheduleFlush = ()=> {
     if(pendingRef.current) window.clearTimeout(pendingRef.current);
-    pendingRef.current = window.setTimeout(()=> { flushSession(); pendingRef.current = null; }, 750); // 750ms debounce
+  pendingRef.current = window.setTimeout(()=> { flushSession(); pendingRef.current = null; }, 1000); // 1000ms debounce
   };
   // Flush pending session edits when page becomes hidden or before unload to preserve latest activity timestamps
   useEffect(()=> {
@@ -701,6 +710,7 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
+  lastLocalEditRef.current = Date.now();
   setSession(updated);
   latestSessionRef.current = updated;
   scheduleFlush();
@@ -1310,6 +1320,7 @@ export default function Sessions() {
                             data-set-number={set.setNumber}
                             value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
                             placeholder="0"
+            onFocus={()=> { editingFieldsRef.current.add(`${entry.id}:${set.setNumber}:reps`); }}
                             onKeyDown={(e)=> {
                               if(e.key==='ArrowUp'){
                                 e.preventDefault();
@@ -1323,11 +1334,12 @@ export default function Sessions() {
                                   const num = buf===''? null: Number(buf);
                                   updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) });
                                   delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+              editingFieldsRef.current.delete(`${entry.id}:${set.setNumber}:reps`);
                                 }
                               }
                             }}
                             onChange={(e)=> { const v=e.target.value; if(!/^\d*$/.test(v)) return; repsInputEditing.current[`${entry.id}:${set.setNumber}`]=v; if(v==='') return; updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: Number(v) }: s) }); }}
-                            onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; }}
+            onBlur={(e)=> { const v=e.target.value; const num = v===''? null: Number(v); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, reps: num }: s) }); delete repsInputEditing.current[`${entry.id}:${set.setNumber}`]; editingFieldsRef.current.delete(`${entry.id}:${set.setNumber}:reps`); }}
                           />
                           <button
                             className="bg-slate-700 rounded px-3 py-2"

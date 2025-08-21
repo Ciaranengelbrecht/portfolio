@@ -142,11 +142,13 @@ function Shell() {
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => {
     try {
-      const disabled =
-        (typeof window !== 'undefined' && (window as any).__DISABLE_REALTIME) ||
-        localStorage.getItem('disableRealtime') === '1';
-      if (disabled) {
-        console.log('[Realtime] disabled by flag');
+      // If user previously disabled realtime via legacy flag, auto re-enable now per updated requirement
+      if (localStorage.getItem('disableRealtime') === '1') {
+        localStorage.removeItem('disableRealtime');
+        console.log('[Realtime] legacy disable flag cleared; realtime re-enabled');
+      }
+      if ((window as any).__DISABLE_REALTIME) {
+        console.log('[Realtime] hard-disabled via global window.__DISABLE_REALTIME');
         return;
       }
     } catch {}

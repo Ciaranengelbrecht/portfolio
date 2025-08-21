@@ -23,7 +23,8 @@ async function ensureChannel() {
 
 export async function requestRealtime(table: Table) {
   try {
-    if ((typeof window !== 'undefined' && (window as any).__DISABLE_REALTIME) || localStorage.getItem('disableRealtime')==='1') return;
+  // Allow a dev-only hard override via global flag, but ignore legacy localStorage disable key (we now always enable realtime by default)
+  if ((typeof window !== 'undefined' && (window as any).__DISABLE_REALTIME)) return;
   } catch {}
   if (subscribedTables.has(table)) return;
   const ch = await ensureChannel();
