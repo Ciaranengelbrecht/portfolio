@@ -41,7 +41,7 @@ const Hero = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, delay: 0.15 }}
       >
-        A focused hypertrophy training experience: intelligent volume targets, auto deload suggestions, effortless set logging, and clear progression—without spreadsheets.
+  HyperRep is a focused hypertrophy training experience: intelligent volume targets, auto deload suggestions, effortless set logging, and clear progression—without spreadsheets.
       </motion.p>
       <motion.div
         className="flex flex-col sm:flex-row gap-4"
@@ -190,7 +190,7 @@ const PricingCTA = () => {
 
 const FooterLite = () => (
   <footer className="py-12 text-center text-xs text-slate-600">
-    <p>© {new Date().getFullYear()} Hypertrophy App. Built by Ciaran.</p>
+  <p>© {new Date().getFullYear()} HyperRep. Built by Ciaran.</p>
   </footer>
 );
 
@@ -204,7 +204,7 @@ export default function AppLandingPage() {
       <header className="relative z-10 flex items-center justify-between px-6 md:px-12 py-6">
         <div className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-electric-500 shadow-glow flex items-center justify-center text-slate-950 font-bold">H</span>
-          <span className="text-slate-300">Hypertrophy</span>
+          <span className="text-slate-300">HyperRep</span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm text-slate-400">
           <a href="#benefits" className="hover:text-brand-300 transition-colors">Benefits</a>
