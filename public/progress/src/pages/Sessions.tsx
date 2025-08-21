@@ -868,7 +868,7 @@ export default function Sessions() {
     <div className="space-y-4 overflow-x-hidden">
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
-      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 2px)' }} ref={toolbarRef}>
+      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
         <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
           <h2 className="text-xl font-semibold">Sessions</h2>
           <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
@@ -951,20 +951,10 @@ export default function Sessions() {
               )}
             </div>
           )}
-          {/* Mobile tools toggle now inside toolbar */}
-          <button
-            className={`sm:hidden ml-2 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
-            aria-label={moreOpen? 'Hide tools':'Show tools'}
-            aria-expanded={moreOpen}
-            aria-controls="mobile-tools-panel"
-            onClick={()=> setMoreOpen(o=> !o)}
-          >
-            <span className="leading-none select-none">▾</span>
-          </button>
         </div>
       </div>
-  {/* Spacer dynamic (reduced bottom gap) */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
+  {/* Spacer dynamic */}
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 8px)` }} aria-hidden="true" />
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-1">
         <div className="hidden sm:flex items-center gap-2">
@@ -979,24 +969,36 @@ export default function Sessions() {
           {phase>1 && <button className="bg-slate-700 px-3 py-2 rounded-xl" title="Revert to previous phase" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); }}>← Prev phase</button>}
           <button className="bg-slate-700 px-3 py-2 rounded-xl" onClick={async ()=> { if(!session) return; const prevId = `${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={ ...session, entries: prev.entries.map(e=> ({ ...e, id: nanoid(), sets: e.sets.map((s,i)=> ({ ...s, setNumber: i+1 })) })) }; setSession(copy); await db.put('sessions', copy); } }}>Copy last session</button>
         </div>
-        {/* Mobile tools panel (moved beneath toolbar) */}
-        {moreOpen && (
+        {/* Mobile inline compact tools */}
+  <div className="w-full sm:hidden relative mt-1">
+          <div className="flex items-center">
+            <button
+              className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
+              onClick={()=> setMoreOpen(o=> !o)}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-tools-panel"
+              aria-label={moreOpen? 'Hide tools' : 'Show tools'}
+            >
+              <span className="text-base leading-none select-none">▾</span>
+            </button>
+          </div>
           <div
             id="mobile-tools-panel"
-            className="w-full sm:hidden mt-1 mb-2 animate-[fadeIn_220ms_ease]"
+            className={`transition-all overflow-hidden ${moreOpen? 'mt-3 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
+            aria-hidden={!moreOpen}
           >
-            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md glow-card">
+            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
               {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
               <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
               <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
               {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
               {session && <button className="tool-btn col-span-2" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
-              {session && <button className="tool-btn" onClick={()=> { collapseAll(); setMoreOpen(false); }} title="Collapse all exercises">Collapse All</button>}
-              {session && <button className="tool-btn" onClick={()=> { expandAll(); setMoreOpen(false); }} title="Expand all exercises">Expand All</button>}
+              {session && <button className="tool-btn" onClick={()=> { collapseAll(); }} title="Collapse all exercises">Collapse All</button>}
+              {session && <button className="tool-btn" onClick={()=> { expandAll(); }} title="Expand all exercises">Expand All</button>}
               {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
             </div>
           </div>
-        )}
+        </div>
       </div>
       {/* Legacy floating more panel removed in favor of inline collapsible */}
       {isDeloadWeek && (
