@@ -63,9 +63,10 @@ export default function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
       <div className="absolute inset-0" onClick={onClose} />
-      <GlassCard className="relative w-full max-w-md z-10">
+      <GlassCard className="relative w-full max-w-md z-10 glow-card overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-60 mix-blend-screen bg-[radial-gradient(circle_at_25%_20%,rgba(0,185,255,0.15),transparent_60%),radial-gradient(circle_at_80%_70%,rgba(77,91,255,0.18),transparent_65%)]" />
         <div className="flex items-center justify-between mb-2">
           <div className="text-lg font-semibold">Sign in</div>
           <button

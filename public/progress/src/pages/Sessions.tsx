@@ -969,7 +969,7 @@ export default function Sessions() {
             className={`transition-all overflow-hidden ${moreOpen? 'mt-3 max-h-[420px] opacity-100':'max-h-0 opacity-0'} duration-300`}
             aria-hidden={!moreOpen}
           >
-            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-800/70 border border-white/10 backdrop-blur-sm">
+            <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md glow-card">
               {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
               <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
               <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
