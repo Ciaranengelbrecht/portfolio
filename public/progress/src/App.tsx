@@ -83,7 +83,18 @@ function Shell() {
       const s = await getSettings();
       // apply accent and card style
       const root = document.documentElement;
-      if (s.accentColor) root.style.setProperty("--accent", s.accentColor);
+      if (s.accentColor){
+        root.style.setProperty("--accent", s.accentColor);
+        try {
+          const hex = s.accentColor.replace('#','');
+          if(hex.length===6){
+            const r = parseInt(hex.slice(0,2),16);
+            const g = parseInt(hex.slice(2,4),16);
+            const b = parseInt(hex.slice(4,6),16);
+            root.style.setProperty('--accent-rgb', `${r} ${g} ${b}`);
+          }
+        } catch {}
+      }
       if (s.cardStyle) root.setAttribute("data-card-style", s.cardStyle);
       if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
       // ECG background settings

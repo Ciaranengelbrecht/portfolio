@@ -8,7 +8,7 @@ export const defaultSettings: Settings = {
   deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, // default per requirement
   reducedMotion: false,
   currentPhase: 1,
-  accentColor: "#22c55e",
+  accentColor: "#3b82f6",
   cardStyle: "glass",
   autoAdvanceSession: false,
   defaultSetRows: 3,

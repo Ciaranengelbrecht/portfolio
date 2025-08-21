@@ -624,11 +624,20 @@ export default function SettingsPage() {
             <input
               type="color"
               className="input-app rounded-xl px-3 py-2 h-10"
-              value={s.accentColor || "#22c55e"}
+              value={s.accentColor || "#3b82f6"}
               onChange={(e) => {
                 const v = e.target.value;
                 setS({ ...s, accentColor: v });
                 document.documentElement.style.setProperty("--accent", v);
+                try {
+                  const hex = v.replace('#','');
+                  if(hex.length===6){
+                    const r = parseInt(hex.slice(0,2),16);
+                    const g = parseInt(hex.slice(2,4),16);
+                    const b = parseInt(hex.slice(4,6),16);
+                    document.documentElement.style.setProperty('--accent-rgb', `${r} ${g} ${b}`);
+                  }
+                } catch {}
               }}
             />
           </label>
