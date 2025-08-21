@@ -160,6 +160,25 @@ export default function Sessions() {
   }, []);
   // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
   useEffect(()=> { const t = setTimeout(()=> { if(toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight); }, 340); return ()=> clearTimeout(t); }, []);
+  // Continuous observation of toolbar size (handles late font loads, dynamic buttons) to avoid initial large gap snap
+  useEffect(()=> {
+    if(!toolbarRef.current || typeof ResizeObserver === 'undefined') return;
+    const el = toolbarRef.current;
+    let frame:number|undefined;
+    const ro = new ResizeObserver(entries => {
+      for(const e of entries){
+        const h = Math.round(e.contentRect.height);
+        // Only update if changed to prevent extra renders
+        setToolbarHeight(prev=> prev!==h? h: prev);
+      }
+    });
+    ro.observe(el);
+    // Also adjust once web fonts are ready (if they load after a delay)
+    try { (document as any).fonts?.ready?.then(()=> { if(el){ const h = el.offsetHeight; setToolbarHeight(prev=> prev!==h? h: prev); } }); } catch {}
+    // For very slow assets, poll a few times in first 2s as a fallback
+    let polls=0; const poll=()=> { polls++; if(!el) return; const h=el.offsetHeight; setToolbarHeight(prev=> prev!==h? h: prev); if(polls<6) frame=window.setTimeout(poll, 320); }; poll();
+    return ()=> { ro.disconnect(); if(frame) clearTimeout(frame); };
+  }, []);
 
   // After initial mount, choose the most recently ACTIVE session with data.
   // Priority order:
