@@ -38,10 +38,11 @@ export async function importFromTemplate(
         }));
       }
     }
-    const plannedRows = planEntry?.plannedSets;
-    const fallbackRows = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
-    const rows = Math.max(1, Math.min(12, plannedRows || fallbackRows));
-    return Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 }));
+  const plannedRows = planEntry?.plannedSets;
+  const fallbackRows = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
+  const rows = Math.max(1, Math.min(12, plannedRows || fallbackRows));
+  // Use null so inputs appear blank; suggestions / placeholders supply guidance.
+  return Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: null, reps: null } as SetEntry));
   };
   const newEntries: SessionEntry[] = [];
   for (const exId of template.exerciseIds) {
