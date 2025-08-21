@@ -878,6 +878,15 @@ export default function Sessions() {
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
   <div className="px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              className={`sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
+              aria-label={moreOpen? 'Hide tools':'Show tools'}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-tools-panel"
+              onClick={()=> setMoreOpen(o=> !o)}
+            >
+              <span className="leading-none select-none">▾</span>
+            </button>
             <h2 className="text-xl font-semibold">Sessions</h2>
             <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
             <div className="flex items-center gap-2">
@@ -969,28 +978,28 @@ export default function Sessions() {
                 <span className={`text-sm leading-none transition-transform ${moreOpen? 'rotate-180':''}`}>▾</span>
               </button>
             </div>
-            {/* Sliding panel lives INSIDE toolbar for zero-gap expansion */}
-            <div
-              id="mobile-tools-panel"
-              className={`sm:hidden w-full overflow-hidden transition-[max-height,opacity] duration-320 ease-[cubic-bezier(.4,0,.2,1)] ${moreOpen? 'max-h-[320px] opacity-100 mt-1':'max-h-0 opacity-0'} `}
-              aria-hidden={!moreOpen}
-            >
-              <div className="flex flex-wrap gap-2 text-[11px] p-2 rounded-xl bg-slate-900/85 border border-white/10 backdrop-blur glow-card">
-                {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
-                <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
-                <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
-                {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
-                {session && <button className="tool-btn" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
-                {session && <button className="tool-btn" onClick={()=> { collapseAll(); setMoreOpen(false); }} title="Collapse all exercises">Collapse All</button>}
-                {session && <button className="tool-btn" onClick={()=> { expandAll(); setMoreOpen(false); }} title="Expand all exercises">Expand All</button>}
-                {sessionDuration && <div className="text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1 px-3 flex-1 min-w-[120px]">⏱ {sessionDuration}</div>}
-              </div>
-            </div>
           </div>
         </div>
       </div>
-  {/* Spacer dynamic (toolbar including panel) */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 4px)` }} aria-hidden="true" />
+  {/* Spacer dynamic */}
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
+  {/* Sliding mobile tools panel now below toolbar for natural push */}
+  <div
+    id="mobile-tools-panel"
+    className={`sm:hidden overflow-hidden transition-[max-height,opacity] duration-330 ease-[cubic-bezier(.4,0,.2,1)] ${moreOpen? 'max-h-[340px] opacity-100':'max-h-0 opacity-0'} px-4 mt-1`}
+    aria-hidden={!moreOpen}
+  >
+    <div className="flex flex-wrap gap-2 text-[11px] p-2 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-md glow-card">
+      {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
+      <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
+      <button className="tool-btn" onClick={async ()=> { const s=await getSettings(); const next=(s.currentPhase||1)+1; await setSettings({ ...s, currentPhase: next }); setPhase(next as number); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Next phase">Next →</button>
+      {phase>1 && <button className="tool-btn" onClick={async ()=> { if(!window.confirm('Revert to phase '+(phase-1)+'?')) return; const s=await getSettings(); const prev=Math.max(1,(s.currentPhase||1)-1); await setSettings({ ...s, currentPhase: prev }); setPhase(prev); setWeek(1 as any); setDay(0); setMoreOpen(false); }} title="Previous phase">← Prev</button>}
+      {session && <button className="tool-btn" onClick={async ()=> { const prevId=`${phase}-${Math.max(1,(week as number)-1)}-${day}`; let prev = await db.get<Session>('sessions', prevId); if(!prev && week===1 && phase>1){ prev = await db.get<Session>('sessions', `${phase-1}-9-${day}`); } if(prev){ const copy: Session={...session, entries: prev.entries.map(e=> ({...e, id: nanoid(), sets: e.sets.map((s,i)=> ({...s, setNumber: i+1}))}))}; setSession(copy); await db.put('sessions', copy);} setMoreOpen(false); }} title="Copy previous session">Copy Last</button>}
+      {session && <button className="tool-btn" onClick={()=> { collapseAll(); setMoreOpen(false); }} title="Collapse all exercises">Collapse All</button>}
+      {session && <button className="tool-btn" onClick={()=> { expandAll(); setMoreOpen(false); }} title="Expand all exercises">Expand All</button>}
+      {sessionDuration && <div className="text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1 px-3 flex-1 min-w-[120px]">⏱ {sessionDuration}</div>}
+    </div>
+  </div>
   {/* Non-sticky actions */}
   <div className="flex flex-wrap items-center gap-2 mt-1">
         <div className="hidden sm:flex items-center gap-2">
