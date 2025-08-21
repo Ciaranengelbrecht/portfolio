@@ -953,10 +953,10 @@ export default function Sessions() {
           )}
         </div>
       </div>
-  {/* Spacer dynamic (reduced extra gap from 14px -> 6px to bring mobile tools closer) */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)` }} aria-hidden="true" />
-  {/* Non-sticky actions (removed extra top margin to tighten spacing below toolbar) */}
-  <div className="flex flex-wrap items-center gap-2">
+  {/* Spacer dynamic (further reduced extra gap to 2px) */}
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
+  {/* Non-sticky actions; apply negative margin on mobile to pull tools closer under toolbar without affecting desktop spacing */}
+  <div className="flex flex-wrap items-center gap-2 -mt-3 sm:mt-0">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
           <button className="bg-emerald-700 px-3 py-2 rounded-xl" title="Start next 9-week phase" onClick={async ()=> {
