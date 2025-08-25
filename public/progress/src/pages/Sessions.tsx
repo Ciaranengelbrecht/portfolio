@@ -491,7 +491,9 @@ export default function Sessions() {
     if(hasDataAfter){ (updated as any).loggedEndAt = now; changed=true; }
     (updated as any).updatedAt = now; changed=true;
     if(changed){ await db.put('sessions', updated); }
-    setSession(updated);
+  (updated as any).updatedAt = new Date().toISOString();
+  lastLocalEditRef.current = Date.now();
+  setSession(updated);
   };
 
   // Monkey patch updateEntry references by defining function used below via closure
@@ -532,7 +534,7 @@ export default function Sessions() {
 
   // Refetch data when auth session changes (e.g., token refresh or resume)
   useEffect(() => {
-    const onAuth = () => {
+  const onAuth = () => {
       (async () => {
   console.log("[Sessions] sb-auth: refetch lists (no auth wait)");
         const [t,e] = await Promise.all([
@@ -549,11 +551,20 @@ export default function Sessions() {
         setExercises(e);
         if (session) {
           const fresh = await db.get<Session>("sessions", session.id); // single fetch; not cached (ensure latest entry data)
+          const remoteTs = fresh?.updatedAt ? Date.parse(fresh.updatedAt) : 0;
           console.log(
             "[Sessions] sb-auth: refreshed session entries",
-            fresh?.entries?.length || 0
+            fresh?.entries?.length || 0,
+            "remoteTs",
+            remoteTs,
+            "lastLocal",
+            lastLocalEditRef.current
           );
-          if (fresh) setSession(fresh);
+          // Don’t clobber local optimistic edits or in-progress typing
+          const isEditing = pendingRef.current || (editingFieldsRef.current && editingFieldsRef.current.size > 0);
+          if (fresh && !isEditing && remoteTs > (lastLocalEditRef.current || 0)) {
+            setSession(fresh);
+          }
         }
       })();
     };
@@ -604,14 +615,32 @@ export default function Sessions() {
   }, [session?.id, program?.id]);
 
   const addSet = (entry: SessionEntry) => {
-    const last = [...entry.sets].sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).slice(-1)[0];
+    if (!session) return;
+    const last = [...entry.sets]
+      .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
+      .slice(-1)[0];
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
       weightKg: last?.weightKg ?? null,
       reps: last?.reps ?? null,
-      rpe: last?.rpe
+      rpe: last?.rpe,
     };
-    updateEntry({ ...entry, sets: [...entry.sets, next] });
+    const newEntry = { ...entry, sets: [...entry.sets, next] };
+    // Inline the updateEntry logic to immediately stamp and set lastLocalEditRef before any remote pull
+    const prevSession = session;
+    const newEntries = session.entries.map((e) => (e.id === entry.id ? newEntry : e));
+    let updated = { ...session, entries: newEntries } as Session;
+    const hasWorkNow = newEntries.some((en) => en.sets.some((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0));
+    if (hasWorkNow) {
+      const nowIso = new Date().toISOString();
+      if (!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
+      (updated as any).loggedEndAt = nowIso;
+    }
+    (updated as any).updatedAt = new Date().toISOString();
+    lastLocalEditRef.current = Date.now();
+    setSession(updated);
+    latestSessionRef.current = updated;
+    scheduleFlush();
   };
 
   const deleteSet = (entry: SessionEntry, idx: number) => {
@@ -772,8 +801,9 @@ export default function Sessions() {
       if(!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
       (updated as any).loggedEndAt = nowIso;
     }
-    (updated as any).updatedAt = new Date().toISOString();
-    setSession(updated);
+  (updated as any).updatedAt = new Date().toISOString();
+  lastLocalEditRef.current = Date.now();
+  setSession(updated);
     await db.put("sessions", updated);
     try {
       window.dispatchEvent(
@@ -903,14 +933,14 @@ export default function Sessions() {
             <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
           </div>
           <div className="flex flex-wrap items-center gap-2 min-w-0 w-full sm:flex-1">
-            <select className="bg-card rounded-xl px-2 py-1 min-w-[120px] w-full sm:w-auto" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+            <select className="bg-card rounded-xl px-2 py-1 min-w-[120px] w-full sm:w-auto" value={week} onChange={(e)=> { setWeek(Number(e.target.value)); setAutoNavDone(true); }}>
               {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
             </select>
             <div className="w-full sm:w-auto">
             <DaySelector
               labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
               value={day}
-              onChange={setDay}
+              onChange={(v)=> { setDay(v); setAutoNavDone(true); }}
             />
             </div>
             {/* Removed inline program summary button (accessible via bottom menu now) */}
