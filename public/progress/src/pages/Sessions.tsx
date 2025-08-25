@@ -893,15 +893,17 @@ export default function Sessions() {
   })();
 
   return (
-    <div className="space-y-4 overflow-x-hidden">
+  <div className="space-y-4">
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
-        <div className="flex items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm sm:flex-wrap min-w-0">
+        <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
           <h2 className="text-xl font-semibold">Sessions</h2>
-          <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+          <div className="sm:inline-flex w-auto">
+            <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+            <select className="bg-card rounded-xl px-2 py-1 min-w-[120px]" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
               {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
             </select>
             <DaySelector
@@ -925,7 +927,7 @@ export default function Sessions() {
           </div>
           {/* Date / stamp block */}
           {session && (
-            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 ml-auto" title="Current assigned date (edit or stamp)">
+            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0" title="Current assigned date (edit or stamp)">
               {!editingDate && (
                 <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
               )}
@@ -982,7 +984,7 @@ export default function Sessions() {
         </div>
       </div>
   {/* Spacer dynamic (further reduced extra gap to 2px) */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)` }} aria-hidden="true" />
   {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
   <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-2">
         <div className="hidden sm:flex items-center gap-2">
@@ -1952,10 +1954,10 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls="day-selector"
-  className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shrink-0"
+  className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
         title={labels[value]}
       >
-  <span className="truncate max-w-[36vw] sm:max-w-[140px]">{labels[value]}</span>
+  <span className="truncate max-w-[70vw] sm:max-w-[180px]">{labels[value]}</span>
         <span className="opacity-70 text-[10px]">▼</span>
       </button>
   {/* Mobile pills removed: only dropdown selector retained */}
