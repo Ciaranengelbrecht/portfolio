@@ -898,25 +898,27 @@ export default function Sessions() {
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
         <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
-          <h2 className="text-xl font-semibold">Sessions</h2>
-          <div className="sm:inline-flex w-auto">
+          <h2 className="text-xl font-semibold mr-2">Sessions</h2>
+          <div className="inline-flex w-auto">
             <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
           </div>
-          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-            <select className="bg-card rounded-xl px-2 py-1 min-w-[120px]" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
+          <div className="flex flex-wrap items-center gap-2 min-w-0 w-full sm:flex-1">
+            <select className="bg-card rounded-xl px-2 py-1 min-w-[120px] w-full sm:w-auto" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
               {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
             </select>
+            <div className="w-full sm:w-auto">
             <DaySelector
               labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
               value={day}
               onChange={setDay}
             />
+            </div>
             {/* Removed inline program summary button (accessible via bottom menu now) */}
             {/* Removed Template badge (autoImportedTemplateId indicator) per request */}
             {/* Mobile expand/collapse all toggle */}
             {session && !!session.entries.length && (
               <button
-                className="sm:hidden ml-auto shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
+                className="sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
                 aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
