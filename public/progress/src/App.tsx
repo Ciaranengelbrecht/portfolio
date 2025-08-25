@@ -41,6 +41,7 @@ import RequireAuth from "./routes/guards/RequireAuth";
 import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
+import { migrateToV9_BlankZeros } from "./lib/migrations/v9_blank_zeros";
 import { warmPreload } from './lib/dataCache';
 import { computeAggregates } from './lib/aggregates';
 
@@ -166,6 +167,7 @@ function Shell() {
         }
   if (localStorage.getItem("mig_v7") !== "1") { await migrateToV7(); localStorage.setItem("mig_v7", "1"); }
   if (localStorage.getItem("mig_v8_localDate") !== "1") { await migrateToV8_LocalDate(); localStorage.setItem("mig_v8_localDate", "1"); }
+  if (localStorage.getItem("mig_v9_blankZeros") !== "1") { await migrateToV9_BlankZeros(); localStorage.setItem("mig_v9_blankZeros", "1"); }
       } catch (e) {
         console.warn("[App] migration runner error", e);
       }

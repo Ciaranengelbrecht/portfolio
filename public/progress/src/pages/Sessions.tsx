@@ -761,7 +761,7 @@ export default function Sessions() {
     } else {
       sets = lastSets.length
         ? lastSets
-        : [{ setNumber: 1, weightKg: 0, reps: 0 }];
+  : [{ setNumber: 1, weightKg: null, reps: null }];
     }
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
     const updated = { ...session, entries: [...session.entries, entry] };
@@ -1258,7 +1258,7 @@ export default function Sessions() {
                             data-entry-id={entry.id}
                             data-set-number={set.setNumber}
                             value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? formatOptionalNumber(set.weightKg)}
-                            placeholder="0"
+                            placeholder=""
                             onKeyDown={(e) => {
                               if (e.key === 'ArrowUp') { e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: (s.weightKg||0)+2.5 }: s) }); }
                               else if (e.key === 'ArrowDown') { e.preventDefault(); updateEntry({ ...entry, sets: entry.sets.map((s,i)=> i===idx? { ...s, weightKg: Math.max(0,(s.weightKg||0)-2.5) }: s) }); }
@@ -1319,7 +1319,7 @@ export default function Sessions() {
                             data-entry-id={entry.id}
                             data-set-number={set.setNumber}
                             value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? '' : String(set.reps))}
-                            placeholder="0"
+                            placeholder=""
             onFocus={()=> { editingFieldsRef.current.add(`${entry.id}:${set.setNumber}:reps`); }}
                             onKeyDown={(e)=> {
                               if(e.key==='ArrowUp'){
