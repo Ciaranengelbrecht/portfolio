@@ -897,10 +897,10 @@ export default function Sessions() {
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
-        <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm">
+        <div className="flex items-center gap-2 px-4 pt-2 pb-1 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm sm:flex-wrap min-w-0">
           <h2 className="text-xl font-semibold">Sessions</h2>
           <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <select className="bg-card rounded-xl px-2 py-1" value={week} onChange={(e)=> setWeek(Number(e.target.value))}>
               {(program ? Array.from({length: program.mesoWeeks},(_,i)=> i+1) : Array.from({length:9},(_,i)=> i+1)).map(w=> <option key={w} value={w}>Week {w}{program && deloadWeeks.has(w) ? ' (Deload)' : ''}</option>)}
             </select>
@@ -914,7 +914,7 @@ export default function Sessions() {
             {/* Mobile expand/collapse all toggle */}
             {session && !!session.entries.length && (
               <button
-                className="sm:hidden w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
+                className="sm:hidden ml-auto shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
                 aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
                 onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
@@ -983,8 +983,8 @@ export default function Sessions() {
       </div>
   {/* Spacer dynamic (further reduced extra gap to 2px) */}
   <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
-  {/* Non-sticky actions; apply negative margin on mobile to pull tools closer under toolbar without affecting desktop spacing */}
-  <div className="flex flex-wrap items-center gap-2 -mt-3 sm:mt-0">
+  {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
+  <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-2">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
           <button className="bg-slate-700 px-3 py-2 rounded-xl disabled:opacity-40" disabled={!session || !session.entries.length} onClick={()=> setShowSaveTemplate(true)} title="Save current session as a reusable template">Save as Template</button>
@@ -1000,7 +1000,7 @@ export default function Sessions() {
         </div>
   {/* Mobile inline compact tools (removed mt-2 to position directly under toolbar) */}
   <div className="w-full sm:hidden relative">
-          <div className="flex items-center">
+          <div className="flex items-center min-w-0">
             <button
               className={`inline-flex items-center justify-center h-9 w-9 rounded-xl border border-white/10 bg-slate-800/80 backdrop-blur shadow-sm active:scale-95 transition-all ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
               onClick={()=> setMoreOpen(o=> !o)}
@@ -1110,29 +1110,29 @@ export default function Sessions() {
               </div>
               <div className="relative z-10">
               <div className="flex items-start justify-between gap-2">
-                <div className="font-medium flex items-center gap-2 flex-wrap cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
+                <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
-                  <span className="inline-flex items-center gap-1">
-                    <span>{ex?.name || "Exercise"}</span>
+                  <span className="inline-flex items-center gap-1 min-w-0">
+                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || "Exercise"}</span>
                     <span className={`transition-transform text-xs opacity-70 ${isCollapsed? 'rotate-180':''}`}>▾</span>
                   </span>
                   {ex?.isOptional && (
-                    <span className="text-[10px] text-gray-400">optional</span>
+                    <span className="hidden sm:inline text-[10px] text-gray-400">optional</span>
                   )}
                   {isCollapsed && (
-                    <span className="ml-2 text-[10px] px-2 py-1 rounded bg-slate-700/60 text-slate-200 flex items-center gap-2">
+                    <span className="hidden sm:flex ml-2 text-[10px] px-2 py-1 rounded bg-slate-700/60 text-slate-200 items-center gap-2">
                       <span>{entry.sets.length} sets</span>
                       {tonnage>0 && <span className="opacity-70">• {(tonnage).toLocaleString()}</span>}
                       {bestSet && <span className="opacity-70">• {bestSet.weightKg}×{bestSet.reps}</span>}
                     </span>
                   )}
                   {/* Mobile reorder buttons */}
-                  <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto">
+                  <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto shrink-0">
                     <button disabled={entryIdx===0} className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40" onClick={()=> reorderEntry(entryIdx, Math.max(0, entryIdx-1))}>Up</button>
                     <button disabled={entryIdx=== (session.entries.length-1)} className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40" onClick={()=> reorderEntry(entryIdx, Math.min(session.entries.length-1, entryIdx+1))}>Down</button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {isDeloadWeek && (
                     <span data-shape="deload">
                       <AsyncChip promise={deloadInfo(entry.exerciseId)} />
@@ -1140,13 +1140,21 @@ export default function Sessions() {
                   )}
                   <button
                     aria-label="Remove exercise"
-                    className="text-xs bg-slate-800 rounded-xl px-2 py-1"
+                    className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
                     onClick={() => removeEntry(entry.id)}
                   >
                     Remove
                   </button>
                 </div>
               </div>
+              {/* Collapsed metrics pill moved below header for mobile to avoid pushing controls */}
+              {isCollapsed && (
+                <div className="sm:hidden mt-1 text-[10px] px-2 py-1 rounded bg-slate-700/60 text-slate-200 inline-flex items-center gap-2">
+                  <span>{entry.sets.length} sets</span>
+                  {tonnage>0 && <span className="opacity-70">• {(tonnage).toLocaleString()}</span>}
+                  {bestSet && <span className="opacity-70">• {bestSet.weightKg}×{bestSet.reps}</span>}
+                </div>
+              )}
               {/* Close inner content wrapper opened earlier */}
               </div>{/* end relative z-10 */}
               <AnimatePresence initial={false}>
@@ -1944,10 +1952,10 @@ function DaySelector({ labels, value, onChange }: { labels:string[]; value:numbe
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls="day-selector"
-        className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+  className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 shrink-0"
         title={labels[value]}
       >
-        <span className="truncate max-w-[140px]">{labels[value]}</span>
+  <span className="truncate max-w-[36vw] sm:max-w-[140px]">{labels[value]}</span>
         <span className="opacity-70 text-[10px]">▼</span>
       </button>
   {/* Mobile pills removed: only dropdown selector retained */}
