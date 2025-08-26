@@ -76,6 +76,8 @@ export default function Sessions() {
   // Collapsed exercise card state (entry.id -> collapsed?)
   const [collapsedEntries, setCollapsedEntries] = useState<Record<string,boolean>>({});
   const toggleEntryCollapsed = (id:string)=> setCollapsedEntries(prev=> ({ ...prev, [id]: !prev[id] }));
+  // Cache of day labels to avoid flicker before program loads
+  const [labelsCache, setLabelsCache] = useState<string[] | null>(null);
   // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
   const pickedLatestRef = useRef(false);
   // Persist collapsed state per-session (mobile UX enhancement)
@@ -109,6 +111,19 @@ export default function Sessions() {
       // Do not build suggestions here; defer until we know current session identity for day-specific filtering
     })();
   }, []);
+
+  // Load cached labels on mount to avoid day-name flip
+  useEffect(()=> { try { const raw = localStorage.getItem('weeklyLabelsCache'); if(raw) setLabelsCache(JSON.parse(raw)); } catch {} }, []);
+  // When program is available, cache its labels for next load
+  useEffect(()=> {
+    try {
+      if(program?.weeklySplit && Array.isArray(program.weeklySplit)){
+        const labels = program.weeklySplit.map((d:any)=> d?.customLabel || d?.type || 'Day');
+        setLabelsCache(labels);
+        localStorage.setItem('weeklyLabelsCache', JSON.stringify(labels));
+      }
+    } catch {}
+  }, [program?.id, (program as any)?.weeklySplit?.length]);
 
   // Recompute progression suggestions when the active session (day identity) changes
   useEffect(()=> {
@@ -967,7 +982,7 @@ export default function Sessions() {
             </select>
             <div className="w-full sm:w-auto">
             <DaySelector
-              labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : DAYS)}
+              labels={(program ? program.weeklySplit.map((d:any)=> d.customLabel || d.type) : (labelsCache || DAYS))}
               value={day}
               onChange={(v)=> { setDay(v); setAutoNavDone(true); }}
             />
@@ -1116,7 +1131,7 @@ export default function Sessions() {
           <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
           <div className="h-24 bg-white/5 rounded animate-pulse" />
         </div>}
-  {session?.entries.map((entry, entryIdx) => {
+  {!initialLoading && session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge
           const prev = prevBestMap
@@ -1183,7 +1198,7 @@ export default function Sessions() {
                 <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
                   <span className="inline-flex items-center gap-1 min-w-0">
-                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || "Exercise"}</span>
+                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || (exercises.length? 'Exercise' : '')}</span>
                     <span className={`transition-transform text-xs opacity-70 ${isCollapsed? 'rotate-180':''}`}>▾</span>
                   </span>
                   {ex?.isOptional && (
