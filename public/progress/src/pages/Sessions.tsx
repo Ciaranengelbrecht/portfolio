@@ -1082,7 +1082,7 @@ export default function Sessions() {
         </div>
       )}
 
-  <div className="space-y-3 -mt-2 sm:mt-0">
+  <div className="space-y-3 -mt-10 sm:mt-0">
         {initialLoading && <div className="space-y-2">
           <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
           <div className="h-24 bg-white/5 rounded animate-pulse" />
