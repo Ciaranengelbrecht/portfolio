@@ -641,6 +641,8 @@ export default function Sessions() {
     setSession(updated);
     latestSessionRef.current = updated;
     scheduleFlush();
+  // Restart the rest timer for this exercise
+  try { restartRestTimer(entry.id); } catch {}
   };
 
   const deleteSet = (entry: SessionEntry, idx: number) => {
