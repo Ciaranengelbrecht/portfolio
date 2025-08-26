@@ -950,88 +950,86 @@ export default function Sessions() {
               onChange={(v)=> { setDay(v); setAutoNavDone(true); }}
             />
             </div>
-            {/* Removed inline program summary button (accessible via bottom menu now) */}
-            {/* Removed Template badge (autoImportedTemplateId indicator) per request */}
-            {/* Mobile expand/collapse all toggle */}
-            {session && !!session.entries.length && (
-              <button
-                className="sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
-                aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
-                title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
-                onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
-              >
-                <span className="leading-none select-none">{allCollapsed? '↓':'↑'}</span>
-              </button>
-            )}
-            {/* Mobile tools toggle moved into sticky toolbar (frees vertical space) */}
+            {/* Insert date/stamp block here (swapped position) */}
             {session && (
-              <button
-                className={`sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
-                onClick={()=> setMoreOpen(o=> !o)}
-                aria-expanded={moreOpen}
-                aria-controls="mobile-tools-overlay"
-                aria-label={moreOpen? 'Hide tools' : 'Show tools'}
-                title="Tools"
-              >
-                <span className="leading-none select-none">▾</span>
-              </button>
+              <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0" title="Current assigned date (edit or stamp)">
+                {!editingDate && (
+                  <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
+                )}
+                {editingDate && (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                      value={dateEditValue}
+                      onChange={(e) => setDateEditValue(e.target.value)}
+                    />
+                    <button
+                      className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                      onClick={saveManualDate}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
+                      onClick={() => setEditingDate(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                {!editingDate && (
+                  <>
+                    <button
+                      className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
+                      onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
+                      aria-label="Stamp with today's date"
+                    >
+                      <span className="pointer-events-none select-none">Stamp</span>
+                    </button>
+                    <button
+                      aria-label="Edit date"
+                      className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                      onClick={() => {
+                        setDateEditValue(
+                          session.localDate || session.dateISO.slice(0, 10)
+                        );
+                        setEditingDate(true);
+                      }}
+                    >
+                      ✎
+                    </button>
+                  </>
+                )}
+                {sessionDuration && !editingDate && (
+                  <span className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium" title="Active logging duration (first to last non-zero set)">⏱ {sessionDuration}</span>
+                )}
+              </div>
             )}
           </div>
-          {/* Date / stamp block */}
+          {/* Mobile expand/collapse all toggle (moved here; swapped with date bar) */}
+          {session && !!session.entries.length && (
+            <button
+              className="sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
+              aria-label={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+              title={allCollapsed? 'Expand all exercises' : 'Collapse all exercises'}
+              onClick={()=> { if(allCollapsed) expandAll(); else collapseAll(); try { navigator.vibrate?.(8);} catch{} }}
+            >
+              <span className="leading-none select-none">{allCollapsed? '↓':'↑'}</span>
+            </button>
+          )}
+          {/* Mobile tools toggle (moved here; swapped with date bar) */}
           {session && (
-            <div className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0" title="Current assigned date (edit or stamp)">
-              {!editingDate && (
-                <span className="font-mono tracking-tight" title={session.localDate || session.dateISO.slice(0,10)}>{displayDate(session.localDate || session.dateISO.slice(0,10))}</span>
-              )}
-              {editingDate && (
-                <div className="flex items-center gap-1">
-                  <input
-                    type="date"
-                    className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
-                    value={dateEditValue}
-                    onChange={(e) => setDateEditValue(e.target.value)}
-                  />
-                  <button
-                    className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
-                    onClick={saveManualDate}
-                  >
-                    Save
-                  </button>
-                  <button
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
-                    onClick={() => setEditingDate(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              {!editingDate && (
-                <>
-                  <button
-                    className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${stampAnimating? 'animate-stamp':''}`}
-                    onClick={() => { setStampAnimating(true); setTimeout(()=> setStampAnimating(false), 360); stampToday(); }}
-                    aria-label="Stamp with today's date"
-                  >
-                    <span className="pointer-events-none select-none">Stamp</span>
-                  </button>
-                  <button
-                    aria-label="Edit date"
-                    className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
-                    onClick={() => {
-                      setDateEditValue(
-                        session.localDate || session.dateISO.slice(0, 10)
-                      );
-                      setEditingDate(true);
-                    }}
-                  >
-                    ✎
-                  </button>
-                </>
-              )}
-              {sessionDuration && !editingDate && (
-                <span className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium" title="Active logging duration (first to last non-zero set)">⏱ {sessionDuration}</span>
-              )}
-            </div>
+            <button
+              className={`sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm ${moreOpen? 'rotate-180 text-emerald-300':'text-slate-300'}`}
+              onClick={()=> setMoreOpen(o=> !o)}
+              aria-expanded={moreOpen}
+              aria-controls="mobile-tools-overlay"
+              aria-label={moreOpen? 'Hide tools' : 'Show tools'}
+              title="Tools"
+            >
+              <span className="leading-none select-none">▾</span>
+            </button>
           )}
         </div>
       </div>
@@ -1081,7 +1079,7 @@ export default function Sessions() {
         </div>
       )}
 
-  <div className="space-y-3 -mt-[56px] sm:mt-0">
+  <div className="space-y-3 -mt-[72px] sm:mt-0">
         {initialLoading && <div className="space-y-2">
           <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
           <div className="h-24 bg-white/5 rounded animate-pulse" />
