@@ -585,6 +585,7 @@ export default function Sessions() {
           const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
+          db.getAll<Session>("sessions").then((all)=> setPrevBestMap(buildPrevBestMap(all, week, phase, day)));
         });
       }
     };
@@ -592,13 +593,13 @@ export default function Sessions() {
     return () => window.removeEventListener("sb-change", onChange as any);
   }, [session?.id]);
 
-  // Recompute prev best map whenever week or phase changes
+  // Recompute prev best map whenever week, phase, or day changes
   useEffect(() => {
     (async () => {
       const allSessions = await db.getAll<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase));
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
     })();
-  }, [week, phase]);
+  }, [week, phase, day]);
 
   const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
   const isDeloadWeek = deloadWeeks.has(week);
@@ -687,7 +688,11 @@ export default function Sessions() {
       const fresh = await db.get<Session>('sessions', sToWrite.id);
       if(fresh){
         const remoteTs = fresh.updatedAt? Date.parse(fresh.updatedAt):0;
-        if(remoteTs > lastLocalEditRef.current){ setSession(fresh); }
+        if(remoteTs > lastLocalEditRef.current){
+          setSession(fresh);
+          const all = await db.getAll<Session>('sessions');
+          setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+        }
       }
     }
     const s = await getSettings();
