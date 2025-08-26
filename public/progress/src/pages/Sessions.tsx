@@ -37,8 +37,12 @@ export default function Sessions() {
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
   const [day, setDay] = useState(0);
+  // Gate initial session load until we resolve navigation prefs (prevents brief Week 1 render)
+  const [initialRouteReady, setInitialRouteReady] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  // Lightweight cache of exerciseId -> name to avoid name flicker when lists refresh
+  const [exNameCache, setExNameCache] = useState<Record<string, string>>({});
   const [suggestions, setSuggestions] = useState<Map<string,{weightKg?:number; reps?:number}>>(new Map());
   const [session, setSession] = useState<Session | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -115,8 +119,39 @@ export default function Sessions() {
         if (hadIntent) pickedLatestRef.current = true; // lock to explicit choice
       }
       // Do not build suggestions here; defer until we know current session identity for day-specific filtering
+      setInitialRouteReady(true);
     })();
   }, []);
+  // Load exercise name cache on mount and persist updates
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('exerciseNamesCache');
+      if (raw) setExNameCache(JSON.parse(raw));
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!session) return;
+    if (!exercises.length) return;
+    const map = new Map(exercises.map((e) => [e.id, e.name] as const));
+    const delta: Record<string, string> = {};
+    for (const en of session.entries) {
+      const nm = map.get(en.exerciseId);
+      if (nm && exNameCache[en.exerciseId] !== nm) delta[en.exerciseId] = nm;
+    }
+    if (Object.keys(delta).length) {
+      const next = { ...exNameCache, ...delta };
+      setExNameCache(next);
+      try { localStorage.setItem('exerciseNamesCache', JSON.stringify(next)); } catch {}
+    }
+  }, [exercises, session?.id, session?.entries?.length]);
+
+  // Memo helpers for render gating
+  const exMap = useMemo(() => new Map(exercises.map((e) => [e.id, e] as const)), [exercises]);
+  const exReady = useMemo(() => {
+    if (!session) return false;
+    if (!exercises.length && session.entries.length > 0) return false;
+    return session.entries.every((en) => exMap.has(en.exerciseId));
+  }, [session?.id, session?.entries?.length, exercises, exMap]);
 
   // Load cached labels on mount to avoid day-name flip
   useEffect(()=> { try { const raw = localStorage.getItem('weeklyLabelsCache'); if(raw) setLabelsCache(JSON.parse(raw)); } catch {} }, []);
@@ -422,6 +457,7 @@ export default function Sessions() {
 
   useEffect(() => {
     (async () => {
+      if (!initialRouteReady) return; // wait for lastLocation / intent resolution
       const id = `${phase}-${week}-${day}`;
       let s = await db.get<Session>("sessions", id);
       if (!s) {
@@ -523,7 +559,7 @@ export default function Sessions() {
         }
       } catch {}
     })();
-  }, [phase, week, day]);
+  }, [phase, week, day, initialRouteReady]);
 
   // Wrap entry update to stamp loggedStartAt / loggedEndAt
   const stampActivity = async (sess: Session, updated: Session) => {
@@ -1158,8 +1194,8 @@ export default function Sessions() {
             </div>
           </div>
         )}
-  {!initialLoading && session?.entries.map((entry, entryIdx) => {
-          const ex = exercises.find((e) => e.id === entry.exerciseId);
+  {!initialLoading && session && exReady && session.entries.map((entry, entryIdx) => {
+          const ex = exMap.get(entry.exerciseId) || undefined;
           // derive previous best + nudge
           const prev = prevBestMap
             ? getPrevBest(prevBestMap, entry.exerciseId)
@@ -1225,7 +1261,7 @@ export default function Sessions() {
                 <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
                   <span className="inline-flex items-center gap-1 min-w-0">
-                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || (exercises.length? 'Exercise' : '')}</span>
+                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || exNameCache[entry.exerciseId] || ''}</span>
                     <span className={`transition-transform text-xs opacity-70 ${isCollapsed? 'rotate-180':''}`}>▾</span>
                   </span>
                   {ex?.isOptional && (
