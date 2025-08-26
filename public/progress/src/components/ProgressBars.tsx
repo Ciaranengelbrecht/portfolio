@@ -152,6 +152,7 @@ export default function ProgressBars() {
 
   const openDay = async (dayId: number) => {
     // Navigate to sessions; Sessions page will create missing session
+  try { sessionStorage.setItem('lastLocationIntent', '1'); } catch {}
     await setDashboardPrefs({
       lastLocation: {
         phaseNumber: curPhase,

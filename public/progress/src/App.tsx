@@ -311,6 +311,7 @@ function Shell() {
           s.dashboardPrefs?.openToLast !== false &&
           s.dashboardPrefs?.lastLocation
         ) {
+          try { sessionStorage.setItem('lastLocationIntent', '1'); } catch {}
           navigate("/sessions");
         } else if (start === "sessions") navigate("/sessions");
         else if (start === "measurements") navigate("/measurements");

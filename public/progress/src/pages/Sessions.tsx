@@ -100,13 +100,19 @@ export default function Sessions() {
     (async () => {
       const s = await getSettings();
       // Only apply stored lastLocation if we haven't already picked the most recent session
-      if (!pickedLatestRef.current) {
+      // Also, if navigation explicitly set lastLocation (via sessionStorage flag), prefer it and skip auto-pick
+      let hadIntent = false;
+      try { hadIntent = sessionStorage.getItem('lastLocationIntent') === '1'; sessionStorage.removeItem('lastLocationIntent'); } catch {}
+      if (!pickedLatestRef.current || hadIntent) {
         setPhase(s.currentPhase || 1);
         const last = s.dashboardPrefs?.lastLocation;
         if (last) {
+          if(debugSessions.current){ try{ console.log('[Sessions debug] applying lastLocation from settings', last); } catch{} }
           setWeek(last.weekNumber as any);
           setDay(last.dayId);
         }
+        if(debugSessions.current && !last){ try{ console.log('[Sessions debug] no lastLocation in settings; using defaults'); } catch{} }
+        if (hadIntent) pickedLatestRef.current = true; // lock to explicit choice
       }
       // Do not build suggestions here; defer until we know current session identity for day-specific filtering
     })();
@@ -210,6 +216,8 @@ export default function Sessions() {
   // Also retroactively backfill missing loggedStart/End stamps.
   useEffect(()=>{ (async()=> {
     if(lastRealSessionAppliedRef.current) return;
+    // If user explicitly navigated with a chosen week/day, don't auto-pick latest
+    try { if(sessionStorage.getItem('lastLocationIntent') === '1'){ pickedLatestRef.current = true; return; } } catch {}
     try {
       const all = await db.getAll<Session>('sessions');
       let mutated = false;
@@ -498,19 +506,22 @@ export default function Sessions() {
         }
       }
   setSession(s);
-      const settings = await getSettings();
-      await setSettings({
-        ...settings,
-        dashboardPrefs: {
-          ...(settings.dashboardPrefs || {}),
-          lastLocation: {
-            phaseNumber: phase,
-            weekNumber: week,
-            dayId: day,
-            sessionId: s.id,
-          },
-        },
-      });
+      // Persist lastLocation after session is resolved; avoid clobbering a newer explicit navigation
+      try {
+        const settings = await getSettings();
+        const prev = settings.dashboardPrefs?.lastLocation;
+        const nextLoc = { phaseNumber: phase, weekNumber: week, dayId: day, sessionId: s.id };
+        const sameTarget = prev && `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` === `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
+        if (!prev || sameTarget) {
+          await setSettings({
+            ...settings,
+            dashboardPrefs: {
+              ...(settings.dashboardPrefs || {}),
+              lastLocation: nextLoc,
+            },
+          });
+        }
+      } catch {}
     })();
   }, [phase, week, day]);
 
