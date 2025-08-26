@@ -133,16 +133,20 @@ export default function Sessions() {
     })();
   }, [session?.id, session?.templateId, session?.dayName, settingsState?.progress?.autoProgression]);
 
-  // Track scroll position to toggle More button visibility
+  // Track scroll position; fade top bar when scrolled and auto-close mobile tools if open
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || document.documentElement.scrollTop;
-      setScrolled(y > 40);
+      // Consider any non-zero scroll as scrolled
+      const isScrolled = y > 1;
+      setScrolled(isScrolled);
+      // Close mobile tools menu if user starts scrolling
+      if (isScrolled && moreOpen) setMoreOpen(false);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [moreOpen]);
 
   // Measure toolbar height for spacer (updates on resize)
   useLayoutEffect(() => {
@@ -933,7 +937,11 @@ export default function Sessions() {
   <div className="space-y-4">
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
-      <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
+      <div
+        className={`fixed left-0 right-0 transition-all duration-300 ease-out ${scrolled ? 'opacity-0 pointer-events-none -translate-y-1' : 'opacity-100 translate-y-0'}`}
+        style={{ top: 'calc(var(--app-header-h) + 4px)' }}
+        ref={toolbarRef}
+      >
   <div className="flex flex-wrap items-center gap-2 px-4 pt-0 pb-0 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
           <h2 className="text-xl font-semibold mr-2">Sessions</h2>
           <div className="inline-flex w-auto">
