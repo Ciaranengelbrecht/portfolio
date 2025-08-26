@@ -67,6 +67,8 @@ export default function Sessions() {
   const [scrolled, setScrolled] = useState(false);
   const toolbarRef = useRef<HTMLDivElement|null>(null);
   const [toolbarHeight, setToolbarHeight] = useState(56);
+  // Progressive fade for sticky toolbar
+  const [barOpacity, setBarOpacity] = useState(1);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string,string>>({});
   // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
@@ -133,12 +135,16 @@ export default function Sessions() {
     })();
   }, [session?.id, session?.templateId, session?.dayName, settingsState?.progress?.autoProgression]);
 
-  // Track scroll position; fade top bar when scrolled and auto-close mobile tools if open
+  // Track scroll position; progressive fade of top bar and auto-close mobile tools if open
   useEffect(() => {
     const getScrollTop = () => (typeof window !== 'undefined' ? (window.scrollY || document.documentElement.scrollTop || (document.body && (document.body as any).scrollTop) || 0) : 0);
     const onScroll = () => {
       const y = getScrollTop();
       const isScrolled = y > 1;
+      // Fade the top bar over the first ~80px of scroll
+      const range = 80;
+      const op = Math.max(0, 1 - Math.min(1, y / range));
+      setBarOpacity(op);
       setScrolled(isScrolled);
       if (isScrolled && moreOpen) setMoreOpen(false);
     };
@@ -946,8 +952,8 @@ export default function Sessions() {
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div
-        className={`fixed left-0 right-0 transition-all duration-300 ease-out ${scrolled ? 'opacity-0 pointer-events-none -translate-y-1' : 'opacity-100 translate-y-0'}`}
-        style={{ top: 'calc(var(--app-header-h) + 4px)' }}
+        className={"fixed left-0 right-0 will-change-[opacity,transform]"}
+        style={{ top: 'calc(var(--app-header-h) + 4px)', opacity: barOpacity, transform: `translateY(${barOpacity < 1 ? -4 * (1 - barOpacity) : 0}px)`, pointerEvents: barOpacity < 0.05 ? 'none' : undefined }}
         ref={toolbarRef}
       >
   <div className="flex flex-wrap items-center gap-2 px-4 pt-0 pb-0 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
@@ -1050,8 +1056,15 @@ export default function Sessions() {
         </div>
       </div>
       {/* Mobile tools panel rendered as fixed overlay below toolbar (no layout height) */}
-      {moreOpen && createPortal(
-        <div id="mobile-tools-overlay" className="fixed left-0 right-0 z-[1000] sm:hidden px-4" style={{ top: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)` }}>
+      {createPortal(
+        <AnimatePresence>
+        {moreOpen && (
+        <motion.div id="mobile-tools-overlay" className="fixed left-0 right-0 z-[1000] sm:hidden px-4" style={{ top: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)` }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
+        >
           <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-md glow-card shadow-xl">
             {session && <button className="tool-btn" onClick={()=> { stampToday(); setMoreOpen(false); }} title="Stamp with today's date">Stamp</button>}
             <button className="tool-btn" onClick={()=> { setShowImport(true); setMoreOpen(false); }} title="Import from template">Import</button>
@@ -1063,7 +1076,10 @@ export default function Sessions() {
             {session && <button className="tool-btn" onClick={()=> { expandAll(); setMoreOpen(false); }} title="Expand all exercises">Expand All</button>}
             {sessionDuration && <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">⏱ {sessionDuration}</div>}
           </div>
-        </div>, document.body
+        </motion.div>
+        )}
+        </AnimatePresence>
+        , document.body
       )}
   {/* Spacer dynamic (reduced extra gap) */}
   <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 0px)` }} aria-hidden="true" />
