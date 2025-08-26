@@ -929,7 +929,7 @@ export default function Sessions() {
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div className="fixed left-0 right-0" style={{ top: 'calc(var(--app-header-h) + 4px)' }} ref={toolbarRef}>
-  <div className="flex flex-wrap items-center gap-2 px-4 pt-1 pb-0 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
+  <div className="flex flex-wrap items-center gap-2 px-4 pt-0 pb-0 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
           <h2 className="text-xl font-semibold mr-2">Sessions</h2>
           <div className="inline-flex w-auto">
             <PhaseStepper value={phase} onChange={async (p)=> { setPhase(p); const s=await getSettings(); await setSettings({ ...s, currentPhase: p }); }} />
@@ -1018,9 +1018,9 @@ export default function Sessions() {
         </div>
       </div>
   {/* Spacer dynamic (reduced extra gap) */}
-  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 2px)` }} aria-hidden="true" />
+  <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 0px)` }} aria-hidden="true" />
   {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
-  <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-4">
+  <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-6">
         <div className="hidden sm:flex items-center gap-2">
           <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl" onClick={()=> setShowImport(true)}>Import from Template</button>
           <button className="bg-slate-700 px-3 py-2 rounded-xl disabled:opacity-40" disabled={!session || !session.entries.length} onClick={()=> setShowSaveTemplate(true)} title="Save current session as a reusable template">Save as Template</button>
@@ -1077,7 +1077,7 @@ export default function Sessions() {
         </div>
       )}
 
-  <div className="space-y-3 -mt-1 sm:mt-0">
+  <div className="space-y-3 -mt-2 sm:mt-0">
         {initialLoading && <div className="space-y-2">
           <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
           <div className="h-24 bg-white/5 rounded animate-pulse" />
