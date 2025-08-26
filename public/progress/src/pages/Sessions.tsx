@@ -1127,10 +1127,26 @@ export default function Sessions() {
       )}
 
   <div className="space-y-3 -mt-[72px] sm:mt-0">
-        {initialLoading && <div className="space-y-2">
-          <div className="h-6 w-40 bg-white/5 rounded animate-pulse" />
-          <div className="h-24 bg-white/5 rounded animate-pulse" />
-        </div>}
+        {initialLoading && (
+          <div className="space-y-3" aria-label="Loading session">
+            <div className="h-5 w-40 rounded skeleton" />
+            <div className="rounded-2xl p-4 glow-card">
+              <div className="h-4 w-3/5 rounded skeleton mb-3" />
+              <div className="space-y-2">
+                <div className="h-8 rounded skeleton" />
+                <div className="h-8 rounded skeleton" />
+                <div className="h-8 rounded skeleton" />
+              </div>
+            </div>
+            <div className="rounded-2xl p-4 glow-card">
+              <div className="h-4 w-2/5 rounded skeleton mb-3" />
+              <div className="space-y-2">
+                <div className="h-8 rounded skeleton" />
+                <div className="h-8 rounded skeleton" />
+              </div>
+            </div>
+          </div>
+        )}
   {!initialLoading && session?.entries.map((entry, entryIdx) => {
           const ex = exercises.find((e) => e.id === entry.exerciseId);
           // derive previous best + nudge
