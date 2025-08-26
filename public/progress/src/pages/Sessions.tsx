@@ -135,17 +135,25 @@ export default function Sessions() {
 
   // Track scroll position; fade top bar when scrolled and auto-close mobile tools if open
   useEffect(() => {
+    const getScrollTop = () => (typeof window !== 'undefined' ? (window.scrollY || document.documentElement.scrollTop || (document.body && (document.body as any).scrollTop) || 0) : 0);
     const onScroll = () => {
-      const y = window.scrollY || document.documentElement.scrollTop;
-      // Consider any non-zero scroll as scrolled
+      const y = getScrollTop();
       const isScrolled = y > 1;
       setScrolled(isScrolled);
-      // Close mobile tools menu if user starts scrolling
       if (isScrolled && moreOpen) setMoreOpen(false);
     };
+    const onWheelOrTouch = () => {
+      if (moreOpen) setMoreOpen(false);
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', onWheelOrTouch, { passive: true });
+    window.addEventListener('touchmove', onWheelOrTouch, { passive: true });
     onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheelOrTouch);
+      window.removeEventListener('touchmove', onWheelOrTouch);
+    };
   }, [moreOpen]);
 
   // Measure toolbar height for spacer (updates on resize)
