@@ -2129,6 +2129,21 @@ function SessionSummary({ session, exercises }: { session: Session; exercises: E
     }
     return { sets, volume, prs }
   }, [session, exMap])
+  // Count sets per PRIMARY muscle group (ignore secondaryMuscles). Matches SessionSummary semantics: counts all sets.
+  const muscleCounts = useMemo(() => {
+    const by: Record<string, number> = {};
+    for (const entry of session.entries) {
+      const ex = exMap.get(entry.exerciseId);
+      if (!ex) continue;
+      const g = ex.muscleGroup || 'other';
+      by[g] = (by[g] || 0) + entry.sets.length;
+    }
+    // Filter groups with >=1 and return sorted by label
+    const label = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+    return Object.entries(by)
+      .filter(([, n]) => n >= 1)
+      .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
+  }, [session, exMap]);
   const estTonnage = totals.volume
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft mt-4 fade-in">
@@ -2136,6 +2151,17 @@ function SessionSummary({ session, exercises }: { session: Session; exercises: E
         <div><span className="text-muted">Sets:</span> {totals.sets}</div>
         <div><span className="text-muted">Volume:</span> {estTonnage}</div>
         <div><span className="text-muted">PR Signals:</span> {totals.prs}</div>
+        {/* Per-muscle set counters (primary muscle only) */}
+        {muscleCounts.length > 0 && (
+          <div className="inline-flex flex-wrap items-center gap-2">
+            {muscleCounts.map(([k, n]) => (
+              <span key={k} className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-white/10">
+                <span className="opacity-70 mr-1">{k.charAt(0).toUpperCase() + k.slice(1)}:</span>
+                <span>{n}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -2185,7 +2211,7 @@ function MobileSessionMetrics({ session, exercises }: { session: Session; exerci
     let sets=0, volume=0, prs=0;
     for(const entry of session.entries){
       for(const s of entry.sets){
-        if((s.reps||0)>0 || (s.weightKg||0)>0){
+  if((s.reps||0)>0 || (s.weightKg||0)>0){
           sets++;
           const ton=(s.weightKg||0)*(s.reps||0); volume+=ton;
           if(ton>0 && ton >= (exMap.get(entry.exerciseId)?.defaults.sets||3)*50) prs++;
@@ -2194,11 +2220,38 @@ function MobileSessionMetrics({ session, exercises }: { session: Session; exerci
     }
     return { sets, volume, prs };
   }, [session, exMap]);
+  // Mobile bar uses "working" sets semantics elsewhere; mirror that for muscle counts (only count sets with reps>0 or weight>0)
+  const muscleCounts = useMemo(() => {
+    const by: Record<string, number> = {};
+    for (const entry of session.entries) {
+      const ex = exMap.get(entry.exerciseId);
+      if (!ex) continue;
+      const g = ex.muscleGroup || 'other';
+      let count = 0;
+      for (const s of entry.sets) {
+        if ((s.reps || 0) > 0 || (s.weightKg || 0) > 0) count++;
+      }
+      if (count > 0) by[g] = (by[g] || 0) + count;
+    }
+    const label = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+    return Object.entries(by)
+      .filter(([, n]) => n >= 1)
+      .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
+  }, [session, exMap]);
   return (
     <div className="flex items-center gap-4 text-[11px] font-medium">
       <span><span className="opacity-60">Sets</span> {stats.sets}</span>
       <span><span className="opacity-60">Vol</span> {stats.volume}</span>
       <span><span className="opacity-60">PR</span> {stats.prs}</span>
+      {muscleCounts.length > 0 && (
+        <div className="flex items-center gap-2">
+          {muscleCounts.map(([k, n]) => (
+            <span key={k} className="px-2 py-0.5 rounded bg-slate-800/80 border border-white/10 whitespace-nowrap">
+              {k.charAt(0).toUpperCase() + k.slice(1)} {n}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
