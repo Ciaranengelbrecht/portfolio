@@ -355,13 +355,26 @@ function Shell() {
                       className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
                       aria-label="Jump to top"
                       title="Top"
-                      onClick={()=> { try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch { window.scrollTo(0,0); } }}
+                      onClick={()=> {
+                        try {
+                          const el = document.getElementById('sessions-top-anchor');
+                          if (el) { el.scrollIntoView({ block: 'start', behavior: 'auto' }); return; }
+                          window.scrollTo({ top: 0, behavior: 'auto' });
+                        } catch { window.scrollTo(0,0); }
+                      }}
                     >↑</button>
                     <button
                       className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
                       aria-label="Jump to bottom"
                       title="Bottom"
-                      onClick={()=> { try { const h = Math.max(document.documentElement?.scrollHeight||0, document.body?.scrollHeight||0); window.scrollTo({ top: h, behavior: 'auto' }); } catch { window.scrollTo(0, 1e9); } }}
+                      onClick={()=> {
+                        try {
+                          const el = document.getElementById('sessions-bottom-anchor');
+                          if (el) { el.scrollIntoView({ block: 'end', behavior: 'auto' }); return; }
+                          const h = Math.max(document.documentElement?.scrollHeight||0, document.body?.scrollHeight||0);
+                          window.scrollTo({ top: h, behavior: 'auto' });
+                        } catch { window.scrollTo(0, 1e9); }
+                      }}
                     >↓</button>
                   </div>
                 )}

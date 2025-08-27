@@ -1145,6 +1145,8 @@ export default function Sessions() {
       )}
   {/* Spacer dynamic (reduced extra gap) */}
   <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 0px)` }} aria-hidden="true" />
+  {/* Scroll anchors for jump-to-top/bottom controls */}
+  <div id="sessions-top-anchor" aria-hidden="true" style={{ position:'relative', height:0 }} />
   {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
   <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-6">
         <div className="hidden sm:flex items-center gap-2">
@@ -2015,6 +2017,8 @@ export default function Sessions() {
         session={session}
         onSaved={(tpl)=> { push({ message: `Saved template "${tpl.name}"` }); }}
       />
+  {/* Bottom scroll anchor */}
+  <div id="sessions-bottom-anchor" aria-hidden="true" style={{ position:'relative', height:0 }} />
     </div>
   );
 }
