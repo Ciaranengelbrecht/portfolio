@@ -356,11 +356,8 @@ function Shell() {
                       aria-label="Jump to top"
                       title="Top"
                       onClick={()=> {
-                        try {
-                          const el = document.getElementById('sessions-top-anchor');
-                          if (el) { el.scrollIntoView({ block: 'start', behavior: 'auto' }); return; }
-                          window.scrollTo({ top: 0, behavior: 'auto' });
-                        } catch { window.scrollTo(0,0); }
+                        try { window.scrollTo({ top: 0, behavior: 'auto' }); }
+                        catch { window.scrollTo(0,0); }
                       }}
                     >↑</button>
                     <button
@@ -369,10 +366,9 @@ function Shell() {
                       title="Bottom"
                       onClick={()=> {
                         try {
-                          const el = document.getElementById('sessions-bottom-anchor');
-                          if (el) { el.scrollIntoView({ block: 'end', behavior: 'auto' }); return; }
-                          const h = Math.max(document.documentElement?.scrollHeight||0, document.body?.scrollHeight||0);
-                          window.scrollTo({ top: h, behavior: 'auto' });
+                          const doc = document.documentElement;
+                          const max = Math.max(0, (doc.scrollHeight || 0) - window.innerHeight);
+                          window.scrollTo({ top: max, behavior: 'auto' });
                         } catch { window.scrollTo(0, 1e9); }
                       }}
                     >↓</button>
