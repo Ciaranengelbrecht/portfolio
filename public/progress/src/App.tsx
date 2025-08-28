@@ -356,8 +356,12 @@ function Shell() {
                       aria-label="Jump to top"
                       title="Top"
                       onClick={()=> {
-                        try { window.scrollTo({ top: 0, behavior: 'auto' }); }
-                        catch { window.scrollTo(0,0); }
+                        try {
+                          const el = document.getElementById('sessions-top-anchor');
+                          if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
+                          // Nudge to absolute top to avoid any residual wiggle
+                          window.scrollTo({ top: 0, behavior: 'auto' });
+                        } catch { window.scrollTo(0,0); }
                       }}
                     >↑</button>
                     <button
@@ -366,6 +370,8 @@ function Shell() {
                       title="Bottom"
                       onClick={()=> {
                         try {
+                          const el = document.getElementById('sessions-bottom-anchor');
+                          if (el) el.scrollIntoView({ block: 'end', behavior: 'auto' });
                           const doc = document.documentElement;
                           const max = Math.max(0, (doc.scrollHeight || 0) - window.innerHeight);
                           window.scrollTo({ top: max, behavior: 'auto' });

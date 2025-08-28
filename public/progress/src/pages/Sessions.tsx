@@ -1011,6 +1011,8 @@ export default function Sessions() {
 
   return (
   <div className="space-y-4">
+  {/* Top scroll anchor at very start to allow absolute top jump */}
+  <div id="sessions-top-anchor" aria-hidden="true" style={{ position:'relative', height:0 }} />
   {/* Removed mobile floating Add Exercise button (user preference) */}
       {/* Fixed selectors bar under main app header */}
       <div
@@ -1145,8 +1147,6 @@ export default function Sessions() {
       )}
   {/* Spacer dynamic (reduced extra gap) */}
   <div style={{ height: `calc(var(--app-header-h) + ${toolbarHeight}px + 0px)` }} aria-hidden="true" />
-  {/* Scroll anchors for jump-to-top/bottom controls */}
-  <div id="sessions-top-anchor" aria-hidden="true" style={{ position:'relative', height:0 }} />
   {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
   <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-6">
         <div className="hidden sm:flex items-center gap-2">
