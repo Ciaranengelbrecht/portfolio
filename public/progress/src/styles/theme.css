@@ -311,11 +311,17 @@ body[data-ecg="off"] .ecg-root { display:none; }
 /* Strong alert state after target is reached: red glow + halo pulse */
 .rest-strong-alert {
   position: relative;
+  border: 1px solid rgba(248 113 113 / 0.65); /* red-400 */
   box-shadow:
-    0 0 0 1px rgba(244 63 94 / 0.45),
-    0 0 18px rgba(244 63 94 / 0.35),
-    inset 0 0 10px rgba(244 63 94 / 0.18);
-  background: linear-gradient(0deg, rgba(244 63 94 / 0.12), transparent) , rgba(15 23 42 / 0.6);
+    0 0 0 1px rgba(244 63 94 / 0.55),
+    0 0 26px rgba(244 63 94 / 0.55),
+    0 0 40px rgba(244 63 94 / 0.35),
+    inset 0 0 14px rgba(244 63 94 / 0.25);
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(244 63 94 / 0.22), rgba(244 63 94 / 0.05) 60%, transparent 80%),
+    linear-gradient(0deg, rgba(244 63 94 / 0.10), transparent),
+    rgba(15 23 42 / 0.6);
+  border-radius: 9999px; /* make chip fully round-pill */
 }
 .rest-strong-alert::before {
   content: "";
@@ -330,6 +336,22 @@ body[data-ecg="off"] .ecg-root { display:none; }
   0%   { box-shadow: 0 0 0 0 rgba(244 63 94 / 0.55); }
   70%  { box-shadow: 0 0 0 14px rgba(244 63 94 / 0.00); }
   100% { box-shadow: 0 0 0 0 rgba(244 63 94 / 0.00); }
+}
+/* Inner pulsing core glow for extra emphasis */
+.rest-strong-alert::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255 80 90 / 0.35), rgba(255 80 90 / 0.15) 48%, transparent 70%);
+  filter: blur(10px);
+  animation: restCoreGlow 1300ms ease-in-out infinite alternate;
+}
+@keyframes restCoreGlow {
+  0%   { opacity: 0.65; transform: scale(0.98); }
+  50%  { opacity: 0.9;  transform: scale(1.02); }
+  100% { opacity: 0.65; transform: scale(0.98); }
 }
 /* Optional screen flash when rest ends (enabled via settings) */
 body.rest-screen-flash::after {
