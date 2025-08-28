@@ -569,6 +569,16 @@ export default function Sessions() {
     const hasDataAfter = updated.entries.some(e=> e.sets.some(st=> (st.weightKg||0)>0 || (st.reps||0)>0));
     if(hasDataAfter && !hadDataBefore && !updated.loggedStartAt){ (updated as any).loggedStartAt = now; changed=true; }
     if(hasDataAfter){ (updated as any).loggedEndAt = now; changed=true; }
+    // Robust per-day work log tracking (local date key)
+    try {
+      const d = new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const log = { ...(updated.workLog || {}) } as NonNullable<Session['workLog']>;
+      const prev = log[key];
+      if (!prev) log[key] = { first: now, last: now, count: 1 };
+      else log[key] = { ...prev, last: now, count: prev.count + 1 };
+      (updated as any).workLog = log;
+    } catch {}
     (updated as any).updatedAt = now; changed=true;
     if(changed){ await db.put('sessions', updated); }
   (updated as any).updatedAt = new Date().toISOString();
@@ -706,7 +716,7 @@ export default function Sessions() {
       reps: last?.reps ?? null,
       rpe: last?.rpe,
     };
-    const newEntry = { ...entry, sets: [...entry.sets, next] };
+  const newEntry = { ...entry, sets: [...entry.sets, next] };
     // Inline the updateEntry logic to immediately stamp and set lastLocalEditRef before any remote pull
     const prevSession = session;
     const newEntries = session.entries.map((e) => (e.id === entry.id ? newEntry : e));
@@ -718,6 +728,16 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
+    // Update per-day work log
+    try {
+      const d = new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const log = { ...(updated.workLog || {}) } as NonNullable<Session['workLog']>;
+      const prev = log[key];
+      if (!prev) log[key] = { first: updated.updatedAt!, last: updated.updatedAt!, count: 1 };
+      else log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
+      (updated as any).workLog = log;
+    } catch {}
     lastLocalEditRef.current = Date.now();
     setSession(updated);
     latestSessionRef.current = updated;
@@ -826,6 +846,16 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
+    // Update per-day work log
+    try {
+      const d = new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const log = { ...(updated.workLog || {}) } as NonNullable<Session['workLog']>;
+      const prev = log[key];
+      if (!prev) log[key] = { first: updated.updatedAt!, last: updated.updatedAt!, count: 1 };
+      else log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
+      (updated as any).workLog = log;
+    } catch {}
   lastLocalEditRef.current = Date.now();
   setSession(updated);
   latestSessionRef.current = updated;
@@ -888,7 +918,17 @@ export default function Sessions() {
       if(!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
       (updated as any).loggedEndAt = nowIso;
     }
-  (updated as any).updatedAt = new Date().toISOString();
+    (updated as any).updatedAt = new Date().toISOString();
+    // Update per-day work log
+    try {
+      const d = new Date();
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const log = { ...(updated.workLog || {}) } as NonNullable<Session['workLog']>;
+      const prev = log[key];
+      if (!prev) log[key] = { first: updated.updatedAt!, last: updated.updatedAt!, count: 1 };
+      else log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
+      (updated as any).workLog = log;
+    } catch {}
   lastLocalEditRef.current = Date.now();
   setSession(updated);
     await db.put("sessions", updated);
@@ -997,6 +1037,32 @@ export default function Sessions() {
   };
 
   const sessionDuration = (()=> {
+    // Prefer robust day-scoped duration if available
+    const log = session?.workLog;
+    if (log && Object.keys(log).length) {
+      // Choose dominant day (highest count); tie-break by longest active span
+      const entries = Object.entries(log);
+      entries.sort((a,b)=> {
+        const ca = a[1]?.count||0, cb = b[1]?.count||0;
+        if(cb!==ca) return cb-ca;
+        const la = (new Date(a[1]?.last||0).getTime()) - (new Date(a[1]?.first||0).getTime());
+        const lb = (new Date(b[1]?.last||0).getTime()) - (new Date(b[1]?.first||0).getTime());
+        return lb - la;
+      });
+      const dom = entries[0]?.[1];
+      if (dom?.first && dom?.last) {
+        const start = new Date(dom.first).getTime();
+        const end = new Date(dom.last).getTime();
+        if(!isNaN(start) && !isNaN(end) && end>=start){
+          const ms = Math.max(0, Math.min(end-start, 1000*60*6*6*2)); // safety cap ~12h
+          const mins = Math.floor(ms/60000);
+          const hrs = Math.floor(mins/60);
+          const remMins = mins % 60;
+          return hrs>0? `${hrs}h ${remMins}m` : `${mins}m`;
+        }
+      }
+    }
+    // Fallback to legacy loggedStartAt/EndAt
     if(!session?.loggedStartAt || !session.loggedEndAt) return null;
     const start = new Date(session.loggedStartAt).getTime();
     const end = new Date(session.loggedEndAt).getTime();

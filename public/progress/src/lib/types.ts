@@ -72,6 +72,8 @@ export interface Session {
   /** Creation + update timestamps (added via migration v6) */
   createdAt?: string;
   updatedAt?: string;
+  /** Per-day activity log used to compute robust session duration (ignoring long gaps/accidental late edits) */
+  workLog?: Record<string, { first: string; last: string; count: number; activeMs?: number }>; // key = YYYY-MM-DD (local)
 }
 
 export interface Measurement {
