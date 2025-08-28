@@ -290,3 +290,63 @@ body[data-bg-layer="on"]::before {
 .ecg-root { position:fixed; inset:0; z-index:-1; overflow:hidden; isolation:isolate; }
 .ecg-canvas { width:100%; height:100%; display:block; }
 body[data-ecg="off"] .ecg-root { display:none; }
+
+/* --- Rest timer enhanced alerts --- */
+/* Keyframes used by inline animate-[...] utilities */
+@keyframes timerPulse {
+  0% { transform: translateZ(0) scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+@keyframes timerPulseFast {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes timerFinishPop {
+  0% { transform: scale(1); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+/* Strong alert state after target is reached: red glow + halo pulse */
+.rest-strong-alert {
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(244 63 94 / 0.45),
+    0 0 18px rgba(244 63 94 / 0.35),
+    inset 0 0 10px rgba(244 63 94 / 0.18);
+  background: linear-gradient(0deg, rgba(244 63 94 / 0.12), transparent) , rgba(15 23 42 / 0.6);
+}
+.rest-strong-alert::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(244 63 94 / 0.55);
+  animation: restStrongHalo 1200ms ease-in-out infinite;
+}
+@keyframes restStrongHalo {
+  0%   { box-shadow: 0 0 0 0 rgba(244 63 94 / 0.55); }
+  70%  { box-shadow: 0 0 0 14px rgba(244 63 94 / 0.00); }
+  100% { box-shadow: 0 0 0 0 rgba(244 63 94 / 0.00); }
+}
+/* Optional screen flash when rest ends (enabled via settings) */
+body.rest-screen-flash::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(244 63 94 / 0.22), rgba(244 63 94 / 0.16) 40%, transparent 70%), rgba(244 63 94 / 0.12);
+  animation: restScreenFlash 520ms ease-out 1;
+}
+@keyframes restScreenFlash {
+  0% { opacity: 0; }
+  20% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rest-strong-alert::before { animation: none !important; }
+  body.rest-screen-flash::after { animation: none !important; opacity: 0 !important; }
+}

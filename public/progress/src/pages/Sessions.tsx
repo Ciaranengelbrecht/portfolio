@@ -438,9 +438,9 @@ export default function Sessions() {
     if(reached && !t.alerted && flash){ try { document.body.classList.add('rest-screen-flash'); setTimeout(()=> document.body.classList.remove('rest-screen-flash'), 520); } catch {} }
     return (
       <span
-        aria-live={reached? 'polite':'off'}
-        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' target reached':''}`}
-  className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 rounded-md min-w-[72px] h-8 flex items-center justify-center text-center leading-none ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''} bg-slate-800/60 shadow-inner`}
+        aria-live={reached? 'assertive':'off'}
+        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${reached? ' – rest complete':''}`}
+        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 rounded-md min-w-[72px] h-8 flex items-center justify-center text-center leading-none ${reached? 'text-rose-300':'text-emerald-300'} ${basePulse} ${reached && strong ? 'rest-strong-alert':''} bg-slate-800/60 shadow-inner`}
       >
         <span className={`rest-timer-value relative z-10 font-semibold tracking-tight ${reached? 'drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform':'transition-transform'}`}>{mm}:{String(ss).padStart(2,'0')}.<span className="opacity-70">{String(cs).padStart(2,'0')}</span></span>
       </span>
