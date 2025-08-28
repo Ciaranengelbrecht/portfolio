@@ -343,7 +343,7 @@ function Shell() {
       {/* ECG background (behind everything); toggled via body data attribute & settings */}
       {!authRoute && <ECGBackground />}
       {!authRoute && (
-        <header className="sticky top-0 z-20 backdrop-blur bg-bg/70 border-b border-white/5">
+        <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur bg-bg/70 border-b border-white/5">
           <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="md:hidden flex items-center gap-1">
@@ -407,6 +407,8 @@ function Shell() {
           </div>
         </header>
       )}
+  {/* Spacer to account for fixed header height across all pages (non-auth) */}
+  {!authRoute && <div style={{ height: 'var(--app-header-h)' }} aria-hidden="true" />}
   {!authRoute && (
         <AuthModal
           open={authOpen}
