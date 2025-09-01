@@ -52,6 +52,9 @@ export default function Sessions() {
   const [showImport, setShowImport] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Switch Exercise modal state
+  const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(null);
+  const [switchQuery, setSwitchQuery] = useState("");
   const [prevBestMap, setPrevBestMap] = useState<{
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
@@ -969,6 +972,38 @@ export default function Sessions() {
   const deloadInfo = async (exerciseId: string) =>
     getDeloadPrescription(exerciseId, week, { deloadWeeks });
 
+  // Switch exercise in a session entry (keep set rows; clear values unless none were logged)
+  const switchExercise = async (entry: SessionEntry, newEx: Exercise) => {
+    if (!session) return;
+    const hadLogged = entry.sets.some((s) => (s.weightKg || 0) > 0 || (s.reps || 0) > 0);
+    if (hadLogged) {
+      const ok = window.confirm(
+        "This exercise has logged sets. Switching will clear these set values. Continue?"
+      );
+      if (!ok) return;
+    }
+    const rows = Math.max(1, entry.sets.length || newEx.defaults?.sets || 3);
+    const newSets: SetEntry[] = Array.from({ length: rows }, (_, i) => ({
+      setNumber: i + 1,
+      weightKg: null,
+      reps: null,
+      rpe: entry.sets[i]?.rpe,
+    }));
+    const newEntry: SessionEntry = {
+      ...entry,
+      exerciseId: newEx.id,
+      targetRepRange: (newEx as any)?.defaults?.targetRepRange ?? entry.targetRepRange,
+      sets: newSets,
+    };
+    // Persist via existing update flow (stamps time, debounces write)
+    updateEntry(newEntry);
+    setSwitchTarget(null);
+    try {
+      (navigator as any).vibrate?.(10);
+    } catch {}
+    push({ message: `Switched to ${newEx.name}` });
+  };
+
   const reorderEntry = async (from: number, to: number) => {
     if (
       !session ||
@@ -1349,6 +1384,19 @@ export default function Sessions() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Switch exercise button */}
+                  <button
+                    aria-label="Switch exercise"
+                    className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSwitchTarget({ entryId: entry.id });
+                      setSwitchQuery("");
+                    }}
+                    title="Switch to a different exercise for this muscle group"
+                  >
+                    ⇄
+                  </button>
                   {isDeloadWeek && (
                     <span data-shape="deload">
                       <AsyncChip promise={deloadInfo(entry.exerciseId)} />
@@ -2059,6 +2107,65 @@ export default function Sessions() {
           </div>
         </div>
       )}
+
+      {/* Switch exercise modal */}
+      {switchTarget && session && (() => {
+        const entry = session.entries.find((e) => e.id === switchTarget.entryId);
+        const currentEx = entry ? exMap.get(entry.exerciseId) : undefined;
+        const group = currentEx?.muscleGroup;
+        const list = exercises
+          .filter((e) => e.muscleGroup === group && e.id !== currentEx?.id)
+          .filter((e) => e.name.toLowerCase().includes(switchQuery.toLowerCase()))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur flex items-start sm:items-center justify-center z-50 p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg p-4 shadow-xl border border-[var(--border)]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium">
+                  {currentEx ? `Switch ${currentEx.name}` : "Switch exercise"}
+                  {group ? (
+                    <span className="opacity-70 ml-2 text-xs">({group})</span>
+                  ) : null}
+                </div>
+                <button
+                  className="text-xs bg-slate-800 rounded px-2 py-1"
+                  onClick={() => setSwitchTarget(null)}
+                >
+                  Close
+                </button>
+              </div>
+              <input
+                className="w-full bg-slate-800 rounded-xl px-3 py-2"
+                placeholder={`Search ${group || "muscle"} exercises`}
+                value={switchQuery}
+                onChange={(e) => setSwitchQuery(e.target.value)}
+              />
+              <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
+                {list.map((e) => (
+                  <button
+                    key={e.id}
+                    className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl"
+                    onClick={() => {
+                      if (entry) switchExercise(entry, e);
+                    }}
+                  >
+                    {e.name}
+                  </button>
+                ))}
+                {list.length === 0 && (
+                  <div className="px-3 py-4 text-sm text-slate-300 bg-slate-800/70 rounded-xl">
+                    No alternatives found for this muscle group.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div>
         <button className="text-xs underline" onClick={() => undoLast()}>
