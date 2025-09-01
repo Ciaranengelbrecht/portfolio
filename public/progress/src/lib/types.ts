@@ -169,6 +169,8 @@ export interface Settings {
   restTimerStrongAlert?: boolean;
   /** Also flash screen background briefly when rest ends */
   restTimerScreenFlash?: boolean;
+  /** Play a short beep when rest target is reached */
+  restTimerBeep?: boolean;
 }
 
 export interface Template {

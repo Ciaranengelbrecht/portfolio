@@ -64,6 +64,7 @@ export const defaultSettings: Settings = {
     themeMode: "dark",
   },
   restTimerTargetSeconds: 90,
+  restTimerBeep: true,
 };
 
 export const defaultExercises: Exercise[] = [

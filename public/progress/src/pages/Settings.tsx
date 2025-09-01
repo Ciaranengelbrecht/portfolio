@@ -11,6 +11,7 @@ import {
   defaultExercises,
   defaultTemplates,
 } from "../lib/defaults";
+import { playRestBeep, unlockAudio } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
 
@@ -319,7 +320,7 @@ export default function SettingsPage() {
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div>
           <div className="font-medium mb-1">Rest Timer</div>
-          <div className="text-xs text-muted mb-2">Default target rest time (seconds). Timer animates & haptics (if enabled) when this threshold is reached.</div>
+          <div className="text-xs text-muted mb-2">Default target rest time (seconds). Timer animates, beeps, and vibrates (if enabled) when this threshold is reached.</div>
           <div className="flex items-center gap-3 flex-wrap">
             <input
               type="number"
@@ -342,6 +343,14 @@ export default function SettingsPage() {
               />
               <span>Strong pulse</span>
             </label>
+            <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1" title="Play a short beep when rest target is reached">
+              <input
+                type="checkbox"
+                checked={s.restTimerBeep !== false}
+                onChange={(e)=> setS(prev=> ({ ...prev, restTimerBeep: e.target.checked }))}
+              />
+              <span>Beep at target</span>
+            </label>
             <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1" title="Brief white flash behind app when rest target first reached. Accessibility: may be intense for some users.">
               <input
                 type="checkbox"
@@ -350,13 +359,14 @@ export default function SettingsPage() {
               />
               <span>Screen flash</span>
             </label>
+            <BeepTester />
             <button
               className="btn-primary px-3 py-2 rounded-xl text-xs"
               onClick={async ()=> { await db.put('settings', { ...s, id:'app' } as any); setToast('Rest timer saved'); }}
             >Save</button>
           </div>
           <div className="text-[10px] text-muted mt-1 leading-snug max-w-[580px]">
-            Strong pulse enlarges and pulses the timer once target is reached. Screen flash briefly inverts/whitens the background (single flash) for high visibility. Disable if you prefer minimal motion or have sensitivity. Respects the global Reduce motion toggle for most animations.
+            Strong pulse enlarges and pulses the timer once target is reached. Beep uses subtle tones and respects browser autoplay policies (tap anywhere to unlock sound). Screen flash briefly inverts/whitens the background for high visibility. Disable if you prefer minimal motion or have sensitivity. Respects the global Reduce motion toggle for most animations.
           </div>
         </div>
         <div className="mb-2">
@@ -1114,6 +1124,23 @@ export default function SettingsPage() {
   <ExerciseLibraryManager />
   <WeeklyVolumeTargets />
     </div>
+  );
+}
+
+function BeepTester() {
+  return (
+    <button
+      className="px-3 py-2 rounded-xl text-xs bg-slate-700 hover:bg-slate-600"
+      title="Play a preview beep"
+      onClick={async () => {
+        try {
+          await unlockAudio();
+          playRestBeep('double');
+        } catch {}
+      }}
+    >
+      Test beep
+    </button>
   );
 }
 

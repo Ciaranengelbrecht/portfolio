@@ -14,6 +14,7 @@ import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
 import { parseOptionalNumber, formatOptionalNumber } from '../lib/parse';
 import { getSettings, setSettings } from "../lib/helpers";
 import { motion, AnimatePresence } from 'framer-motion';
+import { unlockAudio, playRestBeep } from "../lib/audio";
 import { fadeSlideUp, maybeDisable } from '../lib/motion';
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
@@ -221,6 +222,29 @@ export default function Sessions() {
     };
   }, [moreOpen]);
 
+  // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
+  useEffect(() => {
+    let done = false;
+    const tryUnlock = async () => {
+      if (done) return;
+      const ok = await unlockAudio();
+      if (ok) {
+        done = true;
+        window.removeEventListener('pointerdown', tryUnlock);
+        window.removeEventListener('keydown', tryUnlock as any);
+        window.removeEventListener('touchstart', tryUnlock);
+      }
+    };
+    window.addEventListener('pointerdown', tryUnlock, { passive: true });
+    window.addEventListener('touchstart', tryUnlock, { passive: true });
+    window.addEventListener('keydown', tryUnlock as any);
+    return () => {
+      window.removeEventListener('pointerdown', tryUnlock);
+      window.removeEventListener('touchstart', tryUnlock);
+      window.removeEventListener('keydown', tryUnlock as any);
+    };
+  }, []);
+
   // Measure toolbar height for spacer (updates on resize)
   useLayoutEffect(() => {
     const measure = () => {
@@ -423,9 +447,13 @@ export default function Sessions() {
             continue;
           }
           // trigger alert when crossing target threshold once
-          if(elapsed >= targetMs && !v.alerted){ if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} } next[k] = { ...v, start, elapsed, alerted:true }; }
+          if(elapsed >= targetMs && !v.alerted){
+            if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} }
+            if(settingsState?.restTimerBeep !== false){ try { playRestBeep('double'); } catch {} }
+            next[k] = { ...v, start, elapsed, alerted:true };
+          }
           else { next[k] = { ...v, start, elapsed }; }
-        } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics])
+  } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics, settingsState?.restTimerBeep])
   // Restart (or start) rest timer in a single tap; always resets elapsed to 0 and runs
   const restartRestTimer = (entryId:string)=>{
     setRestTimers(()=> ({ [entryId]: { start: Date.now(), elapsed:0, running:true } }));
