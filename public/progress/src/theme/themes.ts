@@ -1,6 +1,7 @@
 export type ThemeKey =
   | "default-glass"
   | "neo-dark-glow"
+  | "custom"
   | "neo-dark-glow-blood"
   | "neo-dark-glow-crimson"
   | "neo-dark-glow-scarlet"
@@ -22,6 +23,27 @@ export type ThemeKey =
 export type ThemeVars = Record<string, string>;
 
 export const THEMES: Record<ThemeKey, ThemeVars> = {
+  // Custom theme placeholder; real values come from Settings.themeV2.customVars at runtime
+  custom: {
+    "--bg": "hsl(222 40% 8%)",
+    "--bg-muted": "hsl(222 40% 10%)",
+    "--card": "hsla(220 30% 96% / 0.08)",
+    "--card-border": "hsla(220 80% 70% / 0.20)",
+    "--text": "hsl(210 15% 96%)",
+    "--text-muted": "hsl(210 10% 70%)",
+    "--accent": "hsl(210 90% 60%)",
+    "--accent-contrast": "hsl(0 0% 100%)",
+    "--ring": "hsl(210 90% 60%)",
+    "--shadow": "0 10px 30px hsla(210 90% 55% / 0.30)",
+    "--glow": "0 0 32px hsla(210 90% 60% / 0.45)",
+    "--chart-1": "hsl(210 90% 60%)",
+    "--chart-2": "hsl(190 90% 55%)",
+    "--chart-grid": "hsla(210 40% 90% / 0.18)",
+    "--success": "hsl(142 72% 40%)",
+    "--warning": "hsl(38 92% 52%)",
+    "--danger": "hsl(0 84% 60%)",
+    "--card-backdrop": "blur(14px)",
+  },
   "default-glass": {
     "--bg": "hsl(222 40% 8%)",
     "--bg-muted": "hsl(222 40% 10%)",

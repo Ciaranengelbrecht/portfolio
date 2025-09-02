@@ -98,7 +98,7 @@ export interface Settings {
   // Legacy theme flag kept for backward-compat UI; do not remove without migration of Settings UI
   theme?: "dark" | "light";
   // New theming system (v5+)
-  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number };
+  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number; customVars?: Record<string,string> };
   deloadDefaults: { loadPct: number; setPct: number };
   /** User preference to reduce motion regardless of system setting */
   reducedMotion?: boolean;
@@ -200,7 +200,7 @@ export type DBVersion = 7;
 // User profile (server source of truth for theme persistence across devices)
 export interface UserProfile {
   id: string; // auth user id
-  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number }; // stored in DB column 'themev2'
+  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number; customVars?: Record<string,string> }; // stored in DB column 'themev2'
   created_at?: string;
   program?: UserProgram;
   program_history?: ArchivedProgram[]; // array of archived programs

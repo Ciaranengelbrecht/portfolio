@@ -37,6 +37,18 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
+  const hslToHex = (hsl: string): string => {
+    try {
+      const m = hsl.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
+      if (!m) return '#000000';
+      let h = Number(m[1]); const s = Number(m[2])/100; const l = Number(m[3])/100;
+      const c=(1-Math.abs(2*l-1))*s; const x=c*(1-Math.abs(((h/60)%2)-1)); const m0=l-c/2;
+      let r=0,g=0,b=0; if(h<60){ r=c; g=x; b=0;} else if(h<120){ r=x; g=c; b=0;} else if(h<180){ r=0; g=c; b=x;} else if(h<240){ r=0; g=x; b=c;} else if(h<300){ r=x; g=0; b=c;} else { r=c; g=0; b=x; }
+      const R=Math.round((r+m0)*255), G=Math.round((g+m0)*255), B=Math.round((b+m0)*255);
+      const toHex=(n:number)=> n.toString(16).padStart(2,'0');
+      return `#${toHex(R)}${toHex(G)}${toHex(B)}`;
+    } catch { return '#000000'; }
+  };
   // Collapse state for Theme presets (default collapsed to save space)
   const [themesCollapsed, setThemesCollapsed] = useState(true);
   useEffect(() => {
@@ -920,7 +932,9 @@ export default function SettingsPage() {
             aria-hidden={themesCollapsed}
           >
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 px-1 pb-1">
-              {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
+              {(Object.keys(THEMES) as ThemeKey[]).map((k) => {
+                const customPreview = (k === 'custom' && s.themeV2?.customVars) ? { ...THEMES[k], ...s.themeV2.customVars } as Record<string,string> : THEMES[k];
+                return (
                 <button
                   key={k}
                   className={`rounded-xl p-3 text-left border border-card ${
@@ -943,30 +957,87 @@ export default function SettingsPage() {
                   <div className="mt-2 grid grid-cols-6 gap-1 items-center">
                     <span
                       className="col-span-3 h-6 rounded"
-                      style={{ background: THEMES[k]["--bg-muted"] }}
+                      style={{ background: customPreview["--bg-muted"] }}
                     />
                     <span
                       className="h-6 rounded border"
                       style={{
-                        background: THEMES[k]["--card"],
-                        borderColor: THEMES[k]["--card-border"],
+                        background: customPreview["--card"],
+                        borderColor: customPreview["--card-border"],
                       }}
                     />
                     <span
                       className="h-6 rounded"
-                      style={{ background: THEMES[k]["--chart-1"] }}
+                      style={{ background: customPreview["--chart-1"] }}
                     />
                     <span
                       className="h-6 rounded"
-                      style={{ background: THEMES[k]["--chart-2"] }}
+                      style={{ background: customPreview["--chart-2"] }}
                     />
                   </div>
                 </button>
-              ))}
+              );})}
             </div>
           </div>
           <div className="text-xs text-muted mt-1">
             Changes are local until you press <strong>Save Theme</strong>.
+          </div>
+          {/* Custom Theme editor */}
+          <div className="mt-2 card-surface rounded-xl p-3 border border-card">
+            <div className="flex items-center justify-between">
+              <div className="font-medium text-sm">Custom theme</div>
+              <button
+                className={`px-2 py-1 rounded-md text-xs ${themeKey==='custom' ? 'btn-primary' : 'btn-outline'}`}
+                onClick={async()=>{
+                  const cur = await db.get("settings","app");
+                  await db.put("settings", { ...(cur||{}), id:'app', themeV2:{ ...(cur?.themeV2||{}), key:'custom' } });
+                  setThemeKey('custom');
+                }}
+              >Use custom</button>
+            </div>
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {([
+                ['--bg','Background'],
+                ['--bg-muted','Background muted'],
+                ['--card','Card'],
+                ['--card-border','Card border'],
+                ['--text','Text'],
+                ['--text-muted','Text muted'],
+                ['--accent','Accent'],
+                ['--chart-1','Chart 1'],
+                ['--chart-2','Chart 2'],
+              ] as Array<[string,string]>).map(([key,label])=>{
+                const current = (s.themeV2?.customVars && s.themeV2.customVars[key]) || THEMES['custom'][key];
+                const isColor = /^#|^hsl\(/i.test(current || '');
+                return (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-xs w-28 truncate" title={key}>{label}</span>
+                    <input
+                      className="flex-1 input-app rounded-md px-2 py-1 text-xs"
+                      type={isColor? 'color':'text'}
+                      value={isColor && current.startsWith('hsl(') ? hslToHex(current) : (current || '#000000')}
+                      onChange={async(e)=>{
+                        const val = e.target.value;
+                        const cssVal = isColor && current.startsWith('hsl(') ? val : val; // allow hex
+                        const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: cssVal } } } as any;
+                        setS(next);
+                        await db.put('settings', { ...next, id:'app' } as any);
+                        if(themeKey==='custom') setThemeKey('custom');
+                      }}
+                      title={String(current)}
+                    />
+                    <span className="inline-block h-6 w-6 rounded border border-card" style={{ background: current }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                className="btn-primary px-3 py-2 rounded-xl"
+                onClick={async()=>{ const cur = await db.get('settings','app'); await db.put('settings', { ...(cur||{}), id:'app', themeV2:{ ...(cur?.themeV2||{}), key:'custom', customVars: s.themeV2?.customVars||{} } } as any); setThemeKey('custom'); setToast('Applied custom theme'); }}
+              >Apply custom theme</button>
+              <div className="text-xs text-muted">Tip: pick your accent first, then tune background and card for contrast. Save Theme to sync to profile.</div>
+            </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap mt-2">
             <button

@@ -78,6 +78,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const s = await db.get<Settings>("settings", "app");
       const t = s?.themeV2;
       if (t) {
+        if (key === "custom" && t.customVars) {
+          vars = { ...vars, ...t.customVars };
+        }
         if (typeof t.accentIntensity === "number" && vars["--accent"]) {
           // Adjust accent lightness: map 0..100 -> -20..+20 percentage points, clamp 20..75 L
           const m = Math.max(0, Math.min(100, t.accentIntensity));
@@ -90,7 +93,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           // Scale blur radius and alpha proportionally (50 baseline)
           vars["--glow"] = scaleGlow(vars["--glow"], g / 50);
         }
-        if (t.customAccent) {
+  if (t.customAccent) {
           vars["--accent"] = t.customAccent;
           vars["--ring"] = t.customAccent;
         }
@@ -183,6 +186,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         try {
           const t = (s as Settings | undefined)?.themeV2;
           if (t) {
+            if (key === "custom" && t.customVars) {
+              vars = { ...vars, ...t.customVars };
+            }
             if (typeof t.accentIntensity === "number" && vars["--accent"]) {
               const m = Math.max(0, Math.min(100, t.accentIntensity));
               const delta = (m - 50) * 0.4;
