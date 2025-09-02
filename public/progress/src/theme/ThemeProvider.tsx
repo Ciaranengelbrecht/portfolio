@@ -112,15 +112,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }, 220);
     }
     const s = await db.get<Settings>("settings", "app");
-    await db.put("settings", {
-      ...(s ||
-        ({
-          unit: "kg",
-          deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
-        } as any)),
-      id: "app",
-      themeV2: { key },
-    } as any);
+      await db.put("settings", {
+        ...(s ||
+          ({
+            unit: "kg",
+            deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
+          } as any)),
+        id: "app",
+        // Preserve existing themeV2 fields (e.g., customVars, intensity, glowStrength) and only update the key
+        themeV2: { ...((s as any)?.themeV2 || {}), key },
+      } as any);
   };
 
   function tweakHslLightness(hsl: string, delta: number, minL = 15, maxL = 85) {
@@ -162,12 +163,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           | undefined;
         if (!key || !THEMES[key as ThemeKey]) {
           key = "default-glass";
-          // self-heal persisted invalid/removed keys
+          // self-heal persisted invalid/removed keys while preserving other themeV2 fields
           try {
             await db.put("settings", {
               ...(s || ({} as any)),
               id: "app",
-              themeV2: { key },
+              themeV2: { ...((s as any)?.themeV2 || {}), key },
             } as any);
           } catch {}
         }

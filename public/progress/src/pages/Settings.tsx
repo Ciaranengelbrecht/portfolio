@@ -959,7 +959,7 @@ export default function SettingsPage() {
                     await db.put("settings", {
                       ...(cur || {}),
                       id: "app",
-                      themeV2: { key: k },
+                      themeV2: { ...((cur as any)?.themeV2 || {}), key: k },
                     });
                     // apply live
                     setThemeKey(k);
