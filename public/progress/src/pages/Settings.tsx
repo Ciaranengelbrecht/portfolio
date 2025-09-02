@@ -1018,20 +1018,14 @@ export default function SettingsPage() {
           <div className="text-xs text-muted mt-1">
             Changes are local until you press <strong>Save Theme</strong>.
           </div>
-          {/* Custom Theme editor */}
-          <div className="mt-2 card-surface rounded-xl p-3 border border-card">
+          {/* Custom Theme editor — visible only when the 'custom' theme is selected */}
+          {themeKey === 'custom' && (
+          <div className="mt-4 card-surface rounded-2xl p-4 md:p-5 border border-card shadow-soft space-y-4">
             <div className="flex items-center justify-between">
               <div className="font-medium text-sm">Custom theme</div>
-              <button
-                className={`px-2 py-1 rounded-md text-xs ${themeKey==='custom' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={async()=>{
-                  const cur = await db.get("settings","app");
-                  await db.put("settings", { ...(cur||{}), id:'app', themeV2:{ ...(cur?.themeV2||{}), key:'custom' } });
-                  setThemeKey('custom');
-                }}
-              >Use custom</button>
+              <span className="text-xs text-muted">Editing variables</span>
             </div>
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {([
                 ['--bg','Background'],
                 ['--bg-muted','Background (muted)'],
@@ -1044,27 +1038,33 @@ export default function SettingsPage() {
                 const current = (s.themeV2?.customVars && s.themeV2.customVars[key]) || THEMES['custom'][key];
                 const hex = /^hsl\(/i.test(current||'') ? hslToHex(current!) : (current as string);
                 return (
-                  <div key={key} className="flex items-center justify-between gap-2">
+                  <div key={key} className="flex items-center justify-between gap-3 py-1.5">
                     <div className="text-xs truncate" title={key}>{label}</div>
-                    <button type="button" className="flex items-center gap-2 px-2 py-1 rounded-md border border-card bg-card/60"
+                    <button type="button" className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-card bg-card/60"
                       onClick={()=> setOpenPicker(key)}
                       aria-haspopup="dialog"
                       aria-expanded={openPicker===key}
                       title={String(current)}
                     >
-                      <span className="inline-block h-5 w-5 rounded border border-card" style={{ background: current }} />
+                      <span className="inline-block h-6 w-6 rounded border border-card" style={{ background: current }} />
                       <span className="text-xs">Edit</span>
                     </button>
                     {openPicker===key && pickerLoaded && (
-                      <div className="absolute z-50 right-2 top-full mt-2 p-3 rounded-xl border border-card bg-card shadow-soft">
-                        {ColorPicker.Comp && (
-                          <ColorPicker.Comp color={hex} onChange={async(v:string)=>{
-                            const hs = hexToHsl(v); const cssVal = `hsl(${hs.h} ${hs.s}% ${hs.l}%)`;
-                            const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: cssVal } } } as any;
-                            setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
-                          }} />
-                        )}
-                        <div className="flex justify-end mt-2"><button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Done</button></div>
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true">
+                        <div className="w-full max-w-[380px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium">{label}</div>
+                            <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Close</button>
+                          </div>
+                          {ColorPicker.Comp && (
+                            <ColorPicker.Comp color={hex} onChange={async(v:string)=>{
+                              const hs = hexToHsl(v); const cssVal = `hsl(${hs.h} ${hs.s}% ${hs.l}%)`;
+                              const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: cssVal } } } as any;
+                              setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
+                            }} />
+                          )}
+                          <div className="flex justify-end mt-3"><button className="btn-primary px-3 py-1.5 rounded-md text-xs" onClick={closePicker}>Done</button></div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1076,33 +1076,39 @@ export default function SettingsPage() {
                 const hsla = parseHslA(current || '') || { h: 210, s: 20, l: 90, a: 0.08 };
                 const hex = `#${((n:number)=>n.toString(16).padStart(2,'0'))(Math.round((hsla.l/100 + hsla.s/100*Math.min(hsla.l/100,1-hsla.l/100)) * 255))}`; // placeholder, picker will set from h/s/l via hexToHsl
                 return (
-                  <div key={key} className="flex items-center justify-between gap-2">
+                  <div key={key} className="flex items-center justify-between gap-3 py-1.5">
                     <div className="text-xs truncate" title={key}>{label}</div>
-                    <button type="button" className="flex items-center gap-2 px-2 py-1 rounded-md border border-card bg-card/60"
+                    <button type="button" className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-card bg-card/60"
                       onClick={()=> setOpenPicker(key)} aria-haspopup="dialog" aria-expanded={openPicker===key} title={String(current)}>
-                      <span className="inline-block h-5 w-5 rounded border border-card" style={{ background: current }} />
+                      <span className="inline-block h-6 w-6 rounded border border-card" style={{ background: current }} />
                       <span className="text-xs">Edit</span>
                     </button>
                     {openPicker===key && pickerLoaded && (
-                      <div className="absolute z-50 right-2 top-full mt-2 p-3 rounded-xl border border-card bg-card shadow-soft w-[260px]">
-                        {ColorPicker.Comp && (
-                          <ColorPicker.Comp color={hslToHex(formatHslA(hsla.h, hsla.s, hsla.l, undefined))} onChange={async(v:string)=>{
-                            const hs = hexToHsl(v);
-                            const nextVal = formatHslA(hs.h, hs.s, hs.l, hsla.a==null?0.08:hsla.a);
-                            const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextVal } } } as any;
-                            setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
-                          }} />
-                        )}
-                        <div className="mt-2">
-                          <div className="flex items-center justify-between text-xs"><span>Alpha</span><span>{Math.round((hsla.a??0.08)*100)}</span></div>
-                          <input type="range" min={0} max={100} defaultValue={Math.round((hsla.a??0.08)*100)} onChange={async(e)=>{
-                            const a = Number(e.target.value)/100;
-                            const nextVal = formatHslA(hsla.h, hsla.s, hsla.l, a);
-                            const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextVal } } } as any;
-                            setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
-                          }} />
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true">
+                        <div className="w-full max-w-[420px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium">{label}</div>
+                            <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Close</button>
+                          </div>
+                          {ColorPicker.Comp && (
+                            <ColorPicker.Comp color={hslToHex(formatHslA(hsla.h, hsla.s, hsla.l, undefined))} onChange={async(v:string)=>{
+                              const hs = hexToHsl(v);
+                              const nextVal = formatHslA(hs.h, hs.s, hs.l, hsla.a==null?0.08:hsla.a);
+                              const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextVal } } } as any;
+                              setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
+                            }} />
+                          )}
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-xs mb-1"><span>Alpha</span><span>{Math.round((hsla.a??0.08)*100)}</span></div>
+                            <input className="w-full" type="range" min={0} max={100} defaultValue={Math.round((hsla.a??0.08)*100)} onChange={async(e)=>{
+                              const a = Number(e.target.value)/100;
+                              const nextVal = formatHslA(hsla.h, hsla.s, hsla.l, a);
+                              const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextVal } } } as any;
+                              setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
+                            }} />
+                          </div>
+                          <div className="flex justify-end mt-3"><button className="btn-primary px-3 py-1.5 rounded-md text-xs" onClick={closePicker}>Done</button></div>
                         </div>
-                        <div className="flex justify-end mt-2"><button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Done</button></div>
                       </div>
                     )}
                   </div>
@@ -1116,26 +1122,32 @@ export default function SettingsPage() {
                 const colorPart = match?.[2] || 'hsla(210 90% 60% / 0.45)';
                 const col = parseHslA(colorPart) || { h:210, s:90, l:60, a:0.45 };
                 return (
-                  <div key={key} className="flex items-center justify-between gap-2">
+                  <div key={key} className="flex items-center justify-between gap-3 py-1.5">
                     <div className="text-xs truncate" title={key}>Glow color</div>
-                    <button type="button" className="flex items-center gap-2 px-2 py-1 rounded-md border border-card bg-card/60" onClick={()=> setOpenPicker(key)} aria-haspopup="dialog" aria-expanded={openPicker===key} title={String(colorPart)}>
-                      <span className="inline-block h-5 w-5 rounded border border-card" style={{ background: formatHslA(col.h, col.s, col.l, 1) }} />
+                    <button type="button" className="flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-card bg-card/60" onClick={()=> setOpenPicker(key)} aria-haspopup="dialog" aria-expanded={openPicker===key} title={String(colorPart)}>
+                      <span className="inline-block h-6 w-6 rounded border border-card" style={{ background: formatHslA(col.h, col.s, col.l, 1) }} />
                       <span className="text-xs">Edit</span>
                     </button>
                     {openPicker===key && pickerLoaded && (
-                      <div className="absolute z-50 right-2 top-full mt-2 p-3 rounded-xl border border-card bg-card shadow-soft">
-                        {ColorPicker.Comp && (
-                          <ColorPicker.Comp color={hslToHex(formatHslA(col.h, col.s, col.l))} onChange={async(v:string)=>{
-                            const hs = hexToHsl(v);
-                            const nextColor = formatHslA(hs.h, hs.s, hs.l, col.a==null?0.45:col.a);
-                            const nextString = cur.replace(/(hsla?\(.*?\))/, nextColor);
-                            const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextString } } } as any;
-                            setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
-                          }} />
-                        )}
-                        <div className="flex justify-between items-center gap-2 mt-2">
-                          <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={async()=>{ const acc = (s.themeV2?.customVars?.['--accent']||THEMES['custom']['--accent']); const hs = parseHslA(acc||''); if(!hs) return; const nextColor = formatHslA(hs.h, hs.s, hs.l, col.a==null?0.45:col.a); const nextString = cur.replace(/(hsla?\(.*?\))/, nextColor); const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextString } } } as any; setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom'); }}>Match accent</button>
-                          <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Done</button>
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true">
+                        <div className="w-full max-w-[380px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium">Glow color</div>
+                            <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={closePicker}>Close</button>
+                          </div>
+                          {ColorPicker.Comp && (
+                            <ColorPicker.Comp color={hslToHex(formatHslA(col.h, col.s, col.l))} onChange={async(v:string)=>{
+                              const hs = hexToHsl(v);
+                              const nextColor = formatHslA(hs.h, hs.s, hs.l, col.a==null?0.45:col.a);
+                              const nextString = cur.replace(/(hsla?\(.*?\))/, nextColor);
+                              const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextString } } } as any;
+                              setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom');
+                            }} />
+                          )}
+                          <div className="flex justify-between items-center gap-2 mt-3">
+                            <button className="btn-outline px-2 py-1 rounded-md text-xs" onClick={async()=>{ const acc = (s.themeV2?.customVars?.['--accent']||THEMES['custom']['--accent']); const hs = parseHslA(acc||''); if(!hs) return; const nextColor = formatHslA(hs.h, hs.s, hs.l, col.a==null?0.45:col.a); const nextString = cur.replace(/(hsla?\(.*?\))/, nextColor); const next: Settings = { ...s, themeV2:{ key: (s.themeV2?.key||'custom') as any, ...(s.themeV2||{}), customVars:{ ...(s.themeV2?.customVars||{}), [key]: nextString } } } as any; setS(next); await db.put('settings', { ...next, id:'app' } as any); if(themeKey==='custom') setThemeKey('custom'); }}>Match accent</button>
+                            <button className="btn-primary px-3 py-1.5 rounded-md text-xs" onClick={closePicker}>Done</button>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1143,7 +1155,7 @@ export default function SettingsPage() {
                 );
               })()}
             </div>
-            <div className="mt-3 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 className="btn-primary px-3 py-2 rounded-xl"
                 onClick={async()=>{ const cur = await db.get('settings','app'); await db.put('settings', { ...(cur||{}), id:'app', themeV2:{ ...(cur?.themeV2||{}), key:'custom', customVars: s.themeV2?.customVars||{} } } as any); setThemeKey('custom'); setToast('Applied custom theme'); }}
@@ -1151,6 +1163,7 @@ export default function SettingsPage() {
               <div className="text-xs text-muted">Tip: pick your accent first, then tune background and card for contrast. Save Theme to sync to profile.</div>
             </div>
           </div>
+          )}
           <div className="flex items-center gap-3 flex-wrap mt-2">
             <button
               className="btn-primary px-3 py-2 rounded-xl"
