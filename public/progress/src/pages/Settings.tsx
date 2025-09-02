@@ -351,6 +351,35 @@ export default function SettingsPage() {
               />
               <span>Beep at target</span>
             </label>
+            {s.restTimerBeep !== false && (
+              <>
+                <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
+                  <span>Style</span>
+                  <select
+                    className="bg-slate-800 rounded px-2 py-1"
+                    value={s.restTimerBeepStyle || 'gentle'}
+                    onChange={(e)=> setS(prev=> ({ ...prev, restTimerBeepStyle: e.target.value as any }))}
+                  >
+                    <option value="gentle">Gentle</option>
+                    <option value="chime">Chime</option>
+                    <option value="digital">Digital</option>
+                    <option value="alarm">Alarm</option>
+                    <option value="click">Click</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
+                  <span>Count</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    className="bg-slate-800 rounded px-2 py-1 w-16"
+                    value={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
+                    onChange={(e)=> { const v = Number(e.target.value); if(Number.isFinite(v)) setS(prev=> ({ ...prev, restTimerBeepCount: Math.max(1, Math.min(5, Math.floor(v))) })); }}
+                  />
+                </label>
+              </>
+            )}
             <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1" title="Brief white flash behind app when rest target first reached. Accessibility: may be intense for some users.">
               <input
                 type="checkbox"
@@ -359,7 +388,7 @@ export default function SettingsPage() {
               />
               <span>Screen flash</span>
             </label>
-            <BeepTester />
+            <BeepTester styleKey={s.restTimerBeepStyle || 'gentle'} count={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))} />
             <button
               className="btn-primary px-3 py-2 rounded-xl text-xs"
               onClick={async ()=> { await db.put('settings', { ...s, id:'app' } as any); setToast('Rest timer saved'); }}
@@ -1127,17 +1156,12 @@ export default function SettingsPage() {
   );
 }
 
-function BeepTester() {
+function BeepTester({ styleKey, count }: { styleKey: 'gentle'|'chime'|'digital'|'alarm'|'click'; count: number }) {
   return (
     <button
       className="px-3 py-2 rounded-xl text-xs bg-slate-700 hover:bg-slate-600"
       title="Play a preview beep"
-      onClick={async () => {
-        try {
-          await unlockAudio();
-          playRestBeep('double');
-        } catch {}
-      }}
+  onClick={async () => { try { await unlockAudio(); (await import('../lib/audio')).playBeepStyle(styleKey, count); } catch {} }}
     >
       Test beep
     </button>

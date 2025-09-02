@@ -171,6 +171,10 @@ export interface Settings {
   restTimerScreenFlash?: boolean;
   /** Play a short beep when rest target is reached */
   restTimerBeep?: boolean;
+  /** Beep sound style */
+  restTimerBeepStyle?: 'gentle' | 'chime' | 'digital' | 'alarm' | 'click';
+  /** Number of beeps to play (1-5) */
+  restTimerBeepCount?: number;
 }
 
 export interface Template {

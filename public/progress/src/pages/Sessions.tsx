@@ -14,7 +14,7 @@ import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
 import { parseOptionalNumber, formatOptionalNumber } from '../lib/parse';
 import { getSettings, setSettings } from "../lib/helpers";
 import { motion, AnimatePresence } from 'framer-motion';
-import { unlockAudio, playRestBeep } from "../lib/audio";
+import { unlockAudio, playRestBeep, playBeepStyle } from "../lib/audio";
 import { fadeSlideUp, maybeDisable } from '../lib/motion';
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
@@ -449,11 +449,17 @@ export default function Sessions() {
           // trigger alert when crossing target threshold once
           if(elapsed >= targetMs && !v.alerted){
             if(settingsState?.haptics !== false){ try{ navigator.vibrate?.([16,70,18,70,18]); }catch{} }
-            if(settingsState?.restTimerBeep !== false){ try { playRestBeep('double'); } catch {} }
+            if(settingsState?.restTimerBeep !== false){
+              try {
+                const style = (settingsState?.restTimerBeepStyle as any) ?? 'gentle';
+                const count = Math.max(1, Math.min(5, settingsState?.restTimerBeepCount ?? 2));
+                playBeepStyle(style, count);
+              } catch {}
+            }
             next[k] = { ...v, start, elapsed, alerted:true };
           }
           else { next[k] = { ...v, start, elapsed }; }
-  } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics, settingsState?.restTimerBeep])
+  } return next }) ; frame = requestAnimationFrame(tick); }; frame=requestAnimationFrame(tick); return ()=> cancelAnimationFrame(frame) },[settingsState?.restTimerTargetSeconds, settingsState?.haptics, settingsState?.restTimerBeep, settingsState?.restTimerBeepStyle, settingsState?.restTimerBeepCount])
   // Restart (or start) rest timer in a single tap; always resets elapsed to 0 and runs
   const restartRestTimer = (entryId:string)=>{
     setRestTimers(()=> ({ [entryId]: { start: Date.now(), elapsed:0, running:true } }));

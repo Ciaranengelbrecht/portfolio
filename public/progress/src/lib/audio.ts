@@ -61,3 +61,40 @@ export function playRestBeep(pattern: 'single'|'double'|'triple' = 'double') {
     playToneAt(t0 + 0.40, { freq: 990, durationMs: 120, volume: 0.09, type: 'sine' });
   }
 }
+
+export type BeepStyle = 'gentle' | 'chime' | 'digital' | 'alarm' | 'click';
+
+/** Play a sequence of beeps using a named style. count clamped 1-5. */
+export function playBeepStyle(style: BeepStyle = 'gentle', count = 2) {
+  const a = getCtx();
+  if (!a) return;
+  if (a.state === 'suspended') a.resume().catch(() => {});
+  const t0 = a.currentTime + 0.01;
+  const n = Math.max(1, Math.min(5, Math.floor(count || 1)));
+
+  for (let i = 0; i < n; i++) {
+    const base = t0 + i * 0.22; // spacing between beeps
+    switch (style) {
+      case 'gentle':
+        playToneAt(base, { freq: 880, durationMs: 140, volume: 0.095, type: 'sine' });
+        playToneAt(base + 0.18, { freq: 1175, durationMs: 160, volume: 0.10, type: 'sine' });
+        break;
+      case 'chime':
+        playToneAt(base, { freq: 1480, durationMs: 180, volume: 0.09, type: 'triangle' });
+        playToneAt(base + 0.22, { freq: 1760, durationMs: 200, volume: 0.09, type: 'triangle' });
+        break;
+      case 'digital':
+        playToneAt(base, { freq: 1000, durationMs: 120, volume: 0.11, type: 'square' });
+        playToneAt(base + 0.16, { freq: 1200, durationMs: 120, volume: 0.11, type: 'square' });
+        break;
+      case 'alarm':
+        playToneAt(base, { freq: 720, durationMs: 150, volume: 0.12, type: 'sawtooth' });
+        playToneAt(base + 0.16, { freq: 720, durationMs: 150, volume: 0.12, type: 'sawtooth' });
+        break;
+      case 'click':
+        // Short percussive tick using very brief noise-like burst via high freq & fast decay
+        playToneAt(base, { freq: 3000, durationMs: 60, volume: 0.08, type: 'square' });
+        break;
+    }
+  }
+}
