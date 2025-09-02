@@ -982,6 +982,50 @@ export default function SettingsPage() {
             >
               Save Theme
             </button>
+            {/* Theme fine tuning */}
+            <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+              <span className="text-xs">Accent intensity</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={s.themeV2?.accentIntensity ?? 50}
+                onChange={async (e) => {
+                  const accentIntensity = Number(e.target.value);
+                  const next: Settings = {
+                    ...s,
+                    themeV2: { key: (s.themeV2?.key||themeKey), ...(s.themeV2||{}), accentIntensity },
+                  } as any;
+                  setS(next);
+                  await db.put("settings", { ...next, id: "app" } as any);
+                  // re-apply theme with new intensity
+                  setThemeKey((next.themeV2?.key || themeKey) as any);
+                }}
+              />
+              <span className="text-xs tabular-nums w-8 text-right">{s.themeV2?.accentIntensity ?? 50}</span>
+            </label>
+            <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+              <span className="text-xs">Glow strength</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={s.themeV2?.glowStrength ?? 50}
+                onChange={async (e) => {
+                  const glowStrength = Number(e.target.value);
+                  const next: Settings = {
+                    ...s,
+                    themeV2: { key: (s.themeV2?.key||themeKey), ...(s.themeV2||{}), glowStrength },
+                  } as any;
+                  setS(next);
+                  await db.put("settings", { ...next, id: "app" } as any);
+                  setThemeKey((next.themeV2?.key || themeKey) as any);
+                }}
+              />
+              <span className="text-xs tabular-nums w-8 text-right">{s.themeV2?.glowStrength ?? 50}</span>
+            </label>
             {themeSaved === true && (
               <span className="text-xs text-emerald-400">Saved ✓</span>
             )}

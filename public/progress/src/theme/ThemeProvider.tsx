@@ -72,7 +72,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setThemeKey = async (key: ThemeKey) => {
     setThemeKeyState(key);
-    const vars = THEMES[key];
+    let vars = { ...THEMES[key] };
+    try {
+      // Apply user-specified adjustments if present
+      const s = await db.get<Settings>("settings", "app");
+      const t = s?.themeV2;
+      if (t) {
+        if (typeof t.accentIntensity === "number" && vars["--accent"]) {
+          // Adjust accent lightness: map 0..100 -> -20..+20 percentage points, clamp 20..75 L
+          const m = Math.max(0, Math.min(100, t.accentIntensity));
+          const delta = (m - 50) * 0.4; // +/-20
+          vars["--accent"] = tweakHslLightness(vars["--accent"], delta, 20, 75);
+          vars["--ring"] = vars["--accent"];
+        }
+        if (typeof t.glowStrength === "number" && vars["--glow"]) {
+          const g = Math.max(0, Math.min(100, t.glowStrength));
+          // Scale blur radius and alpha proportionally (50 baseline)
+          vars["--glow"] = scaleGlow(vars["--glow"], g / 50);
+        }
+        if (t.customAccent) {
+          vars["--accent"] = t.customAccent;
+          vars["--ring"] = t.customAccent;
+        }
+      }
+    } catch {}
     applyVars(vars);
     // Toggle dark mode class: all current themes are dark-styled; keep dark class on
     document.documentElement.classList.add("dark");
@@ -96,6 +119,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       themeV2: { key },
     } as any);
   };
+
+  function tweakHslLightness(hsl: string, delta: number, minL = 15, maxL = 85) {
+    const m = hsl.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
+    if (!m) return hsl;
+    const h = Number(m[1]);
+    const s = Number(m[2]);
+    const l = Math.max(minL, Math.min(maxL, Number(m[3]) + delta));
+    return `hsl(${h} ${s}% ${l}%)`;
+  }
+  function scaleGlow(glow: string, factor: number) {
+    // Expect pattern: "0 0 XXpx hsla(H S% L% / A)" possibly multiple layers separated by commas
+    try {
+      return glow
+        .split(",")
+        .map((layer) => {
+          const m = layer.match(/(.*?)(\d+)px(.*?\/\s*)([0-9.]+)(\))/);
+          if (!m) return layer;
+          const prefix = m[1];
+          const px = Math.round(Number(m[2]) * factor);
+          const mid = m[3];
+          const a = Math.max(0, Math.min(1, Number(m[4]) * factor));
+          const suffix = m[5];
+          return `${prefix}${px}px${mid}${a}${suffix}`;
+        })
+        .join(", ");
+    } catch {
+      return glow;
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -127,7 +179,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           }
         } catch {}
         setThemeKeyState(key as ThemeKey);
-        const vars = THEMES[key as ThemeKey];
+        let vars = { ...THEMES[key as ThemeKey] };
+        try {
+          const t = (s as Settings | undefined)?.themeV2;
+          if (t) {
+            if (typeof t.accentIntensity === "number" && vars["--accent"]) {
+              const m = Math.max(0, Math.min(100, t.accentIntensity));
+              const delta = (m - 50) * 0.4;
+              vars["--accent"] = tweakHslLightness(vars["--accent"], delta, 20, 75);
+              vars["--ring"] = vars["--accent"];
+            }
+            if (typeof t.glowStrength === "number" && vars["--glow"]) {
+              const g = Math.max(0, Math.min(100, t.glowStrength));
+              vars["--glow"] = scaleGlow(vars["--glow"], g / 50);
+            }
+            if (t.customAccent) {
+              vars["--accent"] = t.customAccent;
+              vars["--ring"] = t.customAccent;
+            }
+          }
+        } catch {}
         applyVars(vars);
         document.documentElement.classList.add("dark");
         try {
