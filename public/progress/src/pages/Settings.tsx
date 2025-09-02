@@ -11,7 +11,7 @@ import {
   defaultExercises,
   defaultTemplates,
 } from "../lib/defaults";
-import { playRestBeep, unlockAudio } from "../lib/audio";
+import { playRestBeep, unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
 
@@ -438,6 +438,19 @@ export default function SettingsPage() {
                     value={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
                     onChange={(e)=> { const v = Number(e.target.value); if(Number.isFinite(v)) setS(prev=> ({ ...prev, restTimerBeepCount: Math.max(1, Math.min(5, Math.floor(v))) })); }}
                   />
+                </label>
+                <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1" title="Make the beep louder to cut through music (50% to 300%).">
+                  <span>Volume</span>
+                  <input
+                    type="range"
+                    min={50}
+                    max={300}
+                    step={10}
+                    className="w-40"
+                    value={Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}
+                    onChange={(e)=> { const v = Number(e.target.value); if(Number.isFinite(v)) setS(prev=> ({ ...prev, restTimerBeepVolume: Math.max(50, Math.min(300, Math.floor(v))) })); }}
+                  />
+                  <span className="tabular-nums w-10 text-right">{Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}%</span>
                 </label>
               </>
             )}
@@ -1413,7 +1426,7 @@ function BeepTester({ styleKey, count }: { styleKey: 'gentle'|'chime'|'digital'|
     <button
       className="px-3 py-2 rounded-xl text-xs bg-slate-700 hover:bg-slate-600"
       title="Play a preview beep"
-  onClick={async () => { try { await unlockAudio(); (await import('../lib/audio')).playBeepStyle(styleKey, count); } catch {} }}
+  onClick={async () => { try { await unlockAudio(); const s = await (await import('../lib/db')).db.get('settings','app'); const volPct = Math.max(30, Math.min(300, (s as any)?.restTimerBeepVolume ?? 140)); setBeepVolumeScalar(volPct/100); (await import('../lib/audio')).playBeepStyle(styleKey, count); } catch {} }}
     >
       Test beep
     </button>

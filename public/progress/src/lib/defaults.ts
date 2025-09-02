@@ -67,6 +67,7 @@ export const defaultSettings: Settings = {
   restTimerBeep: true,
   restTimerBeepStyle: 'gentle',
   restTimerBeepCount: 2,
+  restTimerBeepVolume: 140,
 };
 
 export const defaultExercises: Exercise[] = [

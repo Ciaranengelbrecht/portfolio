@@ -1,6 +1,7 @@
 // Lightweight Web Audio helper for subtle beeps
 let ctx: AudioContext | null = null;
 let unlocked = false;
+let volumeScalar = 1; // global multiplier for perceived volume (0..4)
 
 function getCtx(): AudioContext {
   if (ctx) return ctx;
@@ -19,6 +20,12 @@ export async function unlockAudio() {
   return unlocked;
 }
 
+/** Set global volume multiplier for beeps (0..4, default 1). 2-3 recommended to cut through music. */
+export function setBeepVolumeScalar(mult: number) {
+  if (!Number.isFinite(mult)) return;
+  volumeScalar = Math.max(0, Math.min(4, mult));
+}
+
 type BeepOpts = { freq?: number; durationMs?: number; volume?: number; type?: OscillatorType };
 
 function playToneAt(time: number, opts: BeepOpts = {}) {
@@ -27,7 +34,8 @@ function playToneAt(time: number, opts: BeepOpts = {}) {
   const osc = a.createOscillator();
   const gain = a.createGain();
   const freq = opts.freq ?? 1000;
-  const vol = Math.max(0, Math.min(1, opts.volume ?? 0.08));
+  const volBase = Math.max(0, Math.min(1, opts.volume ?? 0.08));
+  const vol = Math.min(0.9, volBase * volumeScalar);
   const dur = Math.max(0.04, (opts.durationMs ?? 160) / 1000);
   osc.type = opts.type ?? 'sine';
   osc.frequency.setValueAtTime(freq, time);
@@ -88,8 +96,9 @@ export function playBeepStyle(style: BeepStyle = 'gentle', count = 2) {
         playToneAt(base + 0.16, { freq: 1200, durationMs: 120, volume: 0.11, type: 'square' });
         break;
       case 'alarm':
-        playToneAt(base, { freq: 720, durationMs: 150, volume: 0.12, type: 'sawtooth' });
-        playToneAt(base + 0.16, { freq: 720, durationMs: 150, volume: 0.12, type: 'sawtooth' });
+  // High-pitched, more piercing to cut through background music
+  playToneAt(base, { freq: 2200, durationMs: 200, volume: 0.14, type: 'sawtooth' });
+  playToneAt(base + 0.18, { freq: 2600, durationMs: 200, volume: 0.14, type: 'sawtooth' });
         break;
       case 'click':
         // Short percussive tick using very brief noise-like burst via high freq & fast decay

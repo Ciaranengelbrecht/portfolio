@@ -175,6 +175,8 @@ export interface Settings {
   restTimerBeepStyle?: 'gentle' | 'chime' | 'digital' | 'alarm' | 'click';
   /** Number of beeps to play (1-5) */
   restTimerBeepCount?: number;
+  /** Beep volume as a percentage (50-300). 100 = default. Multiplies base volume. */
+  restTimerBeepVolume?: number;
 }
 
 export interface Template {
