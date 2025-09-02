@@ -37,6 +37,19 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
+  // Collapse state for Theme presets (default collapsed to save space)
+  const [themesCollapsed, setThemesCollapsed] = useState(true);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("themePresetsCollapsed");
+      if (raw !== null) setThemesCollapsed(raw === "1");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("themePresetsCollapsed", themesCollapsed ? "1" : "0");
+    } catch {}
+  }, [themesCollapsed]);
   // Auto-dismiss toast notifications after ~1.8s
   useEffect(() => {
     if (!toast) return;
@@ -883,53 +896,74 @@ export default function SettingsPage() {
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
         <div className="font-medium">Appearance</div>
         <div className="space-y-2">
-          <div className="text-sm text-app">Theme presets</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
-              <button
-                key={k}
-                className={`rounded-xl p-3 text-left border border-card ${
-                  themeKey === k
-                    ? "btn-primary"
-                    : "card-surface hover:opacity-90"
-                }`}
-                onClick={async () => {
-                  const cur = await db.get("settings", "app");
-                  await db.put("settings", {
-                    ...(cur || {}),
-                    id: "app",
-                    themeV2: { key: k },
-                  });
-                  // apply live
-                  setThemeKey(k);
-                }}
+          <button
+            type="button"
+            className="w-full flex items-center justify-between text-left px-3 py-2 bg-card/40 border border-card rounded-xl"
+            onClick={() => setThemesCollapsed((v) => !v)}
+            aria-expanded={!themesCollapsed}
+            aria-controls="theme-presets-panel"
+          >
+            <span className="text-sm text-app flex items-center gap-2">
+              <span
+                className={`inline-block transform transition-transform duration-300 ${themesCollapsed ? "rotate-180" : ""}`}
+                aria-hidden
               >
-                <div className="font-medium text-sm capitalize">
-                  {k.replace(/-/g, " ")}
-                </div>
-                <div className="mt-2 grid grid-cols-6 gap-1 items-center">
-                  <span
-                    className="col-span-3 h-6 rounded"
-                    style={{ background: THEMES[k]["--bg-muted"] }}
-                  />
-                  <span
-                    className="h-6 rounded border"
-                    style={{
-                      background: THEMES[k]["--card"],
-                      borderColor: THEMES[k]["--card-border"],
-                    }}
-                  />
-                  <span
-                    className="h-6 rounded"
-                    style={{ background: THEMES[k]["--chart-1"] }}
-                  />
-                  <span
-                    className="h-6 rounded"
-                    style={{ background: THEMES[k]["--chart-2"] }}
-                  />
-                </div>
-              </button>
-            ))}
+                ▾
+              </span>
+              Theme presets
+            </span>
+            <span className="text-xs text-muted">{Object.keys(THEMES).length} themes</span>
+          </button>
+          <div
+            id="theme-presets-panel"
+            className={`transition-all duration-400 ease-out ${themesCollapsed ? "max-h-0 opacity-0 pointer-events-none" : "max-h-[900px] opacity-100"}`}
+            aria-hidden={themesCollapsed}
+          >
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 px-1 pb-1">
+              {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
+                <button
+                  key={k}
+                  className={`rounded-xl p-3 text-left border border-card ${
+                    themeKey === k ? "btn-primary" : "card-surface hover:opacity-90"
+                  }`}
+                  onClick={async () => {
+                    const cur = await db.get("settings", "app");
+                    await db.put("settings", {
+                      ...(cur || {}),
+                      id: "app",
+                      themeV2: { key: k },
+                    });
+                    // apply live
+                    setThemeKey(k);
+                  }}
+                >
+                  <div className="font-medium text-sm capitalize">
+                    {k.replace(/-/g, " ")}
+                  </div>
+                  <div className="mt-2 grid grid-cols-6 gap-1 items-center">
+                    <span
+                      className="col-span-3 h-6 rounded"
+                      style={{ background: THEMES[k]["--bg-muted"] }}
+                    />
+                    <span
+                      className="h-6 rounded border"
+                      style={{
+                        background: THEMES[k]["--card"],
+                        borderColor: THEMES[k]["--card-border"],
+                      }}
+                    />
+                    <span
+                      className="h-6 rounded"
+                      style={{ background: THEMES[k]["--chart-1"] }}
+                    />
+                    <span
+                      className="h-6 rounded"
+                      style={{ background: THEMES[k]["--chart-2"] }}
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="text-xs text-muted mt-1">
             Changes are local until you press <strong>Save Theme</strong>.
