@@ -1415,6 +1415,20 @@ export default function Sessions() {
             currentBest.reps === prev.set.reps
           );
           const isCollapsed = !!collapsedEntries[entry.id];
+          // Planned guide from template if available, else exercise defaults
+          const guide = (() => {
+            let setsPlan: number | undefined;
+            let repPlan: string | undefined;
+            const tpl = session?.templateId ? templates.find(t => t.id === session.templateId) : undefined;
+            if (tpl && Array.isArray((tpl as any).plan)) {
+              const p = (tpl as any).plan.find((x: any) => x.exerciseId === entry.exerciseId);
+              if (p) { setsPlan = p.plannedSets; repPlan = p.repRange; }
+            }
+            if (setsPlan == null) setsPlan = ex?.defaults?.sets ?? undefined;
+            if (!repPlan) repPlan = (ex as any)?.defaults?.targetRepRange ?? entry.targetRepRange;
+            if (setsPlan == null && !repPlan) return null;
+            return { sets: setsPlan, reps: repPlan } as { sets?: number; reps?: string } | null;
+          })();
           // quick metrics for collapsed overview
           const setsLogged = entry.sets.filter(s=> (s.reps||0)>0 || (s.weightKg||0)>0);
           const tonnage = setsLogged.reduce((a,s)=> a + (s.weightKg||0)*(s.reps||0),0);
@@ -1483,6 +1497,11 @@ export default function Sessions() {
                       <span>{entry.sets.length} sets</span>
                       {tonnage>0 && <span className="opacity-70">• {(tonnage).toLocaleString()}</span>}
                       {bestSet && <span className="opacity-70">• {bestSet.weightKg}×{bestSet.reps}</span>}
+                      {guide && (
+                        <span className="opacity-80" title="Template guide (planned sets × rep range)">
+                          • Guide {guide.sets ? `${guide.sets}×` : ''}{guide.reps || ''}
+                        </span>
+                      )}
                     </span>
                   )}
                   {/* Mobile reorder buttons */}
@@ -1525,6 +1544,11 @@ export default function Sessions() {
                   <span>{entry.sets.length} sets</span>
                   {tonnage>0 && <span className="opacity-70">• {(tonnage).toLocaleString()}</span>}
                   {bestSet && <span className="opacity-70">• {bestSet.weightKg}×{bestSet.reps}</span>}
+                  {guide && (
+                    <span className="opacity-80" title="Template guide (planned sets × rep range)">
+                      • Guide {guide.sets ? `${guide.sets}×` : ''}{guide.reps || ''}
+                    </span>
+                  )}
                 </div>
               )}
               {/* Close inner content wrapper opened earlier */}
