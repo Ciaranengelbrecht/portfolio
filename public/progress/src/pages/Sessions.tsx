@@ -157,6 +157,8 @@ export default function Sessions() {
     return session.entries.every((en) => exMap.has(en.exerciseId));
   }, [session?.id, session?.entries?.length, exercises, exMap]);
 
+  // (auto-recover block relocated below initialLoading declaration)
+
   // Load cached labels on mount to avoid day-name flip
   useEffect(()=> { try { const raw = localStorage.getItem('weeklyLabelsCache'); if(raw) setLabelsCache(JSON.parse(raw)); } catch {} }, []);
   // When program is available, cache its labels for next load
@@ -636,6 +638,61 @@ export default function Sessions() {
   }
 
   const [initialLoading,setInitialLoading] = useState(true);
+  // --- AUTO-RECOVER DELETED EXERCISES (one-time per mount unless new deletions occur) ---
+  const recoveryRunRef = useRef(false);
+  const [recoveredCount, setRecoveredCount] = useState(0);
+  const [recoveredIds, setRecoveredIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    (async () => {
+      if (initialLoading) return; // wait for initial lists
+      // Only attempt again if we haven't already OR if exercise list shrank (possible new deletion)
+      if (recoveryRunRef.current && exercises.length > 0) return;
+      let allSessions: Session[] = [];
+      try { allSessions = await db.getAll<Session>('sessions'); } catch { return; }
+      if (!allSessions.length) return;
+      const referenced = new Set<string>();
+      for (const s of allSessions) {
+        if (!Array.isArray(s.entries)) continue;
+        for (const en of s.entries) {
+          if (en?.exerciseId) referenced.add(en.exerciseId);
+        }
+      }
+      if (!referenced.size) { recoveryRunRef.current = true; return; }
+      const existingIds = new Set(exercises.map(e => e.id));
+      const missing = [...referenced].filter(id => !existingIds.has(id));
+      if (!missing.length) { recoveryRunRef.current = true; return; }
+      let created = 0; const createdIds: string[] = [];
+      for (const id of missing) {
+        try {
+          // Skip if appeared meanwhile
+          const already = await db.get<Exercise>('exercises', id);
+          if (already) continue;
+          const name = exNameCache[id] || `Recovered ${id.slice(0,6)}`;
+          const placeholder: Exercise = {
+            id,
+            name,
+            muscleGroup: 'other',
+            defaults: { sets: 3, targetRepRange: '8-12' },
+            isOptional: true,
+          } as any;
+          await db.put('exercises', placeholder);
+          created++; createdIds.push(id);
+        } catch { /* ignore single failure */ }
+      }
+      if (created) {
+        try {
+          const refreshed = await db.getAll<Exercise>('exercises');
+          setExercises(refreshed);
+          setRecoveredCount(created);
+          setRecoveredIds(prev => new Set([...Array.from(prev), ...createdIds]));
+          try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'exercises' } })); } catch {}
+          push({ message: `Recovered ${created} exercise${created>1?'s':''}` });
+        } catch {}
+      }
+      recoveryRunRef.current = true;
+    })();
+  }, [initialLoading, exercises.length, exNameCache, push]);
+  // --- END AUTO-RECOVER ---
   useEffect(() => {
     (async () => {
   console.log("[Sessions] init: fetch lists (no auth wait)");
@@ -1336,7 +1393,7 @@ export default function Sessions() {
             </div>
           </div>
         )}
-  {!initialLoading && session && exReady && session.entries.map((entry, entryIdx) => {
+  {!initialLoading && session && session.entries.map((entry, entryIdx) => {
           const ex = exMap.get(entry.exerciseId) || undefined;
           // derive previous best + nudge
           const prev = prevBestMap
@@ -1403,7 +1460,19 @@ export default function Sessions() {
                 <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none" onClick={()=> toggleEntryCollapsed(entry.id)} aria-expanded={!isCollapsed} aria-controls={`entry-${entry.id}-sets`} role="button" tabIndex={0} onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleEntryCollapsed(entry.id); } }}>
                   <span className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle" title="Drag to reorder" aria-label="Drag to reorder">⋮⋮</span>
                   <span className="inline-flex items-center gap-1 min-w-0">
-                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || exNameCache[entry.exerciseId] || ''}</span>
+                    <span className="truncate max-w-[56vw] sm:max-w-none">{ex?.name || exNameCache[entry.exerciseId] || 'Deleted exercise'}</span>
+                    {(!ex && (exNameCache[entry.exerciseId] || true)) && (
+                      <span
+                        className="text-[9px] px-1 py-0.5 rounded bg-rose-700/40 text-rose-200 border border-rose-500/30"
+                        title="This exercise reference was missing and will be auto‑recovered. You can rename it in the exercise library."
+                      >missing</span>
+                    )}
+                    {(ex && recoveredIds.has(ex.id)) && (
+                      <span
+                        className="text-[9px] px-1 py-0.5 rounded bg-amber-700/40 text-amber-100 border border-amber-500/30"
+                        title="Auto‑recovered placeholder exercise (original was deleted). Rename or edit details if needed."
+                      >recovered</span>
+                    )}
                     <span className={`transition-transform text-xs opacity-70 ${isCollapsed? 'rotate-180':''}`}>▾</span>
                   </span>
                   {ex?.isOptional && (
