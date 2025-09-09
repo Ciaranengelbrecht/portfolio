@@ -17,6 +17,7 @@ import {
 } from "../lib/profile";
 import { db } from "../lib/db";
 import { Session, Exercise } from "../lib/types";
+import { nanoid } from "nanoid";
 import { computeLoggedSetVolume } from "../lib/volume";
 import { getSettings } from "../lib/helpers";
 
@@ -237,6 +238,65 @@ export default function ProgramSettings() {
       setToast("Program restored");
     } else setToast("Restore failed");
     setSaving(false);
+  };
+
+  // Apply current (working) program's mapped templates to sessions with no logged data (keeps history intact)
+  const applyProgramToFutureSessions = async () => {
+    const confirmMsg = "Apply the current program templates to all sessions in the current phase that have no logged sets? Logged sessions will not be changed.";
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const [allSessions, settings, allExercises, allTemplates] = await Promise.all([
+        db.getAll<Session>("sessions"),
+        getSettings(),
+        db.getAll<Exercise>("exercises"),
+        db.getAll("templates" as any) as Promise<Template[]>,
+      ]);
+      const targetPhase = (settings as any)?.currentPhase || 1;
+      const exMapAll = new Map(allExercises.map((e) => [e.id, e] as const));
+      const tplMap = new Map(allTemplates.map((t) => [t.id, t] as const));
+      const hasWork = (s: Session) => s.entries?.some((e) => e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0));
+      const buildRows = (exId: string) => Math.max(1, Math.min(6, ((settings as any).defaultSetRows ?? exMapAll.get(exId)?.defaults?.sets ?? 3)));
+      let updatedCount = 0;
+      for (const s of allSessions) {
+        const p = (s.phaseNumber || (s as any).phase || 1);
+        if (p !== targetPhase) continue;
+        if (hasWork(s)) continue; // never touch sessions with data
+        const parts = (s.id || '').split('-');
+        const dayIdx = Number(parts[2]);
+        if (isNaN(dayIdx) || dayIdx < 0 || dayIdx >= working.weeklySplit.length) continue;
+        const meta = working.weeklySplit[dayIdx];
+        const tplId = meta?.templateId;
+        if (!tplId) {
+          if (s.entries.length) {
+            const updated: Session = { ...s, entries: [], templateId: undefined, autoImportedTemplateId: undefined, updatedAt: new Date().toISOString() } as any;
+            await db.put("sessions", updated);
+            updatedCount++;
+          }
+          continue;
+        }
+        const tpl = tplMap.get(tplId);
+        if (!tpl) continue;
+        const planById = new Map<string, any>(((tpl as any).plan || []).map((p: any) => [p.exerciseId, p]));
+        const newEntries = (tpl.exerciseIds || []).map((exId: string) => {
+          const rows = buildRows(exId);
+          const plan = planById.get(exId);
+          return {
+            id: nanoid(),
+            exerciseId: exId,
+            targetRepRange: plan?.repRange || (exMapAll.get(exId) as any)?.defaults?.targetRepRange,
+            sets: Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 })),
+          };
+        });
+        const updated: Session = { ...s, entries: newEntries, templateId: tplId, autoImportedTemplateId: tplId, updatedAt: new Date().toISOString() } as any;
+        await db.put("sessions", updated);
+        updatedCount++;
+      }
+      setToast(updatedCount ? `Applied to ${updatedCount} session${updatedCount>1?'s':''}` : 'No eligible sessions to update');
+      try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+    } catch (e) {
+      console.warn('applyProgramToFutureSessions failed', e);
+      setToast('Failed to apply program');
+    }
   };
 
   // Allocation logic effect
@@ -586,6 +646,14 @@ export default function ProgramSettings() {
             className="btn-outline rounded-xl px-4 py-2 text-sm disabled:opacity-40"
           >
             Archive & Switch
+          </button>
+          <button
+            onClick={applyProgramToFutureSessions}
+            disabled={saving}
+            className="btn-outline rounded-xl px-4 py-2 text-sm disabled:opacity-40"
+            title="Apply current program templates to all non-logged sessions in the current phase"
+          >
+            Apply to future sessions
           </button>
           <span className="text-[11px] text-gray-400">
             {programSummary(working)}
