@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { db } from "../lib/db";
 import { getSettings, setSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
@@ -7,6 +7,7 @@ import { loadRecharts } from "../lib/loadRecharts";
 import MeasurementsInfoModal from "./MeasurementsInfoModal";
 import UnifiedTooltip from "../components/UnifiedTooltip";
 import { useSnack } from "../state/snackbar";
+import { parseEvoltTextToMeasurement } from "../lib/evoltImport";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -26,6 +27,7 @@ export default function Measurements() {
   });
   const [data, setData] = useState<Measurement[]>([]);
   const { push } = useSnack();
+  const fileRef = useRef<HTMLInputElement|null>(null);
 
   useEffect(() => {
     (async()=>{
@@ -49,6 +51,44 @@ export default function Measurements() {
     const today = new Date().toISOString().slice(0,10)
     const todayEntry = sorted.find(r=> r.dateISO.slice(0,10) === today)
     if(todayEntry) setM(todayEntry); else setM({ id: nanoid(), dateISO: new Date().toISOString() })
+  };
+
+  // Import Evolt 360 PDF/Text
+  const onChooseEvolt = ()=> fileRef.current?.click();
+  const handleEvoltFile = async (file: File) => {
+    try {
+      const isTxt = /\.txt$/i.test(file.name);
+      let text = "";
+      if (isTxt) {
+        text = await file.text();
+      } else if (/\.pdf$/i.test(file.name)) {
+        // PDFs are binary; without a PDF parser we'll likely get unreadable text. Prefer users export as text for now.
+        // We attempt a naive decode; if it fails to match patterns, we'll prompt the user.
+        const buf = await file.arrayBuffer();
+        text = new TextDecoder().decode(new Uint8Array(buf));
+      } else {
+        push({ message: "Unsupported file. Upload .pdf or .txt" });
+        return;
+      }
+      const { measurement: parsed, found, warnings } = parseEvoltTextToMeasurement(text || "");
+      if (!found.length) {
+        push({ message: warnings[0] || "No recognizable Evolt fields. Try exporting the PDF as text." });
+        return;
+      }
+      const today = new Date().toISOString().slice(0,10);
+      const existing = data.find(r=> r.dateISO.slice(0,10) === today);
+      const base: Measurement = existing ? { ...existing } : { id: nanoid(), dateISO: new Date().toISOString() } as Measurement;
+      const merged: Measurement = { ...base, ...parsed } as Measurement;
+      await db.put('measurements', merged);
+      const list = await db.getAll<Measurement>('measurements');
+      const sorted = [...list].sort((a,b)=> b.dateISO.localeCompare(a.dateISO));
+      setData(sorted);
+      setM(merged);
+      push({ message: `Imported Evolt: ${found.join(', ')}` });
+    } catch (e) {
+      console.warn('Evolt import failed', e);
+      push({ message: 'Import failed' });
+    }
   };
 
   const remove = async (id: string) => {
@@ -163,6 +203,8 @@ export default function Measurements() {
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Measurements</h2>
   <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3 fade-in">
+  {/* Hidden file input for Evolt import */}
+  <input ref={fileRef} type="file" accept=".pdf,.txt" className="hidden" onChange={(e)=> { const f=e.target.files?.[0]; if(f) handleEvoltFile(f); e.currentTarget.value=''; }} />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             "weightKg",
@@ -238,6 +280,11 @@ export default function Measurements() {
             Save
           </button>
           <button
+            className="w-full sm:w-auto bg-indigo-700 hover:bg-indigo-600 px-3 py-3 rounded-xl"
+            onClick={onChooseEvolt}
+            title="Import Evolt 360 PDF or exported .txt"
+          >Import Evolt 360</button>
+          <button
             className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
             onClick={()=> setM({ id: nanoid(), dateISO: new Date().toISOString() })}
           >Add another</button>
@@ -248,7 +295,7 @@ export default function Measurements() {
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="uppercase tracking-wide text-gray-400">Overlays:</span>
-          {["weightKg","waist","chest","hips","upperArm"].map(k => (
+          {["weightKg","waist","chest","hips","upperArm","bodyFatPct","leanMassKg","fatMassKg"].map(k => (
             <button key={k} onClick={()=> toggleOverlay(k as keyof Measurement)} className={`px-2 py-1 rounded-lg border ${overlayKeys.includes(k as any)?'bg-emerald-600 border-emerald-500':'bg-white/5 border-white/10'}`}>{k}</button>
           ))}
           <button onClick={async ()=> { setSmoothing(s=> { const next=!s; (async()=>{ const st=await getSettings(); await setSettings({ ...st, ui:{ ...(st.ui||{}), smoothingDefault: next } }) })(); return next }); }} className={`px-2 py-1 rounded-lg border ${smoothing? 'bg-indigo-600 border-indigo-500':'bg-white/5 border-white/10'}`}>{smoothing? 'Smoothing On':'Smoothing Off'}</button>

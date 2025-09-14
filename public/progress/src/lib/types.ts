@@ -80,6 +80,7 @@ export interface Measurement {
   id: UUID;
   dateISO: string;
   weightKg?: number;
+  // Circumference/tape metrics
   neck?: number;
   chest?: number;
   waist?: number;
@@ -88,6 +89,19 @@ export interface Measurement {
   calf?: number;
   upperArm?: number;
   forearm?: number;
+  // Body composition (Evolt 360 import)
+  bodyFatPct?: number;        // percent
+  fatMassKg?: number;         // kg
+  leanMassKg?: number;        // kg (LBM)
+  skeletalMuscleMassKg?: number; // kg (SMM)
+  visceralFatRating?: number; // often a unitless score
+  bmrKcal?: number;           // kcal/day
+  // Segmental lean mass (kg) — optional granularity if available
+  trunkLeanKg?: number;
+  leftArmLeanKg?: number;
+  rightArmLeanKg?: number;
+  leftLegLeanKg?: number;
+  rightLegLeanKg?: number;
   deletedAt?: string | null;
 }
 
