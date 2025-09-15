@@ -8,6 +8,7 @@ import MeasurementsInfoModal from "./MeasurementsInfoModal";
 import UnifiedTooltip from "../components/UnifiedTooltip";
 import { useSnack } from "../state/snackbar";
 import { parseEvoltTextToMeasurement } from "../lib/evoltImport";
+import { extractTextFromPdf } from "../lib/pdf";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -28,6 +29,7 @@ export default function Measurements() {
   const [data, setData] = useState<Measurement[]>([]);
   const { push } = useSnack();
   const fileRef = useRef<HTMLInputElement|null>(null);
+  const [preview, setPreview] = useState<null | { parsed: Partial<Measurement>; found: string[]; warnings: string[]; fileName: string; scanDateISO?: string }>(null);
 
   useEffect(() => {
     (async()=>{
@@ -62,33 +64,41 @@ export default function Measurements() {
       if (isTxt) {
         text = await file.text();
       } else if (/\.pdf$/i.test(file.name)) {
-        // PDFs are binary; without a PDF parser we'll likely get unreadable text. Prefer users export as text for now.
-        // We attempt a naive decode; if it fails to match patterns, we'll prompt the user.
         const buf = await file.arrayBuffer();
-        text = new TextDecoder().decode(new Uint8Array(buf));
+        // Use pdf.js to extract text content robustly
+        text = await extractTextFromPdf(buf);
       } else {
         push({ message: "Unsupported file. Upload .pdf or .txt" });
         return;
       }
-      const { measurement: parsed, found, warnings } = parseEvoltTextToMeasurement(text || "");
+  const { measurement: parsed, found, warnings, scanDateISO } = parseEvoltTextToMeasurement(text || "");
       if (!found.length) {
-        push({ message: warnings[0] || "No recognizable Evolt fields. Try exporting the PDF as text." });
+        push({ message: warnings[0] || "No recognizable Evolt fields found." });
         return;
       }
-      const today = new Date().toISOString().slice(0,10);
-      const existing = data.find(r=> r.dateISO.slice(0,10) === today);
-      const base: Measurement = existing ? { ...existing } : { id: nanoid(), dateISO: new Date().toISOString() } as Measurement;
-      const merged: Measurement = { ...base, ...parsed } as Measurement;
-      await db.put('measurements', merged);
-      const list = await db.getAll<Measurement>('measurements');
-      const sorted = [...list].sort((a,b)=> b.dateISO.localeCompare(a.dateISO));
-      setData(sorted);
-      setM(merged);
-      push({ message: `Imported Evolt: ${found.join(', ')}` });
+      // Show preview modal to confirm before saving
+  setPreview({ parsed, found, warnings, fileName: file.name, scanDateISO });
     } catch (e) {
       console.warn('Evolt import failed', e);
       push({ message: 'Import failed' });
     }
+  };
+
+  const confirmEvoltImport = async () => {
+    if (!preview) return;
+    const { parsed, found, scanDateISO } = preview;
+    const stamp = scanDateISO || new Date().toISOString();
+    const targetDay = stamp.slice(0,10);
+    const existing = data.find(r=> r.dateISO.slice(0,10) === targetDay);
+    const base: Measurement = existing ? { ...existing } : { id: nanoid(), dateISO: stamp } as Measurement;
+    const merged: Measurement = { ...base, ...parsed } as Measurement;
+    await db.put('measurements', merged);
+    const list = await db.getAll<Measurement>('measurements');
+    const sorted = [...list].sort((a,b)=> b.dateISO.localeCompare(a.dateISO));
+    setData(sorted);
+    setM(merged);
+    setPreview(null);
+    push({ message: `Imported Evolt: ${found.join(', ')}` });
   };
 
   const remove = async (id: string) => {
@@ -328,6 +338,39 @@ export default function Measurements() {
           )}
         </div>
       </div>
+
+      {/* Preview Modal */}
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={()=> setPreview(null)} />
+          <div className="relative bg-slate-900 rounded-2xl shadow-xl w-[90vw] max-w-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-lg font-semibold">Import preview</div>
+              <button className="text-xs text-gray-400" onClick={()=> setPreview(null)}>Close</button>
+            </div>
+            <div className="text-xs text-gray-400">File: {preview.fileName}{preview.scanDateISO? ` • Scan date: ${preview.scanDateISO.slice(0,10)}`: ''}</div>
+            <div className="max-h-72 overflow-auto bg-slate-800/60 rounded-xl p-3">
+              <table className="w-full text-sm">
+                <tbody>
+                  {Object.entries(preview.parsed).map(([k,v]) => (
+                    <tr key={k} className="border-b border-white/5">
+                      <td className="py-1 pr-2 text-gray-300 capitalize">{k}</td>
+                      <td className="py-1 text-right">{typeof v === 'number' ? v.toFixed(2) : String(v)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!!preview.warnings.length && (
+              <div className="text-xs text-amber-400">{preview.warnings.join(' • ')}</div>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg" onClick={()=> setPreview(null)}>Cancel</button>
+              <button className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-lg" onClick={confirmEvoltImport}>Confirm import</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl p-4 shadow-soft">
         <div className="font-medium mb-2">Entries</div>

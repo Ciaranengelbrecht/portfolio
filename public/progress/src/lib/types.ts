@@ -96,12 +96,26 @@ export interface Measurement {
   skeletalMuscleMassKg?: number; // kg (SMM)
   visceralFatRating?: number; // often a unitless score
   bmrKcal?: number;           // kcal/day
+  // Additional composition metrics
+  subcutaneousFatMassKg?: number;
+  visceralFatMassKg?: number;
+  visceralFatAreaCm2?: number;
+  totalBodyWaterKg?: number;
+  proteinKg?: number;
+  mineralKg?: number;
+  waistToHipRatio?: number;
   // Segmental lean mass (kg) — optional granularity if available
   trunkLeanKg?: number;
   leftArmLeanKg?: number;
   rightArmLeanKg?: number;
   leftLegLeanKg?: number;
   rightLegLeanKg?: number;
+  // Segmental fat mass (kg)
+  trunkFatKg?: number;
+  leftArmFatKg?: number;
+  rightArmFatKg?: number;
+  leftLegFatKg?: number;
+  rightLegFatKg?: number;
   deletedAt?: string | null;
 }
 
