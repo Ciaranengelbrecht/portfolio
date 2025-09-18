@@ -51,6 +51,8 @@ export default function ProgramSettings() {
   const [allocatorData, setAllocatorData] = useState<{current: Record<string, number>; diff: Record<string, number>; suggestions: { day: number; muscle: string; add: number }[]}>({ current:{}, diff:{}, suggestions:[] });
   const [showDiffConfirm, setShowDiffConfirm] = useState(false);
   const [diffItems, setDiffItems] = useState<string[]>([]);
+  const [projectedMuscleVolume, setProjectedMuscleVolume] = useState<Record<string, number>>({});
+  const [projectedPerDay, setProjectedPerDay] = useState<Record<number, Record<string, number>>>({});
 
   // Logged set volume (weighted) for current phase (primary +1, secondary +0.5)
   useEffect(()=>{ (async()=>{
@@ -335,6 +337,35 @@ export default function ProgramSettings() {
     });
     setAllocatorData({ current, diff, suggestions });
   })() }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
+
+  // Live projected weekly muscle volume from current working split + templates (defaults + secondary weighting)
+  useEffect(()=>{ (async()=> {
+    const exercises = await db.getAll<Exercise>('exercises');
+    const exMap = new Map(exercises.map(e=> [e.id, e] as const));
+    const tplMap = new Map(templates.map(t=> [t.id, t] as const));
+    const SECONDARY_FACTOR = 0.5;
+    const muscleTotals: Record<string, number> = {};
+    const perDay: Record<number, Record<string, number>> = {};
+    working.weeklySplit.forEach((day, di)=> {
+      const tpl = day.templateId ? tplMap.get(day.templateId) : undefined;
+      const mv: Record<string, number> = {};
+      if(tpl){
+        tpl.exerciseIds.forEach(eid=> {
+          const ex = exMap.get(eid); if(!ex) return;
+          const sets = ex.defaults.sets || 0;
+          const mg = ex.muscleGroup || 'other';
+          muscleTotals[mg] = (muscleTotals[mg]||0) + sets;
+          mv[mg] = (mv[mg]||0) + sets;
+          if(ex.secondaryMuscles){
+            ex.secondaryMuscles.forEach(sm=> { muscleTotals[sm] = (muscleTotals[sm]||0) + sets*SECONDARY_FACTOR; mv[sm] = (mv[sm]||0) + sets*SECONDARY_FACTOR; });
+          }
+        });
+      }
+      perDay[di]=mv;
+    });
+    setProjectedMuscleVolume(muscleTotals);
+    setProjectedPerDay(perDay);
+  })() }, [working.weeklySplit, templates]);
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold">Program</h2>
@@ -372,6 +403,27 @@ export default function ProgramSettings() {
               <div className="col-span-full text-[11px] text-gray-500">No logged volume yet this phase.</div>
             )}
           </div>
+        </div>
+        {/* Projected weekly volume (planned) */}
+        <div className="space-y-2">
+          <div className="text-xs uppercase tracking-wide text-gray-400 flex items-center gap-2">Projected Weekly Volume <span className="text-[10px] text-gray-500 normal-case">(based on current templates & defaults)</span></div>
+          {Object.keys(projectedMuscleVolume).length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {Object.entries(projectedMuscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(projectedMuscleVolume)); const pct=(v/max)*100; const target = weeklySetTargets[m]; const diff = target!=null? (v - target) : null; return (
+                <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" title={diff!=null?`Target ${target}, Diff ${diff>0?'+':''}${Math.round(diff)}`:undefined}>
+                  <div className="flex items-center justify-between text-[10px] text-gray-400">
+                    <span className="capitalize">{m}</span>
+                    <span className="tabular-nums flex items-center gap-1">{Math.round(v)}{diff!=null && <span className={diff>0? 'text-emerald-400':'text-amber-400'}>{diff>0? '▲':'▼'}</span>}</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
+                    <div className="h-full bg-indigo-500" style={{width:`${pct}%`}} />
+                  </div>
+                </div>
+              ); })}
+            </div>
+          ) : (
+            <div className="text-[11px] text-gray-500">No templates linked to compute projection.</div>
+          )}
         </div>
         <div className="flex flex-wrap gap-4">
           <label className="space-y-1">

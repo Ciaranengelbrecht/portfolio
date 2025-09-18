@@ -113,15 +113,32 @@ export default function Dashboard() {
   {!hidden?.weekVolume && <motion.div key="weekVol" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
         <div className="text-title">Week {week} Logged Volume <span className="text-body-sm text-slate-400 ml-1 align-middle">(Weighted Sets)</span></div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const tgt = targets[m]||0; const pct = tgt? Math.min(100,(v/tgt)*100): 100; const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500'; return (
-            <motion.div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" initial={{opacity:0, y:12}} animate={{opacity:1, y:0}} exit={{opacity:0, y:4}} transition={{duration:.25}}>
-              <div className="flex items-center justify-between text-[10px] text-gray-400"><span className="capitalize">{m}</span><span className="tabular-nums">{v.toFixed(1)}{tgt?`/${tgt}`:''}</span></div>
-              <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
-                <motion.div className={`h-full ${status}`} initial={{width:0}} animate={{width:`${pct}%`}} transition={{type:'spring', stiffness:150, damping:26}} />
-                {tgt? <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">{Math.round(pct)}%</span>: null}
-              </div>
-            </motion.div>
-          ); })}
+          {Object.entries(muscleWeek).sort((a,b)=> b[1]-a[1]).map(([m,v])=> {
+            const tgt = targets[m]||0;
+            const pct = tgt? Math.min(100,(v/tgt)*100): 100;
+            const status = tgt? (v>=tgt? 'bg-emerald-500':'bg-amber-500'): 'bg-emerald-500';
+            const prev = (perWeek[week-1] && perWeek[week-1][m]) || 0;
+            const delta = v - prev;
+            const arrow = delta>0? '▲': delta<0? '▼':'–';
+            const deltaClass = delta>0? 'text-emerald-400': delta<0? 'text-red-400':'text-gray-400';
+            return (
+              <motion.div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" initial={{opacity:0, y:12}} animate={{opacity:1, y:0}} exit={{opacity:0, y:4}} transition={{duration:.25}} title={`Prev Week: ${prev.toFixed(1)} | Delta: ${delta>=0?'+':''}${delta.toFixed(1)}`}>
+                <div className="flex items-center justify-between text-[10px] text-gray-400">
+                  <span className="capitalize flex items-center gap-1">
+                    {m}
+                    <span className={`inline-flex items-center gap-0.5 ${deltaClass} font-medium`}>
+                      <span className="leading-none">{arrow}</span>
+                      <span className="tabular-nums">{delta===0? '0.0': `${delta>0?'+':''}${delta.toFixed(1)}`}</span>
+                    </span>
+                  </span>
+                  <span className="tabular-nums">{v.toFixed(1)}{tgt?`/${tgt}`:''}</span>
+                </div>
+                <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
+                  <motion.div className={`h-full ${status}`} initial={{width:0}} animate={{width:`${pct}%`}} transition={{type:'spring', stiffness:150, damping:26}} />
+                  {tgt? <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">{Math.round(pct)}%</span>: null}
+                </div>
+              </motion.div>
+            ); })}
           {!Object.keys(muscleWeek).length && <div className="col-span-full text-[11px] text-gray-500">No logged sets yet.</div>}
         </div>
       </motion.div>}

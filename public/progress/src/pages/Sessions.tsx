@@ -28,6 +28,7 @@ import {
   setBeepVolumeScalar,
 } from "../lib/audio";
 import { fadeSlideUp, maybeDisable } from "../lib/motion";
+import { computeSessionPacing } from "../lib/pacing";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
@@ -1769,6 +1770,18 @@ export default function Sessions() {
     return `${mins}m`;
   })();
 
+  // Pacing metrics derived from completedAt stamps
+  const pacing = useMemo(()=> session ? computeSessionPacing(session) : null, [session?.id, session?.entries.length]);
+  const formatMs = (ms:number) => {
+    if(!ms) return '–';
+    const m = Math.floor(ms/60000); const s = Math.round((ms%60000)/1000);
+    if(m>=1) return `${m}m ${s.toString().padStart(2,'0')}s`;
+    return `${s}s`;
+  };
+  const [showPacingDetails,setShowPacingDetails] = useState(false);
+  const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>({});
+  const toggleName = (id:string)=> setExpandedNames(p=> ({...p, [id]: !p[id]}));
+
   return (
     <div className="space-y-4">
       {/* Top scroll anchor at very start to allow absolute top jump */}
@@ -1958,6 +1971,48 @@ export default function Sessions() {
           )}
         </div>
       </div>
+      {/* Session pacing summary */}
+      {session && pacing && pacing.overall.count > 0 && (
+        <div className="mx-4 mt-2 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
+          <div className="flex items-center justify-between text-[11px] text-slate-300">
+            <span className="font-semibold tracking-wide">Pacing</span>
+            <button className="text-[10px] underline text-slate-400" onClick={()=> setShowPacingDetails(s=>!s)}>
+              {showPacingDetails? 'Hide Details':'Show Details'}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
+            <div>Sets: <span className="text-slate-200 font-medium">{pacing.overall.count}</span></div>
+            <div>Avg Rest: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.averageMs)}</span></div>
+            <div>Median: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.medianMs)}</span></div>
+            <div>Longest: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.longestMs)}</span></div>
+            {sessionDuration && <div>Session Span: <span className="text-slate-200 font-medium">{sessionDuration}</span></div>}
+          </div>
+          {showPacingDetails && (
+            <div className="space-y-1 max-h-64 overflow-auto pr-1">
+              {pacing.exercises.filter(e=> e.count>0).map(e=> {
+                const ex = exMap.get(e.exerciseId);
+                const name = ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
+                return (
+                  <div key={e.exerciseId} className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1">
+                    <div className="flex-1 min-w-0">
+                      <button onClick={()=> toggleName(e.exerciseId)} className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none">
+                        <span className={`capitalize ${expandedNames[e.exerciseId]? 'whitespace-normal break-words':''}`}>{name}</span>
+                      </button>
+                    </div>
+                    <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
+                      <span>n{e.count}</span>
+                      <span>avg {formatMs(e.averageMs)}</span>
+                      <span>med {formatMs(e.medianMs)}</span>
+                      <span>max {formatMs(e.longestMs)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {!pacing.exercises.some(e=> e.count>0) && <div className="text-[10px] text-slate-500">No rest intervals yet.</div>}
+            </div>
+          )}
+        </div>
+      )}
       {/* Mobile tools panel rendered as fixed overlay below toolbar (no layout height) */}
       {createPortal(
         <AnimatePresence>
