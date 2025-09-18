@@ -40,6 +40,8 @@ export interface SetEntry {
   weightKg?: number | null;
   reps?: number | null;
   rpe?: number;
+  /** Timestamp when this set was last completed/edited (ISO). Locked to session calendar date for late edits. */
+  completedAt?: string;
 }
 export interface SessionEntry {
   id: UUID;

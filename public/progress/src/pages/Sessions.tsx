@@ -633,7 +633,26 @@ export default function Sessions() {
   // Monkey patch updateEntry references by defining function used below via closure
   function updateEntryPatched(entry: SessionEntry){
     if(!session) return;
-    const next: Session = { ...session, entries: session.entries.map(e=> e.id===entry.id? entry: e) };
+    // Determine set value changes to stamp completedAt on affected sets
+    const prevEntry = session.entries.find(e=> e.id===entry.id);
+    let stampedEntry = entry;
+    if(prevEntry){
+      const sessionDate = session.dateISO.slice(0,10); // lock day
+      stampedEntry = { ...entry, sets: entry.sets.map((st,idx)=>{
+        const prev = prevEntry.sets[idx];
+        const changed = prev && ((prev.weightKg||0)!==(st.weightKg||0) || (prev.reps||0)!==(st.reps||0));
+        if(changed){
+          const now = new Date();
+          // Force date to session calendar day to avoid late-edit day drift
+            const [y,m,d] = sessionDate.split('-').map(Number);
+            now.setFullYear(y, (m||1)-1, d||now.getDate());
+          const iso = now.toISOString();
+          return { ...st, completedAt: iso };
+        }
+        return st;
+      }) };
+    }
+    const next: Session = { ...session, entries: session.entries.map(e=> e.id===entry.id? stampedEntry: e) };
     stampActivity(session, next);
   }
 
@@ -2128,6 +2147,11 @@ export default function Sessions() {
                   <div></div>
                   <div></div>
                   <div>
+                    {set.completedAt && (
+                      <div className="mt-1 text-[10px] tracking-tight text-slate-400/40 text-right pr-1">
+                        {new Date(set.completedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                      </div>
+                    )}
                     <button
                       className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
                       onClick={()=> addSet(entry)}
