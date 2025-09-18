@@ -3006,6 +3006,11 @@ export default function Sessions() {
                               </div>
                             </div>
                             {/* Removed per-set rest controls */}
+                            {set.completedAt && (
+                              <div className="mt-1 text-[10px] text-right text-slate-400/40 tracking-tight">
+                                {new Date(set.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
                           </div>
                         ))}
                         <button
@@ -3456,14 +3461,6 @@ export default function Sessions() {
                           <div></div>
                           <div></div>
                           <div>
-                            {set.completedAt && (
-                              <div className="mt-1 text-[10px] tracking-tight text-slate-400/40 text-right pr-1">
-                                {new Date(set.completedAt).toLocaleTimeString(
-                                  [],
-                                  { hour: "2-digit", minute: "2-digit" }
-                                )}
-                              </div>
-                            )}
                             <button
                               className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
                               onClick={() => addSet(entry)}

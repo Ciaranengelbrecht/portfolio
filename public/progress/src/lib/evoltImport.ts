@@ -60,6 +60,31 @@ export function parseEvoltTextToMeasurement(text: string): EvoltParseResult {
     }
   }
 
+  // Lightweight fallback label-based parsing for plain text exports (non-PDF triad layout)
+  // Only fill fields not already captured.
+  const simpleLabel = (label: string, assign: (v:number)=>void, opts: { unit?: string; percent?: boolean } = {}) => {
+    if (/BODY WEIGHT/i.test(label) && m.weightKg != null) return; // weight handled above
+    const re = new RegExp(label.replace(/[-/]/g,'[-/]') + '\\s*:?\\s*(\\d+(?:\\.\\d+)?)' + (opts.percent? '\\s*%?':'') + (opts.unit? `\\s*${opts.unit}`:'') ,'i');
+    const mm = cleaned.match(re);
+    if (mm) {
+      const v = Number(mm[1]);
+      if (!isNaN(v)) assign(v);
+    }
+  };
+  simpleLabel('Body Weight', v=> { if(m.weightKg==null){ m.weightKg=v; found.push('weightKg'); } }, { unit:'kg' });
+  simpleLabel('Body Fat %', v=> { if(m.bodyFatPct==null){ m.bodyFatPct=v; found.push('bodyFatPct'); } }, { percent:true });
+  simpleLabel('Fat Mass', v=> { if(m.fatMassKg==null){ m.fatMassKg=v; found.push('fatMassKg'); } }, { unit:'kg' });
+  simpleLabel('Lean Mass', v=> { if(m.leanMassKg==null){ m.leanMassKg=v; found.push('leanMassKg'); } }, { unit:'kg' });
+  simpleLabel('Skeletal Muscle Mass', v=> { if(m.skeletalMuscleMassKg==null){ m.skeletalMuscleMassKg=v; found.push('skeletalMuscleMassKg'); } }, { unit:'kg' });
+  simpleLabel('Visceral Fat Rating', v=> { if(m.visceralFatRating==null){ m.visceralFatRating=v; found.push('visceralFatRating'); } });
+  simpleLabel('BMR', v=> { if(m.bmrKcal==null){ m.bmrKcal=v; found.push('bmrKcal'); } }, { unit:'kcal' });
+  // Segmental lean (no fat mass in simple sample):
+  simpleLabel('Trunk Lean', v=> { if((m as any).trunkLeanKg==null){ (m as any).trunkLeanKg=v; found.push('trunkLeanKg'); } });
+  simpleLabel('Left Arm Lean', v=> { if((m as any).leftArmLeanKg==null){ (m as any).leftArmLeanKg=v; found.push('leftArmLeanKg'); } });
+  simpleLabel('Right Arm Lean', v=> { if((m as any).rightArmLeanKg==null){ (m as any).rightArmLeanKg=v; found.push('rightArmLeanKg'); } });
+  simpleLabel('Left Leg Lean', v=> { if((m as any).leftLegLeanKg==null){ (m as any).leftLegLeanKg=v; found.push('leftLegLeanKg'); } });
+  simpleLabel('Right Leg Lean', v=> { if((m as any).rightLegLeanKg==null){ (m as any).rightLegLeanKg=v; found.push('rightLegLeanKg'); } });
+
   // Triad mapper utility
   const triad = (
     labels: string[],
