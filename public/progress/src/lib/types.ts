@@ -75,7 +75,10 @@ export interface Session {
   createdAt?: string;
   updatedAt?: string;
   /** Per-day activity log used to compute robust session duration (ignoring long gaps/accidental late edits) */
-  workLog?: Record<string, { first: string; last: string; count: number; activeMs?: number }>; // key = YYYY-MM-DD (local)
+  workLog?: Record<
+    string,
+    { first: string; last: string; count: number; activeMs?: number }
+  >; // key = YYYY-MM-DD (local)
 }
 
 export interface Measurement {
@@ -92,12 +95,12 @@ export interface Measurement {
   upperArm?: number;
   forearm?: number;
   // Body composition (Evolt 360 import)
-  bodyFatPct?: number;        // percent
-  fatMassKg?: number;         // kg
-  leanMassKg?: number;        // kg (LBM)
+  bodyFatPct?: number; // percent
+  fatMassKg?: number; // kg
+  leanMassKg?: number; // kg (LBM)
   skeletalMuscleMassKg?: number; // kg (SMM)
   visceralFatRating?: number; // often a unitless score
-  bmrKcal?: number;           // kcal/day
+  bmrKcal?: number; // kcal/day
   // Additional composition metrics
   subcutaneousFatMassKg?: number;
   visceralFatMassKg?: number;
@@ -128,7 +131,14 @@ export interface Settings {
   // Legacy theme flag kept for backward-compat UI; do not remove without migration of Settings UI
   theme?: "dark" | "light";
   // New theming system (v5+)
-  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number; customVars?: Record<string,string> };
+  themeV2?: {
+    key: ThemeKey;
+    customAccent?: string;
+    prefersSystem?: boolean;
+    accentIntensity?: number;
+    glowStrength?: number;
+    customVars?: Record<string, string>;
+  };
   deloadDefaults: { loadPct: number; setPct: number };
   /** User preference to reduce motion regardless of system setting */
   reducedMotion?: boolean;
@@ -160,17 +170,25 @@ export interface Settings {
     gamification?: boolean; // default true
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
-  autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
+    autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
   };
   /** Per-muscle weekly target (weighted sets) */
   volumeTargets?: Record<string, number>;
   /** Subtle animated ECG background settings */
-  ecg?: { enabled?: boolean; intensity?: 'low' | 'med' | 'high'; shape?: 'classic' | 'smooth' | 'spikes' | 'minimal'; speedMs?: number; color?: string; trailMs?: number; spikes?: number };
+  ecg?: {
+    enabled?: boolean;
+    intensity?: "low" | "med" | "high";
+    shape?: "classic" | "smooth" | "spikes" | "minimal";
+    speedMs?: number;
+    color?: string;
+    trailMs?: number;
+    spikes?: number;
+  };
   ui?: {
     compactMode?: boolean; // reduced paddings / font-size
     instantThemeTransition?: boolean; // disable animated theme swap
     smoothingDefault?: boolean; // measurement chart smoothing persisted
-    themeMode?: 'system' | 'dark' | 'light'; // high-level mode override
+    themeMode?: "system" | "dark" | "light"; // high-level mode override
   };
   currentPhase?: number;
   accentColor?: string;
@@ -202,7 +220,7 @@ export interface Settings {
   /** Play a short beep when rest target is reached */
   restTimerBeep?: boolean;
   /** Beep sound style */
-  restTimerBeepStyle?: 'gentle' | 'chime' | 'digital' | 'alarm' | 'click';
+  restTimerBeepStyle?: "gentle" | "chime" | "digital" | "alarm" | "click";
   /** Number of beeps to play (1-5) */
   restTimerBeepCount?: number;
   /** Beep volume as a percentage (50-300). 100 = default. Multiplies base volume. */
@@ -220,7 +238,7 @@ export interface Template {
     plannedSets: number;
     repRange: string; // e.g. "6-8", "8-10", "10-12"
     progression?: {
-      scheme: 'linear';
+      scheme: "linear";
       incrementKg?: number; // default 2.5
       addRepsFirst?: boolean; // default true
     };
@@ -232,7 +250,14 @@ export type DBVersion = 7;
 // User profile (server source of truth for theme persistence across devices)
 export interface UserProfile {
   id: string; // auth user id
-  themeV2?: { key: ThemeKey; customAccent?: string; prefersSystem?: boolean; accentIntensity?: number; glowStrength?: number; customVars?: Record<string,string> }; // stored in DB column 'themev2'
+  themeV2?: {
+    key: ThemeKey;
+    customAccent?: string;
+    prefersSystem?: boolean;
+    accentIntensity?: number;
+    glowStrength?: number;
+    customVars?: Record<string, string>;
+  }; // stored in DB column 'themev2'
   created_at?: string;
   program?: UserProgram;
   program_history?: ArchivedProgram[]; // array of archived programs
