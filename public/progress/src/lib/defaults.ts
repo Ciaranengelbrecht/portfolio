@@ -43,6 +43,7 @@ export const defaultSettings: Settings = {
     shoulders: 10,
     biceps: 8,
     triceps: 8,
+  forearms: 6,
     calves: 6,
     core: 6,
     legs: 0, // legacy placeholder (should migrate to quads/hamstrings)

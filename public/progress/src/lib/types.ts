@@ -6,6 +6,7 @@ export type MuscleGroup =
   | "shoulders"
   | "triceps"
   | "biceps"
+  | "forearms"
   | "legs"
   | "hamstrings"
   | "quads"

@@ -109,7 +109,8 @@ export async function getDeloadPrescription(
     ? sets.reduce((a, b) => a + (b.weightKg || 0), 0) / sets.length
     : 0;
   const targetWeight = Math.round(avg * loadPct);
-  const targetSets = Math.max(1, Math.round((ex?.defaults.sets ?? 2) * setPct));
+  const rawSetsBase = ex?.defaults.sets ?? 2;
+  const targetSets = Math.max(0, Math.round(rawSetsBase * setPct));
   return { targetWeight, targetSets, loadPct, setPct };
 }
 
@@ -155,6 +156,18 @@ export async function volumeByMuscleGroup(weekNumber: number, deps?: { sessions?
         acc[mg].sets += e.sets.length;
       });
     });
+  // Derived overarching groups (non-destructive)
+  const sumGroups = (groups: string[]): { tonnage: number; sets: number } | null => {
+    let ton = 0, sets = 0, any = false;
+    for (const g of groups) {
+      if (acc[g]) { ton += acc[g].tonnage; sets += acc[g].sets; any = true; }
+    }
+    return any ? { tonnage: ton, sets } : null;
+  };
+  const arms = sumGroups(['biceps','triceps','forearms']);
+  if (arms) acc['arms'] = arms;
+  const legs = sumGroups(['quads','hamstrings','calves']);
+  if (legs) acc['legs'] = legs;
   return acc;
 }
 

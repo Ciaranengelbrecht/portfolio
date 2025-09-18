@@ -312,7 +312,7 @@ export default function ProgramSettings() {
       const t = day.templateId ? templateMap.get(day.templateId): null;
       const mv: Record<string, number> = {};
       if(t){
-    t.exerciseIds.forEach(eid=>{ const ex = exMap.get(eid); if(!ex) return; const sets = ex.defaults.sets || 0; const m = ex.muscleGroup || 'other'; current[m] = (current[m]||0) + sets; mv[m]=(mv[m]||0)+sets; if(ex.secondaryMuscles){ ex.secondaryMuscles.forEach(sm=> { current[sm] = (current[sm]||0) + sets*SECONDARY_FACTOR; mv[sm] = (mv[sm]||0) + sets*SECONDARY_FACTOR; }); } });
+  t.exerciseIds.forEach(eid=>{ const ex = exMap.get(eid); if(!ex) return; const sets = ex.defaults.sets || 0; const m = ex.muscleGroup || 'other'; current[m] = (current[m]||0) + sets; mv[m]=(mv[m]||0)+sets; if(ex.secondaryMuscles){ ex.secondaryMuscles.forEach(sm=> { current[sm] = (current[sm]||0) + sets*SECONDARY_FACTOR; mv[sm] = (mv[sm]||0) + sets*SECONDARY_FACTOR; }); } });
       }
       perDayMuscle[i]=mv;
     });

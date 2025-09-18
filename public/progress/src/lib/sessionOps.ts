@@ -40,8 +40,9 @@ export async function importFromTemplate(
     }
   const plannedRows = planEntry?.plannedSets;
   const fallbackRows = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
-  const rows = Math.max(1, Math.min(12, plannedRows || fallbackRows));
-  // Use null so inputs appear blank; suggestions / placeholders supply guidance.
+  const raw = plannedRows != null ? plannedRows : fallbackRows;
+  const rows = Math.min(12, Math.max(0, raw));
+  if (rows === 0) return [];
   return Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: null, reps: null } as SetEntry));
   };
   const newEntries: SessionEntry[] = [];

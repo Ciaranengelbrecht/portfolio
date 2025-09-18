@@ -908,24 +908,14 @@ export default function Sessions() {
               const exs = await db.getAll("exercises");
               const settings = await getSettings();
               const exMap = new Map(exs.map((e: any) => [e.id, e]));
-              const rows = (exId: string) =>
-                Math.max(
-                  1,
-                  Math.min(
-                    6,
-                    settings.defaultSetRows ??
-                      exMap.get(exId)?.defaults.sets ??
-                      3
-                  )
-                );
+              const rows = (exId: string) => {
+                const base = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
+                return Math.min(6, Math.max(0, base));
+              };
               const newEntries = (t.exerciseIds || []).map((exId: string) => ({
                 id: nanoid(),
                 exerciseId: exId,
-                sets: Array.from({ length: rows(exId) }, (_, i) => ({
-                  setNumber: i + 1,
-                  weightKg: 0,
-                  reps: 0,
-                })),
+                sets: (() => { const n = rows(exId); return n === 0 ? [] : Array.from({ length: n }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 })); })(),
               }));
               s = {
                 ...s,
@@ -1602,8 +1592,9 @@ export default function Sessions() {
       );
       if (!ok) return;
     }
-    const rows = Math.max(1, entry.sets.length || newEx.defaults?.sets || 3);
-    const newSets: SetEntry[] = Array.from({ length: rows }, (_, i) => ({
+    const base = entry.sets.length || newEx.defaults?.sets || 3;
+    const rows = Math.max(0, base);
+    const newSets: SetEntry[] = rows === 0 ? [] : Array.from({ length: rows }, (_, i) => ({
       setNumber: i + 1,
       weightKg: null,
       reps: null,
