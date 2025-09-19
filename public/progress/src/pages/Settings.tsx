@@ -722,7 +722,8 @@ export default function SettingsPage() {
               onChange={(e) => {
                 const v = e.target.value;
                 if (!/^\d*$/.test(v)) return;
-                const n = Math.max(1, Math.min(6, Number(v || "3")));
+                const nRaw = Number(v === '' ? '0' : v);
+                const n = Math.max(0, Math.min(6, isNaN(nRaw)? 0 : nRaw));
                 setS({ ...s, defaultSetRows: n });
               }}
             />
@@ -1397,7 +1398,7 @@ function ExerciseLibraryManager(){
   const [q,setQ] = useState("");
   const [creating,setCreating] = useState("");
   useEffect(()=> { (async ()=> setList(await db.getAll('exercises')))(); },[]);
-  const ALL: string[] = ['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'];
+  const ALL: string[] = ['chest','back','shoulders','triceps','biceps','forearms','legs','hamstrings','quads','glutes','calves','core','other'];
   const update = async (id:string, mut:(ex:any)=>any) => {
     setList(ls=> ls.map(ex=> ex.id===id? mut({...ex}): ex));
     const ex = list.find(e=> e.id===id);
@@ -1456,7 +1457,7 @@ function ExerciseLibraryManager(){
 function WeeklyVolumeTargets(){
   const [targets,setTargets] = useState<Record<string, number>>({});
   useEffect(()=>{ (async()=>{ const s = await db.get('settings','app'); setTargets(s?.volumeTargets||{}); })(); },[]);
-  const MUSCLES = ['chest','back','quads','hamstrings','glutes','shoulders','biceps','triceps','calves','core'];
+  const MUSCLES = ['chest','back','quads','hamstrings','glutes','shoulders','biceps','triceps','forearms','calves','core'];
   const save = async ()=> { const cur = await db.get('settings','app'); await db.put('settings',{ ...(cur||{}), id:'app', volumeTargets: targets }); };
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">

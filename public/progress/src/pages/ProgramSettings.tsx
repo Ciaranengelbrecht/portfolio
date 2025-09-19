@@ -257,7 +257,7 @@ export default function ProgramSettings() {
       const exMapAll = new Map(allExercises.map((e) => [e.id, e] as const));
       const tplMap = new Map(allTemplates.map((t) => [t.id, t] as const));
       const hasWork = (s: Session) => s.entries?.some((e) => e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0));
-      const buildRows = (exId: string) => Math.max(1, Math.min(6, ((settings as any).defaultSetRows ?? exMapAll.get(exId)?.defaults?.sets ?? 3)));
+  const buildRows = (exId: string) => Math.max(0, Math.min(6, ((settings as any).defaultSetRows ?? exMapAll.get(exId)?.defaults?.sets ?? 3)));
       let updatedCount = 0;
       for (const s of allSessions) {
         const p = (s.phaseNumber || (s as any).phase || 1);
