@@ -1,7 +1,7 @@
 import ChartPanel from "../../components/ChartPanel";
 import GlassCard from "../../components/GlassCard";
 import ProgressBars from "../../components/ProgressBars";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeSlideUp, maybeDisable } from '../../lib/motion';
 import { db } from "../../lib/db";
@@ -20,6 +20,10 @@ export default function Dashboard() {
   const [perWeek, setPerWeek] = useState<Record<number, Record<string, number>>>({});
   const [hidden,setHidden] = useState<NonNullable<Settings['dashboardPrefs']>['hidden']>({});
   const [weeklyBar,setWeeklyBar] = useState<{muscle:string; value:number}[]>([]);
+  const [sessionsState, setSessionsState] = useState<any[]>([]);
+  const [selectedDay, setSelectedDay] = useState<number>(0);
+  const [highlightWeek, setHighlightWeek] = useState<number | null>(null);
+  const [dayVolumes, setDayVolumes] = useState<Record<number, Record<number, number>>>({}); // week -> day -> volume
   const [loading,setLoading] = useState(true);
   const { data: aggs } = useAggregates();
   useEffect(() => {
@@ -38,8 +42,26 @@ export default function Dashboard() {
         getAllCached('sessions'),
         getAllCached('exercises')
       ]);
+      setSessionsState(sessions as any[]);
       const { perWeek, totals } = await computeLoggedSetVolume(phaseNum, { sessions, exercises });
       setPerWeek(perWeek);
+      // build day volume matrix (tonnage)
+      const dv: Record<number, Record<number, number>> = {};
+      (sessions as any[]).filter(s=> (s.phaseNumber || s.phase || 1) === phaseNum).forEach(sess=> {
+        const w = sess.weekNumber;
+        const dayId = Number((sess.id||'').split('-')[2]) || 0;
+        let vol = 0;
+        for(const entry of (sess.entries||[])){
+          for(const set of (entry.sets||[])){
+            if(typeof set.weightKg === 'number' && typeof set.reps === 'number' && (set.weightKg||0) > 0 && (set.reps||0) > 0){
+              vol += (set.weightKg||0) * (set.reps||0);
+            }
+          }
+        }
+        if(!dv[w]) dv[w] = {};
+        dv[w][dayId] = (dv[w][dayId]||0) + vol;
+      });
+      setDayVolumes(dv);
       const wkNum = prefs.lastLocation?.weekNumber || 1;
       // Prefer precomputed weekly volume (aggregates) if available
       if(aggs){
@@ -56,7 +78,8 @@ export default function Dashboard() {
   }, []);
   // refresh when sessions change realtime
   useEffect(()=>{
-  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); })(); } };
+  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); setSessionsState(sessions as any[]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); // recompute day volumes
+    const dv: Record<number, Record<number, number>> = {}; (sessions as any[]).filter(s=> (s.phaseNumber || s.phase || 1) === phase).forEach(sess=> { const w = sess.weekNumber; const dayId = Number((sess.id||'').split('-')[2]) || 0; let vol = 0; for(const entry of (sess.entries||[])){ for(const set of (entry.sets||[])){ if(typeof set.weightKg === 'number' && typeof set.reps === 'number' && (set.weightKg||0)>0 && (set.reps||0)>0){ vol += (set.weightKg||0)*(set.reps||0); } } } if(!dv[w]) dv[w] = {}; dv[w][dayId] = (dv[w][dayId]||0) + vol; }); setDayVolumes(dv); })(); } };
   window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
   }, [phase, week]);
@@ -66,7 +89,7 @@ export default function Dashboard() {
     await setDashboardPrefs({ hidden: next });
   };
 
-  type HiddenKey = 'trainingChart' | 'bodyChart' | 'weekVolume' | 'phaseTotals' | 'compliance' | 'weeklyMuscleBar';
+  type HiddenKey = 'trainingChart' | 'bodyChart' | 'weekVolume' | 'phaseTotals' | 'compliance' | 'weeklyMuscleBar' | 'sessionVolumeTrend';
   const SectionToggle = ({label, flag}:{label:string; flag:HiddenKey}) => (
     <button onClick={()=> toggle(flag)} className={`text-[10px] px-2 py-1 rounded-lg border ${hidden?.[flag]? 'bg-slate-800 text-gray-400 border-white/5':'bg-emerald-600/70 text-white border-emerald-500/40'}`}>{hidden?.[flag]? `Show ${label}`:`Hide ${label}`}</button>
   );
@@ -100,6 +123,7 @@ export default function Dashboard() {
         <SectionToggle label="Phase Totals" flag="phaseTotals" />
         <SectionToggle label="Compliance" flag="compliance" />
         <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
+        <SectionToggle label="Session Volume" flag="sessionVolumeTrend" />
       </div>
       <AnimatePresence initial={false}>
       {!hidden?.trainingChart && <motion.div key="training" className="space-y-2" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
@@ -155,6 +179,62 @@ export default function Dashboard() {
         </div>
       </motion.div>}
   {!hidden?.weeklyMuscleBar && <motion.div key="weeklyBar" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit"><WeeklyMuscleBar /></motion.div>}
+  {!hidden?.sessionVolumeTrend && <motion.div key="sessionVolTrend" className="space-y-3" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
+        <GlassCard>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <div className="font-medium text-sm">Session Tonnage Trend <span className="text-xs text-slate-400 ml-1">(per selected day across weeks)</span></div>
+            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+              <label className="flex items-center gap-1">Day
+                <select className="bg-slate-700 rounded px-1 py-0.5" value={selectedDay} onChange={e=> { setSelectedDay(Number(e.target.value)); }}>
+                  {Array.from(new Set(Object.values(dayVolumes).flatMap(rec=> Object.keys(rec).map(Number)))).sort((a,b)=> a-b).map(d=> <option key={d} value={d}>D{d+1}</option>)}
+                </select>
+              </label>
+              <label className="flex items-center gap-1">Highlight
+                <select className="bg-slate-700 rounded px-1 py-0.5" value={highlightWeek ?? ''} onChange={e=> setHighlightWeek(e.target.value? Number(e.target.value): null)}>
+                  <option value="">None</option>
+                  {Object.keys(dayVolumes).map(w=> <option key={w} value={w}>W{w}</option>)}
+                </select>
+              </label>
+              <button onClick={()=> setHighlightWeek(Object.keys(dayVolumes).map(Number).sort((a,b)=> a-b).pop()||null)} className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600">Last</button>
+            </div>
+          </div>
+          {(() => {
+            const weeks = Object.keys(dayVolumes).map(Number).sort((a,b)=> a-b);
+            const rows = weeks.map(w=> ({ week: w, vol: dayVolumes[w]?.[selectedDay] || 0 }));
+            const max = Math.max(1,...rows.map(r=> r.vol));
+            const vols = rows.map(r=> r.vol).filter(v=> v>0);
+            const avg = vols.length? (vols.reduce((a,b)=> a+b,0)/vols.length):0;
+            const best = vols.length? Math.max(...vols):0;
+            const last = rows.length? rows[rows.length-1].vol:0;
+            const prev = rows.length>1? rows[rows.length-2].vol:0;
+            const delta = prev? ((last-prev)/prev)*100:0;
+            // simple slope (linear regression) week vs volume
+            let slope=0; if(rows.length>1){ const n=rows.length; const sx = rows.reduce((a,r)=> a+r.week,0); const sy= rows.reduce((a,r)=> a+r.vol,0); const sxx = rows.reduce((a,r)=> a+r.week*r.week,0); const sxy = rows.reduce((a,r)=> a+r.week*r.vol,0); const denom = (n*sxx - sx*sx)||1; slope = (n*sxy - sx*sy)/denom; }
+            return (
+              <div>
+                <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 mb-2">
+                  <div>Avg <span className="text-slate-200 font-medium tabular-nums">{avg.toFixed(0)}</span></div>
+                  <div>Best <span className="text-slate-200 font-medium tabular-nums">{best.toFixed(0)}</span></div>
+                  <div>Last <span className="text-slate-200 font-medium tabular-nums">{last.toFixed(0)}</span></div>
+                  <div>ΔPrev <span className={`font-medium tabular-nums ${delta>0?'text-emerald-400': delta<0?'text-red-400':'text-slate-300'}`}>{prev? (delta>0?'+':'')+delta.toFixed(1)+'%':'–'}</span></div>
+                  <div>Slope <span className={`font-medium tabular-nums ${slope>0?'text-emerald-400': slope<0?'text-red-400':'text-slate-300'}`}>{slope.toFixed(1)}</span></div>
+                </div>
+                <div className="h-48 flex items-end gap-2 overflow-x-auto pb-1">
+                  {rows.map(r=> { const h = (r.vol/max)*100; const hl = highlightWeek === r.week; return (
+                    <div key={r.week} className="flex flex-col items-center w-10">
+                      <div className={`w-full rounded-t-md relative ${hl? 'ring-2 ring-emerald-400/70':''}`} style={{height: `${h}%`, background: hl? 'linear-gradient(180deg,#059669,#065f46)': 'linear-gradient(180deg,#6366f1,#4338ca)'}}>
+                        <div className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-white/85 backdrop-blur-sm/10">{r.vol>0? r.vol.toFixed(0):''}</div>
+                      </div>
+                      <div className="text-[9px] mt-1 text-center w-full">W{r.week}</div>
+                    </div>
+                  ); })}
+                  {!rows.length && <div className="text-[11px] text-gray-500">No data.</div>}
+                </div>
+              </div>
+            );
+          })()}
+        </GlassCard>
+      </motion.div>}
   {!hidden?.compliance && <motion.div key="compliance" className="bg-card rounded-2xl p-5 shadow-soft space-y-4" variants={maybeDisable(fadeSlideUp)} initial="initial" animate="animate" exit="exit">
     <div className="text-title">Phase Weekly Compliance</div>
   <div className="text-body-sm text-gray-400">Color shows adherence vs target (green &gt;=100%, amber 70-99%, red &lt;70%).</div>

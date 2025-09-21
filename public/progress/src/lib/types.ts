@@ -164,6 +164,7 @@ export interface Settings {
       phaseTotals?: boolean;
       compliance?: boolean;
       weeklyMuscleBar?: boolean; // new aggregated weekly muscle bar chart
+      sessionVolumeTrend?: boolean; // per-day across weeks tonnage trend panel
     };
   };
   progress?: {
