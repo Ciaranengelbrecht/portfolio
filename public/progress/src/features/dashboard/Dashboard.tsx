@@ -8,7 +8,9 @@ import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
 import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
 import { getAllCached } from "../../lib/dataCache";
-import { Settings } from "../../lib/types";
+import { Settings, UserProgram } from "../../lib/types";
+import { getProfileProgram } from '../../lib/profile';
+import { loadRecharts } from '../../lib/loadRecharts';
 import { useAggregates } from '../../lib/useAggregates';
 
 export default function Dashboard() {
@@ -24,6 +26,9 @@ export default function Dashboard() {
   const [selectedDay, setSelectedDay] = useState<number>(0);
   const [highlightWeek, setHighlightWeek] = useState<number | null>(null);
   const [dayVolumes, setDayVolumes] = useState<Record<number, Record<number, number>>>({}); // week -> day -> volume
+  const [program, setProgram] = useState<UserProgram | null>(null);
+  const [dayLabels, setDayLabels] = useState<string[]>([]); // derived from program.weeklySplit
+  const [RC,setRC] = useState<any|null>(null);
   const [loading,setLoading] = useState(true);
   const { data: aggs } = useAggregates();
   useEffect(() => {
@@ -61,7 +66,11 @@ export default function Dashboard() {
         if(!dv[w]) dv[w] = {};
         dv[w][dayId] = (dv[w][dayId]||0) + vol;
       });
-      setDayVolumes(dv);
+  setDayVolumes(dv);
+  // load program for day labels
+  try { const prog = await getProfileProgram(); setProgram(prog); } catch {}
+  // lazy load recharts bundle for improved visualization
+  loadRecharts().then(m=> setRC(m));
       const wkNum = prefs.lastLocation?.weekNumber || 1;
       // Prefer precomputed weekly volume (aggregates) if available
       if(aggs){
@@ -83,6 +92,17 @@ export default function Dashboard() {
   window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
   }, [phase, week]);
+  // derive day labels whenever program changes
+  useEffect(()=>{
+    if(program?.weeklySplit){
+      setDayLabels(program.weeklySplit.map(d=> d.customLabel || d.type));
+    } else {
+      // fallback: infer from existing day ids in data (D1..)
+      const ids = Array.from(new Set(Object.values(dayVolumes).flatMap(rec=> Object.keys(rec).map(Number)))).sort((a,b)=> a-b);
+      setDayLabels(ids.map(id=> `D${id+1}`));
+    }
+  },[program?.id, (program as any)?.weeklySplit?.length, Object.keys(dayVolumes).length]);
+
   const toggle = async (key: HiddenKey) => {
     const next = { ...(hidden||{}), [key]: !hidden?.[key] };
     setHidden(next);
@@ -186,7 +206,7 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-2 text-[10px]">
               <label className="flex items-center gap-1">Day
                 <select className="bg-slate-700 rounded px-1 py-0.5" value={selectedDay} onChange={e=> { setSelectedDay(Number(e.target.value)); }}>
-                  {Array.from(new Set(Object.values(dayVolumes).flatMap(rec=> Object.keys(rec).map(Number)))).sort((a,b)=> a-b).map(d=> <option key={d} value={d}>D{d+1}</option>)}
+                  {dayLabels.map((lbl,idx)=> <option key={idx} value={idx}>{lbl}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-1">Highlight
@@ -201,15 +221,16 @@ export default function Dashboard() {
           {(() => {
             const weeks = Object.keys(dayVolumes).map(Number).sort((a,b)=> a-b);
             const rows = weeks.map(w=> ({ week: w, vol: dayVolumes[w]?.[selectedDay] || 0 }));
-            const max = Math.max(1,...rows.map(r=> r.vol));
             const vols = rows.map(r=> r.vol).filter(v=> v>0);
             const avg = vols.length? (vols.reduce((a,b)=> a+b,0)/vols.length):0;
             const best = vols.length? Math.max(...vols):0;
             const last = rows.length? rows[rows.length-1].vol:0;
             const prev = rows.length>1? rows[rows.length-2].vol:0;
             const delta = prev? ((last-prev)/prev)*100:0;
-            // simple slope (linear regression) week vs volume
             let slope=0; if(rows.length>1){ const n=rows.length; const sx = rows.reduce((a,r)=> a+r.week,0); const sy= rows.reduce((a,r)=> a+r.vol,0); const sxx = rows.reduce((a,r)=> a+r.week*r.week,0); const sxy = rows.reduce((a,r)=> a+r.week*r.vol,0); const denom = (n*sxx - sx*sx)||1; slope = (n*sxy - sx*sy)/denom; }
+            const avgLine = avg; // constant reference line
+            const Chart = RC?.BarChart;
+            const Bar = RC?.Bar; const XAxis = RC?.XAxis; const YAxis = RC?.YAxis; const Tooltip = RC?.Tooltip; const ResponsiveContainer = RC?.ResponsiveContainer; const ReferenceLine = RC?.ReferenceLine; const CartesianGrid = RC?.CartesianGrid;
             return (
               <div>
                 <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 mb-2">
@@ -219,16 +240,41 @@ export default function Dashboard() {
                   <div>ΔPrev <span className={`font-medium tabular-nums ${delta>0?'text-emerald-400': delta<0?'text-red-400':'text-slate-300'}`}>{prev? (delta>0?'+':'')+delta.toFixed(1)+'%':'–'}</span></div>
                   <div>Slope <span className={`font-medium tabular-nums ${slope>0?'text-emerald-400': slope<0?'text-red-400':'text-slate-300'}`}>{slope.toFixed(1)}</span></div>
                 </div>
-                <div className="h-48 flex items-end gap-2 overflow-x-auto pb-1">
-                  {rows.map(r=> { const h = (r.vol/max)*100; const hl = highlightWeek === r.week; return (
-                    <div key={r.week} className="flex flex-col items-center w-10">
-                      <div className={`w-full rounded-t-md relative ${hl? 'ring-2 ring-emerald-400/70':''}`} style={{height: `${h}%`, background: hl? 'linear-gradient(180deg,#059669,#065f46)': 'linear-gradient(180deg,#6366f1,#4338ca)'}}>
-                        <div className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-white/85 backdrop-blur-sm/10">{r.vol>0? r.vol.toFixed(0):''}</div>
-                      </div>
-                      <div className="text-[9px] mt-1 text-center w-full">W{r.week}</div>
-                    </div>
-                  ); })}
-                  {!rows.length && <div className="text-[11px] text-gray-500">No data.</div>}
+                <div className="h-56">
+                  {RC && rows.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <Chart data={rows} margin={{left:4,right:4,top:10,bottom:4}} barSize={32}>
+                        <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                        <XAxis dataKey="week" tick={{fill:'#94a3b8', fontSize:10}} tickFormatter={(v:number)=> 'W'+v} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fill:'#94a3b8', fontSize:10}} width={40} axisLine={false} tickLine={false} tickFormatter={(v:number)=> v>=1000? (v/1000).toFixed(1)+'k': v.toFixed(0)} />
+                        <Tooltip cursor={{fill:'rgba(255,255,255,0.06)'}} content={({active,payload,label}:any)=>{
+                          if(!active || !payload?.length) return null;
+                          const r = payload[0].payload as any; const prevIdx = rows.findIndex(x=> x.week===r.week)-1; const prevVol = prevIdx>=0? rows[prevIdx].vol:0; const dPct = prevVol? ((r.vol-prevVol)/prevVol)*100:0;
+                          return <div className="text-[11px] bg-slate-800/90 backdrop-blur-md border border-white/10 rounded-md px-2 py-1 space-y-0.5">
+                            <div className="font-medium text-slate-200">Week {r.week}</div>
+                            <div className="tabular-nums">Tonnage: <span className="text-slate-100 font-semibold">{r.vol.toFixed(0)}</span></div>
+                            <div className="tabular-nums">ΔPrev: <span className={dPct>0? 'text-emerald-400': dPct<0? 'text-red-400':'text-slate-300'}>{prevVol? (dPct>0?'+':'')+dPct.toFixed(1)+'%':'–'}</span></div>
+                            <div className="tabular-nums">vs Avg: <span className={r.vol>=avg? 'text-emerald-400':'text-amber-400'}>{avg? ((r.vol-avg)/avg*100).toFixed(1)+'%':'–'}</span></div>
+                          </div>;
+                        }} />
+                        <ReferenceLine y={avgLine} stroke="#10b981" strokeDasharray="3 3" ifOverflow="extendDomain" />
+                        <Bar dataKey="vol" radius={[4,4,0,0]} fill="#6366f1">
+                          {rows.map((entry,i)=>{
+                            const hl = highlightWeek === entry.week;
+                            return <RC.Cell key={entry.week} fill={hl? 'url(#gradHighlight)': (entry.vol===best? '#10b981':'#6366f1')} />;
+                          })}
+                        </Bar>
+                        <defs>
+                          <linearGradient id="gradHighlight" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#059669" />
+                            <stop offset="100%" stopColor="#065f46" />
+                          </linearGradient>
+                        </defs>
+                      </Chart>
+                    </ResponsiveContainer>
+                  ): (
+                    <div className="h-full flex items-center justify-center text-[11px] text-gray-500">{rows.length? 'Loading chart...':'No data.'}</div>
+                  )}
                 </div>
               </div>
             );
