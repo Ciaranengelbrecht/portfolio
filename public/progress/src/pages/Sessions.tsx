@@ -2350,6 +2350,18 @@ export default function Sessions() {
             </div>
           </div>
         )}
+        {/* Session contents navigator */}
+        {!initialLoading && session && session.entries.length > 0 && (
+          <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1">
+            <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
+              {session.entries.map((en, i)=> { const ex = exMap.get(en.exerciseId); const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i+1}`; const short = name.length>18? name.slice(0,16)+'…': name; return (
+                <button key={en.id} onClick={()=>{ const el=document.getElementById(`exercise-${en.id}`); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }} className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                  {short}
+                </button>
+              ); })}
+            </div>
+          </div>
+        )}
         {!initialLoading &&
           session &&
           session.entries.map((entry, entryIdx) => {
@@ -2420,6 +2432,7 @@ export default function Sessions() {
             return (
               <div
                 key={entry.id}
+                id={`exercise-${entry.id}`}
                 className="relative card-enhanced rounded-2xl p-4 fade-in reorder-anim group"
                 draggable
                 onDragStart={(e) => {
