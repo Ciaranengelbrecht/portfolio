@@ -76,6 +76,8 @@ export default function Sessions() {
   const [prevBestMap, setPrevBestMap] = useState<{
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
+  // Previous week per-exercise set data (same day) for quick reference
+  const [prevWeekSets, setPrevWeekSets] = useState<Record<string, { weightKg: number|null; reps: number|null }[]>>({});
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
   const lastRealSessionAppliedRef = useRef(false);
@@ -1224,6 +1226,26 @@ export default function Sessions() {
       setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
     })();
   }, [week, phase, day]);
+
+  // Build previous week per-set lookup whenever active session context changes
+  useEffect(()=> {
+    (async ()=> {
+      if(!session){ setPrevWeekSets({}); return; }
+      const targetWeek = (session.weekNumber || week) - 1;
+      if(targetWeek < 1){ setPrevWeekSets({}); return; }
+      try {
+        const all = await getAllCached<Session>('sessions');
+        const prevSess = (all as Session[]).find(s=> (s.phaseNumber||s.phase||phase) === (session.phaseNumber||session.phase||phase)
+          && s.weekNumber === targetWeek
+          && ((session.templateId && s.templateId && s.templateId === session.templateId) || (!session.templateId && s.dayName === session.dayName))
+        );
+        if(!prevSess){ setPrevWeekSets({}); return; }
+        const map: Record<string, { weightKg: number|null; reps: number|null }[]> = {};
+        prevSess.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
+        setPrevWeekSets(map);
+      } catch { setPrevWeekSets({}); }
+    })();
+  }, [session?.id, session?.weekNumber, session?.phaseNumber, session?.templateId, session?.dayName]);
 
   const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
   const isDeloadWeek = deloadWeeks.has(week);
@@ -2840,6 +2862,9 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.weightKg==null) return null; return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title="Prev week weight">{prev.weightKg}kg</div>
+                                    ); })()}
                                     {!(
                                       (
                                         weightInputEditing.current[
@@ -3016,6 +3041,9 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.reps==null) return null; return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title="Prev week reps">{prev.reps}r</div>
+                                    ); })()}
                                     {!(
                                       (
                                         repsInputEditing.current[
