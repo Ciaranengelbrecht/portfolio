@@ -78,6 +78,7 @@ export default function Sessions() {
   } | null>(null);
   // Previous week per-exercise set data (same day) for quick reference
   const [prevWeekSets, setPrevWeekSets] = useState<Record<string, { weightKg: number|null; reps: number|null }[]>>({});
+  const [prevWeekSourceWeek, setPrevWeekSourceWeek] = useState<number | null>(null);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
   const lastRealSessionAppliedRef = useRef(false);
@@ -1227,23 +1228,26 @@ export default function Sessions() {
     })();
   }, [week, phase, day]);
 
-  // Build previous week per-set lookup whenever active session context changes
+  // Build previous week (or nearest past week) per-set lookup whenever active session context changes
   useEffect(()=> {
     (async ()=> {
-      if(!session){ setPrevWeekSets({}); return; }
-      const targetWeek = (session.weekNumber || week) - 1;
-      if(targetWeek < 1){ setPrevWeekSets({}); return; }
+      if(!session){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
+      let target = (session.weekNumber || week) - 1;
+      if(target < 1){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
       try {
         const all = await getAllCached<Session>('sessions');
-        const prevSess = (all as Session[]).find(s=> (s.phaseNumber||s.phase||phase) === (session.phaseNumber||session.phase||phase)
-          && s.weekNumber === targetWeek
-          && ((session.templateId && s.templateId && s.templateId === session.templateId) || (!session.templateId && s.dayName === session.dayName))
-        );
-        if(!prevSess){ setPrevWeekSets({}); return; }
+        const samePhase = (all as Session[]).filter(s=> (s.phaseNumber||s.phase||phase) === (session.phaseNumber||session.phase||phase));
+        let found: Session | undefined;
+        while(target >= 1 && !found){
+          found = samePhase.find(s=> s.weekNumber === target && ((session.templateId && s.templateId && s.templateId === session.templateId) || (!session.templateId && s.dayName === session.dayName)));
+          if(!found) target--; // search further back
+        }
+        if(!found){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
         const map: Record<string, { weightKg: number|null; reps: number|null }[]> = {};
-        prevSess.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
+        found.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
         setPrevWeekSets(map);
-      } catch { setPrevWeekSets({}); }
+        setPrevWeekSourceWeek(found.weekNumber || target);
+      } catch { setPrevWeekSets({}); setPrevWeekSourceWeek(null); }
     })();
   }, [session?.id, session?.weekNumber, session?.phaseNumber, session?.templateId, session?.dayName]);
 
@@ -2862,8 +2866,8 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.weightKg==null) return null; return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title="Prev week weight">{prev.weightKg}kg</div>
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.weightKg==null) return null; const wk = prevWeekSourceWeek; return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} weight`:'Previous weight'}>{prev.weightKg}kg</div>
                                     ); })()}
                                     {!(
                                       (
@@ -3041,8 +3045,8 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.reps==null) return null; return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title="Prev week reps">{prev.reps}r</div>
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.reps==null) return null; const wk = prevWeekSourceWeek; return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} reps`:'Previous reps'}>{prev.reps}r</div>
                                     ); })()}
                                     {!(
                                       (
