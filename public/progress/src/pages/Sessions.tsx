@@ -4104,19 +4104,23 @@ function SessionSummary({
     }
     return { sets, volume, prs };
   }, [session, exMap]);
-  // Count sets per PRIMARY muscle group (ignore secondaryMuscles). Matches SessionSummary semantics: counts all sets.
-  const muscleCounts = useMemo(() => {
-    const by: Record<string, number> = {};
+  // Count sets & tonnage per PRIMARY muscle group (ignore secondaryMuscles). Tonnage sums raw weight*reps of all sets.
+  const muscleStats = useMemo(() => {
+    const by: Record<string, { sets: number; tonnage: number }> = {};
     for (const entry of session.entries) {
       const ex = exMap.get(entry.exerciseId);
       if (!ex) continue;
       const g = ex.muscleGroup || "other";
-      by[g] = (by[g] || 0) + entry.sets.length;
+      let bucket = by[g];
+      if (!bucket) bucket = by[g] = { sets: 0, tonnage: 0 };
+      for (const s of entry.sets) {
+        bucket.sets += 1;
+        bucket.tonnage += (s.weightKg || 0) * (s.reps || 0);
+      }
     }
-    // Filter groups with >=1 and return sorted by label
     const label = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
     return Object.entries(by)
-      .filter(([, n]) => n >= 1)
+      .filter(([, v]) => v.sets >= 1)
       .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
   }, [session, exMap]);
   const estTonnage = totals.volume;
@@ -4132,18 +4136,19 @@ function SessionSummary({
         <div>
           <span className="text-muted">PR Signals:</span> {totals.prs}
         </div>
-        {/* Per-muscle set counters (primary muscle only) */}
-        {muscleCounts.length > 0 && (
+        {/* Per-muscle set & tonnage summary */}
+        {muscleStats.length > 0 && (
           <div className="inline-flex flex-wrap items-center gap-2">
-            {muscleCounts.map(([k, n]) => (
+            {muscleStats.map(([k, v]) => (
               <span
                 key={k}
-                className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-white/10"
+                className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-white/10 tabular-nums"
+                title={`${k} • ${v.sets} sets • ${v.tonnage} tonnage`}
               >
                 <span className="opacity-70 mr-1">
                   {k.charAt(0).toUpperCase() + k.slice(1)}:
                 </span>
-                <span>{n}</span>
+                <span>{v.sets} sets · {v.tonnage}</span>
               </span>
             ))}
           </div>
