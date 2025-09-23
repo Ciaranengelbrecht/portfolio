@@ -1,3 +1,4 @@
+import { getMuscleIconPath } from '../lib/muscles';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme, THEME_PRESETS } from "../lib/theme";
 import { useAppTheme } from "../theme/ThemeProvider";
@@ -1397,6 +1398,7 @@ function ExerciseLibraryManager(){
   const [list,setList] = useState<any[]>([]);
   const [q,setQ] = useState("");
   const [creating,setCreating] = useState("");
+  const [muscleFilter,setMuscleFilter] = useState<string>(""); // empty => all
   useEffect(()=> { (async ()=> setList(await db.getAll('exercises')))(); },[]);
   const ALL: string[] = ['chest','back','shoulders','triceps','biceps','forearms','legs','hamstrings','quads','glutes','calves','core','other'];
   const update = async (id:string, mut:(ex:any)=>any) => {
@@ -1422,8 +1424,30 @@ function ExerciseLibraryManager(){
           <button className="btn-primary px-3 py-2 rounded-xl" onClick={createExercise}>Add</button>
         </div>
       </div>
+      {/* Muscle filter chips */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-none -mx-1 px-1 pt-1 pb-1 flex-wrap">
+        <button
+          onClick={()=> setMuscleFilter("")}
+          className={`text-[11px] px-2 py-1 rounded-lg border transition whitespace-nowrap ${muscleFilter===""? 'bg-emerald-600/70 border-emerald-400 text-white shadow-inner' : 'bg-slate-700/60 border-white/10 text-slate-200 hover:bg-slate-600/60'}`}
+        >All</button>
+        {ALL.map(m=> (
+          <button
+            key={m}
+            onClick={()=> setMuscleFilter(prev=> prev===m? "" : m)}
+            className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition whitespace-nowrap capitalize ${muscleFilter===m? 'bg-emerald-600/70 border-emerald-400 text-white shadow-inner' : 'bg-slate-700/60 border-white/10 text-slate-200 hover:bg-slate-600/60'}`}
+            title={`Filter by ${m}`}
+          >
+            {/* icon */}
+            {(() => { try { const p = getMuscleIconPath(m); return p ? <img src={p} alt={m} className="w-4 h-4 object-contain opacity-80" /> : null; } catch { return null; } })()}
+            <span>{m}</span>
+          </button>
+        ))}
+      </div>
       <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
-        {list.filter(ex=> ex.name.toLowerCase().includes(q.toLowerCase())).map(ex=> {
+        {list
+          .filter(ex=> ex.name.toLowerCase().includes(q.toLowerCase()))
+          .filter(ex=> !muscleFilter || ex.muscleGroup === muscleFilter)
+          .map(ex=> {
           const remaining = ALL.filter(m=> m!==ex.muscleGroup && !(ex.secondaryMuscles||[]).includes(m));
           return (
             <div key={ex.id} className="p-3 rounded-xl bg-slate-800 space-y-2">
