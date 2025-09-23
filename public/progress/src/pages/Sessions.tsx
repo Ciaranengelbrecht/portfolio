@@ -2522,7 +2522,7 @@ export default function Sessions() {
                   <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand-500/15 via-electric-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="relative z-10">
-                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2">
                     <div
                       className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none"
                       onClick={() => toggleEntryCollapsed(entry.id)}
@@ -2544,7 +2544,7 @@ export default function Sessions() {
                       >
                         ⋮⋮
                       </span>
-                      <span className="inline-flex items-center gap-1 min-w-0">
+                      <span className={`inline-flex items-center gap-1 min-w-0 ${isCollapsed ? 'whitespace-normal break-words' : ''}`}>
                         {ex && (
                           <img
                             src={getMuscleIconPath(ex.muscleGroup)}
@@ -2553,7 +2553,7 @@ export default function Sessions() {
                             loading="lazy"
                           />
                         )}
-                        <span className="truncate max-w-[56vw] sm:max-w-none">
+                        <span className={`${isCollapsed ? 'whitespace-normal break-words pr-1' : 'truncate max-w-[56vw] sm:max-w-none'}`}>
                           {ex?.name ||
                             exNameCache[entry.exerciseId] ||
                             "Deleted exercise"}
@@ -2611,30 +2611,32 @@ export default function Sessions() {
                           )}
                         </span>
                       )}
-                      {/* Mobile reorder buttons */}
-                      <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto shrink-0">
-                        <button
-                          disabled={entryIdx === 0}
-                          className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
-                          onClick={() =>
-                            reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
-                          }
-                        >
-                          Up
-                        </button>
-                        <button
-                          disabled={entryIdx === session.entries.length - 1}
-                          className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
-                          onClick={() =>
-                            reorderEntry(
-                              entryIdx,
-                              Math.min(session.entries.length - 1, entryIdx + 1)
-                            )
-                          }
-                        >
-                          Down
-                        </button>
-                      </div>
+                      {/* Mobile reorder buttons (shown inline only when expanded to save vertical space) */}
+                      {!isCollapsed && (
+                        <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto shrink-0">
+                          <button
+                            disabled={entryIdx === 0}
+                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            onClick={() =>
+                              reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
+                            }
+                          >
+                            Up
+                          </button>
+                          <button
+                            disabled={entryIdx === session.entries.length - 1}
+                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            onClick={() =>
+                              reorderEntry(
+                                entryIdx,
+                                Math.min(session.entries.length - 1, entryIdx + 1)
+                              )
+                            }
+                          >
+                            Down
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {/* Switch exercise button */}
@@ -2655,13 +2657,40 @@ export default function Sessions() {
                           <AsyncChip promise={deloadInfo(entry.exerciseId)} />
                         </span>
                       )}
-                      <button
-                        aria-label="Remove exercise"
-                        className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
-                        onClick={() => removeEntry(entry.id)}
-                      >
-                        Remove
-                      </button>
+                      <div className="flex flex-col items-stretch gap-1">
+                        <button
+                          aria-label="Remove exercise"
+                          className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
+                          onClick={() => removeEntry(entry.id)}
+                        >
+                          Remove
+                        </button>
+                        {isCollapsed && (
+                          <div className="flex sm:hidden items-center gap-1 text-[10px]">
+                            <button
+                              disabled={entryIdx === 0}
+                              className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                              onClick={() =>
+                                reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
+                              }
+                            >
+                              Up
+                            </button>
+                            <button
+                              disabled={entryIdx === session.entries.length - 1}
+                              className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                              onClick={() =>
+                                reorderEntry(
+                                  entryIdx,
+                                  Math.min(session.entries.length - 1, entryIdx + 1)
+                                )
+                              }
+                            >
+                              Down
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {/* Collapsed metrics pill moved below header for mobile to avoid pushing controls */}
