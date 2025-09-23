@@ -37,20 +37,21 @@ import PhaseStepper from "../components/PhaseStepper";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 
-// SVG icon path mapping (stored in public/progress/public/muscles)
+// SVG icon path mapping (paths relative to Vite public root for progress app)
+// Using relative paths ensures they resolve both in dev and in the built bundle (base './').
 const MUSCLE_ICONS: Record<string,string> = {
-  chest: "/progress/muscles/chest.svg",
-  back: "/progress/muscles/back.svg",
-  shoulders: "/progress/muscles/shoulders.svg",
-  biceps: "/progress/muscles/biceps.svg",
-  triceps: "/progress/muscles/triceps.svg",
-  forearms: "/progress/muscles/forearms.svg",
-  quads: "/progress/muscles/quads.svg",
-  hamstrings: "/progress/muscles/hamstrings.svg",
-  glutes: "/progress/muscles/glutes.svg",
-  calves: "/progress/muscles/calves.svg",
-  core: "/progress/muscles/core.svg",
-  other: "/progress/muscles/other.svg",
+  chest: "./muscles/chest.svg",
+  back: "./muscles/back.svg",
+  shoulders: "./muscles/shoulders.svg",
+  biceps: "./muscles/biceps.svg",
+  triceps: "./muscles/triceps.svg",
+  forearms: "./muscles/forearms.svg",
+  quads: "./muscles/quads.svg",
+  hamstrings: "./muscles/hamstrings.svg",
+  glutes: "./muscles/glutes.svg",
+  calves: "./muscles/calves.svg",
+  core: "./muscles/core.svg",
+  other: "./muscles/other.svg",
 };
 
 function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Session; exMap: Map<string, Exercise>; exNameCache: Record<string,string>; }) {
