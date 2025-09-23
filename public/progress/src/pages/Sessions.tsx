@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
-import MuscleIcon from "../components/MuscleIcon";
 import { createPortal } from "react-dom";
 import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
@@ -38,7 +37,21 @@ import PhaseStepper from "../components/PhaseStepper";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 
-// Inline anatomical icon component replaces static SVG assets for clarity.
+// Static muscle SVG assets (user-provided) referenced from public path
+const MUSCLE_ICONS: Record<string,string> = {
+  chest: "./muscles/chest.svg",
+  back: "./muscles/back.svg",
+  shoulders: "./muscles/shoulders.svg",
+  biceps: "./muscles/biceps.svg",
+  triceps: "./muscles/triceps.svg",
+  forearms: "./muscles/forearms.svg",
+  quads: "./muscles/quads.svg",
+  hamstrings: "./muscles/hamstrings.svg",
+  glutes: "./muscles/glutes.svg",
+  calves: "./muscles/calves.svg",
+  core: "./muscles/core.svg",
+  other: "./muscles/other.svg",
+};
 
 function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Session; exMap: Map<string, Exercise>; exNameCache: Record<string,string>; }) {
   const muscleCounts = useMemo(()=>{
@@ -57,17 +70,13 @@ function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Sessio
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
       {muscleCounts.length>0 && (
-        <div className="flex gap-1 overflow-x-auto scrollbar-none px-2 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
-          {muscleCounts.map(([k,c])=> (
-            <div
-              key={k}
-              className="flex items-center gap-1 text-[11px] pl-1 pr-2 py-1 rounded-lg bg-slate-700/50 hover:bg-slate-600/50 transition text-slate-200 whitespace-nowrap"
-              aria-label={`${k} working sets ${c}`}
-            >
-              <MuscleIcon group={k as any} size={28} title={`${k} ${c} working sets`} />
+        <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
+          {muscleCounts.map(([k,c])=> { const src = MUSCLE_ICONS[k]; return (
+            <div key={k} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/60 transition text-slate-200 whitespace-nowrap" aria-label={`${k} working sets ${c}`}>
+              {src ? <img src={src} alt={k} className="w-5 h-5 object-contain" /> : <span className="w-5 h-5" />}
               <span className="tabular-nums font-medium leading-none">{c}</span>
             </div>
-          ))}
+          ); })}
         </div>
       )}
       <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
