@@ -2638,14 +2638,13 @@ export default function Sessions() {
                         </div>
                       )}
                     </div>
-                    <div className={`shrink-0 ${isCollapsed ? 'flex flex-col items-end gap-1' : 'flex items-center'} `}>
-                      <div className={`flex items-center ${isCollapsed ? 'gap-0.5 pr-0.5' : 'gap-1'}`}>
+                    <div className="shrink-0 flex flex-col items-end gap-1 relative min-w-[118px]">
+                      <div className="flex items-center gap-1 justify-end w-full">
                         {isDeloadWeek && (
                           <span data-shape="deload" className="mr-1">
                             <AsyncChip promise={deloadInfo(entry.exerciseId)} />
                           </span>
                         )}
-                        {/* Swap sits immediately left of Remove */}
                         <button
                           aria-label="Switch exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
@@ -2667,10 +2666,10 @@ export default function Sessions() {
                         </button>
                       </div>
                       {isCollapsed && (
-                        <div className="flex sm:hidden items-center gap-1 text-[10px]">
+                        <div className="flex sm:hidden items-center gap-1 text-[10px] w-full justify-end">
                           <button
                             disabled={entryIdx === 0}
-                            className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
@@ -2679,7 +2678,7 @@ export default function Sessions() {
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
