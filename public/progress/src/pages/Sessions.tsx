@@ -37,6 +37,57 @@ import PhaseStepper from "../components/PhaseStepper";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 
+// SVG icon path mapping (stored in public/progress/public/muscles)
+const MUSCLE_ICONS: Record<string,string> = {
+  chest: "/progress/muscles/chest.svg",
+  back: "/progress/muscles/back.svg",
+  shoulders: "/progress/muscles/shoulders.svg",
+  biceps: "/progress/muscles/biceps.svg",
+  triceps: "/progress/muscles/triceps.svg",
+  forearms: "/progress/muscles/forearms.svg",
+  quads: "/progress/muscles/quads.svg",
+  hamstrings: "/progress/muscles/hamstrings.svg",
+  glutes: "/progress/muscles/glutes.svg",
+  calves: "/progress/muscles/calves.svg",
+  core: "/progress/muscles/core.svg",
+  other: "/progress/muscles/other.svg",
+};
+
+function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Session; exMap: Map<string, Exercise>; exNameCache: Record<string,string>; }) {
+  const muscleCounts = useMemo(()=>{
+    const by: Record<string, number> = {};
+    for(const entry of session.entries){
+      const ex = exMap.get(entry.exerciseId); if(!ex) continue;
+      let filled = 0; for(const s of entry.sets){ if((s.reps||0)>0 || (s.weightKg||0)>0) filled++; }
+      if(filled>0){ const g = ex.muscleGroup || 'other'; by[g] = (by[g]||0) + filled; }
+    }
+    const order = ['chest','back','shoulders','biceps','triceps','forearms','quads','hamstrings','glutes','calves','core','other'];
+    return Object.entries(by)
+      .filter(([,c])=>c>0)
+      .sort((a,b)=> order.indexOf(a[0]) - order.indexOf(b[0]));
+  },[session.entries, exMap]);
+  if(session.entries.length===0) return null;
+  return (
+    <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
+      {muscleCounts.length>0 && (
+        <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
+          {muscleCounts.map(([k,c])=> { const src = MUSCLE_ICONS[k]; return (
+            <div key={k} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-700/60 text-slate-200 whitespace-nowrap" aria-label={`${k} working sets ${c}`}>
+              {src ? <img src={src} alt={k} className="w-4 h-4 object-contain" /> : <span className="w-4 h-4" />}
+              <span className="tabular-nums font-medium">{c}</span>
+            </div>
+          ); })}
+        </div>
+      )}
+      <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
+        {session.entries.map((en,i)=>{ const ex = exMap.get(en.exerciseId); const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i+1}`; const short = name.length>18? name.slice(0,16)+'…': name; return (
+          <button key={en.id} onClick={()=>{ const el=document.getElementById(`exercise-${en.id}`); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }} className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50">{short}</button>
+        ); })}
+      </div>
+    </div>
+  );
+}
+
 const DAYS = [
   "Upper A",
   "Lower A",
@@ -2350,17 +2401,9 @@ export default function Sessions() {
             </div>
           </div>
         )}
-        {/* Session contents navigator */}
+        {/* Top sticky: live muscle counts + contents navigator */}
         {!initialLoading && session && session.entries.length > 0 && (
-          <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1">
-            <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
-              {session.entries.map((en, i)=> { const ex = exMap.get(en.exerciseId); const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i+1}`; const short = name.length>18? name.slice(0,16)+'…': name; return (
-                <button key={en.id} onClick={()=>{ const el=document.getElementById(`exercise-${en.id}`); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }} className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
-                  {short}
-                </button>
-              ); })}
-            </div>
-          </div>
+          <TopMuscleAndContents session={session} exMap={exMap} exNameCache={exNameCache} />
         )}
         {!initialLoading &&
           session &&
