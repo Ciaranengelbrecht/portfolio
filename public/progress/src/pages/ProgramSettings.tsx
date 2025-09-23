@@ -18,6 +18,7 @@ import {
 import { db } from "../lib/db";
 import { Session, Exercise } from "../lib/types";
 import { nanoid } from "nanoid";
+import { getMuscleIconPath } from "../lib/muscles";
 import { computeLoggedSetVolume } from "../lib/volume";
 import { getSettings } from "../lib/helpers";
 
@@ -392,7 +393,11 @@ export default function ProgramSettings() {
             {Object.entries(muscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=>{ const max=Math.max(1,...Object.values(muscleVolume)); const pct=(v/max)*100; return (
               <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
                 <div className="flex items-center justify-between text-[10px] text-gray-400">
-                  <span className="capitalize">{m}</span><span className="tabular-nums">{Math.round(v)}</span>
+                  <span className="capitalize inline-flex items-center gap-1">
+                    <img src={getMuscleIconPath(m)} alt={m} className="w-3.5 h-3.5 opacity-80" loading="lazy" />
+                    {m}
+                  </span>
+                  <span className="tabular-nums">{Math.round(v)}</span>
                 </div>
                 <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
                   <div className="h-full bg-emerald-500" style={{width:`${pct}%`}} />
