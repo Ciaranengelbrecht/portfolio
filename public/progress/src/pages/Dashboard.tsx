@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { volumeByMuscleGroup } from "../lib/helpers";
+import { getMuscleIconPath } from "../lib/muscles";
 import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
 import { getAllCached } from '../lib/dataCache';
@@ -225,6 +226,15 @@ export default function Dashboard() {
         </div>
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Weekly Volume by Muscle Group</h3>
+          <div className="flex flex-wrap gap-2 mb-3 text-[11px]">
+            {volData.map(v=> (
+              <span key={v.group} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/5">
+                <img src={getMuscleIconPath(v.group)} alt={v.group} className="w-4 h-4 opacity-80" loading="lazy" />
+                <span className="capitalize">{v.group}</span>
+                <span className="tabular-nums text-xs opacity-70">{v.sets} sets</span>
+              </span>
+            ))}
+          </div>
           <div className="h-56">
             {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
             {RC && (
@@ -317,7 +327,8 @@ export default function Dashboard() {
                   <RC.Legend />
                   {['chest','back','legs','shoulders','arms','core','glutes'].filter(m=> volumeTrend.some(r=> r[m])).map((m,i)=> {
                     const palette=['#f87171','#60a5fa','#34d399','#fbbf24','#c084fc','#f472b6','#a3e635'];
-                    return <RC.Line key={m} type="monotone" dataKey={m} name={m} stroke={palette[i%palette.length]} dot={false} />
+                    const icon = getMuscleIconPath(m);
+                    return <RC.Line key={m} type="monotone" dataKey={m} name={m} stroke={palette[i%palette.length]} dot={false} legendType="circle" />
                   })}
                 </RC.LineChart>
               </RC.ResponsiveContainer>

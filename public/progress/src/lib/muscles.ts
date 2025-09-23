@@ -34,5 +34,9 @@ export const MUSCLE_ICON_PATHS: Record<MuscleGroup, string> = {
 export function getMuscleIconPath(group?: string | null): string | undefined {
   if (!group) return MUSCLE_ICON_PATHS.other;
   const key = group.toLowerCase() as MuscleGroup;
-  return (MUSCLE_ICON_PATHS as any)[key] || MUSCLE_ICON_PATHS.other;
+  if ((MUSCLE_ICON_PATHS as any)[key]) return (MUSCLE_ICON_PATHS as any)[key];
+  // Graceful fallbacks for aggregated labels used in analytics (e.g. 'legs','arms')
+  if (group === 'legs') return MUSCLE_ICON_PATHS.quads;
+  if (group === 'arms') return MUSCLE_ICON_PATHS.biceps;
+  return MUSCLE_ICON_PATHS.other;
 }
