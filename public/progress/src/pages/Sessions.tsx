@@ -1311,6 +1311,7 @@ export default function Sessions() {
       weightKg: last?.weightKg ?? null,
       reps: last?.reps ?? null,
       rpe: last?.rpe,
+      addedAt: new Date().toISOString(),
     };
     const newEntry = { ...entry, sets: [...entry.sets, next] };
     // Inline the updateEntry logic to immediately stamp and set lastLocalEditRef before any remote pull
@@ -2775,6 +2776,16 @@ export default function Sessions() {
                               <div className="text-sm font-medium flex items-center gap-2">
                                 <span className="text-gray-300">
                                   Set {set.setNumber}
+                                  {(() => {
+                                    const iso = set.addedAt || set.completedAt;
+                                    if(!iso) return null;
+                                    try {
+                                      const d = new Date(iso);
+                                      const hh = String(d.getHours()).padStart(2,'0');
+                                      const mm = String(d.getMinutes()).padStart(2,'0');
+                                      return <span className="ml-1 text-[10px] text-slate-400/50 tabular-nums" title={`Added at ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`}>{hh}:{mm}</span>;
+                                    } catch { return null; }
+                                  })()}
                                 </span>
                                 {idx === 0 &&
                                   (set.weightKg || 0) === 0 &&

@@ -43,6 +43,8 @@ export interface SetEntry {
   rpe?: number;
   /** Timestamp when this set was last completed/edited (ISO). Locked to session calendar date for late edits. */
   completedAt?: string;
+  /** Timestamp when the set row was created (ISO). */
+  addedAt?: string;
 }
 export interface SessionEntry {
   id: UUID;
