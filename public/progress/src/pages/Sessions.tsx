@@ -2638,26 +2638,26 @@ export default function Sessions() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {/* Switch exercise button */}
-                      <button
-                        aria-label="Switch exercise"
-                        className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSwitchTarget({ entryId: entry.id });
-                          setSwitchQuery("");
-                        }}
-                        title="Switch to a different exercise for this muscle group"
-                      >
-                        ⇄
-                      </button>
-                      {isDeloadWeek && (
-                        <span data-shape="deload">
-                          <AsyncChip promise={deloadInfo(entry.exerciseId)} />
-                        </span>
-                      )}
-                      <div className="flex flex-col items-stretch gap-1">
+                    <div className={`shrink-0 ${isCollapsed ? 'flex flex-col items-end gap-1' : 'flex items-center gap-2'}`}>
+                      <div className="flex items-center gap-2">
+                        {/* Switch exercise button */}
+                        <button
+                          aria-label="Switch exercise"
+                          className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSwitchTarget({ entryId: entry.id });
+                            setSwitchQuery("");
+                          }}
+                          title="Switch to a different exercise for this muscle group"
+                        >
+                          ⇄
+                        </button>
+                        {isDeloadWeek && (
+                          <span data-shape="deload">
+                            <AsyncChip promise={deloadInfo(entry.exerciseId)} />
+                          </span>
+                        )}
                         <button
                           aria-label="Remove exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
@@ -2665,32 +2665,32 @@ export default function Sessions() {
                         >
                           Remove
                         </button>
-                        {isCollapsed && (
-                          <div className="flex sm:hidden items-center gap-1 text-[10px]">
-                            <button
-                              disabled={entryIdx === 0}
-                              className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
-                              onClick={() =>
-                                reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
-                              }
-                            >
-                              Up
-                            </button>
-                            <button
-                              disabled={entryIdx === session.entries.length - 1}
-                              className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
-                              onClick={() =>
-                                reorderEntry(
-                                  entryIdx,
-                                  Math.min(session.entries.length - 1, entryIdx + 1)
-                                )
-                              }
-                            >
-                              Down
-                            </button>
-                          </div>
-                        )}
                       </div>
+                      {isCollapsed && (
+                        <div className="flex sm:hidden items-center gap-1 text-[10px]">
+                          <button
+                            disabled={entryIdx === 0}
+                            className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            onClick={() =>
+                              reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
+                            }
+                          >
+                            Up
+                          </button>
+                          <button
+                            disabled={entryIdx === session.entries.length - 1}
+                            className="flex-1 px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            onClick={() =>
+                              reorderEntry(
+                                entryIdx,
+                                Math.min(session.entries.length - 1, entryIdx + 1)
+                              )
+                            }
+                          >
+                            Down
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {/* Collapsed metrics pill moved below header for mobile to avoid pushing controls */}
