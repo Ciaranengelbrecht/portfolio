@@ -2638,9 +2638,14 @@ export default function Sessions() {
                         </div>
                       )}
                     </div>
-                    <div className={`shrink-0 ${isCollapsed ? 'flex flex-col items-end gap-1' : 'flex items-center gap-2'}`}>
-                      <div className="flex items-center gap-2">
-                        {/* Switch exercise button */}
+                    <div className={`shrink-0 ${isCollapsed ? 'flex flex-col items-end gap-1' : 'flex items-center'} `}>
+                      <div className="flex items-center gap-1">
+                        {isDeloadWeek && (
+                          <span data-shape="deload" className="mr-1">
+                            <AsyncChip promise={deloadInfo(entry.exerciseId)} />
+                          </span>
+                        )}
+                        {/* Swap sits immediately left of Remove */}
                         <button
                           aria-label="Switch exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
@@ -2653,11 +2658,6 @@ export default function Sessions() {
                         >
                           ⇄
                         </button>
-                        {isDeloadWeek && (
-                          <span data-shape="deload">
-                            <AsyncChip promise={deloadInfo(entry.exerciseId)} />
-                          </span>
-                        )}
                         <button
                           aria-label="Remove exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
