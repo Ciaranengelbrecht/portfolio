@@ -2560,6 +2560,14 @@ export default function Sessions() {
                         ⋮⋮
                       </span>
                       <span className="inline-flex items-center gap-1 min-w-0">
+                        {ex && (
+                          <img
+                            src={MUSCLE_ICONS[ex.muscleGroup || 'other']}
+                            alt={ex.muscleGroup || 'other'}
+                            className="w-4 h-4 opacity-80 flex-shrink-0 rounded-sm ring-1 ring-white/10 shadow-sm"
+                            loading="lazy"
+                          />
+                        )}
                         <span className="truncate max-w-[56vw] sm:max-w-none">
                           {ex?.name ||
                             exNameCache[entry.exerciseId] ||
