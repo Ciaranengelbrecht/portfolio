@@ -2639,7 +2639,7 @@ export default function Sessions() {
                       )}
                     </div>
                     <div className={`shrink-0 ${isCollapsed ? 'flex flex-col items-end gap-1' : 'flex items-center'} `}>
-                      <div className="flex items-center gap-1">
+                      <div className={`flex items-center ${isCollapsed ? 'gap-0.5 pr-0.5' : 'gap-1'}`}>
                         {isDeloadWeek && (
                           <span data-shape="deload" className="mr-1">
                             <AsyncChip promise={deloadInfo(entry.exerciseId)} />
