@@ -35,6 +35,7 @@ const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Store = lazy(() => import("./pages/Store"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Recovery = lazy(() => import("./pages/Recovery"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
 const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
 import RequireAuth from "./routes/guards/RequireAuth";
@@ -448,6 +449,14 @@ function Shell() {
                 </RequireAuth>
               }
             />
+              <Route
+                path="/recovery"
+                element={
+                  <RequireAuth>
+                    <Recovery />
+                  </RequireAuth>
+                }
+              />
             <Route
               path="/measurements"
               element={

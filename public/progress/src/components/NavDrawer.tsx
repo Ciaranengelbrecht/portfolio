@@ -60,6 +60,7 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
             {[
               ['/', 'Dashboard'],
               ['/sessions','Sessions'],
+              ['/recovery','Recovery'],
               ['/measurements','Measurements'],
               ['/templates','Programs'],
               ['/store','Store'],
