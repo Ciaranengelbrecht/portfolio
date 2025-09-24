@@ -2741,6 +2741,19 @@ export default function Sessions() {
                         <span>×</span>
                         <span>{prev.set.reps}</span>
                       </span>
+                      {prev.set.weightKg!=null && prev.set.reps!=null && prev.set.weightKg>0 && prev.set.reps>0 && (
+                        <span
+                          className="prev-hint-pill opacity-80"
+                          aria-label={`Suggested target: ${prev.set.weightKg} kilograms for ${prev.set.reps+1} reps`}
+                          title="Suggested target (same weight, +1 rep)"
+                          data-suggest="true"
+                        >
+                          <span className="opacity-60">Target:</span>
+                          <span>{prev.set.weightKg}</span>
+                          <span>×</span>
+                          <span>{prev.set.reps + 1}</span>
+                        </span>
+                      )}
                       {showNudge && (
                         <span className="prev-hint-pill" data-nudge="true">
                           Try +1 rep or +2.5kg?
