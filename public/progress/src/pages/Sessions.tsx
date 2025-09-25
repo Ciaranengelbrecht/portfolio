@@ -115,6 +115,7 @@ export default function Sessions() {
   // Previous week per-exercise set data (same day) for quick reference
   const [prevWeekSets, setPrevWeekSets] = useState<Record<string, { weightKg: number|null; reps: number|null }[]>>({});
   const [prevWeekSourceWeek, setPrevWeekSourceWeek] = useState<number | null>(null);
+  const [prevWeekLoading, setPrevWeekLoading] = useState<boolean>(false);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
   const lastRealSessionAppliedRef = useRef(false);
@@ -1170,9 +1171,9 @@ export default function Sessions() {
       );
       setTemplates(t);
       setExercises(e);
-      // Preload sessions for prev best map
-      const allSessions = await getAllCached<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase));
+  // Preload sessions for prev best map (day-aware for better matching)
+  const allSessions = await getAllCached<Session>("sessions");
+  setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
       const st = await getSettings();
       setSettingsState(st as any);
       setInitialLoading(false);
@@ -1246,15 +1247,34 @@ export default function Sessions() {
           const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
-          db.getAll<Session>("sessions").then((all) =>
-            setPrevBestMap(buildPrevBestMap(all, week, phase, day))
-          );
+          db.getAll<Session>("sessions").then((all) => {
+            setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+          });
+          recomputePrevWeekSets(s);
         });
       }
     };
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
   }, [session?.id]);
+
+  // Keep hints in sync when cache refreshes in background
+  useEffect(()=>{
+    const onCache = (e:any)=> {
+      const store = e?.detail?.store;
+      if(store === 'sessions'){
+        (async ()=>{
+          try {
+            const all = await db.getAll<Session>('sessions');
+            setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+          } catch {}
+          await recomputePrevWeekSets(session);
+        })();
+      }
+    };
+    window.addEventListener('cache-refresh', onCache);
+    return ()=> window.removeEventListener('cache-refresh', onCache);
+  }, [session?.id, week, phase, day]);
 
   // Recompute prev best map whenever week, phase, or day changes
   useEffect(() => {
@@ -1265,27 +1285,30 @@ export default function Sessions() {
   }, [week, phase, day]);
 
   // Build previous week (or nearest past week) per-set lookup whenever active session context changes
-  useEffect(()=> {
-    (async ()=> {
-      if(!session){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-      let target = (session.weekNumber || week) - 1;
+  const recomputePrevWeekSets = async (sess: Session | null) => {
+    setPrevWeekLoading(true);
+    try {
+      if(!sess){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
+      let target = (sess.weekNumber || week) - 1;
       if(target < 1){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-      try {
-        const all = await getAllCached<Session>('sessions');
-        const samePhase = (all as Session[]).filter(s=> (s.phaseNumber||s.phase||phase) === (session.phaseNumber||session.phase||phase));
-        let found: Session | undefined;
-        while(target >= 1 && !found){
-          found = samePhase.find(s=> s.weekNumber === target && ((session.templateId && s.templateId && s.templateId === session.templateId) || (!session.templateId && s.dayName === session.dayName)));
-          if(!found) target--; // search further back
-        }
-        if(!found){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-        const map: Record<string, { weightKg: number|null; reps: number|null }[]> = {};
-        found.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
-        setPrevWeekSets(map);
-        setPrevWeekSourceWeek(found.weekNumber || target);
-      } catch { setPrevWeekSets({}); setPrevWeekSourceWeek(null); }
-    })();
-  }, [session?.id, session?.weekNumber, session?.phaseNumber, session?.templateId, session?.dayName]);
+      // Prefer fresh DB to avoid stale cache during rapid edits
+      const all = await db.getAll<Session>('sessions');
+      const samePhase = (all as Session[]).filter(s=> (s.phaseNumber||s.phase||phase) === (sess.phaseNumber||sess.phase||phase));
+      let found: Session | undefined;
+      while(target >= 1 && !found){
+        found = samePhase.find(s=> s.weekNumber === target && ((sess.templateId && s.templateId && s.templateId === sess.templateId) || (!sess.templateId && s.dayName === sess.dayName)));
+        if(!found) target--; // search further back
+      }
+      if(!found){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
+      const map: Record<string, { weightKg: number|null; reps: number|null }[]> = {};
+      found.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
+      setPrevWeekSets(map);
+      setPrevWeekSourceWeek(found.weekNumber || target);
+    } catch { setPrevWeekSets({}); setPrevWeekSourceWeek(null); }
+    finally { setPrevWeekLoading(false); }
+  };
+
+  useEffect(()=> { (async ()=> { await recomputePrevWeekSets(session); })(); }, [session?.id, session?.weekNumber, session?.phaseNumber, session?.templateId, session?.dayName]);
 
   const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
   const isDeloadWeek = deloadWeeks.has(week);
@@ -2722,7 +2745,7 @@ export default function Sessions() {
                 </div>
                 {/* end relative z-10 */}
                 <AnimatePresence initial={false}>
-                  {!isCollapsed && showPrevHints && prev && (
+                  {!isCollapsed && showPrevHints && (
                     <motion.div
                       className="mt-1 flex items-center gap-2 flex-wrap"
                       key="prevhints"
@@ -2731,33 +2754,39 @@ export default function Sessions() {
                       animate="animate"
                       exit="exit"
                     >
-                      <span
-                        className="prev-hint-pill"
-                        aria-label={`Previous best set: ${prev.set.weightKg} kilograms for ${prev.set.reps} reps`}
-                        title="Last logged best set"
-                      >
-                        <span className="opacity-70">Prev:</span>
-                        <span>{prev.set.weightKg}</span>
-                        <span>×</span>
-                        <span>{prev.set.reps}</span>
-                      </span>
-                      {prev.set.weightKg!=null && prev.set.reps!=null && prev.set.weightKg>0 && prev.set.reps>0 && (
-                        <span
-                          className="prev-hint-pill opacity-80"
-                          aria-label={`Suggested target: ${prev.set.weightKg} kilograms for ${prev.set.reps+1} reps`}
-                          title="Suggested target (same weight, +1 rep)"
-                          data-suggest="true"
-                        >
-                          <span className="opacity-60">Target:</span>
-                          <span>{prev.set.weightKg}</span>
-                          <span>×</span>
-                          <span>{prev.set.reps + 1}</span>
-                        </span>
-                      )}
-                      {showNudge && (
-                        <span className="prev-hint-pill" data-nudge="true">
-                          Try +1 rep or +2.5kg?
-                        </span>
+                      {prev ? (
+                        <>
+                          <span
+                            className="prev-hint-pill"
+                            aria-label={`Previous best set: ${prev.set.weightKg} kilograms for ${prev.set.reps} reps`}
+                            title="Last logged best set"
+                          >
+                            <span className="opacity-70">Prev:</span>
+                            <span>{prev.set.weightKg}</span>
+                            <span>×</span>
+                            <span>{prev.set.reps}</span>
+                          </span>
+                          {prev.set.weightKg!=null && prev.set.reps!=null && prev.set.weightKg>0 && prev.set.reps>0 && (
+                            <span
+                              className="prev-hint-pill opacity-80"
+                              aria-label={`Suggested target: ${prev.set.weightKg} kilograms for ${prev.set.reps+1} reps`}
+                              title="Suggested target (same weight, +1 rep)"
+                              data-suggest="true"
+                            >
+                              <span className="opacity-60">Target:</span>
+                              <span>{prev.set.weightKg}</span>
+                              <span>×</span>
+                              <span>{prev.set.reps + 1}</span>
+                            </span>
+                          )}
+                          {showNudge && (
+                            <span className="prev-hint-pill" data-nudge="true">
+                              Try +1 rep or +2.5kg?
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="prev-hint-pill" aria-hidden="true">...</span>
                       )}
                     </motion.div>
                   )}
@@ -2967,9 +2996,11 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.weightKg==null) return null; const wk = prevWeekSourceWeek; return (
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
                                       <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} weight`:'Previous weight'}>{prev.weightKg}kg</div>
-                                    ); })()}
+                                    ); } if(prevWeekLoading){ return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                    ); } return null; })()}
                                     {!(
                                       (
                                         weightInputEditing.current[
@@ -3146,9 +3177,11 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(!prev || prev.reps==null) return null; const wk = prevWeekSourceWeek; return (
+                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
                                       <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} reps`:'Previous reps'}>{prev.reps}r</div>
-                                    ); })()}
+                                    ); } if(prevWeekLoading){ return (
+                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                    ); } return null; })()}
                                     {!(
                                       (
                                         repsInputEditing.current[
