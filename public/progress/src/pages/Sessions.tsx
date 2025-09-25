@@ -112,6 +112,7 @@ export default function Sessions() {
   const [prevBestMap, setPrevBestMap] = useState<{
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
+  const [prevBestLoading, setPrevBestLoading] = useState<boolean>(true);
   // Previous week per-exercise set data (same day) for quick reference
   const [prevWeekSets, setPrevWeekSets] = useState<Record<string, { weightKg: number|null; reps: number|null }[]>>({});
   const [prevWeekSourceWeek, setPrevWeekSourceWeek] = useState<number | null>(null);
@@ -1172,8 +1173,10 @@ export default function Sessions() {
       setTemplates(t);
       setExercises(e);
   // Preload sessions for prev best map (day-aware for better matching)
+  setPrevBestLoading(true);
   const allSessions = await getAllCached<Session>("sessions");
   setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+  setPrevBestLoading(false);
       const st = await getSettings();
       setSettingsState(st as any);
       setInitialLoading(false);
@@ -1247,8 +1250,10 @@ export default function Sessions() {
           const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
+          setPrevBestLoading(true);
           db.getAll<Session>("sessions").then((all) => {
             setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+            setPrevBestLoading(false);
           });
           recomputePrevWeekSets(s);
         });
@@ -1265,8 +1270,10 @@ export default function Sessions() {
       if(store === 'sessions'){
         (async ()=>{
           try {
+            setPrevBestLoading(true);
             const all = await db.getAll<Session>('sessions');
             setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+            setPrevBestLoading(false);
           } catch {}
           await recomputePrevWeekSets(session);
         })();
@@ -1279,8 +1286,10 @@ export default function Sessions() {
   // Recompute prev best map whenever week, phase, or day changes
   useEffect(() => {
     (async () => {
+      setPrevBestLoading(true);
       const allSessions = await db.getAll<Session>("sessions");
       setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      setPrevBestLoading(false);
     })();
   }, [week, phase, day]);
 
@@ -1421,7 +1430,7 @@ export default function Sessions() {
   const flushSession = async () => {
     const sToWrite = latestSessionRef.current;
     if (!sToWrite) return;
-    await db.put("sessions", sToWrite);
+  await db.put("sessions", sToWrite);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -1434,8 +1443,10 @@ export default function Sessions() {
         const remoteTs = fresh.updatedAt ? Date.parse(fresh.updatedAt) : 0;
         if (remoteTs > lastLocalEditRef.current) {
           setSession(fresh);
+          setPrevBestLoading(true);
           const all = await db.getAll<Session>("sessions");
           setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+          setPrevBestLoading(false);
         }
       }
     }
@@ -2785,9 +2796,9 @@ export default function Sessions() {
                             </span>
                           )}
                         </>
-                      ) : (
+                      ) : prevBestLoading ? (
                         <span className="prev-hint-pill" aria-hidden="true">...</span>
-                      )}
+                      ) : null}
                     </motion.div>
                   )}
                 </AnimatePresence>
