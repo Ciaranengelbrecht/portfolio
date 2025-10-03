@@ -103,7 +103,7 @@ export default function RecoveryPage(){
         })}
       </div>
       <footer className="pt-2 text-[10px] text-slate-500 leading-relaxed max-w-2xl">
-        <p><strong className="font-semibold text-slate-300">Model Disclaimer:</strong> Heuristic recovery estimation using exponential decay of training stress (sets × reps × load proxy). Actual recovery varies with sleep, nutrition, stress, genetics. Treat as guidance not prescription.</p>
+        <p><strong className="font-semibold text-slate-300">Smart Recovery Algorithm:</strong> Uses intelligent exponential decay modeling based on training volume, intensity, and exercise type. Recovery times account for muscle size, training frequency, and realistic fatigue accumulation. Small muscles (biceps, triceps): 24-48h. Large muscles (quads, back): 60-72h. Actual recovery varies with sleep, nutrition, stress, and genetics. Use as guidance, not prescription.</p>
       </footer>
     </div>
   );
