@@ -2948,9 +2948,9 @@ export default function Sessions() {
                                 <div className="text-[11px] text-gray-400 mb-1">
                                   Weight
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                   <button
-                                    className="btn-touch-icon-secondary"
+                                    className="btn-input-compact"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -2970,7 +2970,7 @@ export default function Sessions() {
                                   >
                                     -
                                   </button>
-                                  <div className="relative flex-1 pb-4">
+                                  <div className="relative flex-1 pb-5">
                                     <input
                                       type="text"
                                       inputMode="decimal"
@@ -3059,29 +3059,29 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
-                                    {/* Progressive overload indicator - shows when beating previous week */}
+                                    {/* Progressive overload indicator - compact version */}
                                     {(() => {
                                       const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
                                       const gained = set.weightKg - prev.weightKg;
                                       if (gained > 0) {
                                         return (
-                                          <div className="absolute -top-2 -right-2 flex items-center gap-0.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-lg z-10" title="Progressive overload - weight increased!">
-                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <div className="absolute -top-1.5 -right-1 flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm z-10" title="Progressive overload - weight increased!">
+                                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                                               <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
                                             </svg>
-                                            +{gained}kg
+                                            +{gained}
                                           </div>
                                         );
                                       }
                                       return null;
                                     })()}
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-emerald-400/70 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>
-                                        <span className="bg-slate-900/60 px-1.5 py-0.5 rounded">prev: {prev.weightKg}kg</span>
+                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>
+                                        <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.weightKg}kg</span>
                                       </div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
@@ -3103,7 +3103,7 @@ export default function Sessions() {
                                       )}
                                   </div>
                                   <button
-                                    className="btn-touch-icon-secondary"
+                                    className="btn-input-compact"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3127,9 +3127,9 @@ export default function Sessions() {
                                 <div className="text-[11px] text-gray-400 mb-1">
                                   Reps
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                   <button
-                                    className="btn-touch-icon-secondary"
+                                    className="btn-input-compact"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3149,7 +3149,7 @@ export default function Sessions() {
                                   >
                                     -
                                   </button>
-                                  <div className="relative flex-1 pb-4">
+                                  <div className="relative flex-1 pb-5">
                                     <input
                                       inputMode="numeric"
                                       aria-label="Reps"
@@ -3259,29 +3259,29 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
-                                    {/* Progressive overload indicator - shows when beating previous week reps */}
+                                    {/* Progressive overload indicator - compact version */}
                                     {(() => {
                                       const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (!prev || prev.reps == null || set.reps == null || set.reps === 0) return null;
                                       const gained = set.reps - prev.reps;
                                       if (gained > 0) {
                                         return (
-                                          <div className="absolute -top-2 -right-2 flex items-center gap-0.5 bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-lg z-10" title="Progressive overload - reps increased!">
-                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                          <div className="absolute -top-1.5 -right-1 flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm z-10" title="Progressive overload - reps increased!">
+                                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                                               <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
                                             </svg>
-                                            +{gained}r
+                                            +{gained}
                                           </div>
                                         );
                                       }
                                       return null;
                                     })()}
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-emerald-400/70 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>
-                                        <span className="bg-slate-900/60 px-1.5 py-0.5 rounded">prev: {prev.reps}r</span>
+                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>
+                                        <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.reps}r</span>
                                       </div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
@@ -3301,7 +3301,7 @@ export default function Sessions() {
                                       )}
                                   </div>
                                   <button
-                                    className="btn-touch-icon-secondary"
+                                    className="btn-input-compact"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -4375,11 +4375,12 @@ function PRChip({
   if (score <= 0 || best <= 0 || score < best) return null;
   return (
     <span
-      className="text-[10px] rounded px-2 py-0.5 inline-flex items-center gap-1 bg-yellow-500 text-black border border-yellow-300"
+      className="text-[8px] rounded px-1 py-0.5 inline-flex items-center gap-0.5 bg-yellow-500/90 text-black border border-yellow-400/50 font-bold"
       data-shape="pr"
       aria-label="Personal record set"
+      title="Personal Record"
     >
-      <span className="w-2 h-2 rounded-full bg-black" aria-hidden="true"></span>
+      <span className="w-1.5 h-1.5 rounded-full bg-black" aria-hidden="true"></span>
       PR
     </span>
   );
