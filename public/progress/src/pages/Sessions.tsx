@@ -37,20 +37,18 @@ import PhaseStepper from "../components/PhaseStepper";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 import { MUSCLE_ICON_PATHS, getMuscleIconPath } from "../lib/muscles";
+import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
 
 function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Session; exMap: Map<string, Exercise>; exNameCache: Record<string,string>; }) {
+  // Optimized: Use extracted computeMuscleCounts with proper memoization
   const muscleCounts = useMemo(()=>{
-    const by: Record<string, number> = {};
-    for(const entry of session.entries){
-      const ex = exMap.get(entry.exerciseId); if(!ex) continue;
-      let filled = 0; for(const s of entry.sets){ if((s.reps||0)>0 || (s.weightKg||0)>0) filled++; }
-      if(filled>0){ const g = ex.muscleGroup || 'other'; by[g] = (by[g]||0) + filled; }
-    }
+    const counts = computeMuscleCounts(session, exMap);
     const order = ['chest','back','shoulders','biceps','triceps','forearms','quads','hamstrings','glutes','calves','core','other'];
-    return Object.entries(by)
+    return Object.entries(counts)
       .filter(([,c])=>c>0)
       .sort((a,b)=> order.indexOf(a[0]) - order.indexOf(b[0]));
-  },[session.entries, exMap]);
+  },[session.id, session.entries.length, exMap]); // Only recompute when session ID or entry count changes
+  
   if(session.entries.length===0) return null;
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
@@ -275,16 +273,14 @@ export default function Sessions() {
     }
   }, [exercises, session?.id, session?.entries?.length]);
 
-  // Memo helpers for render gating
-  const exMap = useMemo(
-    () => new Map(exercises.map((e) => [e.id, e] as const)),
-    [exercises]
-  );
+  // Optimized: Use stable exercise map that only rebuilds when IDs change
+  const exMap = useExerciseMap(exercises);
+  
   const exReady = useMemo(() => {
     if (!session) return false;
     if (!exercises.length && session.entries.length > 0) return false;
     return session.entries.every((en) => exMap.has(en.exerciseId));
-  }, [session?.id, session?.entries?.length, exercises, exMap]);
+  }, [session?.id, session?.entries?.length, exercises.length, exMap]); // exercises.length instead of exercises array
 
   // (auto-recover block relocated below initialLoading declaration)
 
