@@ -14,7 +14,7 @@ interface SkeletonProps {
 export function SkeletonBox({ className = '', style }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-slate-800/50 rounded-lg ${className}`}
+      className={`skeleton-enhanced rounded-lg ${className}`}
       style={style}
       aria-hidden="true"
     />

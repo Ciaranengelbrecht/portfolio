@@ -443,4 +443,85 @@ input[type="number"] {
   .heading-card {
     @apply text-lg font-semibold text-slate-200 mb-3;
   }
+
+  /* ===== PHASE 2: INTERACTIONS & FEEDBACK ===== */
+  
+  /* Success celebration animation */
+  .success-checkmark {
+    animation: successPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  .success-glow {
+    animation: successGlow 1.2s ease-out forwards;
+  }
+
+  /* Button hover enhancements */
+  .btn-enhanced {
+    @apply transition-all duration-200 ease-out;
+    @apply hover:scale-[1.02] hover:shadow-lg;
+    @apply active:scale-95;
+  }
+
+  .btn-primary-enhanced {
+    @apply bg-gradient-to-br from-emerald-500 to-emerald-600;
+    @apply hover:from-emerald-400 hover:to-emerald-500;
+    @apply shadow-lg shadow-emerald-600/30;
+    @apply hover:shadow-xl hover:shadow-emerald-500/40;
+    @apply transition-all duration-200;
+  }
 }
+
+/* Success animation keyframes */
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-45deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes successGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    background-color: rgba(34, 197, 94, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px 10px rgba(34, 197, 94, 0);
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    background-color: rgba(34, 197, 94, 0);
+  }
+}
+
+/* Enhanced skeleton shimmer (improved from Phase 1) */
+.skeleton-enhanced {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerEnhanced 2s ease-in-out infinite;
+}
+
+@keyframes shimmerEnhanced {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+

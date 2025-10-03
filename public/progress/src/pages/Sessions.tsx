@@ -832,6 +832,8 @@ export default function Sessions() {
         : t.running
         ? "animate-[timerPulse_1800ms_ease-in-out_infinite]"
         : "";
+    // Calculate progress (0-264 is circumference for r=42)
+    const progress = Math.min((totalSecs / target) * 264, 264);
     // On first reach event add screen flash if enabled
     if (reached && !t.alerted && flash) {
       try {
@@ -843,28 +845,72 @@ export default function Sessions() {
       } catch {}
     }
     return (
-      <span
-        aria-live={reached ? "assertive" : "off"}
-        aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${
-          reached ? " – rest complete" : ""
-        }`}
-        className={`rest-timer relative font-mono tabular-nums select-none text-[12px] px-2 rounded-md min-w-[72px] h-8 flex items-center justify-center text-center leading-none ${
-          reached ? "text-rose-300" : "text-emerald-300"
-        } ${basePulse} ${
-          reached && strong ? "rest-strong-alert" : ""
-        } bg-[rgba(15,23,42,0.60)] shadow-inner`}
-      >
-        <span
-          className={`rest-timer-value relative z-10 font-semibold tracking-tight ${
-            reached
-              ? "drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform"
-              : "transition-transform"
-          }`}
+      <div className="relative inline-flex items-center justify-center">
+        {/* Circular progress ring */}
+        <svg 
+          className="absolute w-20 h-20 -rotate-90 pointer-events-none"
+          viewBox="0 0 100 100"
         >
-          {mm}:{String(ss).padStart(2, "0")}.
-          <span className="opacity-70">{String(cs).padStart(2, "0")}</span>
+          {/* Background ring */}
+          <circle
+            cx="50"
+            cy="50"
+            r="42"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            className="text-slate-700/30"
+          />
+          {/* Progress ring */}
+          <circle
+            cx="50"
+            cy="50"
+            r="42"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="6"
+            strokeLinecap="round"
+            className={`transition-all duration-1000 ease-linear ${
+              reached ? "text-rose-400" : "text-emerald-500"
+            }`}
+            strokeDasharray={`${progress} 264`}
+            style={{
+              filter: reached 
+                ? "drop-shadow(0 0 6px rgba(244, 63, 94, 0.6))"
+                : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))"
+            }}
+          />
+        </svg>
+        
+        {/* Timer display */}
+        <span
+          aria-live={reached ? "assertive" : "off"}
+          aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${
+            reached ? " – rest complete" : ""
+          }`}
+          className={`rest-timer relative font-mono tabular-nums select-none text-sm px-3 rounded-full min-w-[72px] h-20 flex flex-col items-center justify-center text-center leading-none ${
+            reached ? "text-rose-300" : "text-emerald-300"
+          } ${basePulse} ${
+            reached && strong ? "rest-strong-alert" : ""
+          } bg-[rgba(15,23,42,0.85)] shadow-lg backdrop-blur-sm`}
+        >
+          <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5 font-medium">
+            Rest
+          </div>
+          <span
+            className={`rest-timer-value relative z-10 font-bold tracking-tight text-xl ${
+              reached
+                ? "drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform"
+                : "transition-transform"
+            }`}
+          >
+            {mm}:{String(ss).padStart(2, "0")}
+          </span>
+          <div className="text-[8px] text-slate-500 mt-0.5 tabular-nums">
+            .{String(cs).padStart(2, "0")}
+          </div>
         </span>
-      </span>
+      </div>
     );
   };
   const duplicateLastSet = (entry: SessionEntry) => {
@@ -2279,13 +2325,13 @@ export default function Sessions() {
       <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-6">
         <div className="hidden sm:flex items-center gap-2">
           <button
-            className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-xl"
+            className="btn-primary-enhanced btn-enhanced px-4 py-2.5 rounded-xl font-medium text-white"
             onClick={() => setShowImport(true)}
           >
             Import from Template
           </button>
           <button
-            className="bg-slate-700 px-3 py-2 rounded-xl disabled:opacity-40"
+            className="bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl disabled:opacity-40 font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95"
             disabled={!session || !session.entries.length}
             onClick={() => setShowSaveTemplate(true)}
             title="Save current session as a reusable template"
@@ -2819,8 +2865,10 @@ export default function Sessions() {
                         {entry.sets.map((set, idx) => (
                           <div
                             key={idx}
-                            className="rounded-xl bg-slate-800 px-2 py-2"
+                            className="group relative rounded-2xl bg-gradient-to-br from-slate-900/40 to-slate-900/60 px-3 py-3 border border-white/[0.03] shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-white/[0.06] hover:from-slate-900/50 hover:to-slate-900/70"
                           >
+                            {/* Subtle gradient overlay on hover for feedback */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-transparent rounded-2xl transition-all duration-300 pointer-events-none" />
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium flex items-center gap-2">
                                 <span className="text-gray-300">
@@ -3725,11 +3773,11 @@ export default function Sessions() {
         </MobileSummaryFader>
       )}
 
-      <div className="bg-card rounded-2xl p-3">
+      <div className="bg-card rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm">Add exercise</div>
+          <div className="text-base font-medium">Add exercise</div>
           <button
-            className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
+            className="btn-primary-enhanced btn-enhanced text-sm px-4 py-2.5 rounded-xl font-medium text-white"
             onClick={() => setShowAdd(true)}
           >
             Search
