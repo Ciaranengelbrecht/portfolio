@@ -34,6 +34,14 @@ export default defineConfig({
   // Use relative base so the app works from a subfolder like /progress
   base: "./",
   build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,  // Remove all console.* calls in production
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.warn', 'console.info']
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {

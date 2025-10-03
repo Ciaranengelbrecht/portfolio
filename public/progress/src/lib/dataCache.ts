@@ -4,12 +4,23 @@ import type { DBSchema } from './db';
 type StoreKey = keyof DBSchema;
 interface CacheEntry { ts: number; data: any[]; }
 const cache = new Map<StoreKey, CacheEntry>();
-const TTL_MS = 10000; // 10s soft TTL
+
+// Differentiated TTL: static data gets longer cache, dynamic data shorter
+const TTL_CONFIG: Record<StoreKey, number> = {
+  exercises: 60000,   // 60s (mostly static)
+  templates: 60000,   // 60s (mostly static)
+  settings: 60000,    // 60s (rarely changes)
+  sessions: 10000,    // 10s (frequently updated)
+  measurements: 20000 // 20s (moderately updated)
+};
+
 const PERSIST_PREFIX = 'pp_cache_';
 const SCHEMA_VERSION = 1; // bump when underlying data shape changes
 const SCHEMA_KEY = 'pp_cache_schema_version';
 
-function fresh(entry: CacheEntry){ return (Date.now() - entry.ts) < TTL_MS; }
+function fresh(entry: CacheEntry, store: StoreKey){ 
+  return (Date.now() - entry.ts) < (TTL_CONFIG[store] || 10000); 
+}
 
 // Load persisted cache (session scoped for safety; switch to localStorage if you want longer retention)
 if(typeof window !== 'undefined'){
@@ -39,8 +50,8 @@ export async function getAllCached<T=any>(store: StoreKey, opts?: { force?: bool
   const force = opts?.force;
   const swr = opts?.swr;
   const existing = cache.get(store);
-  if(!force && existing && fresh(existing)) return existing.data as T[];
-  if(swr && existing && !fresh(existing)){
+  if(!force && existing && fresh(existing, store)) return existing.data as T[];
+  if(swr && existing && !fresh(existing, store)){
     // return stale and refresh in background
     refresh(store);
     return existing.data as T[];
@@ -60,7 +71,9 @@ export async function refresh(store: StoreKey){
     const data = await db.getAll(store);
     const entry = { ts: Date.now(), data };
     cache.set(store, entry); persist(store, entry); emit(store,'cache-refresh');
-  } catch(e){ console.warn('[dataCache] refresh failed', store, e); }
+  } catch(e){ 
+    if(import.meta.env.DEV) console.warn('[dataCache] refresh failed', store, e); 
+  }
 }
 
 export function warmPreload(stores: StoreKey[], opts?: { swr?: boolean }){
