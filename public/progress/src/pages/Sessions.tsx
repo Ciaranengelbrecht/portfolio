@@ -39,33 +39,80 @@ import { useSnack } from "../state/snackbar";
 import { MUSCLE_ICON_PATHS, getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
 
-function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Session; exMap: Map<string, Exercise>; exNameCache: Record<string,string>; }) {
+function TopMuscleAndContents({
+  session,
+  exMap,
+  exNameCache,
+}: {
+  session: Session;
+  exMap: Map<string, Exercise>;
+  exNameCache: Record<string, string>;
+}) {
   // Optimized: Use extracted computeMuscleCounts with proper memoization
-  const muscleCounts = useMemo(()=>{
+  const muscleCounts = useMemo(() => {
     const counts = computeMuscleCounts(session, exMap);
-    const order = ['chest','back','shoulders','biceps','triceps','forearms','quads','hamstrings','glutes','calves','core','other'];
+    const order = [
+      "chest",
+      "back",
+      "shoulders",
+      "biceps",
+      "triceps",
+      "forearms",
+      "quads",
+      "hamstrings",
+      "glutes",
+      "calves",
+      "core",
+      "other",
+    ];
     return Object.entries(counts)
-      .filter(([,c])=>c>0)
-      .sort((a,b)=> order.indexOf(a[0]) - order.indexOf(b[0]));
-  },[session.id, session.entries.length, exMap]); // Only recompute when session ID or entry count changes
-  
-  if(session.entries.length===0) return null;
+      .filter(([, c]) => c > 0)
+      .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  }, [session.id, session.entries.length, exMap]); // Only recompute when session ID or entry count changes
+
+  if (session.entries.length === 0) return null;
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
-      {muscleCounts.length>0 && (
+      {muscleCounts.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
-          {muscleCounts.map(([k,c])=> { const src = getMuscleIconPath(k); return (
-            <div key={k} className="badge-muscle icon-glow" aria-label={`${k} working sets ${c}`}>
-              {src ? <img src={src} alt={k} className="w-6 h-6 object-contain" /> : <span className="w-6 h-6" />}
-              <span className="tabular-nums leading-none">{c}</span>
-            </div>
-          ); })}
+          {muscleCounts.map(([k, c]) => {
+            const src = getMuscleIconPath(k);
+            return (
+              <div
+                key={k}
+                className="badge-muscle icon-glow"
+                aria-label={`${k} working sets ${c}`}
+              >
+                {src ? (
+                  <img src={src} alt={k} className="w-6 h-6 object-contain" />
+                ) : (
+                  <span className="w-6 h-6" />
+                )}
+                <span className="tabular-nums leading-none">{c}</span>
+              </div>
+            );
+          })}
         </div>
       )}
       <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
-        {session.entries.map((en,i)=>{ const ex = exMap.get(en.exerciseId); const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i+1}`; const short = name.length>18? name.slice(0,16)+'…': name; return (
-          <button key={en.id} onClick={()=>{ const el=document.getElementById(`exercise-${en.id}`); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }} className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50">{short}</button>
-        ); })}
+        {session.entries.map((en, i) => {
+          const ex = exMap.get(en.exerciseId);
+          const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i + 1}`;
+          const short = name.length > 18 ? name.slice(0, 16) + "…" : name;
+          return (
+            <button
+              key={en.id}
+              onClick={() => {
+                const el = document.getElementById(`exercise-${en.id}`);
+                if (el)
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            >
+              {short}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -112,8 +159,12 @@ export default function Sessions() {
   } | null>(null);
   const [prevBestLoading, setPrevBestLoading] = useState<boolean>(true);
   // Previous week per-exercise set data (same day) for quick reference
-  const [prevWeekSets, setPrevWeekSets] = useState<Record<string, { weightKg: number|null; reps: number|null }[]>>({});
-  const [prevWeekSourceWeek, setPrevWeekSourceWeek] = useState<number | null>(null);
+  const [prevWeekSets, setPrevWeekSets] = useState<
+    Record<string, { weightKg: number | null; reps: number | null }[]>
+  >({});
+  const [prevWeekSourceWeek, setPrevWeekSourceWeek] = useState<number | null>(
+    null
+  );
   const [prevWeekLoading, setPrevWeekLoading] = useState<boolean>(false);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
   const [autoNavDone, setAutoNavDone] = useState(false);
@@ -275,7 +326,7 @@ export default function Sessions() {
 
   // Optimized: Use stable exercise map that only rebuilds when IDs change
   const exMap = useExerciseMap(exercises);
-  
+
   const exReady = useMemo(() => {
     if (!session) return false;
     if (!exercises.length && session.entries.length > 0) return false;
@@ -847,7 +898,7 @@ export default function Sessions() {
     return (
       <div className="relative inline-flex items-center justify-center">
         {/* Circular progress ring */}
-        <svg 
+        <svg
           className="absolute w-20 h-20 -rotate-90 pointer-events-none"
           viewBox="0 0 100 100"
         >
@@ -875,13 +926,13 @@ export default function Sessions() {
             }`}
             strokeDasharray={`${progress} 264`}
             style={{
-              filter: reached 
+              filter: reached
                 ? "drop-shadow(0 0 6px rgba(244, 63, 94, 0.6))"
-                : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))"
+                : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))",
             }}
           />
         </svg>
-        
+
         {/* Timer display */}
         <span
           aria-live={reached ? "assertive" : "off"}
@@ -993,13 +1044,25 @@ export default function Sessions() {
               const settings = await getSettings();
               const exMap = new Map(exs.map((e: any) => [e.id, e]));
               const rows = (exId: string) => {
-                const base = settings.defaultSetRows ?? exMap.get(exId)?.defaults.sets ?? 3;
+                const base =
+                  settings.defaultSetRows ??
+                  exMap.get(exId)?.defaults.sets ??
+                  3;
                 return Math.min(6, Math.max(0, base));
               };
               const newEntries = (t.exerciseIds || []).map((exId: string) => ({
                 id: nanoid(),
                 exerciseId: exId,
-                sets: (() => { const n = rows(exId); return n === 0 ? [] : Array.from({ length: n }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 })); })(),
+                sets: (() => {
+                  const n = rows(exId);
+                  return n === 0
+                    ? []
+                    : Array.from({ length: n }, (_, i) => ({
+                        setNumber: i + 1,
+                        weightKg: 0,
+                        reps: 0,
+                      }));
+                })(),
               }));
               s = {
                 ...s,
@@ -1214,11 +1277,11 @@ export default function Sessions() {
       );
       setTemplates(t);
       setExercises(e);
-  // Preload sessions for prev best map (day-aware for better matching)
-  setPrevBestLoading(true);
-  const allSessions = await getAllCached<Session>("sessions");
-  setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
-  setPrevBestLoading(false);
+      // Preload sessions for prev best map (day-aware for better matching)
+      setPrevBestLoading(true);
+      const allSessions = await getAllCached<Session>("sessions");
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      setPrevBestLoading(false);
       const st = await getSettings();
       setSettingsState(st as any);
       setInitialLoading(false);
@@ -1306,14 +1369,14 @@ export default function Sessions() {
   }, [session?.id]);
 
   // Keep hints in sync when cache refreshes in background
-  useEffect(()=>{
-    const onCache = (e:any)=> {
+  useEffect(() => {
+    const onCache = (e: any) => {
       const store = e?.detail?.store;
-      if(store === 'sessions'){
-        (async ()=>{
+      if (store === "sessions") {
+        (async () => {
           try {
             setPrevBestLoading(true);
-            const all = await db.getAll<Session>('sessions');
+            const all = await db.getAll<Session>("sessions");
             setPrevBestMap(buildPrevBestMap(all, week, phase, day));
             setPrevBestLoading(false);
           } catch {}
@@ -1321,8 +1384,8 @@ export default function Sessions() {
         })();
       }
     };
-    window.addEventListener('cache-refresh', onCache);
-    return ()=> window.removeEventListener('cache-refresh', onCache);
+    window.addEventListener("cache-refresh", onCache);
+    return () => window.removeEventListener("cache-refresh", onCache);
   }, [session?.id, week, phase, day]);
 
   // Recompute prev best map whenever week, phase, or day changes
@@ -1339,27 +1402,75 @@ export default function Sessions() {
   const recomputePrevWeekSets = async (sess: Session | null) => {
     setPrevWeekLoading(true);
     try {
-      if(!sess){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-      let target = (sess.weekNumber || week) - 1;
-      if(target < 1){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-      // Prefer fresh DB to avoid stale cache during rapid edits
-      const all = await db.getAll<Session>('sessions');
-      const samePhase = (all as Session[]).filter(s=> (s.phaseNumber||s.phase||phase) === (sess.phaseNumber||sess.phase||phase));
-      let found: Session | undefined;
-      while(target >= 1 && !found){
-        found = samePhase.find(s=> s.weekNumber === target && ((sess.templateId && s.templateId && s.templateId === sess.templateId) || (!sess.templateId && s.dayName === sess.dayName)));
-        if(!found) target--; // search further back
+      if (!sess) {
+        setPrevWeekSets({});
+        setPrevWeekSourceWeek(null);
+        return;
       }
-      if(!found){ setPrevWeekSets({}); setPrevWeekSourceWeek(null); return; }
-      const map: Record<string, { weightKg: number|null; reps: number|null }[]> = {};
-      found.entries.forEach(en=> { map[en.exerciseId] = en.sets.slice().sort((a,b)=> (a.setNumber||0)-(b.setNumber||0)).map(st=> ({ weightKg: st.weightKg==null? null: st.weightKg, reps: st.reps==null? null: st.reps })); });
+      let target = (sess.weekNumber || week) - 1;
+      if (target < 1) {
+        setPrevWeekSets({});
+        setPrevWeekSourceWeek(null);
+        return;
+      }
+      // Prefer fresh DB to avoid stale cache during rapid edits
+      const all = await db.getAll<Session>("sessions");
+      const samePhase = (all as Session[]).filter(
+        (s) =>
+          (s.phaseNumber || s.phase || phase) ===
+          (sess.phaseNumber || sess.phase || phase)
+      );
+      let found: Session | undefined;
+      while (target >= 1 && !found) {
+        found = samePhase.find(
+          (s) =>
+            s.weekNumber === target &&
+            ((sess.templateId &&
+              s.templateId &&
+              s.templateId === sess.templateId) ||
+              (!sess.templateId && s.dayName === sess.dayName))
+        );
+        if (!found) target--; // search further back
+      }
+      if (!found) {
+        setPrevWeekSets({});
+        setPrevWeekSourceWeek(null);
+        return;
+      }
+      const map: Record<
+        string,
+        { weightKg: number | null; reps: number | null }[]
+      > = {};
+      found.entries.forEach((en) => {
+        map[en.exerciseId] = en.sets
+          .slice()
+          .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
+          .map((st) => ({
+            weightKg: st.weightKg == null ? null : st.weightKg,
+            reps: st.reps == null ? null : st.reps,
+          }));
+      });
       setPrevWeekSets(map);
       setPrevWeekSourceWeek(found.weekNumber || target);
-    } catch { setPrevWeekSets({}); setPrevWeekSourceWeek(null); }
-    finally { setPrevWeekLoading(false); }
+    } catch {
+      setPrevWeekSets({});
+      setPrevWeekSourceWeek(null);
+    } finally {
+      setPrevWeekLoading(false);
+    }
   };
 
-  useEffect(()=> { (async ()=> { await recomputePrevWeekSets(session); })(); }, [session?.id, session?.weekNumber, session?.phaseNumber, session?.templateId, session?.dayName]);
+  useEffect(() => {
+    (async () => {
+      await recomputePrevWeekSets(session);
+    })();
+  }, [
+    session?.id,
+    session?.weekNumber,
+    session?.phaseNumber,
+    session?.templateId,
+    session?.dayName,
+  ]);
 
   const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
   const isDeloadWeek = deloadWeeks.has(week);
@@ -1472,7 +1583,7 @@ export default function Sessions() {
   const flushSession = async () => {
     const sToWrite = latestSessionRef.current;
     if (!sToWrite) return;
-  await db.put("sessions", sToWrite);
+    await db.put("sessions", sToWrite);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -1734,12 +1845,15 @@ export default function Sessions() {
     }
     const base = entry.sets.length || newEx.defaults?.sets || 3;
     const rows = Math.max(0, base);
-    const newSets: SetEntry[] = rows === 0 ? [] : Array.from({ length: rows }, (_, i) => ({
-      setNumber: i + 1,
-      weightKg: null,
-      reps: null,
-      rpe: entry.sets[i]?.rpe,
-    }));
+    const newSets: SetEntry[] =
+      rows === 0
+        ? []
+        : Array.from({ length: rows }, (_, i) => ({
+            setNumber: i + 1,
+            weightKg: null,
+            reps: null,
+            rpe: entry.sets[i]?.rpe,
+          }));
     const newEntry: SessionEntry = {
       ...entry,
       exerciseId: newEx.id,
@@ -1910,16 +2024,23 @@ export default function Sessions() {
   })();
 
   // Pacing metrics derived from completedAt stamps
-  const pacing = useMemo(()=> session ? computeSessionPacing(session) : null, [session?.id, session?.entries.length]);
-  const formatMs = (ms:number) => {
-    if(!ms) return '–';
-    const m = Math.floor(ms/60000); const s = Math.round((ms%60000)/1000);
-    if(m>=1) return `${m}m ${s.toString().padStart(2,'0')}s`;
+  const pacing = useMemo(
+    () => (session ? computeSessionPacing(session) : null),
+    [session?.id, session?.entries.length]
+  );
+  const formatMs = (ms: number) => {
+    if (!ms) return "–";
+    const m = Math.floor(ms / 60000);
+    const s = Math.round((ms % 60000) / 1000);
+    if (m >= 1) return `${m}m ${s.toString().padStart(2, "0")}s`;
     return `${s}s`;
   };
-  const [showPacingDetails,setShowPacingDetails] = useState(false);
-  const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>({});
-  const toggleName = (id:string)=> setExpandedNames(p=> ({...p, [id]: !p[id]}));
+  const [showPacingDetails, setShowPacingDetails] = useState(false);
+  const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>(
+    {}
+  );
+  const toggleName = (id: string) =>
+    setExpandedNames((p) => ({ ...p, [id]: !p[id] }));
 
   return (
     <div className="space-y-4">
@@ -2115,39 +2236,90 @@ export default function Sessions() {
         <div className="mx-4 mt-2 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
           <div className="flex items-center justify-between text-[11px] text-slate-300">
             <span className="font-semibold tracking-wide">Pacing</span>
-            <button className="text-[10px] underline text-slate-400" onClick={()=> setShowPacingDetails(s=>!s)}>
-              {showPacingDetails? 'Hide Details':'Show Details'}
+            <button
+              className="text-[10px] underline text-slate-400"
+              onClick={() => setShowPacingDetails((s) => !s)}
+            >
+              {showPacingDetails ? "Hide Details" : "Show Details"}
             </button>
           </div>
           <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
-            <div>Sets: <span className="text-slate-200 font-medium">{pacing.overall.count}</span></div>
-            <div>Avg Rest: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.averageMs)}</span></div>
-            <div>Median: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.medianMs)}</span></div>
-            <div>Longest: <span className="text-slate-200 font-medium">{formatMs(pacing.overall.longestMs)}</span></div>
-            {sessionDuration && <div>Session Span: <span className="text-slate-200 font-medium">{sessionDuration}</span></div>}
+            <div>
+              Sets:{" "}
+              <span className="text-slate-200 font-medium">
+                {pacing.overall.count}
+              </span>
+            </div>
+            <div>
+              Avg Rest:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.averageMs)}
+              </span>
+            </div>
+            <div>
+              Median:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.medianMs)}
+              </span>
+            </div>
+            <div>
+              Longest:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.longestMs)}
+              </span>
+            </div>
+            {sessionDuration && (
+              <div>
+                Session Span:{" "}
+                <span className="text-slate-200 font-medium">
+                  {sessionDuration}
+                </span>
+              </div>
+            )}
           </div>
           {showPacingDetails && (
             <div className="space-y-1 max-h-64 overflow-auto pr-1">
-              {pacing.exercises.filter(e=> e.count>0).map(e=> {
-                const ex = exMap.get(e.exerciseId);
-                const name = ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
-                return (
-                  <div key={e.exerciseId} className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1">
-                    <div className="flex-1 min-w-0">
-                      <button onClick={()=> toggleName(e.exerciseId)} className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none">
-                        <span className={`capitalize ${expandedNames[e.exerciseId]? 'whitespace-normal break-words':''}`}>{name}</span>
-                      </button>
+              {pacing.exercises
+                .filter((e) => e.count > 0)
+                .map((e) => {
+                  const ex = exMap.get(e.exerciseId);
+                  const name =
+                    ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
+                  return (
+                    <div
+                      key={e.exerciseId}
+                      className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <button
+                          onClick={() => toggleName(e.exerciseId)}
+                          className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
+                        >
+                          <span
+                            className={`capitalize ${
+                              expandedNames[e.exerciseId]
+                                ? "whitespace-normal break-words"
+                                : ""
+                            }`}
+                          >
+                            {name}
+                          </span>
+                        </button>
+                      </div>
+                      <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
+                        <span>n{e.count}</span>
+                        <span>avg {formatMs(e.averageMs)}</span>
+                        <span>med {formatMs(e.medianMs)}</span>
+                        <span>max {formatMs(e.longestMs)}</span>
+                      </div>
                     </div>
-                    <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
-                      <span>n{e.count}</span>
-                      <span>avg {formatMs(e.averageMs)}</span>
-                      <span>med {formatMs(e.medianMs)}</span>
-                      <span>max {formatMs(e.longestMs)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-              {!pacing.exercises.some(e=> e.count>0) && <div className="text-[10px] text-slate-500">No rest intervals yet.</div>}
+                  );
+                })}
+              {!pacing.exercises.some((e) => e.count > 0) && (
+                <div className="text-[10px] text-slate-500">
+                  No rest intervals yet.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2465,7 +2637,11 @@ export default function Sessions() {
         )}
         {/* Top sticky: live muscle counts + contents navigator */}
         {!initialLoading && session && session.entries.length > 0 && (
-          <TopMuscleAndContents session={session} exMap={exMap} exNameCache={exNameCache} />
+          <TopMuscleAndContents
+            session={session}
+            exMap={exMap}
+            exNameCache={exNameCache}
+          />
         )}
         {!initialLoading &&
           session &&
@@ -2599,7 +2775,7 @@ export default function Sessions() {
                   <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand-500/15 via-electric-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 <div className="relative z-10">
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2">
                     <div
                       className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none"
                       onClick={() => toggleEntryCollapsed(entry.id)}
@@ -2621,16 +2797,26 @@ export default function Sessions() {
                       >
                         ⋮⋮
                       </span>
-                      <span className={`inline-flex items-center gap-1 min-w-0 ${isCollapsed ? 'whitespace-normal break-words' : ''}`}>
+                      <span
+                        className={`inline-flex items-center gap-1 min-w-0 ${
+                          isCollapsed ? "whitespace-normal break-words" : ""
+                        }`}
+                      >
                         {ex && (
                           <img
                             src={getMuscleIconPath(ex.muscleGroup)}
-                            alt={ex.muscleGroup || 'other'}
+                            alt={ex.muscleGroup || "other"}
                             className="w-4 h-4 opacity-80 flex-shrink-0 rounded-sm ring-1 ring-white/10 shadow-sm"
                             loading="lazy"
                           />
                         )}
-                        <span className={`${isCollapsed ? 'whitespace-normal break-words pr-1' : 'truncate max-w-[56vw] sm:max-w-none'}`}>
+                        <span
+                          className={`${
+                            isCollapsed
+                              ? "whitespace-normal break-words pr-1"
+                              : "truncate max-w-[56vw] sm:max-w-none"
+                          }`}
+                        >
                           {ex?.name ||
                             exNameCache[entry.exerciseId] ||
                             "Deleted exercise"}
@@ -2706,7 +2892,10 @@ export default function Sessions() {
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
-                                Math.min(session.entries.length - 1, entryIdx + 1)
+                                Math.min(
+                                  session.entries.length - 1,
+                                  entryIdx + 1
+                                )
                               )
                             }
                           >
@@ -2759,7 +2948,10 @@ export default function Sessions() {
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
-                                Math.min(session.entries.length - 1, entryIdx + 1)
+                                Math.min(
+                                  session.entries.length - 1,
+                                  entryIdx + 1
+                                )
                               )
                             }
                           >
@@ -2819,19 +3011,24 @@ export default function Sessions() {
                             <span>×</span>
                             <span>{prev.set.reps}</span>
                           </span>
-                          {prev.set.weightKg!=null && prev.set.reps!=null && prev.set.weightKg>0 && prev.set.reps>0 && (
-                            <span
-                              className="prev-hint-pill opacity-80"
-                              aria-label={`Suggested target: ${prev.set.weightKg} kilograms for ${prev.set.reps+1} reps`}
-                              title="Suggested target (same weight, +1 rep)"
-                              data-suggest="true"
-                            >
-                              <span className="opacity-60">Target:</span>
-                              <span>{prev.set.weightKg}</span>
-                              <span>×</span>
-                              <span>{prev.set.reps + 1}</span>
-                            </span>
-                          )}
+                          {prev.set.weightKg != null &&
+                            prev.set.reps != null &&
+                            prev.set.weightKg > 0 &&
+                            prev.set.reps > 0 && (
+                              <span
+                                className="prev-hint-pill opacity-80"
+                                aria-label={`Suggested target: ${
+                                  prev.set.weightKg
+                                } kilograms for ${prev.set.reps + 1} reps`}
+                                title="Suggested target (same weight, +1 rep)"
+                                data-suggest="true"
+                              >
+                                <span className="opacity-60">Target:</span>
+                                <span>{prev.set.weightKg}</span>
+                                <span>×</span>
+                                <span>{prev.set.reps + 1}</span>
+                              </span>
+                            )}
                           {showNudge && (
                             <span className="prev-hint-pill" data-nudge="true">
                               Try +1 rep or +2.5kg?
@@ -2839,7 +3036,9 @@ export default function Sessions() {
                           )}
                         </>
                       ) : prevBestLoading ? (
-                        <span className="prev-hint-pill" aria-hidden="true">...</span>
+                        <span className="prev-hint-pill" aria-hidden="true">
+                          ...
+                        </span>
                       ) : null}
                     </motion.div>
                   )}
@@ -2874,22 +3073,55 @@ export default function Sessions() {
                                 <span className="text-gray-300 flex items-center gap-1.5">
                                   Set {set.setNumber}
                                   {/* Success checkmark when set is complete */}
-                                  {set.weightKg != null && set.weightKg > 0 && set.reps != null && set.reps > 0 && (
-                                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 success-checkmark">
-                                      <svg className="w-2.5 h-2.5 text-emerald-400 success-glow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                      </svg>
-                                    </span>
-                                  )}
+                                  {set.weightKg != null &&
+                                    set.weightKg > 0 &&
+                                    set.reps != null &&
+                                    set.reps > 0 && (
+                                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 success-checkmark">
+                                        <svg
+                                          className="w-2.5 h-2.5 text-emerald-400 success-glow"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth="3"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      </span>
+                                    )}
                                   {(() => {
                                     const iso = set.addedAt || set.completedAt;
-                                    if(!iso) return null;
+                                    if (!iso) return null;
                                     try {
                                       const d = new Date(iso);
-                                      const hh = String(d.getHours()).padStart(2,'0');
-                                      const mm = String(d.getMinutes()).padStart(2,'0');
-                                      return <span className="ml-1 text-[10px] text-slate-400/50 tabular-nums" title={`Added at ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`}>{hh}:{mm}</span>;
-                                    } catch { return null; }
+                                      const hh = String(d.getHours()).padStart(
+                                        2,
+                                        "0"
+                                      );
+                                      const mm = String(
+                                        d.getMinutes()
+                                      ).padStart(2, "0");
+                                      return (
+                                        <span
+                                          className="ml-1 text-[10px] text-slate-400/50 tabular-nums"
+                                          title={`Added at ${d.toLocaleTimeString(
+                                            [],
+                                            {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            }
+                                          )}`}
+                                        >
+                                          {hh}:{mm}
+                                        </span>
+                                      );
+                                    } catch {
+                                      return null;
+                                    }
                                   })()}
                                 </span>
                                 {idx === 0 &&
@@ -2949,14 +3181,32 @@ export default function Sessions() {
                                   <span>Weight</span>
                                   {/* Progressive overload indicator - aligned with label */}
                                   {(() => {
-                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
-                                    if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
+                                    const prev =
+                                      prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (
+                                      !prev ||
+                                      prev.weightKg == null ||
+                                      set.weightKg == null ||
+                                      set.weightKg === 0
+                                    )
+                                      return null;
                                     const gained = set.weightKg - prev.weightKg;
                                     if (gained > 0) {
                                       return (
-                                        <div className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm" title="Progressive overload - weight increased!">
-                                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                                        <div
+                                          className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm"
+                                          title="Progressive overload - weight increased!"
+                                        >
+                                          <svg
+                                            className="w-2 h-2"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
+                                              clipRule="evenodd"
+                                            />
                                           </svg>
                                           +{gained}
                                         </div>
@@ -3076,13 +3326,35 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>
-                                        <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.weightKg}kg</span>
-                                      </div>
-                                    ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">...</div>
-                                    ); } return null; })()}
+                                    {(() => {
+                                      const prev =
+                                        prevWeekSets[entry.exerciseId]?.[idx];
+                                      if (prev && prev.weightKg != null) {
+                                        const wk = prevWeekSourceWeek;
+                                        return (
+                                          <div
+                                            className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium"
+                                            title={
+                                              wk
+                                                ? `Week ${wk} weight`
+                                                : "Previous weight"
+                                            }
+                                          >
+                                            <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">
+                                              prev: {prev.weightKg}kg
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      if (prevWeekLoading) {
+                                        return (
+                                          <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">
+                                            ...
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                     {!(
                                       (
                                         weightInputEditing.current[
@@ -3128,14 +3400,32 @@ export default function Sessions() {
                                   <span>Reps</span>
                                   {/* Progressive overload indicator - aligned with label */}
                                   {(() => {
-                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
-                                    if (!prev || prev.reps == null || set.reps == null || set.reps === 0) return null;
+                                    const prev =
+                                      prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (
+                                      !prev ||
+                                      prev.reps == null ||
+                                      set.reps == null ||
+                                      set.reps === 0
+                                    )
+                                      return null;
                                     const gained = set.reps - prev.reps;
                                     if (gained > 0) {
                                       return (
-                                        <div className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm" title="Progressive overload - reps increased!">
-                                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                                        <div
+                                          className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm"
+                                          title="Progressive overload - reps increased!"
+                                        >
+                                          <svg
+                                            className="w-2 h-2"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
+                                              clipRule="evenodd"
+                                            />
                                           </svg>
                                           +{gained}
                                         </div>
@@ -3276,13 +3566,35 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
-                                    {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>
-                                        <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.reps}r</span>
-                                      </div>
-                                    ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">...</div>
-                                    ); } return null; })()}
+                                    {(() => {
+                                      const prev =
+                                        prevWeekSets[entry.exerciseId]?.[idx];
+                                      if (prev && prev.reps != null) {
+                                        const wk = prevWeekSourceWeek;
+                                        return (
+                                          <div
+                                            className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium"
+                                            title={
+                                              wk
+                                                ? `Week ${wk} reps`
+                                                : "Previous reps"
+                                            }
+                                          >
+                                            <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">
+                                              prev: {prev.reps}r
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      if (prevWeekLoading) {
+                                        return (
+                                          <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">
+                                            ...
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                                     {!(
                                       (
                                         repsInputEditing.current[
@@ -3321,7 +3633,10 @@ export default function Sessions() {
                             {/* Removed per-set rest controls */}
                             {set.completedAt && (
                               <div className="mt-1 text-[10px] text-right text-slate-400/40 tracking-tight">
-                                {new Date(set.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(set.completedAt).toLocaleTimeString(
+                                  [],
+                                  { hour: "2-digit", minute: "2-digit" }
+                                )}
                               </div>
                             )}
                           </div>
@@ -4334,7 +4649,9 @@ function SessionSummary({
                 <span className="opacity-70 mr-1">
                   {k.charAt(0).toUpperCase() + k.slice(1)}:
                 </span>
-                <span>{v.sets} sets · {v.tonnage}</span>
+                <span>
+                  {v.sets} sets · {v.tonnage}
+                </span>
               </span>
             ))}
           </div>
@@ -4380,7 +4697,10 @@ function PRChip({
       aria-label="Personal record set"
       title="Personal Record"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-black" aria-hidden="true"></span>
+      <span
+        className="w-1.5 h-1.5 rounded-full bg-black"
+        aria-hidden="true"
+      ></span>
       PR
     </span>
   );
@@ -4444,7 +4764,9 @@ function MobileSessionMetrics({
       </span>
       <span className="flex flex-col items-center gap-0.5">
         <span className="metric-label">Vol</span>
-        <span className="display-number-sm text-emerald-400">{stats.volume}</span>
+        <span className="display-number-sm text-emerald-400">
+          {stats.volume}
+        </span>
       </span>
       <span className="flex flex-col items-center gap-0.5">
         <span className="metric-label">PR</span>
