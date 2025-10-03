@@ -27,6 +27,8 @@ import MobileTabs from "./components/MobileTabs";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { SmartSuspenseFallback } from "./components/SmartSuspenseFallback";
 import { SnackProvider } from './state/snackbar';
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
@@ -429,75 +431,77 @@ function Shell() {
           </div>
         </div>
       )}
-  <main className="flex-1 w-full px-0 py-0">
-        <Suspense fallback={<div className="p-6">Loading…</div>}>
-          <Routes>
-            <Route path="/auth" element={<IntroAuthPage />} />
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/sessions"
-              element={
-                <RequireAuth>
-                  <Sessions />
-                </RequireAuth>
-              }
-            />
+    <main className="flex-1 w-full px-0 py-0">
+        <Suspense fallback={<SmartSuspenseFallback />}>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/auth" element={<IntroAuthPage />} />
               <Route
-                path="/recovery"
+                path="/"
                 element={
                   <RequireAuth>
-                    <Recovery />
+                    <Dashboard />
                   </RequireAuth>
                 }
               />
-            <Route
-              path="/measurements"
-              element={
-                <RequireAuth>
-                  <Measurements />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/templates"
-              element={
-                <RequireAuth>
-                  <Templates />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <RequireAuth>
-                  <Settings />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/settings/program"
-              element={
-                <RequireAuth>
-                  <ProgramSettings />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/store"
-              element={
-                <RequireAuth>
-                  <Store />
-                </RequireAuth>
-              }
-            />
-          </Routes>
+              <Route
+                path="/sessions"
+                element={
+                  <RequireAuth>
+                    <Sessions />
+                  </RequireAuth>
+                }
+              />
+                <Route
+                  path="/recovery"
+                  element={
+                    <RequireAuth>
+                      <Recovery />
+                    </RequireAuth>
+                  }
+                />
+              <Route
+                path="/measurements"
+                element={
+                  <RequireAuth>
+                    <Measurements />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/templates"
+                element={
+                  <RequireAuth>
+                    <Templates />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <Settings />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings/program"
+                element={
+                  <RequireAuth>
+                    <ProgramSettings />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/store"
+                element={
+                  <RequireAuth>
+                    <Store />
+                  </RequireAuth>
+                }
+              />
+            </Routes>
+          </ErrorBoundary>
         </Suspense>
       </main>
       {!authRoute && <MobileTabs />}

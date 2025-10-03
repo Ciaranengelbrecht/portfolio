@@ -2862,7 +2862,7 @@ export default function Sessions() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  className="text-[11px] bg-slate-700 rounded px-2 py-1"
+                                  className="btn-touch-secondary"
                                   disabled={idx === 0}
                                   onClick={() =>
                                     reorderSet(entry, idx, idx - 1)
@@ -2871,7 +2871,7 @@ export default function Sessions() {
                                   Up
                                 </button>
                                 <button
-                                  className="text-[11px] bg-slate-700 rounded px-2 py-1"
+                                  className="btn-touch-secondary"
                                   disabled={idx === entry.sets.length - 1}
                                   onClick={() =>
                                     reorderSet(entry, idx, idx + 1)
@@ -2880,7 +2880,7 @@ export default function Sessions() {
                                   Down
                                 </button>
                                 <button
-                                  className="text-[11px] bg-red-600 rounded px-2 py-1"
+                                  className="btn-touch-danger"
                                   onClick={() => deleteSet(entry, idx)}
                                 >
                                   Del
@@ -2894,7 +2894,7 @@ export default function Sessions() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    className="bg-slate-700 rounded px-3 py-2"
+                                    className="btn-touch-icon-secondary"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3028,7 +3028,7 @@ export default function Sessions() {
                                       )}
                                   </div>
                                   <button
-                                    className="bg-slate-700 rounded px-3 py-2"
+                                    className="btn-touch-icon-secondary"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3054,7 +3054,7 @@ export default function Sessions() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <button
-                                    className="bg-slate-700 rounded px-3 py-2"
+                                    className="btn-touch-icon-secondary"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3207,7 +3207,7 @@ export default function Sessions() {
                                       )}
                                   </div>
                                   <button
-                                    className="bg-slate-700 rounded px-3 py-2"
+                                    className="btn-touch-icon-secondary"
                                     onClick={() =>
                                       updateEntry({
                                         ...entry,
@@ -3233,7 +3233,7 @@ export default function Sessions() {
                           </div>
                         ))}
                         <button
-                          className="w-full text-center text-[11px] bg-slate-700 rounded-xl px-3 py-2"
+                          className="w-full btn-touch-primary"
                           onClick={() => addSet(entry)}
                         >
                           Add Set

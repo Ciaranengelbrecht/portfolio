@@ -253,3 +253,87 @@ input[type="number"] {
 @keyframes skeletonShimmer {
   100% { transform: translateX(100%); }
 }
+
+/* Touch-safe button utilities (minimum 44x44px for mobile accessibility) */
+@layer components {
+  /* Base touch-safe button - minimum 44px touch target */
+  .btn-touch {
+    @apply min-h-[44px] min-w-[44px] px-3 py-2.5;
+    @apply text-sm font-medium;
+    @apply active:scale-95 transition-transform duration-150;
+    @apply flex items-center justify-center;
+  }
+
+  /* Touch-safe icon-only button */
+  .btn-touch-icon {
+    @apply min-h-[44px] min-w-[44px] p-2;
+    @apply flex items-center justify-center;
+    @apply active:scale-95 transition-transform duration-150;
+  }
+
+  /* Touch-safe primary button */
+  .btn-touch-primary {
+    @apply btn-touch;
+    @apply bg-emerald-600 hover:bg-emerald-700;
+    @apply text-white rounded-xl;
+    @apply shadow-sm;
+  }
+
+  /* Touch-safe secondary button */
+  .btn-touch-secondary {
+    @apply btn-touch;
+    @apply bg-slate-700 hover:bg-slate-600;
+    @apply text-white rounded-xl;
+    @apply border border-slate-600/50;
+  }
+
+  /* Touch-safe danger button */
+  .btn-touch-danger {
+    @apply btn-touch;
+    @apply bg-red-600/90 hover:bg-red-600;
+    @apply text-white rounded-xl;
+    @apply shadow-sm;
+  }
+
+  /* Touch-safe ghost button */
+  .btn-touch-ghost {
+    @apply btn-touch;
+    @apply bg-transparent hover:bg-slate-700/50;
+    @apply text-slate-300 rounded-xl;
+    @apply border border-slate-700/50 hover:border-slate-600;
+  }
+
+  /* Touch-safe compact button (still meets 44px minimum, but tighter spacing) */
+  .btn-touch-compact {
+    @apply min-h-[44px] px-3 py-2;
+    @apply text-xs font-medium;
+    @apply active:scale-95 transition-transform duration-150;
+    @apply flex items-center justify-center gap-1.5;
+  }
+
+  /* Touch-safe icon button variants */
+  .btn-touch-icon-primary {
+    @apply btn-touch-icon;
+    @apply bg-emerald-600 hover:bg-emerald-700;
+    @apply text-white rounded-xl;
+  }
+
+  .btn-touch-icon-secondary {
+    @apply btn-touch-icon;
+    @apply bg-slate-700 hover:bg-slate-600;
+    @apply text-white rounded-xl;
+  }
+
+  .btn-touch-icon-danger {
+    @apply btn-touch-icon;
+    @apply bg-red-600/90 hover:bg-red-600;
+    @apply text-white rounded-xl;
+  }
+
+  .btn-touch-icon-ghost {
+    @apply btn-touch-icon;
+    @apply bg-transparent hover:bg-slate-700/50;
+    @apply text-slate-300 rounded-xl;
+    @apply border border-slate-700/50 hover:border-slate-600;
+  }
+}
