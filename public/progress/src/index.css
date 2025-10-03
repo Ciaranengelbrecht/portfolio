@@ -359,14 +359,14 @@ input[type="number"] {
 
   /* Number inputs (weight/reps) - Center-aligned with better contrast */
   .input-number-enhanced {
-    @apply bg-slate-950/90 border-2 border-slate-700/50 rounded-xl px-1 py-2.5;
+    @apply bg-slate-950/90 border-2 border-slate-700/50 rounded-xl px-0.5 py-2;
     @apply text-white text-center font-bold tabular-nums;
-    @apply text-xl; /* Larger for easier reading */
+    @apply text-base; /* Balanced size for visibility */
     @apply transition-all duration-200;
     @apply focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/20 focus:outline-none;
     @apply hover:border-slate-600/60;
     min-width: 0; /* Allow flex shrink */
-    letter-spacing: 0.02em; /* Better digit spacing */
+    letter-spacing: -0.01em; /* Tighter spacing to fit more digits */
   }
 
   /* Enhanced Badges & Pills */

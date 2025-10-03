@@ -2944,9 +2944,26 @@ export default function Sessions() {
                               </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-slate-900/40 rounded-xl px-2 py-2">
-                                <div className="text-[11px] text-gray-400 mb-1">
-                                  Weight
+                              <div className="bg-slate-900/40 rounded-xl px-2 py-2 relative">
+                                <div className="text-[11px] text-gray-400 mb-1 flex items-center justify-between">
+                                  <span>Weight</span>
+                                  {/* Progressive overload indicator - aligned with label */}
+                                  {(() => {
+                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
+                                    const gained = set.weightKg - prev.weightKg;
+                                    if (gained > 0) {
+                                      return (
+                                        <div className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm" title="Progressive overload - weight increased!">
+                                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                                          </svg>
+                                          +{gained}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <button
@@ -3059,23 +3076,6 @@ export default function Sessions() {
                                         ];
                                       }}
                                     />
-                                    {/* Progressive overload indicator - compact version */}
-                                    {(() => {
-                                      const prev = prevWeekSets[entry.exerciseId]?.[idx];
-                                      if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
-                                      const gained = set.weightKg - prev.weightKg;
-                                      if (gained > 0) {
-                                        return (
-                                          <div className="absolute -top-1.5 -right-1 flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm z-10" title="Progressive overload - weight increased!">
-                                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                              <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                                            </svg>
-                                            +{gained}
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
                                       <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>
                                         <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.weightKg}kg</span>
@@ -3123,9 +3123,26 @@ export default function Sessions() {
                                   </button>
                                 </div>
                               </div>
-                              <div className="bg-slate-900/40 rounded-xl px-2 py-2">
-                                <div className="text-[11px] text-gray-400 mb-1">
-                                  Reps
+                              <div className="bg-slate-900/40 rounded-xl px-2 py-2 relative">
+                                <div className="text-[11px] text-gray-400 mb-1 flex items-center justify-between">
+                                  <span>Reps</span>
+                                  {/* Progressive overload indicator - aligned with label */}
+                                  {(() => {
+                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (!prev || prev.reps == null || set.reps == null || set.reps === 0) return null;
+                                    const gained = set.reps - prev.reps;
+                                    if (gained > 0) {
+                                      return (
+                                        <div className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm" title="Progressive overload - reps increased!">
+                                          <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                                          </svg>
+                                          +{gained}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <button
@@ -3259,23 +3276,6 @@ export default function Sessions() {
                                         );
                                       }}
                                     />
-                                    {/* Progressive overload indicator - compact version */}
-                                    {(() => {
-                                      const prev = prevWeekSets[entry.exerciseId]?.[idx];
-                                      if (!prev || prev.reps == null || set.reps == null || set.reps === 0) return null;
-                                      const gained = set.reps - prev.reps;
-                                      if (gained > 0) {
-                                        return (
-                                          <div className="absolute -top-1.5 -right-1 flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm z-10" title="Progressive overload - reps increased!">
-                                            <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
-                                              <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                                            </svg>
-                                            +{gained}
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
                                       <div className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>
                                         <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">prev: {prev.reps}r</span>
