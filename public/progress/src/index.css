@@ -336,4 +336,111 @@ input[type="number"] {
     @apply text-slate-300 rounded-xl;
     @apply border border-slate-700/50 hover:border-slate-600;
   }
+
+  /* ===== PHASE 1: VISUAL ENHANCEMENTS ===== */
+  
+  /* Enhanced Input Fields - Better visibility and focus states */
+  .input-enhanced {
+    @apply bg-slate-950/80 border-2 border-slate-700/50 rounded-xl px-4 py-3;
+    @apply text-white placeholder:text-slate-500;
+    @apply transition-all duration-200;
+    @apply focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/20;
+    @apply hover:border-slate-600/60;
+  }
+
+  /* Number inputs (weight/reps) - Center-aligned with better contrast */
+  .input-number-enhanced {
+    @apply bg-slate-950/90 border-2 border-slate-700/50 rounded-xl px-3 py-2.5;
+    @apply text-white text-center font-bold tabular-nums;
+    @apply text-xl; /* Larger for easier reading on mobile */
+    @apply transition-all duration-200;
+    @apply focus:bg-slate-900 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/20 focus:outline-none;
+    @apply hover:border-slate-600/60;
+  }
+
+  /* Enhanced Badges & Pills */
+  .badge-primary {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg;
+    @apply bg-emerald-600/20 border border-emerald-500/30 text-emerald-300;
+    @apply text-xs font-medium tabular-nums;
+    @apply shadow-sm;
+  }
+
+  .badge-secondary {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg;
+    @apply bg-slate-700/40 border border-slate-600/30 text-slate-300;
+    @apply text-xs font-medium;
+    @apply shadow-sm;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg;
+    @apply bg-blue-600/20 border border-blue-500/30 text-blue-300;
+    @apply text-xs font-medium;
+    @apply shadow-sm;
+  }
+
+  .badge-muscle {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-xl;
+    @apply bg-gradient-to-br from-slate-700/70 to-slate-800/70;
+    @apply border border-white/5 shadow-md;
+    @apply text-sm font-semibold text-slate-100;
+    @apply transition-all duration-200;
+    @apply hover:from-slate-700/80 hover:to-slate-800/80;
+  }
+
+  /* Number Display System */
+  .display-number-lg {
+    @apply text-3xl font-bold tabular-nums tracking-tight;
+  }
+
+  .display-number-md {
+    @apply text-xl font-semibold tabular-nums;
+  }
+
+  .display-number-sm {
+    @apply text-sm font-medium tabular-nums;
+  }
+
+  /* Metric displays (for stats, volume, etc) */
+  .metric-value {
+    @apply text-2xl font-bold text-emerald-400 tabular-nums;
+  }
+
+  .metric-label {
+    @apply text-xs font-medium text-slate-400 uppercase tracking-wide;
+  }
+
+  /* Card variants for consistency */
+  .card-primary {
+    @apply bg-slate-900/60 backdrop-blur-sm border border-white/5 rounded-2xl;
+    @apply shadow-xl shadow-black/20;
+  }
+
+  .card-secondary {
+    @apply bg-slate-800/40 backdrop-blur-sm border border-white/[0.03] rounded-xl;
+  }
+
+  .card-tertiary {
+    @apply bg-slate-800/30 border border-white/[0.02] rounded-lg;
+  }
+
+  /* Icon glow effect for muscle icons */
+  .icon-glow {
+    filter: drop-shadow(0 0 2px rgba(34, 197, 94, 0.3));
+  }
+
+  /* Heading system for consistent hierarchy */
+  .heading-page {
+    @apply text-3xl font-bold text-white mb-6;
+    @apply bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent;
+  }
+
+  .heading-section {
+    @apply text-xl font-semibold text-slate-100 mb-4;
+  }
+
+  .heading-card {
+    @apply text-lg font-semibold text-slate-200 mb-3;
+  }
 }

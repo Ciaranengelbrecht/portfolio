@@ -53,11 +53,11 @@ function TopMuscleAndContents({ session, exMap, exNameCache }: { session: Sessio
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
       {muscleCounts.length>0 && (
-        <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
           {muscleCounts.map(([k,c])=> { const src = getMuscleIconPath(k); return (
-            <div key={k} className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/60 transition text-slate-200 whitespace-nowrap" aria-label={`${k} working sets ${c}`}>
-              {src ? <img src={src} alt={k} className="w-5 h-5 object-contain" /> : <span className="w-5 h-5" />}
-              <span className="tabular-nums font-medium leading-none">{c}</span>
+            <div key={k} className="badge-muscle icon-glow" aria-label={`${k} working sets ${c}`}>
+              {src ? <img src={src} alt={k} className="w-6 h-6 object-contain" /> : <span className="w-6 h-6" />}
+              <span className="tabular-nums leading-none">{c}</span>
             </div>
           ); })}
         </div>
@@ -2920,7 +2920,7 @@ export default function Sessions() {
                                       inputMode="decimal"
                                       pattern="[0-9]*[.,]?[0-9]*"
                                       aria-label="Weight"
-                                      className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
+                                      className="input-number-enhanced w-full"
                                       data-set-input="true"
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
@@ -3004,9 +3004,9 @@ export default function Sessions() {
                                       }}
                                     />
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} weight`:'Previous weight'}>{prev.weightKg}kg</div>
+                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>prev: {prev.weightKg}kg</div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
@@ -3078,7 +3078,7 @@ export default function Sessions() {
                                     <input
                                       inputMode="numeric"
                                       aria-label="Reps"
-                                      className="bg-slate-900 rounded-xl px-3 py-2 w-full text-center"
+                                      className="input-number-enhanced w-full"
                                       data-set-input="true"
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
@@ -3185,9 +3185,9 @@ export default function Sessions() {
                                       }}
                                     />
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-400/50 tabular-nums pointer-events-none select-none" title={wk?`Week ${wk} reps`:'Previous reps'}>{prev.reps}r</div>
+                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>prev: {prev.reps}r</div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-3 left-1 text-[9px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
@@ -4342,15 +4342,18 @@ function MobileSessionMetrics({
       .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
   }, [session, exMap]);
   return (
-    <div className="flex items-center gap-4 text-[11px] font-medium">
-      <span>
-        <span className="opacity-60">Sets</span> {stats.sets}
+    <div className="flex items-center gap-4 text-xs font-medium">
+      <span className="flex flex-col items-center gap-0.5">
+        <span className="metric-label">Sets</span>
+        <span className="display-number-sm text-slate-100">{stats.sets}</span>
       </span>
-      <span>
-        <span className="opacity-60">Vol</span> {stats.volume}
+      <span className="flex flex-col items-center gap-0.5">
+        <span className="metric-label">Vol</span>
+        <span className="display-number-sm text-emerald-400">{stats.volume}</span>
       </span>
-      <span>
-        <span className="opacity-60">PR</span> {stats.prs}
+      <span className="flex flex-col items-center gap-0.5">
+        <span className="metric-label">PR</span>
+        <span className="display-number-sm text-emerald-400">{stats.prs}</span>
       </span>
       {muscleCounts.length > 0 && (
         <div className="flex items-center gap-2">

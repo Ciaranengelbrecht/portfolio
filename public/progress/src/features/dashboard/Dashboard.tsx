@@ -111,7 +111,7 @@ export default function Dashboard() {
 
   type HiddenKey = 'trainingChart' | 'bodyChart' | 'weekVolume' | 'phaseTotals' | 'compliance' | 'weeklyMuscleBar' | 'sessionVolumeTrend';
   const SectionToggle = ({label, flag}:{label:string; flag:HiddenKey}) => (
-    <button onClick={()=> toggle(flag)} className={`text-[10px] px-2 py-1 rounded-lg border ${hidden?.[flag]? 'bg-slate-800 text-gray-400 border-white/5':'bg-emerald-600/70 text-white border-emerald-500/40'}`}>{hidden?.[flag]? `Show ${label}`:`Hide ${label}`}</button>
+    <button onClick={()=> toggle(flag)} className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all ${hidden?.[flag]? 'bg-slate-800 text-gray-400 border-white/5':'badge-primary'}`}>{hidden?.[flag]? `Show ${label}`:`Hide ${label}`}</button>
   );
 
   const WeeklyMuscleBar = () => (

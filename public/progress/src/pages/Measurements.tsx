@@ -243,7 +243,7 @@ export default function Measurements() {
                 </button>
                 <input
                   inputMode="decimal"
-                  className="w-full bg-slate-800 rounded-xl px-3 py-3"
+                  className="w-full input-number-enhanced"
                   value={(m as any)[k] || ""}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowUp") {
@@ -407,7 +407,7 @@ export default function Measurements() {
                       -
                     </button>
                     <input
-                      className="bg-slate-900 rounded px-3 py-2 w-full text-center"
+                      className="input-number-enhanced w-full"
                       inputMode="decimal"
                       value={row.weightKg || ""}
                       onKeyDown={(e) => {
@@ -456,7 +456,7 @@ export default function Measurements() {
                       -
                     </button>
                     <input
-                      className="bg-slate-900 rounded px-3 py-2 w-full text-center"
+                      className="input-number-enhanced w-full"
                       inputMode="decimal"
                       value={row.waist || ""}
                       onKeyDown={(e) => {
@@ -505,7 +505,7 @@ export default function Measurements() {
                       -
                     </button>
                     <input
-                      className="bg-slate-900 rounded px-3 py-2 w-full text-center"
+                      className="input-number-enhanced w-full"
                       inputMode="decimal"
                       value={row.upperArm || ""}
                       onKeyDown={(e) => {

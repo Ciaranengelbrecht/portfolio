@@ -562,9 +562,9 @@ export default function Templates() {
             onChange={(e) => setExerciseQuery(e.target.value)}
           />
         </div>
-        <div className="text-[10px] text-gray-500 mb-2 flex items-center gap-3 flex-wrap">
+        <div className="text-xs text-gray-500 mb-2 flex items-center gap-3 flex-wrap">
           <span>{exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length: 0)} exercise{(exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length:0))===1?'':'s'} shown</span>
-          <button className="px-2 py-1 rounded bg-slate-700 text-[10px]" onClick={()=> setShowAllExercises(v=> !v)}>{showAllExercises? 'Hide All':'Show All'}</button>
+          <button className="badge-secondary" onClick={()=> setShowAllExercises(v=> !v)}>{showAllExercises? 'Hide All':'Show All'}</button>
         </div>
         <div className="grid gap-2">
           {searchedExercises.map((ex) => (
