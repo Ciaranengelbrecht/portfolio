@@ -2962,7 +2962,7 @@ export default function Sessions() {
                                   >
                                     -
                                   </button>
-                                  <div className="relative flex-1">
+                                  <div className="relative flex-1 pb-4">
                                     <input
                                       type="text"
                                       inputMode="decimal"
@@ -3052,9 +3052,11 @@ export default function Sessions() {
                                       }}
                                     />
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.weightKg!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>prev: {prev.weightKg}kg</div>
+                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-emerald-400/70 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} weight`:'Previous weight'}>
+                                        <span className="bg-slate-900/60 px-1.5 py-0.5 rounded">prev: {prev.weightKg}kg</span>
+                                      </div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
@@ -3122,7 +3124,7 @@ export default function Sessions() {
                                   >
                                     -
                                   </button>
-                                  <div className="relative flex-1">
+                                  <div className="relative flex-1 pb-4">
                                     <input
                                       inputMode="numeric"
                                       aria-label="Reps"
@@ -3233,9 +3235,11 @@ export default function Sessions() {
                                       }}
                                     />
                                     {(() => { const prev = prevWeekSets[entry.exerciseId]?.[idx]; if(prev && prev.reps!=null){ const wk = prevWeekSourceWeek; return (
-                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>prev: {prev.reps}r</div>
+                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-emerald-400/70 tabular-nums pointer-events-none select-none font-medium" title={wk?`Week ${wk} reps`:'Previous reps'}>
+                                        <span className="bg-slate-900/60 px-1.5 py-0.5 rounded">prev: {prev.reps}r</span>
+                                      </div>
                                     ); } if(prevWeekLoading){ return (
-                                      <div className="absolute -bottom-3.5 left-1 text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
+                                      <div className="absolute -bottom-0.5 left-0 right-0 text-center text-[10px] text-slate-500/40 pointer-events-none select-none">...</div>
                                     ); } return null; })()}
                                     {!(
                                       (
