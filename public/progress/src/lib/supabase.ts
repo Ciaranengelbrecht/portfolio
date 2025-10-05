@@ -91,13 +91,19 @@ export async function forceRefreshSession() {
     }
   if (DBG()) console.log("[auth] forceRefreshSession: refreshing...");
     const res = await supabase.auth.refreshSession();
-    if (res.error)
+    if (res.error) {
   if (DBG()) console.log("[auth] forceRefreshSession: refresh error", res.error.message);
-    try {
-      window.dispatchEvent(
-        new CustomEvent("sb-auth", { detail: { session: res.data.session } })
-      );
-    } catch {}
+      // Don't dispatch null session event on error - prevents false sign-outs
+      return null;
+    }
+    // Only dispatch if we have a valid session
+    if (res.data.session) {
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-auth", { detail: { session: res.data.session } })
+        );
+      } catch {}
+    }
     return res.data.session;
   } catch {
     return null;
@@ -194,7 +200,21 @@ export async function getOwnerIdFast(
   } catch (e: any) {
   if (DBG()) console.log("[auth] getOwnerIdFast: getSession timeout/error:", e?.message || e);
   }
+  // Wait for session to become available
   const s = await waitForSession({ timeoutMs: t });
   if (s?.user?.id) return s.user.id;
+  
+  // Last resort: try to refresh the session before giving up
+  if (DBG()) console.log("[auth] getOwnerIdFast: attempting session refresh before throwing");
+  try {
+    const refreshed = await forceRefreshSession();
+    if (refreshed?.user?.id) {
+      if (DBG()) console.log("[auth] getOwnerIdFast: refresh successful, user:", refreshed.user.id);
+      return refreshed.user.id;
+    }
+  } catch (e: any) {
+    if (DBG()) console.log("[auth] getOwnerIdFast: refresh failed:", e?.message || e);
+  }
+  
   throw new Error("Not signed in");
 }

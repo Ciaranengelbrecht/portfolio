@@ -4664,9 +4664,14 @@ function SessionSummary({
 function AsyncChip({ promise }: { promise: Promise<any> }) {
   const [text, setText] = useState("…");
   useEffect(() => {
-    promise.then((r) =>
-      setText(`DL: ${Math.round(r.loadPct * 100)}% × ${r.targetSets} sets`)
-    );
+    promise
+      .then((r) =>
+        setText(`DL: ${Math.round(r.loadPct * 100)}% × ${r.targetSets} sets`)
+      )
+      .catch((err) => {
+        console.warn("[AsyncChip] deload prescription error:", err);
+        setText("DL: --"); // Graceful fallback on error
+      });
   }, [promise]);
   return (
     <span className="text-xs bg-slate-800 rounded-xl px-2 py-1">{text}</span>
