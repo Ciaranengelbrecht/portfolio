@@ -982,30 +982,132 @@ export default function Sessions() {
   useEffect(() => {
     (async () => {
       if (!initialRouteReady) return; // wait for lastLocation / intent resolution
-      const id = `${phase}-${week}-${day}`;
-      let s = await db.get<Session>("sessions", id);
-      if (!s) {
-        // fallback: try old id format (week-day) and migrate
-        const oldId = `${week}-${day}`;
-        const old = await db.get<Session>("sessions", oldId);
-        if (old) {
-          s = { ...old, id, phase };
-          await db.delete("sessions", oldId);
+      try {
+        const id = `${phase}-${week}-${day}`;
+        let s = await db.get<Session>("sessions", id);
+        if (!s) {
+          // fallback: try old id format (week-day) and migrate
+          const oldId = `${week}-${day}`;
+          const old = await db.get<Session>("sessions", oldId);
+          if (old) {
+            s = { ...old, id, phase };
+            await db.delete("sessions", oldId);
+            await db.put("sessions", s);
+          }
+        }
+        if (!s) {
+          // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
+          const allToday = (await db.getAll<Session>("sessions")).filter(
+            (x) =>
+              x.dateISO?.slice(0, 10) === new Date().toISOString().slice(0, 10)
+          );
+          const existingSame = allToday.find((x) => x.id === id);
+          if (existingSame) {
+            s = existingSame; // another timezone path already created it
+          }
+        }
+        if (!s) {
+          const templateMeta = program ? program.weeklySplit[day] : undefined;
+          const templateName = templateMeta
+            ? templateMeta.customLabel || templateMeta.type || "Day"
+            : DAYS[day];
+          const now = new Date();
+          const localDayStr = `${now.getFullYear()}-${String(
+            now.getMonth() + 1
+          ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          const nowISO = new Date().toISOString();
+          s = {
+            id,
+            dateISO: (() => {
+              const d = new Date();
+              d.setHours(0, 0, 0, 0);
+              return d.toISOString();
+            })(),
+            localDate: localDayStr,
+            weekNumber: week,
+            phase,
+            phaseNumber: phase,
+            dayName: templateName,
+            entries: [],
+            templateId: templateMeta?.templateId,
+            programId: program?.id,
+            createdAt: nowISO,
+            updatedAt: nowISO,
+          } as Session;
           await db.put("sessions", s);
+          // If there is a templateId, auto-import it
+          if (templateMeta?.templateId) {
+            try {
+              const t = await db.get("templates", templateMeta.templateId);
+              if (t) {
+                // Reuse import logic manually (append false since brand new)
+                const exs = await db.getAll("exercises");
+                const settings = await getSettings();
+                const exMap = new Map(exs.map((e: any) => [e.id, e]));
+                const rows = (exId: string) => {
+                  const base =
+                    settings.defaultSetRows ??
+                    exMap.get(exId)?.defaults.sets ??
+                    3;
+                  return Math.min(6, Math.max(0, base));
+                };
+                const newEntries = (t.exerciseIds || []).map((exId: string) => ({
+                  id: nanoid(),
+                  exerciseId: exId,
+                  sets: (() => {
+                    const n = rows(exId);
+                    return n === 0
+                      ? []
+                      : Array.from({ length: n }, (_, i) => ({
+                          setNumber: i + 1,
+                          weightKg: 0,
+                          reps: 0,
+                        }));
+                  })(),
+                }));
+                s = {
+                  ...s,
+                  entries: newEntries,
+                  autoImportedTemplateId: templateMeta.templateId,
+                };
+                await db.put("sessions", s);
+              }
+            } catch (e) {
+              console.warn("[Sessions] auto-import template failed", e);
+            }
+          }
         }
-      }
-      if (!s) {
-        // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
-        const allToday = (await db.getAll<Session>("sessions")).filter(
-          (x) =>
-            x.dateISO?.slice(0, 10) === new Date().toISOString().slice(0, 10)
-        );
-        const existingSame = allToday.find((x) => x.id === id);
-        if (existingSame) {
-          s = existingSame; // another timezone path already created it
+        setSession(s);
+        // Persist lastLocation after session is resolved; avoid clobbering a newer explicit navigation
+        try {
+          const settings = await getSettings();
+          const prev = settings.dashboardPrefs?.lastLocation;
+          const nextLoc = {
+            phaseNumber: phase,
+            weekNumber: week,
+            dayId: day,
+            sessionId: s.id,
+          };
+          const sameTarget =
+            prev &&
+            `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` ===
+              `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
+          if (!prev || sameTarget) {
+            await setSettings({
+              ...settings,
+              dashboardPrefs: {
+                ...(settings.dashboardPrefs || {}),
+                lastLocation: nextLoc,
+              },
+            });
+          }
+        } catch (settingsErr) {
+          console.warn("[Sessions] failed to save lastLocation", settingsErr);
         }
-      }
-      if (!s) {
+      } catch (err: any) {
+        console.error("[Sessions] Critical error loading session:", err);
+        // Don't let the error crash the component - create a minimal session
+        const id = `${phase}-${week}-${day}`;
         const templateMeta = program ? program.weeklySplit[day] : undefined;
         const templateName = templateMeta
           ? templateMeta.customLabel || templateMeta.type || "Day"
@@ -1015,7 +1117,7 @@ export default function Sessions() {
           now.getMonth() + 1
         ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         const nowISO = new Date().toISOString();
-        s = {
+        const fallbackSession: Session = {
           id,
           dateISO: (() => {
             const d = new Date();
@@ -1033,74 +1135,16 @@ export default function Sessions() {
           createdAt: nowISO,
           updatedAt: nowISO,
         } as Session;
-        await db.put("sessions", s);
-        // If there is a templateId, auto-import it
-        if (templateMeta?.templateId) {
+        setSession(fallbackSession);
+        // Try to save it in the background
+        setTimeout(async () => {
           try {
-            const t = await db.get("templates", templateMeta.templateId);
-            if (t) {
-              // Reuse import logic manually (append false since brand new)
-              const exs = await db.getAll("exercises");
-              const settings = await getSettings();
-              const exMap = new Map(exs.map((e: any) => [e.id, e]));
-              const rows = (exId: string) => {
-                const base =
-                  settings.defaultSetRows ??
-                  exMap.get(exId)?.defaults.sets ??
-                  3;
-                return Math.min(6, Math.max(0, base));
-              };
-              const newEntries = (t.exerciseIds || []).map((exId: string) => ({
-                id: nanoid(),
-                exerciseId: exId,
-                sets: (() => {
-                  const n = rows(exId);
-                  return n === 0
-                    ? []
-                    : Array.from({ length: n }, (_, i) => ({
-                        setNumber: i + 1,
-                        weightKg: 0,
-                        reps: 0,
-                      }));
-                })(),
-              }));
-              s = {
-                ...s,
-                entries: newEntries,
-                autoImportedTemplateId: templateMeta.templateId,
-              };
-              await db.put("sessions", s);
-            }
-          } catch (e) {
-            console.warn("[Sessions] auto-import template failed", e);
+            await db.put("sessions", fallbackSession);
+          } catch (putErr) {
+            console.warn("[Sessions] failed to save fallback session", putErr);
           }
-        }
+        }, 1000);
       }
-      setSession(s);
-      // Persist lastLocation after session is resolved; avoid clobbering a newer explicit navigation
-      try {
-        const settings = await getSettings();
-        const prev = settings.dashboardPrefs?.lastLocation;
-        const nextLoc = {
-          phaseNumber: phase,
-          weekNumber: week,
-          dayId: day,
-          sessionId: s.id,
-        };
-        const sameTarget =
-          prev &&
-          `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` ===
-            `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
-        if (!prev || sameTarget) {
-          await setSettings({
-            ...settings,
-            dashboardPrefs: {
-              ...(settings.dashboardPrefs || {}),
-              lastLocation: nextLoc,
-            },
-          });
-        }
-      } catch {}
     })();
   }, [phase, week, day, initialRouteReady]);
 
@@ -1264,31 +1308,47 @@ export default function Sessions() {
   // --- END AUTO-RECOVER ---
   useEffect(() => {
     (async () => {
-      console.log("[Sessions] init: fetch lists (no auth wait)");
-      const [t, e] = await Promise.all([
-        getAllCached("templates"),
-        getAllCached("exercises"),
-      ]);
-      console.log(
-        "[Sessions] init: templates",
-        t.length,
-        "exercises",
-        e.length
-      );
-      setTemplates(t);
-      setExercises(e);
-      // Preload sessions for prev best map (day-aware for better matching)
-      setPrevBestLoading(true);
-      const allSessions = await getAllCached<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
-      setPrevBestLoading(false);
-      const st = await getSettings();
-      setSettingsState(st as any);
-      setInitialLoading(false);
-      // Lazy subscribe to only needed tables
-      requestRealtime("sessions");
-      requestRealtime("exercises");
-      requestRealtime("templates");
+      try {
+        console.log("[Sessions] init: fetch lists (no auth wait)");
+        const [t, e] = await Promise.all([
+          getAllCached("templates"),
+          getAllCached("exercises"),
+        ]);
+        console.log(
+          "[Sessions] init: templates",
+          t.length,
+          "exercises",
+          e.length
+        );
+        setTemplates(t);
+        setExercises(e);
+        // Preload sessions for prev best map (day-aware for better matching)
+        setPrevBestLoading(true);
+        const allSessions = await getAllCached<Session>("sessions");
+        setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+        setPrevBestLoading(false);
+        const st = await getSettings();
+        setSettingsState(st as any);
+        setInitialLoading(false);
+        // Lazy subscribe to only needed tables
+        requestRealtime("sessions");
+        requestRealtime("exercises");
+        requestRealtime("templates");
+      } catch (err) {
+        console.error("[Sessions] Critical error during initialization:", err);
+        // Set minimal state to prevent total freeze
+        setTemplates([]);
+        setExercises([]);
+        setPrevBestMap(null);
+        setPrevBestLoading(false);
+        setInitialLoading(false);
+        // Still try to subscribe to realtime for when auth recovers
+        try {
+          requestRealtime("sessions");
+          requestRealtime("exercises");
+          requestRealtime("templates");
+        } catch {}
+      }
     })();
   }, []);
 
@@ -1392,9 +1452,15 @@ export default function Sessions() {
   useEffect(() => {
     (async () => {
       setPrevBestLoading(true);
-      const allSessions = await db.getAll<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
-      setPrevBestLoading(false);
+      try {
+        const allSessions = await db.getAll<Session>("sessions");
+        setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      } catch (err) {
+        console.error("[Sessions] Error loading prev best map:", err);
+        setPrevBestMap(null); // Fallback to empty map
+      } finally {
+        setPrevBestLoading(false);
+      }
     })();
   }, [week, phase, day]);
 
