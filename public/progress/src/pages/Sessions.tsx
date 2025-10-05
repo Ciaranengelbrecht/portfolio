@@ -895,8 +895,8 @@ export default function Sessions() {
         : t.running
         ? "animate-[timerPulse_1800ms_ease-in-out_infinite]"
         : "";
-    // Calculate progress (0-264 is circumference for r=42)
-    const progress = Math.min((totalSecs / target) * 264, 264);
+    // Calculate progress (0-157 is circumference for r=25)
+    const progress = Math.min((totalSecs / target) * 157, 157);
     // On first reach event add screen flash if enabled
     if (reached && !t.alerted && flash) {
       try {
@@ -908,39 +908,39 @@ export default function Sessions() {
       } catch {}
     }
     return (
-      <div className="relative inline-flex items-center justify-center">
+      <div className="relative inline-flex items-center justify-center w-[52px] h-[52px]">
         {/* Circular progress ring */}
         <svg
-          className="absolute w-20 h-20 -rotate-90 pointer-events-none"
-          viewBox="0 0 100 100"
+          className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
+          viewBox="0 0 60 60"
         >
           {/* Background ring */}
           <circle
-            cx="50"
-            cy="50"
-            r="42"
+            cx="30"
+            cy="30"
+            r="25"
             fill="none"
             stroke="currentColor"
-            strokeWidth="6"
+            strokeWidth="4"
             className="text-slate-700/30"
           />
           {/* Progress ring */}
           <circle
-            cx="50"
-            cy="50"
-            r="42"
+            cx="30"
+            cy="30"
+            r="25"
             fill="none"
             stroke="currentColor"
-            strokeWidth="6"
+            strokeWidth="4"
             strokeLinecap="round"
             className={`transition-all duration-1000 ease-linear ${
               reached ? "text-rose-400" : "text-emerald-500"
             }`}
-            strokeDasharray={`${progress} 264`}
+            strokeDasharray={`${progress} 157`}
             style={{
               filter: reached
-                ? "drop-shadow(0 0 6px rgba(244, 63, 94, 0.6))"
-                : "drop-shadow(0 0 4px rgba(34, 197, 94, 0.4))",
+                ? "drop-shadow(0 0 4px rgba(244, 63, 94, 0.6))"
+                : "drop-shadow(0 0 3px rgba(34, 197, 94, 0.4))",
             }}
           />
         </svg>
@@ -951,27 +951,48 @@ export default function Sessions() {
           aria-label={`Rest time ${mm} minutes ${ss} seconds ${cs} centiseconds${
             reached ? " – rest complete" : ""
           }`}
-          className={`rest-timer relative font-mono tabular-nums select-none text-sm px-3 rounded-full min-w-[72px] h-20 flex flex-col items-center justify-center text-center leading-none ${
+          className={`rest-timer relative font-mono tabular-nums select-none rounded-full w-[52px] h-[52px] flex flex-col items-center justify-center text-center leading-none ${
             reached ? "text-rose-300" : "text-emerald-300"
           } ${basePulse} ${
             reached && strong ? "rest-strong-alert" : ""
-          } bg-[rgba(15,23,42,0.85)] shadow-lg backdrop-blur-sm`}
+          } bg-[rgba(15,23,42,0.90)] shadow-lg backdrop-blur-sm`}
         >
-          <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-0.5 font-medium">
-            Rest
-          </div>
-          <span
-            className={`rest-timer-value relative z-10 font-bold tracking-tight text-xl ${
-              reached
-                ? "drop-shadow-[0_0_10px_rgba(255,255,255,0.6)] transition-transform"
-                : "transition-transform"
-            }`}
-          >
-            {mm}:{String(ss).padStart(2, "0")}
-          </span>
-          <div className="text-[8px] text-slate-500 mt-0.5 tabular-nums">
-            .{String(cs).padStart(2, "0")}
-          </div>
+          {t.running ? (
+            // When timer is running, show only the time
+            <>
+              <span
+                className={`rest-timer-value relative z-10 font-bold tracking-tight text-base ${
+                  reached
+                    ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-transform"
+                    : "transition-transform"
+                }`}
+              >
+                {mm}:{String(ss).padStart(2, "0")}
+              </span>
+              <div className="text-[7px] text-slate-500 mt-0.5 tabular-nums leading-none">
+                .{String(cs).padStart(2, "0")}
+              </div>
+            </>
+          ) : (
+            // When timer is not running, show "Rest" label
+            <>
+              <div className="text-[8px] uppercase tracking-wider text-slate-400 mb-0.5 font-medium leading-none">
+                Rest
+              </div>
+              <span
+                className={`rest-timer-value relative z-10 font-bold tracking-tight text-sm ${
+                  reached
+                    ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.6)] transition-transform"
+                    : "transition-transform"
+                }`}
+              >
+                {mm}:{String(ss).padStart(2, "0")}
+              </span>
+              <div className="text-[7px] text-slate-500 mt-0.5 tabular-nums leading-none">
+                .{String(cs).padStart(2, "0")}
+              </div>
+            </>
+          )}
         </span>
       </div>
     );
