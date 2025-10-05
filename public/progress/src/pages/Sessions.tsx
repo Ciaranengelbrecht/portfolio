@@ -263,40 +263,52 @@ export default function Sessions() {
 
   useEffect(() => {
     (async () => {
-      const s = await getSettings();
-      // Only apply stored lastLocation if we haven't already picked the most recent session
-      // Also, if navigation explicitly set lastLocation (via sessionStorage flag), prefer it and skip auto-pick
-      let hadIntent = false;
       try {
-        hadIntent = sessionStorage.getItem("lastLocationIntent") === "1";
-        sessionStorage.removeItem("lastLocationIntent");
-      } catch {}
-      if (!pickedLatestRef.current || hadIntent) {
-        setPhase(s.currentPhase || 1);
-        const last = s.dashboardPrefs?.lastLocation;
-        if (last) {
-          if (debugSessions.current) {
+        // Add timeout to getSettings() to prevent hanging forever
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("getSettings timeout")), 5000)
+        );
+        const s = await Promise.race([getSettings(), timeoutPromise]);
+        
+        // Only apply stored lastLocation if we haven't already picked the most recent session
+        // Also, if navigation explicitly set lastLocation (via sessionStorage flag), prefer it and skip auto-pick
+        let hadIntent = false;
+        try {
+          hadIntent = sessionStorage.getItem("lastLocationIntent") === "1";
+          sessionStorage.removeItem("lastLocationIntent");
+        } catch {}
+        if (!pickedLatestRef.current || hadIntent) {
+          setPhase(s.currentPhase || 1);
+          const last = s.dashboardPrefs?.lastLocation;
+          if (last) {
+            if (debugSessions.current) {
+              try {
+                console.log(
+                  "[Sessions debug] applying lastLocation from settings",
+                  last
+                );
+              } catch {}
+            }
+            setWeek(last.weekNumber as any);
+            setDay(last.dayId);
+          }
+          if (debugSessions.current && !last) {
             try {
               console.log(
-                "[Sessions debug] applying lastLocation from settings",
-                last
+                "[Sessions debug] no lastLocation in settings; using defaults"
               );
             } catch {}
           }
-          setWeek(last.weekNumber as any);
-          setDay(last.dayId);
+          if (hadIntent) pickedLatestRef.current = true; // lock to explicit choice
         }
-        if (debugSessions.current && !last) {
-          try {
-            console.log(
-              "[Sessions debug] no lastLocation in settings; using defaults"
-            );
-          } catch {}
-        }
-        if (hadIntent) pickedLatestRef.current = true; // lock to explicit choice
+      } catch (err) {
+        console.error("[Sessions] Failed to load initial settings:", err);
+        // Continue with defaults - don't block component initialization
+      } finally {
+        // CRITICAL: Always set initialRouteReady, even if getSettings fails
+        // Otherwise the component will be permanently frozen
+        setInitialRouteReady(true);
       }
-      // Do not build suggestions here; defer until we know current session identity for day-specific filtering
-      setInitialRouteReady(true);
     })();
   }, []);
   // Load exercise name cache on mount and persist updates
