@@ -116,7 +116,10 @@ export async function getDeloadPrescription(
   const baseWeight = Math.round(referenceWeight);
   const targetWeight = Math.round(referenceWeight * loadPct);
   const rawSetsBase = ex?.defaults.sets ?? 2;
-  const targetSets = Math.max(0, Math.round(rawSetsBase * setPct));
+  const rawTargetSets = rawSetsBase * setPct;
+  const targetSets = rawTargetSets > 0
+    ? Math.max(1, Math.floor(rawTargetSets))
+    : 0;
   return { targetWeight, targetSets, loadPct, setPct, baseWeight };
 }
 

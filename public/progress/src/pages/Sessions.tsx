@@ -387,8 +387,10 @@ export default function Sessions() {
       }
       if (!session) return;
       try {
-        const allExercises = await db.getAll<Exercise>("exercises");
-        const allSessions = await db.getAll<Session>("sessions");
+        const [allExercises, allSessions] = await Promise.all([
+          getAllCached<Exercise>("exercises", { swr: true }),
+          getAllCached<Session>("sessions", { swr: true }),
+        ]);
         const exerciseIds = session.entries.map((e) => e.exerciseId);
         const filteredExercises = allExercises.filter((e) =>
           exerciseIds.includes(e.id)
@@ -1450,8 +1452,10 @@ export default function Sessions() {
   useEffect(() => {
     const onChange = (e: any) => {
       const tbl = e?.detail?.table;
-      if (tbl === "templates") db.getAll("templates").then(setTemplates);
-      if (tbl === "exercises") db.getAll("exercises").then(setExercises);
+      if (tbl === "templates")
+        getAllCached("templates", { force: true }).then(setTemplates);
+      if (tbl === "exercises")
+        getAllCached("exercises", { force: true }).then(setExercises);
       if (tbl === "sessions" && session) {
         if (
           pendingRef.current ||
@@ -1464,7 +1468,7 @@ export default function Sessions() {
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
           setPrevBestLoading(true);
-          db.getAll<Session>("sessions").then((all) => {
+          getAllCached<Session>("sessions", { force: true }).then((all) => {
             setPrevBestMap(buildPrevBestMap(all, week, phase, day));
             setPrevBestLoading(false);
           });
@@ -1628,10 +1632,10 @@ export default function Sessions() {
           new Set(session.entries.map((entry) => entry.exerciseId))
         );
         const [sessionsData, exercisesData, settingsData] = await Promise.all([
-          db.getAll<Session>("sessions"),
+          getAllCached<Session>("sessions", { swr: true }),
           exercises.length
             ? Promise.resolve(exercises)
-            : db.getAll<Exercise>("exercises"),
+            : getAllCached<Exercise>("exercises", { swr: true }),
           settingsState ? Promise.resolve(settingsState) : getSettings(),
         ]);
         const map = await getDeloadPrescriptionsBulk(
@@ -1785,7 +1789,7 @@ export default function Sessions() {
         if (remoteTs > lastLocalEditRef.current) {
           setSession(fresh);
           setPrevBestLoading(true);
-          const all = await db.getAll<Session>("sessions");
+          const all = await getAllCached<Session>("sessions", { force: true });
           setPrevBestMap(buildPrevBestMap(all, week, phase, day));
           setPrevBestLoading(false);
         }
@@ -3090,9 +3094,9 @@ export default function Sessions() {
                       )}
                     </div>
                     <div className="shrink-0 flex flex-col items-end gap-1 relative min-w-[118px]">
-                      <div className="flex items-center gap-1 justify-end w-full">
-                        {isDeloadWeek && (
-                          <span data-shape="deload" className="mr-1">
+                      {isDeloadWeek && (
+                        <div className="w-full flex justify-end mt-1">
+                          <span data-shape="deload">
                             <AsyncChip
                               loading={deloadLoading}
                               errored={deloadError}
@@ -3100,7 +3104,9 @@ export default function Sessions() {
                               unit={settingsState?.unit || "kg"}
                             />
                           </span>
-                        )}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 justify-end w-full">
                         <button
                           aria-label="Switch exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
@@ -4868,29 +4874,27 @@ function AsyncChip({
     return `${val}${unit}`;
   };
 
-  let text = "DL: --";
+  let text = "Deload --";
   if (loading) {
-    text = "DL: …";
+    text = "Deload …";
   } else if (errored) {
-    text = "DL: --";
+    text = "Deload --";
   } else if (info && !info.inactive) {
-    const pct = Number.isFinite(info.loadPct)
-      ? Math.round(info.loadPct * 100)
-      : null;
-    const sets = info.targetSets ?? 0;
-    const baseWeightLabel = formatWeight(info.baseWeight ?? 0);
+    const sets = Math.max(0, info.targetSets ?? 0);
     const targetWeightLabel = formatWeight(info.targetWeight ?? 0);
-    const pctLabel = pct != null ? `${pct}%` : "--";
-    if (targetWeightLabel && baseWeightLabel) {
-      text = `DL: ${pctLabel} of ${baseWeightLabel} → ${targetWeightLabel} × ${sets} sets`;
-    } else if (targetWeightLabel) {
-      text = `DL: ${pctLabel} → ${targetWeightLabel} × ${sets} sets`;
+    if (targetWeightLabel) {
+      const setsLabel = sets > 0 ? ` × ${sets}` : "";
+      text = `Deload ${targetWeightLabel}${setsLabel}`;
+    } else if (sets > 0) {
+      text = `Deload × ${sets}`;
     } else {
-      text = `DL: ${pctLabel} × ${sets} sets`;
+      text = "Deload";
     }
   }
   return (
-    <span className="text-xs bg-slate-800 rounded-xl px-2 py-1">{text}</span>
+    <span className="inline-flex items-center gap-1 text-xs bg-slate-800 rounded-xl px-2 py-1 whitespace-nowrap">
+      {text}
+    </span>
   );
 }
 

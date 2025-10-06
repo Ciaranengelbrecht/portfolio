@@ -1,8 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { volumeByMuscleGroup } from "../lib/helpers";
 import { getMuscleIconPath } from "../lib/muscles";
 import { loadRecharts } from "../lib/loadRecharts";
-import { db } from "../lib/db";
 import { getAllCached } from '../lib/dataCache';
 import { Measurement, Session, Settings, Exercise, UserProgram } from "../lib/types";
 import { getProfileProgram } from '../lib/profile';
@@ -42,96 +41,201 @@ export default function Dashboard() {
   const [RC, setRC] = useState<any | null>(null);
   useEffect(() => { loadRecharts().then(m => setRC(m)); }, []);
 
+  const isMountedRef = useRef(true);
   useEffect(() => {
-    // SWR: immediate stale data then background refresh
-    (async()=> {
-      const sessions = await getAllCached('sessions', { swr:true });
-      const exercises = await getAllCached('exercises', { swr:true });
-      setVolume(await volumeByMuscleGroup(week, { sessions: sessions as any, exercises: exercises as any }));
-    })();
-  }, [week]);
-  useEffect(() => {
-    (async () => {
-      const m = await getAllCached('measurements', { swr:true }) as Measurement[];
-      setWeights(
-        m
-          .filter((x) => x.weightKg)
-          .map((x) => ({ date: x.dateISO.slice(5), weight: x.weightKg! }))
-      );
-      setWaist(
-        m
-          .filter((x) => x.waist)
-          .map((x) => ({ date: x.dateISO.slice(5), value: x.waist! }))
-      );
-      setArm(
-        m
-          .filter((x) => x.upperArm)
-          .map((x) => ({ date: x.dateISO.slice(5), value: x.upperArm! }))
-      );
-      // streaks / xp / achievements
-  const sessions = await getAllCached('sessions', { swr:true }) as Session[];
-      // simple streak: consecutive days with at least one session entry (weight or reps logged) ending today
-      const today = new Date();
-      const dayKey = (d:Date)=> d.toISOString().slice(0,10);
-      const sessionDays = new Set<string>();
-      sessions.forEach(s=> { if(s.entries.some(e=> e.sets.some(st=> (st.reps||0)>0 || (st.weightKg||0)>0))) sessionDays.add(s.dateISO.slice(0,10)); });
-      let curStreak=0; let cursor = new Date();
-      while(sessionDays.has(dayKey(cursor))){ curStreak++; cursor.setDate(cursor.getDate()-1); }
-      setStreak(curStreak);
-  // target days derived from program (non-Rest days) else settings fallback
-  const settings = await db.get<Settings>('settings','app');
-  let program: UserProgram | undefined;
-  try { program = await getProfileProgram(); } catch {}
-  const nonRest = program ? program.weeklySplit.filter(d=> d.type!=='Rest').length : undefined;
-  setTargetDays(nonRest || settings?.progress?.weeklyTargetDays || 6);
-      // simple XP: total sets logged * 5 + PR count * 20
-      let totalSets=0; let prCount=0; // naive: PR if heaviest set weight*reps highest for exercise in history
-      const byEx: Record<string, number> = {};
-      sessions.forEach(s=> s.entries.forEach(e=> e.sets.forEach(st=> {
-        totalSets++; const score=(st.weightKg||0)*(st.reps||0); if(score>0){ if(score > (byEx[e.exerciseId]||0)){ byEx[e.exerciseId]=score; prCount++; } }
-      })));
-      const earnedXp = totalSets*5 + prCount*20;
-      setXp(earnedXp);
-      setLevel(Math.max(1, Math.floor(Math.sqrt(earnedXp)/3)+1));
-      const ach:string[] = [];
-      if(curStreak>=7) ach.push('7 Day Streak');
-      if(curStreak>=21) ach.push('21 Day Streak');
-      if(prCount>=10) ach.push('10 PRs');
-      if(totalSets>=400) ach.push('Volume Grinder');
-      setAchievements(ach);
-      // weekly recap for last 7 days
-      const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-6);
-      let weekVolume=0; let weekSessions=0; let weekPR=0;
-      sessions.filter(s=> new Date(s.dateISO)>=weekAgo).forEach(s=> { let sessionVol=0; s.entries.forEach(e=> e.sets.forEach(st=> { weekVolume += (st.weightKg||0)*(st.reps||0); sessionVol += (st.weightKg||0)*(st.reps||0);})); if(sessionVol>0) weekSessions++; });
-      weekPR = prCount; // reuse naive count
-  const windowLen = program ? program.weeklySplit.length : 7;
-  const loggedInWindow = Array.from({length: windowLen},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-i); return sessionDays.has(dayKey(d)); }).filter(Boolean).length;
-  const denominator = targetDays || 6;
-  const adherence = (loggedInWindow/denominator)*100;
-      const bwLast7 = m.filter(x=> new Date(x.dateISO)>=weekAgo).sort((a,b)=> a.dateISO.localeCompare(b.dateISO));
-      let bodyDelta: number|undefined = undefined;
-      if(bwLast7.length>=2) bodyDelta = (bwLast7[bwLast7.length-1].weightKg||0) - (bwLast7[0].weightKg||0);
-      setWeeklyRecap({ volume: weekVolume, prCount: weekPR, bodyDelta, adherence });
-
-      // ----- Analytics & Insight Features (web worker) -----
-  const exercises = await getAllCached('exercises', { swr:true }) as Exercise[];
-      try {
-        const worker = new Worker(new URL('../workers/analyticsWorker.ts', import.meta.url), { type: 'module' });
-        worker.onmessage = (evt) => {
-          const { volumeTrend, intensityDist, plateaus, undertrained, error } = evt.data || {};
-            if(error){ console.warn('[AnalyticsWorker] error', error); worker.terminate(); return; }
-            if(volumeTrend) setVolumeTrend(volumeTrend);
-            if(intensityDist) setIntensityDist(intensityDist);
-            if(plateaus) setPlateaus(plateaus);
-            if(undertrained) setUndertrained(undertrained);
-            worker.terminate();
-        };
-        worker.postMessage({ sessions, exercises });
-      } catch(err){
-        console.warn('[Dashboard] worker fallback', err);
-      }
-    })();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
+
+  const loadDashboard = useCallback(
+    async (opts?: { force?: boolean }) => {
+      const force = opts?.force ?? false;
+      try {
+        const [sessions, exercises, measurements, settingsList, programMaybe] =
+          await Promise.all([
+            getAllCached<Session>("sessions", { swr: true, force }),
+            getAllCached<Exercise>("exercises", { swr: true, force }),
+            getAllCached<Measurement>("measurements", { swr: true, force }),
+            getAllCached<Settings>("settings", { swr: true, force }),
+            getProfileProgram().catch(() => undefined),
+          ]);
+
+        if (!isMountedRef.current) return;
+
+        const volumeResult = await volumeByMuscleGroup(week, {
+          sessions,
+          exercises,
+        });
+        if (!isMountedRef.current) return;
+        setVolume(volumeResult);
+
+        const weightSeries = measurements
+          .filter((x) => x.weightKg)
+          .map((x) => ({ date: x.dateISO.slice(5), weight: x.weightKg! }));
+        const waistSeries = measurements
+          .filter((x) => x.waist)
+          .map((x) => ({ date: x.dateISO.slice(5), value: x.waist! }));
+        const armSeries = measurements
+          .filter((x) => x.upperArm)
+          .map((x) => ({ date: x.dateISO.slice(5), value: x.upperArm! }));
+
+        setWeights(weightSeries);
+        setWaist(waistSeries);
+        setArm(armSeries);
+
+        const today = new Date();
+        const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+        const sessionDays = new Set<string>();
+        sessions.forEach((s) => {
+          if (
+            s.entries.some((e) =>
+              e.sets.some(
+                (st) => (st.reps || 0) > 0 || (st.weightKg || 0) > 0
+              )
+            )
+          ) {
+            sessionDays.add(s.dateISO.slice(0, 10));
+          }
+        });
+
+        let curStreak = 0;
+        const cursor = new Date(today);
+        while (sessionDays.has(dayKey(cursor))) {
+          curStreak++;
+          cursor.setDate(cursor.getDate() - 1);
+        }
+        setStreak(curStreak);
+
+        const settingsApp =
+          settingsList.find((item: any) => (item as any).id === "app") || null;
+        const program = (programMaybe as UserProgram | undefined) || undefined;
+        const nonRest = program
+          ? program.weeklySplit.filter((d) => d.type !== "Rest").length
+          : undefined;
+        const userTargetDays = nonRest || settingsApp?.progress?.weeklyTargetDays || 6;
+        setTargetDays(userTargetDays);
+
+        let totalSets = 0;
+        let prCount = 0;
+        const byEx: Record<string, number> = {};
+        sessions.forEach((s) =>
+          s.entries.forEach((e) =>
+            e.sets.forEach((st) => {
+              totalSets++;
+              const score = (st.weightKg || 0) * (st.reps || 0);
+              if (score > 0) {
+                if (score > (byEx[e.exerciseId] || 0)) {
+                  byEx[e.exerciseId] = score;
+                  prCount++;
+                }
+              }
+            })
+          )
+        );
+        const earnedXp = totalSets * 5 + prCount * 20;
+        setXp(earnedXp);
+        setLevel(Math.max(1, Math.floor(Math.sqrt(earnedXp) / 3) + 1));
+
+        const achievementsNext: string[] = [];
+        if (curStreak >= 7) achievementsNext.push("7 Day Streak");
+        if (curStreak >= 21) achievementsNext.push("21 Day Streak");
+        if (prCount >= 10) achievementsNext.push("10 PRs");
+        if (totalSets >= 400) achievementsNext.push("Volume Grinder");
+        setAchievements(achievementsNext);
+
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 6);
+        let weekVolume = 0;
+        sessions
+          .filter((s) => new Date(s.dateISO) >= weekAgo)
+          .forEach((s) => {
+            s.entries.forEach((e) =>
+              e.sets.forEach((st) => {
+                weekVolume += (st.weightKg || 0) * (st.reps || 0);
+              })
+            );
+          });
+        const weekPR = prCount;
+
+        const windowLen = program ? program.weeklySplit.length : 7;
+        const loggedInWindow = Array.from({ length: windowLen }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          return sessionDays.has(dayKey(d));
+        }).filter(Boolean).length;
+        const adherence = (loggedInWindow / (userTargetDays || 6)) * 100;
+
+        const bwLast7 = measurements
+          .filter((x) => new Date(x.dateISO) >= weekAgo)
+          .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+        let bodyDelta: number | undefined = undefined;
+        if (bwLast7.length >= 2) {
+          bodyDelta =
+            (bwLast7[bwLast7.length - 1].weightKg || 0) -
+            (bwLast7[0].weightKg || 0);
+        }
+
+        setWeeklyRecap({ volume: weekVolume, prCount: weekPR, bodyDelta, adherence });
+
+        setVolumeTrend([]);
+        setIntensityDist([]);
+        setPlateaus([]);
+        setUndertrained([]);
+
+        try {
+          const worker = new Worker(
+            new URL("../workers/analyticsWorker.ts", import.meta.url),
+            { type: "module" }
+          );
+          worker.onmessage = (evt) => {
+            const { volumeTrend, intensityDist, plateaus, undertrained, error } =
+              evt.data || {};
+            if (error) {
+              console.warn('[AnalyticsWorker] error', error);
+              worker.terminate();
+              return;
+            }
+            if (!isMountedRef.current) {
+              worker.terminate();
+              return;
+            }
+            if (volumeTrend) setVolumeTrend(volumeTrend);
+            if (intensityDist) setIntensityDist(intensityDist);
+            if (plateaus) setPlateaus(plateaus);
+            if (undertrained) setUndertrained(undertrained);
+            worker.terminate();
+          };
+          worker.postMessage({ sessions, exercises });
+        } catch (err) {
+          console.warn('[Dashboard] worker fallback', err);
+        }
+      } catch (err) {
+        console.warn('[Dashboard] failed to load dashboard data', err);
+      }
+    },
+    [week]
+  );
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    const onChange = (evt: any) => {
+      const tbl = evt?.detail?.table as string | undefined;
+      if (tbl && ["sessions", "exercises", "measurements", "settings"].includes(tbl)) {
+        loadDashboard({ force: true });
+      }
+    };
+    const onAuth = () => loadDashboard({ force: true });
+    window.addEventListener("sb-change", onChange);
+    window.addEventListener("sb-auth", onAuth as any);
+    return () => {
+      window.removeEventListener("sb-change", onChange);
+      window.removeEventListener("sb-auth", onAuth as any);
+    };
+  }, [loadDashboard]);
 
   const volData = useMemo(
     () =>
