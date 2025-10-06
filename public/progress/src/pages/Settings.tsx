@@ -135,14 +135,20 @@ export default function SettingsPage() {
         setAuthChecked(true);
       }
     );
-    const onAuth = (e: any) =>
-      setUserEmail(e?.detail?.session?.user?.email || undefined);
+    const onAuth = (e: any) => {
+      const session = e?.detail?.session;
+      if (session) {
+        setUserEmail(session.user?.email || undefined);
+      }
+    };
     window.addEventListener("sb-auth", onAuth);
     // get current session once (resilient)
     let timer = setTimeout(() => setAuthChecked(true), 1500);
     waitForSession({ timeoutMs: 1200 })
       .then((s: any) => {
-        setUserEmail(s?.user?.email || undefined);
+        if (s?.user?.email) {
+          setUserEmail(s.user.email || undefined);
+        }
         setAuthChecked(true);
       })
       .catch(() => setAuthChecked(true))

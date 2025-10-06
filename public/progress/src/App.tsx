@@ -231,7 +231,9 @@ function Shell() {
           "user:",
           s?.user?.id || null
         );
-        setAuthEmail(s?.user?.email ?? null);
+        if (s?.user?.email) {
+          setAuthEmail(s.user.email);
+        }
         setAuthChecked(true);
       })
       .catch(() => setAuthChecked(true))
@@ -247,7 +249,9 @@ function Shell() {
           "user:",
           s?.user?.id || null
         );
-        setAuthEmail(s?.user?.email ?? null);
+        if (s) {
+          setAuthEmail(s.user?.email ?? null);
+        }
       } catch {}
     };
     const onVis = async () => {
@@ -261,17 +265,23 @@ function Shell() {
             "[App] visibilitychange: dispatch sb-auth, session?",
             !!sess
           );
-          window.dispatchEvent(
-            new CustomEvent("sb-auth", { detail: { session: sess } })
-          );
+          if (sess) {
+            window.dispatchEvent(
+              new CustomEvent("sb-auth", { detail: { session: sess } })
+            );
+          }
         } catch {}
       }
     };
     window.addEventListener("visibilitychange", onVis);
     window.addEventListener("online", refresh);
     // React to explicit auth events (from supabase.ts)
-    const onAuth = (e: any) =>
-      setAuthEmail(e?.detail?.session?.user?.email ?? null);
+    const onAuth = (e: any) => {
+      const session = e?.detail?.session;
+      if (session) {
+        setAuthEmail(session.user?.email ?? null);
+      }
+    };
     window.addEventListener("sb-auth", onAuth as any);
     const iv = setInterval(refresh, 5 * 60 * 1000);
 

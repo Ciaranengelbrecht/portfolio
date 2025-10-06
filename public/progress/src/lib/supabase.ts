@@ -58,12 +58,16 @@ export async function refreshSessionNow() {
   if (DBG()) console.log("[auth] refreshSessionNow: getSession error", error?.message);
       return null;
     }
-    try {
-      window.dispatchEvent(
-        new CustomEvent("sb-auth", { detail: { session: data.session } })
-      );
-    } catch {}
-    return data.session ?? null;
+    const session = data.session ?? null;
+    if (session) {
+      lastAuthSession = session;
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-auth", { detail: { session } })
+        );
+      } catch {}
+    }
+    return session;
   } catch {
     return null;
   }

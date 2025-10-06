@@ -17,7 +17,11 @@ import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
 import { nanoid } from "nanoid";
-import { getDeloadPrescription, getLastWorkingSets } from "../lib/helpers";
+import {
+  getDeloadPrescription,
+  getDeloadPrescriptionsBulk,
+  getLastWorkingSets,
+} from "../lib/helpers";
 import { parseOptionalNumber, formatOptionalNumber } from "../lib/parse";
 import { getSettings, setSettings } from "../lib/helpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -118,6 +122,8 @@ function TopMuscleAndContents({
   );
 }
 
+type DeloadInfo = Awaited<ReturnType<typeof getDeloadPrescription>>;
+
 const DAYS = [
   "Upper A",
   "Lower A",
@@ -167,6 +173,11 @@ export default function Sessions() {
   );
   const [prevWeekLoading, setPrevWeekLoading] = useState<boolean>(false);
   const [settingsState, setSettingsState] = useState<Settings | null>(null);
+  const [deloadPrescriptions, setDeloadPrescriptions] = useState<
+    Record<string, DeloadInfo>
+  >({});
+  const [deloadLoading, setDeloadLoading] = useState(false);
+  const [deloadError, setDeloadError] = useState(false);
   const [autoNavDone, setAutoNavDone] = useState(false);
   const lastRealSessionAppliedRef = useRef(false);
   // Per-exercise rest timers keyed by entry.id (single timer per exercise)
@@ -1387,7 +1398,11 @@ export default function Sessions() {
 
   // Refetch data when auth session changes (e.g., token refresh or resume)
   useEffect(() => {
-    const onAuth = () => {
+    const onAuth = (evt: any) => {
+      const nextSession = evt?.detail?.session;
+      if (!nextSession) {
+        return;
+      }
       (async () => {
         console.log("[Sessions] sb-auth: refetch lists (no auth wait)");
         const [t, e] = await Promise.all([
@@ -1571,8 +1586,18 @@ export default function Sessions() {
     session?.dayName,
   ]);
 
-  const deloadWeeks = program ? computeDeloadWeeks(program) : new Set<number>();
+  const deloadWeeks = useMemo(
+    () => (program ? computeDeloadWeeks(program) : new Set<number>()),
+    [program]
+  );
   const isDeloadWeek = deloadWeeks.has(week);
+  const deloadExerciseKey = useMemo(() => {
+    if (!session?.entries?.length) return "";
+    return session.entries
+      .map((entry) => entry.exerciseId)
+      .sort()
+      .join("|");
+  }, [session?.entries]);
 
   // Backfill programId on existing loaded session if missing (one-time effect per session)
   useEffect(() => {
@@ -1584,6 +1609,70 @@ export default function Sessions() {
       }
     })();
   }, [session?.id, program?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadDeload = async () => {
+      if (!isDeloadWeek || !session?.entries?.length) {
+        if (!cancelled) {
+          setDeloadPrescriptions({});
+          setDeloadLoading(false);
+          setDeloadError(false);
+        }
+        return;
+      }
+      try {
+        setDeloadLoading(true);
+        setDeloadError(false);
+        const exerciseIds = Array.from(
+          new Set(session.entries.map((entry) => entry.exerciseId))
+        );
+        const [sessionsData, exercisesData, settingsData] = await Promise.all([
+          db.getAll<Session>("sessions"),
+          exercises.length
+            ? Promise.resolve(exercises)
+            : db.getAll<Exercise>("exercises"),
+          settingsState ? Promise.resolve(settingsState) : getSettings(),
+        ]);
+        const map = await getDeloadPrescriptionsBulk(
+          exerciseIds,
+          week,
+          { deloadWeeks },
+          {
+            sessions: sessionsData,
+            exercises: exercisesData,
+            settings: settingsData,
+          }
+        );
+        if (!cancelled) {
+          setDeloadPrescriptions(map as Record<string, DeloadInfo>);
+          setDeloadLoading(false);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn(
+            "[Sessions] failed to compute deload prescriptions",
+            err
+          );
+          setDeloadPrescriptions({});
+          setDeloadLoading(false);
+          setDeloadError(true);
+        }
+      }
+    };
+    loadDeload();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isDeloadWeek,
+    deloadExerciseKey,
+    session?.id,
+    week,
+    exercises,
+    settingsState,
+    deloadWeeks,
+  ]);
 
   const addSet = (entry: SessionEntry) => {
     if (!session) return;
@@ -1926,9 +2015,6 @@ export default function Sessions() {
     setExercises([ex, ...exercises]);
     await addExerciseToSession(ex);
   };
-
-  const deloadInfo = async (exerciseId: string) =>
-    getDeloadPrescription(exerciseId, week, { deloadWeeks });
 
   // Switch exercise in a session entry (keep set rows; clear values unless none were logged)
   const switchExercise = async (entry: SessionEntry, newEx: Exercise) => {
@@ -3007,7 +3093,11 @@ export default function Sessions() {
                       <div className="flex items-center gap-1 justify-end w-full">
                         {isDeloadWeek && (
                           <span data-shape="deload" className="mr-1">
-                            <AsyncChip promise={deloadInfo(entry.exerciseId)} />
+                            <AsyncChip
+                              loading={deloadLoading}
+                              errored={deloadError}
+                              info={deloadPrescriptions[entry.exerciseId]}
+                            />
                           </span>
                         )}
                         <button
@@ -4760,18 +4850,29 @@ function SessionSummary({
   );
 }
 
-function AsyncChip({ promise }: { promise: Promise<any> }) {
-  const [text, setText] = useState("…");
-  useEffect(() => {
-    promise
-      .then((r) =>
-        setText(`DL: ${Math.round(r.loadPct * 100)}% × ${r.targetSets} sets`)
-      )
-      .catch((err) => {
-        console.warn("[AsyncChip] deload prescription error:", err);
-        setText("DL: --"); // Graceful fallback on error
-      });
-  }, [promise]);
+function AsyncChip({
+  info,
+  loading,
+  errored,
+}: {
+  info?: DeloadInfo;
+  loading: boolean;
+  errored?: boolean;
+}) {
+  let text = "…";
+  if (loading) {
+    text = "…";
+  } else if (errored) {
+    text = "DL: --";
+  } else if (info && !info.inactive) {
+    const pct = Number.isFinite(info.loadPct)
+      ? Math.round(info.loadPct * 100)
+      : null;
+    const sets = info.targetSets ?? 0;
+    text = `DL: ${pct != null ? `${pct}%` : "--"} × ${sets} sets`;
+  } else {
+    text = "DL: --";
+  }
   return (
     <span className="text-xs bg-slate-800 rounded-xl px-2 py-1">{text}</span>
   );

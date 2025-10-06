@@ -50,7 +50,8 @@ export default function Templates() {
   }, []);
 
   useEffect(() => {
-    const onAuth = () => {
+    const onAuth = (evt: any) => {
+      if (!evt?.detail?.session) return;
       (async () => {
         setExercises(await db.getAll("exercises"));
         setTemplates(await db.getAll("templates"));
