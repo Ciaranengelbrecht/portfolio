@@ -3097,6 +3097,7 @@ export default function Sessions() {
                               loading={deloadLoading}
                               errored={deloadError}
                               info={deloadPrescriptions[entry.exerciseId]}
+                              unit={settingsState?.unit || "kg"}
                             />
                           </span>
                         )}
@@ -4854,14 +4855,22 @@ function AsyncChip({
   info,
   loading,
   errored,
+  unit,
 }: {
   info?: DeloadInfo;
   loading: boolean;
   errored?: boolean;
+  unit: "kg" | "lb";
 }) {
-  let text = "…";
+  const formatWeight = (kg: number) => {
+    if (!Number.isFinite(kg) || kg <= 0) return null;
+    const val = unit === "lb" ? Math.round(kg * 2.20462) : Math.round(kg);
+    return `${val}${unit}`;
+  };
+
+  let text = "DL: --";
   if (loading) {
-    text = "…";
+    text = "DL: …";
   } else if (errored) {
     text = "DL: --";
   } else if (info && !info.inactive) {
@@ -4869,9 +4878,16 @@ function AsyncChip({
       ? Math.round(info.loadPct * 100)
       : null;
     const sets = info.targetSets ?? 0;
-    text = `DL: ${pct != null ? `${pct}%` : "--"} × ${sets} sets`;
-  } else {
-    text = "DL: --";
+    const baseWeightLabel = formatWeight(info.baseWeight ?? 0);
+    const targetWeightLabel = formatWeight(info.targetWeight ?? 0);
+    const pctLabel = pct != null ? `${pct}%` : "--";
+    if (targetWeightLabel && baseWeightLabel) {
+      text = `DL: ${pctLabel} of ${baseWeightLabel} → ${targetWeightLabel} × ${sets} sets`;
+    } else if (targetWeightLabel) {
+      text = `DL: ${pctLabel} → ${targetWeightLabel} × ${sets} sets`;
+    } else {
+      text = `DL: ${pctLabel} × ${sets} sets`;
+    }
   }
   return (
     <span className="text-xs bg-slate-800 rounded-xl px-2 py-1">{text}</span>

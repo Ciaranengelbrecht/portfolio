@@ -105,13 +105,19 @@ export async function getDeloadPrescription(
   const setPct =
     ex?.defaults.deloadSetPct ??
     (specialW5 ? 0.5 : settings.deloadDefaults.setPct);
-  const avg = sets.length
+  const workingWeights = sets
+    .map((s) => s.weightKg || 0)
+    .filter((w) => Number.isFinite(w) && w > 0);
+  const referenceWeight = workingWeights.length
+    ? Math.max(...workingWeights)
+    : sets.length
     ? sets.reduce((a, b) => a + (b.weightKg || 0), 0) / sets.length
     : 0;
-  const targetWeight = Math.round(avg * loadPct);
+  const baseWeight = Math.round(referenceWeight);
+  const targetWeight = Math.round(referenceWeight * loadPct);
   const rawSetsBase = ex?.defaults.sets ?? 2;
   const targetSets = Math.max(0, Math.round(rawSetsBase * setPct));
-  return { targetWeight, targetSets, loadPct, setPct };
+  return { targetWeight, targetSets, loadPct, setPct, baseWeight };
 }
 
 // Batch helper: compute deload prescriptions for many exercises with shared datasets (prevents N+1)
