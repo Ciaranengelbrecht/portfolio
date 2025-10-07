@@ -151,13 +151,8 @@ type SessionAnalytics = {
     missingSets: number;
     totalSets: number;
     muscle: string;
-  }>;
-  laggingSuggestions: Array<{
-    muscle: string;
+    order: number;
     workingSets: number;
-    totalSets: number;
-    icon?: string | null;
-    exercises: Exercise[];
   }>;
 };
 
@@ -344,6 +339,27 @@ export default function Sessions() {
     focusPrevCollapsedRef.current = null;
   }, [session]);
 
+  const scrollToExercise = useCallback(
+    (entryId: string) => {
+      if (typeof window === "undefined") return;
+      const target = document.getElementById(`exercise-${entryId}`);
+      if (!target) return;
+      let headerOffset = 0;
+      try {
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue("--app-header-h")
+          .trim();
+        const numeric = parseFloat(raw);
+        if (!Number.isNaN(numeric)) headerOffset = numeric;
+      } catch {}
+      const extraOffset = toolbarHeight + headerOffset + 16;
+      const rect = target.getBoundingClientRect();
+      const destination = rect.top + window.scrollY - extraOffset;
+      window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
+    },
+    [toolbarHeight]
+  );
+
   const activateFocus = useCallback(
     (entryId: string) => {
       if (!session) return;
@@ -361,8 +377,9 @@ export default function Sessions() {
         next[entry.id] = entry.id !== entryId;
       }
       setCollapsedEntries(next);
+      requestAnimationFrame(() => scrollToExercise(entryId));
     },
-    [session, focusMode, focusedEntryId, collapsedEntries, exitFocus]
+    [session, focusMode, focusedEntryId, collapsedEntries, exitFocus, scrollToExercise]
   );
 
   useEffect(() => {
@@ -398,9 +415,6 @@ export default function Sessions() {
         }
       }
     }
-    const sessionExerciseIds = new Set(
-      session.entries.map((e) => e.exerciseId)
-    );
     let plannedSets = 0;
     let completedSets = 0;
     let completedAgainstPlan = 0;
@@ -412,6 +426,7 @@ export default function Sessions() {
       string,
       { workingSets: number; totalSets: number; tonnage: number }
     >();
+    let entryOrder = 0;
 
     for (const entry of session.entries) {
       const ex = exMap.get(entry.exerciseId);
@@ -457,8 +472,11 @@ export default function Sessions() {
           missingSets: missing,
           totalSets: planned,
           muscle,
+          order: entryOrder,
+          workingSets: working,
         });
       }
+      entryOrder += 1;
     }
 
     const muscleLoad = Array.from(muscleBuckets.entries())
@@ -470,40 +488,11 @@ export default function Sessions() {
       }))
       .sort((a, b) => b.workingSets - a.workingSets || b.tonnage - a.tonnage);
 
-    const laggingSuggestions = muscleLoad
-      .filter(
-        (m) =>
-          m.totalSets >= 2 && m.workingSets / Math.max(1, m.totalSets) < 0.6
-      )
-      .map((m) => ({
-        muscle: m.muscle,
-        workingSets: m.workingSets,
-        totalSets: m.totalSets,
-        tonnage: m.tonnage,
-        icon: getMuscleIconPath(m.muscle),
-        exercises: exercises
-          .filter(
-            (ex) =>
-              ex.muscleGroup === m.muscle && !sessionExerciseIds.has(ex.id)
-          )
-          .slice(0, 3),
-      }))
-      .sort(
-        (a, b) =>
-          a.workingSets / Math.max(1, a.totalSets) -
-          b.workingSets / Math.max(1, b.totalSets)
-      )
-      .slice(0, 3);
-
     const completionPct = plannedSets
       ? Math.round((completedAgainstPlan / plannedSets) * 100)
       : completedSets > 0
       ? 100
       : 0;
-
-    const sortedIncomplete = incompleteExercises
-      .slice()
-      .sort((a, b) => b.missingSets - a.missingSets);
 
     return {
       plannedSets,
@@ -514,10 +503,9 @@ export default function Sessions() {
       totalExercises: session.entries.length,
       completedExercises,
       muscleLoad,
-      incompleteExercises: sortedIncomplete,
-      laggingSuggestions,
+      incompleteExercises,
     };
-  }, [session, templates, exMap, exercises, exNameCache]);
+  }, [session, templates, exMap, exNameCache]);
   // Enable verbose session selection debugging by setting localStorage.debugSessions = '1'
   const debugSessions = useRef<boolean>(false);
   useEffect(() => {
@@ -5101,7 +5089,14 @@ function SessionMomentumPanel({
     (m) => m.workingSets > 0
   ).length;
   const topMuscles = analytics.muscleLoad.slice(0, 4);
-  const remainingTasks = analytics.incompleteExercises.length;
+  const upNext: SessionAnalytics["incompleteExercises"] = [];
+  for (const task of analytics.incompleteExercises) {
+    if (task.workingSets === 0) {
+      upNext.push(task);
+    }
+    if (upNext.length === 3) break;
+  }
+  const remainingTasks = upNext.length;
 
   return (
     <div className="mx-4 mt-2 space-y-4 rounded-2xl border border-white/8 bg-slate-950/70 p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.85)] fade-in">
@@ -5204,7 +5199,7 @@ function SessionMomentumPanel({
           })}
         </div>
       )}
-      {analytics.incompleteExercises.length > 0 && (
+      {remainingTasks > 0 && (
         <div className="rounded-xl border border-white/10 bg-slate-900/70 p-3">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-gray-400">
             <span>Up next</span>
@@ -5213,7 +5208,7 @@ function SessionMomentumPanel({
             </span>
           </div>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {analytics.incompleteExercises.slice(0, 4).map((task) => {
+            {upNext.map((task) => {
               const isFocused = focusedEntryId === task.entryId;
               return (
                 <div
@@ -5245,58 +5240,6 @@ function SessionMomentumPanel({
                     >
                       {isFocused ? "Focused" : "Focus"}
                     </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      {analytics.laggingSuggestions.length > 0 && (
-        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3">
-          <div className="text-[11px] uppercase tracking-[0.26em] text-amber-200/80">
-            Volume opportunities
-          </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {analytics.laggingSuggestions.map((suggestion) => {
-              const completionRatio = Math.round(
-                (suggestion.workingSets / Math.max(1, suggestion.totalSets)) *
-                  100
-              );
-              const altNames = suggestion.exercises
-                .map((ex) => ex.name)
-                .slice(0, 2)
-                .join(", ");
-              return (
-                <div
-                  key={suggestion.muscle}
-                  className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
-                >
-                  <div className="flex items-center gap-2">
-                    {suggestion.icon ? (
-                      <img
-                        src={suggestion.icon}
-                        alt={suggestion.muscle}
-                        className="h-5 w-5 rounded-sm border border-amber-300/40 bg-black/30"
-                      />
-                    ) : (
-                      <span className="h-5 w-5 rounded-sm border border-amber-300/40" />
-                    )}
-                    <span className="capitalize font-semibold">
-                      {suggestion.muscle}
-                    </span>
-                    <span className="ml-auto text-[10px] text-amber-200/80">
-                      {completionRatio}%
-                    </span>
-                  </div>
-                  <div className="mt-1 text-[10px] text-amber-100/80">
-                    {suggestion.workingSets} of {suggestion.totalSets} planned
-                    sets logged
-                  </div>
-                  {altNames && (
-                    <div className="mt-1 text-[10px] text-amber-100/70">
-                      Try: {altNames}
-                    </div>
                   )}
                 </div>
               );
