@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useLayoutEffect } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+} from "react";
 import { createPortal } from "react-dom";
 import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
@@ -40,7 +47,7 @@ import { setLastAction, undo as undoLast } from "../lib/undo";
 import PhaseStepper from "../components/PhaseStepper";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
-import { MUSCLE_ICON_PATHS, getMuscleIconPath } from "../lib/muscles";
+import { getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
 
 function TopMuscleAndContents({
@@ -123,6 +130,36 @@ function TopMuscleAndContents({
 }
 
 type DeloadInfo = Awaited<ReturnType<typeof getDeloadPrescription>>;
+
+type SessionAnalytics = {
+  plannedSets: number;
+  completedSets: number;
+  completionPct: number;
+  totalVolume: number;
+  prSignals: number;
+  totalExercises: number;
+  completedExercises: number;
+  muscleLoad: Array<{
+    muscle: string;
+    workingSets: number;
+    totalSets: number;
+    tonnage: number;
+  }>;
+  incompleteExercises: Array<{
+    entryId: string;
+    name: string;
+    missingSets: number;
+    totalSets: number;
+    muscle: string;
+  }>;
+  laggingSuggestions: Array<{
+    muscle: string;
+    workingSets: number;
+    totalSets: number;
+    icon?: string | null;
+    exercises: Exercise[];
+  }>;
+};
 
 const DAYS = [
   "Upper A",
@@ -214,6 +251,9 @@ export default function Sessions() {
   const [collapsedEntries, setCollapsedEntries] = useState<
     Record<string, boolean>
   >({});
+  const [focusMode, setFocusMode] = useState(false);
+  const [focusedEntryId, setFocusedEntryId] = useState<string | null>(null);
+  const focusPrevCollapsedRef = useRef<Record<string, boolean> | null>(null);
   const toggleEntryCollapsed = (id: string) =>
     setCollapsedEntries((prev) => ({ ...prev, [id]: !prev[id] }));
   // Cache of day labels to avoid flicker before program loads
@@ -230,15 +270,21 @@ export default function Sessions() {
   }, [session?.id]);
   useEffect(() => {
     if (!session?.id) return;
+    if (focusMode) return;
     try {
       sessionStorage.setItem(
         `collapsedEntries:${session.id}`,
         JSON.stringify(collapsedEntries)
       );
     } catch {}
-  }, [collapsedEntries, session?.id]);
+  }, [collapsedEntries, session?.id, focusMode]);
   const collapseAll = () => {
     if (!session) return;
+    if (focusMode) {
+      setFocusMode(false);
+      setFocusedEntryId(null);
+      focusPrevCollapsedRef.current = null;
+    }
     const next: Record<string, boolean> = {};
     for (const e of session.entries) {
       next[e.id] = true;
@@ -247,6 +293,11 @@ export default function Sessions() {
   };
   const expandAll = () => {
     if (!session) return;
+    if (focusMode) {
+      setFocusMode(false);
+      setFocusedEntryId(null);
+      focusPrevCollapsedRef.current = null;
+    }
     const next: Record<string, boolean> = {};
     for (const e of session.entries) {
       next[e.id] = false;
@@ -264,6 +315,209 @@ export default function Sessions() {
         : false,
     [collapsedEntries, session?.entries.length]
   );
+  const exitFocus = useCallback(() => {
+    setFocusMode(false);
+    setFocusedEntryId(null);
+    setCollapsedEntries((prev) => {
+      const restore = focusPrevCollapsedRef.current;
+      if (restore) {
+        const next: Record<string, boolean> = {};
+        for (const key of Object.keys(restore)) {
+          next[key] = restore[key];
+        }
+        if (session?.entries) {
+          for (const entry of session.entries) {
+            if (next[entry.id] === undefined) next[entry.id] = false;
+          }
+        }
+        return next;
+      }
+      if (session?.entries) {
+        const next: Record<string, boolean> = {};
+        for (const entry of session.entries) {
+          next[entry.id] = false;
+        }
+        return next;
+      }
+      return prev;
+    });
+    focusPrevCollapsedRef.current = null;
+  }, [session]);
+
+  const activateFocus = useCallback(
+    (entryId: string) => {
+      if (!session) return;
+      if (focusMode && entryId === focusedEntryId) {
+        exitFocus();
+        return;
+      }
+      if (!focusMode) {
+        focusPrevCollapsedRef.current = { ...collapsedEntries };
+      }
+      setFocusMode(true);
+      setFocusedEntryId(entryId);
+      const next: Record<string, boolean> = {};
+      for (const entry of session.entries) {
+        next[entry.id] = entry.id !== entryId;
+      }
+      setCollapsedEntries(next);
+    },
+    [session, focusMode, focusedEntryId, collapsedEntries, exitFocus]
+  );
+
+  useEffect(() => {
+    if (!focusMode) return;
+    if (!session) {
+      exitFocus();
+      return;
+    }
+    if (
+      focusedEntryId &&
+      !session.entries.some((e) => e.id === focusedEntryId)
+    ) {
+      exitFocus();
+    }
+  }, [focusMode, session, focusedEntryId, exitFocus]);
+
+  const exMap = useExerciseMap(exercises);
+
+  const analytics = useMemo<SessionAnalytics | null>(() => {
+    if (!session || session.entries.length === 0) return null;
+    const planMap = new Map<
+      string,
+      { plannedSets: number; repRange?: string }
+    >();
+    if (session.templateId) {
+      const tpl = templates.find((t) => t.id === session.templateId);
+      if (tpl?.plan?.length) {
+        for (const p of tpl.plan) {
+          planMap.set(p.exerciseId, {
+            plannedSets: p.plannedSets,
+            repRange: p.repRange,
+          });
+        }
+      }
+    }
+    const sessionExerciseIds = new Set(
+      session.entries.map((e) => e.exerciseId)
+    );
+    let plannedSets = 0;
+    let completedSets = 0;
+    let completedAgainstPlan = 0;
+    let totalVolume = 0;
+    let prSignals = 0;
+    let completedExercises = 0;
+    const incompleteExercises: SessionAnalytics["incompleteExercises"] = [];
+    const muscleBuckets = new Map<
+      string,
+      { workingSets: number; totalSets: number; tonnage: number }
+    >();
+
+    for (const entry of session.entries) {
+      const ex = exMap.get(entry.exerciseId);
+      const name = ex?.name || exNameCache[entry.exerciseId] || "Untitled";
+      const muscle = ex?.muscleGroup || "other";
+      const planned =
+        planMap.get(entry.exerciseId)?.plannedSets ?? entry.sets.length;
+      const working = entry.sets.filter(
+        (s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0
+      ).length;
+      const missing = Math.max(0, planned - working);
+      const tonnageEntry = entry.sets.reduce(
+        (acc, s) => acc + (s.weightKg || 0) * (s.reps || 0),
+        0
+      );
+      if (working > 0) completedExercises++;
+      plannedSets += planned;
+      completedSets += working;
+      completedAgainstPlan += Math.min(working, planned);
+      totalVolume += tonnageEntry;
+
+      for (const set of entry.sets) {
+        const ton = (set.weightKg || 0) * (set.reps || 0);
+        if (ton > 0 && ton >= (ex?.defaults?.sets || 3) * 50) {
+          prSignals++;
+        }
+      }
+
+      const bucket = muscleBuckets.get(muscle) || {
+        workingSets: 0,
+        totalSets: 0,
+        tonnage: 0,
+      };
+      bucket.workingSets += working;
+      bucket.totalSets += planned;
+      bucket.tonnage += tonnageEntry;
+      muscleBuckets.set(muscle, bucket);
+
+      if (missing > 0) {
+        incompleteExercises.push({
+          entryId: entry.id,
+          name,
+          missingSets: missing,
+          totalSets: planned,
+          muscle,
+        });
+      }
+    }
+
+    const muscleLoad = Array.from(muscleBuckets.entries())
+      .map(([muscle, data]) => ({
+        muscle,
+        workingSets: data.workingSets,
+        totalSets: data.totalSets,
+        tonnage: data.tonnage,
+      }))
+      .sort((a, b) => b.workingSets - a.workingSets || b.tonnage - a.tonnage);
+
+    const laggingSuggestions = muscleLoad
+      .filter(
+        (m) =>
+          m.totalSets >= 2 && m.workingSets / Math.max(1, m.totalSets) < 0.6
+      )
+      .map((m) => ({
+        muscle: m.muscle,
+        workingSets: m.workingSets,
+        totalSets: m.totalSets,
+        tonnage: m.tonnage,
+        icon: getMuscleIconPath(m.muscle),
+        exercises: exercises
+          .filter(
+            (ex) =>
+              ex.muscleGroup === m.muscle && !sessionExerciseIds.has(ex.id)
+          )
+          .slice(0, 3),
+      }))
+      .sort(
+        (a, b) =>
+          a.workingSets / Math.max(1, a.totalSets) -
+          b.workingSets / Math.max(1, b.totalSets)
+      )
+      .slice(0, 3);
+
+    const completionPct = plannedSets
+      ? Math.round((completedAgainstPlan / plannedSets) * 100)
+      : completedSets > 0
+      ? 100
+      : 0;
+
+    const sortedIncomplete = incompleteExercises
+      .slice()
+      .sort((a, b) => b.missingSets - a.missingSets);
+
+    return {
+      plannedSets,
+      completedSets,
+      completionPct: Math.max(0, Math.min(100, completionPct)),
+      totalVolume,
+      prSignals,
+      totalExercises: session.entries.length,
+      completedExercises,
+      muscleLoad,
+      incompleteExercises: sortedIncomplete,
+      laggingSuggestions,
+    };
+  }, [session, templates, exMap, exercises, exNameCache]);
   // Enable verbose session selection debugging by setting localStorage.debugSessions = '1'
   const debugSessions = useRef<boolean>(false);
   useEffect(() => {
@@ -280,7 +534,7 @@ export default function Sessions() {
           setTimeout(() => reject(new Error("getSettings timeout")), 5000)
         );
         const s = await Promise.race([getSettings(), timeoutPromise]);
-        
+
         // Only apply stored lastLocation if we haven't already picked the most recent session
         // Also, if navigation explicitly set lastLocation (via sessionStorage flag), prefer it and skip auto-pick
         let hadIntent = false;
@@ -346,9 +600,6 @@ export default function Sessions() {
       } catch {}
     }
   }, [exercises, session?.id, session?.entries?.length]);
-
-  // Optimized: Use stable exercise map that only rebuilds when IDs change
-  const exMap = useExerciseMap(exercises);
 
   const exReady = useMemo(() => {
     if (!session) return false;
@@ -1097,20 +1348,22 @@ export default function Sessions() {
                     3;
                   return Math.min(6, Math.max(0, base));
                 };
-                const newEntries = (t.exerciseIds || []).map((exId: string) => ({
-                  id: nanoid(),
-                  exerciseId: exId,
-                  sets: (() => {
-                    const n = rows(exId);
-                    return n === 0
-                      ? []
-                      : Array.from({ length: n }, (_, i) => ({
-                          setNumber: i + 1,
-                          weightKg: 0,
-                          reps: 0,
-                        }));
-                  })(),
-                }));
+                const newEntries = (t.exerciseIds || []).map(
+                  (exId: string) => ({
+                    id: nanoid(),
+                    exerciseId: exId,
+                    sets: (() => {
+                      const n = rows(exId);
+                      return n === 0
+                        ? []
+                        : Array.from({ length: n }, (_, i) => ({
+                            setNumber: i + 1,
+                            weightKg: 0,
+                            reps: 0,
+                          }));
+                    })(),
+                  })
+                );
                 s = {
                   ...s,
                   entries: newEntries,
@@ -2379,6 +2632,19 @@ export default function Sessions() {
                 )}
               </div>
             )}
+            {focusMode && (
+              <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-100 shadow-[0_6px_18px_-12px_rgba(16,185,129,0.6)]">
+                <span className="uppercase tracking-[0.24em] text-emerald-200/80">
+                  Focus mode
+                </span>
+                <button
+                  className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-50 hover:bg-emerald-400/30 transition-colors"
+                  onClick={() => exitFocus()}
+                >
+                  Exit
+                </button>
+              </div>
+            )}
           </div>
           {/* Mobile expand/collapse all toggle (moved here; swapped with date bar) */}
           {session && !!session.entries.length && (
@@ -2421,6 +2687,13 @@ export default function Sessions() {
         </div>
       </div>
       {/* Session pacing summary */}
+      {!initialLoading && session && analytics && (
+        <SessionMomentumPanel
+          analytics={analytics}
+          onFocusRequest={activateFocus}
+          focusedEntryId={focusedEntryId}
+        />
+      )}
       {session && pacing && pacing.overall.count > 0 && (
         <div className="mx-4 mt-2 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
           <div className="flex items-center justify-between text-[11px] text-slate-300">
@@ -2858,6 +3131,8 @@ export default function Sessions() {
               currentBest.reps === prev.set.reps
             );
             const isCollapsed = !!collapsedEntries[entry.id];
+            const isFocusTarget = focusMode && entry.id === focusedEntryId;
+            const dimmed = focusMode && entry.id !== focusedEntryId;
             // Planned guide from template if available, else exercise defaults
             const guide = (() => {
               let setsPlan: number | undefined;
@@ -2903,7 +3178,13 @@ export default function Sessions() {
               <div
                 key={entry.id}
                 id={`exercise-${entry.id}`}
-                className="relative card-enhanced rounded-2xl p-4 fade-in reorder-anim group"
+                className={`relative card-enhanced rounded-2xl p-4 fade-in reorder-anim group transition-opacity duration-200 ${
+                  dimmed ? "opacity-30" : ""
+                } ${
+                  isFocusTarget
+                    ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-slate-950 shadow-[0_0_0_1px_rgba(var(--accent-rgb,59,130,246),0.45)]"
+                    : ""
+                }`}
                 draggable
                 onDragStart={(e) => {
                   setDragEntryIdx(entryIdx);
@@ -3107,6 +3388,24 @@ export default function Sessions() {
                         </div>
                       )}
                       <div className="flex items-center gap-1 justify-end w-full">
+                        <button
+                          aria-label={
+                            isFocusTarget
+                              ? "Exit focus mode"
+                              : "Focus on this exercise"
+                          }
+                          className={`text-[11px] rounded-xl px-2 py-1 transition-colors duration-150 ${
+                            isFocusTarget
+                              ? "bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 text-slate-950 shadow-[0_10px_24px_-14px_rgba(16,185,129,0.6)]"
+                              : "bg-slate-800 text-slate-200 hover:bg-slate-700"
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            activateFocus(entry.id);
+                          }}
+                        >
+                          {isFocusTarget ? "Focused" : "Focus"}
+                        </button>
                         <button
                           aria-label="Switch exercise"
                           className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
@@ -4319,14 +4618,22 @@ export default function Sessions() {
 
       {/* Session summary footer */}
       {session && !!session.entries.length && (
-        <SessionSummary session={session} exercises={exercises} />
+        <SessionSummary
+          session={session}
+          exercises={exercises}
+          analytics={analytics}
+        />
       )}
       {/* Spacer for mobile summary bar & FAB */}
       <div className="h-40 sm:h-0" aria-hidden="true" />
       {/* Mobile sticky summary bar */}
       {session && !!session.entries.length && (
         <MobileSummaryFader visibleThreshold={0.5}>
-          <MobileSessionMetrics session={session} exercises={exercises} />
+          <MobileSessionMetrics
+            session={session}
+            exercises={exercises}
+            analytics={analytics}
+          />
         </MobileSummaryFader>
       )}
 
@@ -4770,19 +5077,227 @@ function DaySelector({
   );
 }
 
+function SessionMomentumPanel({
+  analytics,
+  onFocusRequest,
+  focusedEntryId,
+}: {
+  analytics: SessionAnalytics;
+  onFocusRequest?: (entryId: string) => void;
+  focusedEntryId?: string | null;
+}) {
+  const completion = Math.max(0, Math.min(100, analytics.completionPct));
+  const activeMuscleCount = analytics.muscleLoad.filter(
+    (m) => m.workingSets > 0
+  ).length;
+  const topMuscles = analytics.muscleLoad.slice(0, 4);
+  const remainingTasks = analytics.incompleteExercises.length;
+
+  return (
+    <div className="mx-4 mt-2 space-y-4 rounded-2xl border border-white/8 bg-slate-950/70 p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.85)] fade-in">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.32em] text-gray-400/70">
+            Session momentum
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-3xl font-semibold text-white/90">
+              {completion}%
+            </span>
+            <span className="text-xs uppercase tracking-[0.28em] text-gray-400">
+              Complete
+            </span>
+          </div>
+        </div>
+        <div className="text-right text-sm text-gray-300">
+          <div className="font-medium text-white/90">
+            {analytics.completedSets.toLocaleString()} /{" "}
+            {analytics.plannedSets.toLocaleString()} sets
+          </div>
+          <div className="text-[11px] text-gray-500">
+            {analytics.completedExercises}/{analytics.totalExercises} exercises
+            logged
+          </div>
+        </div>
+      </div>
+      <div className="progress-track mt-3">
+        <div
+          className="progress-fill"
+          style={{ width: `${completion}%` }}
+          aria-hidden="true"
+        />
+      </div>
+      <div className="grid gap-3 text-[11px] text-gray-300 sm:grid-cols-4">
+        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
+          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+            Sets
+          </span>
+          <span className="mt-1 text-sm font-semibold text-white/90">
+            {analytics.completedSets.toLocaleString()}
+          </span>
+          <span className="ml-1 text-[10px] text-gray-500">
+            of {analytics.plannedSets.toLocaleString()}
+          </span>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
+          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+            Volume
+          </span>
+          <span className="mt-1 text-sm font-semibold text-emerald-300">
+            {analytics.totalVolume.toLocaleString()}
+          </span>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
+          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+            PR Signals
+          </span>
+          <span className="mt-1 text-sm font-semibold text-white/90">
+            {analytics.prSignals}
+          </span>
+        </div>
+        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
+          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+            Muscles active
+          </span>
+          <span className="mt-1 text-sm font-semibold text-white/90">
+            {activeMuscleCount}
+          </span>
+        </div>
+      </div>
+      {topMuscles.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
+          {topMuscles.map((m) => (
+            <span
+              key={m.muscle}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 tabular-nums"
+            >
+              <span className="capitalize text-white/80">{m.muscle}</span>
+              <span className="text-emerald-300">
+                {m.workingSets}/{m.totalSets}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      {analytics.incompleteExercises.length > 0 && (
+        <div className="rounded-xl border border-white/10 bg-slate-900/70 p-3">
+          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-gray-400">
+            <span>Up next</span>
+            <span className="text-gray-500 normal-case tracking-normal">
+              {remainingTasks} item{remainingTasks === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            {analytics.incompleteExercises.slice(0, 4).map((task) => {
+              const isFocused = focusedEntryId === task.entryId;
+              return (
+                <div
+                  key={task.entryId}
+                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[11px] ${
+                    isFocused
+                      ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-100"
+                      : "border-white/10 bg-slate-800/60 text-slate-200"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-white/90">
+                      {task.name}
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      {task.missingSets} set{task.missingSets === 1 ? "" : "s"}{" "}
+                      remaining ·{" "}
+                      <span className="capitalize">{task.muscle}</span>
+                    </div>
+                  </div>
+                  {onFocusRequest && (
+                    <button
+                      className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium transition ${
+                        isFocused
+                          ? "bg-emerald-400 text-slate-950"
+                          : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                      }`}
+                      onClick={() => onFocusRequest(task.entryId)}
+                    >
+                      {isFocused ? "Focused" : "Focus"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {analytics.laggingSuggestions.length > 0 && (
+        <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-3">
+          <div className="text-[11px] uppercase tracking-[0.26em] text-amber-200/80">
+            Volume opportunities
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {analytics.laggingSuggestions.map((suggestion) => {
+              const completionRatio = Math.round(
+                (suggestion.workingSets / Math.max(1, suggestion.totalSets)) *
+                  100
+              );
+              const altNames = suggestion.exercises
+                .map((ex) => ex.name)
+                .slice(0, 2)
+                .join(", ");
+              return (
+                <div
+                  key={suggestion.muscle}
+                  className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100"
+                >
+                  <div className="flex items-center gap-2">
+                    {suggestion.icon ? (
+                      <img
+                        src={suggestion.icon}
+                        alt={suggestion.muscle}
+                        className="h-5 w-5 rounded-sm border border-amber-300/40 bg-black/30"
+                      />
+                    ) : (
+                      <span className="h-5 w-5 rounded-sm border border-amber-300/40" />
+                    )}
+                    <span className="capitalize font-semibold">
+                      {suggestion.muscle}
+                    </span>
+                    <span className="ml-auto text-[10px] text-amber-200/80">
+                      {completionRatio}%
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[10px] text-amber-100/80">
+                    {suggestion.workingSets} of {suggestion.totalSets} planned
+                    sets logged
+                  </div>
+                  {altNames && (
+                    <div className="mt-1 text-[10px] text-amber-100/70">
+                      Try: {altNames}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Lightweight summary component
 function SessionSummary({
   session,
   exercises,
+  analytics,
 }: {
   session: Session;
   exercises: Exercise[];
+  analytics?: SessionAnalytics | null;
 }) {
   const exMap = useMemo(
     () => new Map(exercises.map((e) => [e.id, e])),
     [exercises]
   );
-  const totals = useMemo(() => {
+  const fallbackTotals = useMemo(() => {
     let sets = 0,
       volume = 0,
       prs = 0;
@@ -4801,8 +5316,15 @@ function SessionSummary({
     }
     return { sets, volume, prs };
   }, [session, exMap]);
+  const totals = analytics
+    ? {
+        sets: analytics.completedSets,
+        volume: analytics.totalVolume,
+        prs: analytics.prSignals,
+      }
+    : fallbackTotals;
   // Count sets & tonnage per PRIMARY muscle group (ignore secondaryMuscles). Tonnage sums raw weight*reps of all sets.
-  const muscleStats = useMemo(() => {
+  const fallbackMuscleStats = useMemo(() => {
     const by: Record<string, { sets: number; tonnage: number }> = {};
     for (const entry of session.entries) {
       const ex = exMap.get(entry.exerciseId);
@@ -4820,6 +5342,14 @@ function SessionSummary({
       .filter(([, v]) => v.sets >= 1)
       .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
   }, [session, exMap]);
+  const muscleStats = analytics
+    ? analytics.muscleLoad
+        .filter((m) => m.workingSets > 0)
+        .map(
+          (m) =>
+            [m.muscle, { sets: m.workingSets, tonnage: m.tonnage }] as const
+        )
+    : fallbackMuscleStats;
   const estTonnage = totals.volume;
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft mt-4 fade-in">
@@ -4935,15 +5465,17 @@ function PRChip({
 function MobileSessionMetrics({
   session,
   exercises,
+  analytics,
 }: {
   session: Session;
   exercises: Exercise[];
+  analytics?: SessionAnalytics | null;
 }) {
   const exMap = useMemo(
     () => new Map(exercises.map((e) => [e.id, e])),
     [exercises]
   );
-  const stats = useMemo(() => {
+  const fallbackStats = useMemo(() => {
     let sets = 0,
       volume = 0,
       prs = 0;
@@ -4963,8 +5495,15 @@ function MobileSessionMetrics({
     }
     return { sets, volume, prs };
   }, [session, exMap]);
+  const stats = analytics
+    ? {
+        sets: analytics.completedSets,
+        volume: analytics.totalVolume,
+        prs: analytics.prSignals,
+      }
+    : fallbackStats;
   // Mobile bar uses "working" sets semantics elsewhere; mirror that for muscle counts (only count sets with reps>0 or weight>0)
-  const muscleCounts = useMemo(() => {
+  const fallbackMuscleCounts = useMemo(() => {
     const by: Record<string, number> = {};
     for (const entry of session.entries) {
       const ex = exMap.get(entry.exerciseId);
@@ -4981,6 +5520,11 @@ function MobileSessionMetrics({
       .filter(([, n]) => n >= 1)
       .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
   }, [session, exMap]);
+  const muscleCounts = analytics
+    ? analytics.muscleLoad
+        .filter((m) => m.workingSets > 0)
+        .map((m) => [m.muscle, m.workingSets] as const)
+    : fallbackMuscleCounts;
   return (
     <div className="flex items-center gap-4 text-xs font-medium">
       <span className="flex flex-col items-center gap-0.5">
