@@ -379,7 +379,14 @@ export default function Sessions() {
       setCollapsedEntries(next);
       requestAnimationFrame(() => scrollToExercise(entryId));
     },
-    [session, focusMode, focusedEntryId, collapsedEntries, exitFocus, scrollToExercise]
+    [
+      session,
+      focusMode,
+      focusedEntryId,
+      collapsedEntries,
+      exitFocus,
+      scrollToExercise,
+    ]
   );
 
   useEffect(() => {
