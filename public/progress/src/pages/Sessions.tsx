@@ -2470,6 +2470,8 @@ export default function Sessions() {
     () => (session ? computeSessionPacing(session) : null),
     [session?.id, session?.entries.length]
   );
+  const hasMomentumPanel =
+    !initialLoading && session != null && analytics != null;
   const formatMs = (ms: number) => {
     if (!ms) return "–";
     const m = Math.floor(ms / 60000);
@@ -2686,106 +2688,6 @@ export default function Sessions() {
           )}
         </div>
       </div>
-      {/* Session pacing summary */}
-      {!initialLoading && session && analytics && (
-        <SessionMomentumPanel
-          analytics={analytics}
-          onFocusRequest={activateFocus}
-          focusedEntryId={focusedEntryId}
-        />
-      )}
-      {session && pacing && pacing.overall.count > 0 && (
-        <div className="mx-4 mt-2 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
-          <div className="flex items-center justify-between text-[11px] text-slate-300">
-            <span className="font-semibold tracking-wide">Pacing</span>
-            <button
-              className="text-[10px] underline text-slate-400"
-              onClick={() => setShowPacingDetails((s) => !s)}
-            >
-              {showPacingDetails ? "Hide Details" : "Show Details"}
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
-            <div>
-              Sets:{" "}
-              <span className="text-slate-200 font-medium">
-                {pacing.overall.count}
-              </span>
-            </div>
-            <div>
-              Avg Rest:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.averageMs)}
-              </span>
-            </div>
-            <div>
-              Median:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.medianMs)}
-              </span>
-            </div>
-            <div>
-              Longest:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.longestMs)}
-              </span>
-            </div>
-            {sessionDuration && (
-              <div>
-                Session Span:{" "}
-                <span className="text-slate-200 font-medium">
-                  {sessionDuration}
-                </span>
-              </div>
-            )}
-          </div>
-          {showPacingDetails && (
-            <div className="space-y-1 max-h-64 overflow-auto pr-1">
-              {pacing.exercises
-                .filter((e) => e.count > 0)
-                .map((e) => {
-                  const ex = exMap.get(e.exerciseId);
-                  const name =
-                    ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
-                  return (
-                    <div
-                      key={e.exerciseId}
-                      className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <button
-                          onClick={() => toggleName(e.exerciseId)}
-                          className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
-                        >
-                          <span
-                            className={`capitalize ${
-                              expandedNames[e.exerciseId]
-                                ? "whitespace-normal break-words"
-                                : ""
-                            }`}
-                          >
-                            {name}
-                          </span>
-                        </button>
-                      </div>
-                      <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
-                        <span>n{e.count}</span>
-                        <span>avg {formatMs(e.averageMs)}</span>
-                        <span>med {formatMs(e.medianMs)}</span>
-                        <span>max {formatMs(e.longestMs)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              {!pacing.exercises.some((e) => e.count > 0) && (
-                <div className="text-[10px] text-slate-500">
-                  No rest intervals yet.
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
       {/* Mobile tools panel rendered as fixed overlay below toolbar (no layout height) */}
       {createPortal(
         <AnimatePresence>
@@ -2955,8 +2857,112 @@ export default function Sessions() {
         }}
         aria-hidden="true"
       />
+      {/* Session analytics & pacing */}
+      {!initialLoading && session && analytics && (
+        <SessionMomentumPanel
+          analytics={analytics}
+          onFocusRequest={activateFocus}
+          focusedEntryId={focusedEntryId}
+        />
+      )}
+      {session && pacing && pacing.overall.count > 0 && (
+        <div className="mx-4 mt-3 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
+          <div className="flex items-center justify-between text-[11px] text-slate-300">
+            <span className="font-semibold tracking-wide">Pacing</span>
+            <button
+              className="text-[10px] underline text-slate-400"
+              onClick={() => setShowPacingDetails((s) => !s)}
+            >
+              {showPacingDetails ? "Hide Details" : "Show Details"}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
+            <div>
+              Sets:{" "}
+              <span className="text-slate-200 font-medium">
+                {pacing.overall.count}
+              </span>
+            </div>
+            <div>
+              Avg Rest:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.averageMs)}
+              </span>
+            </div>
+            <div>
+              Median:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.medianMs)}
+              </span>
+            </div>
+            <div>
+              Longest:{" "}
+              <span className="text-slate-200 font-medium">
+                {formatMs(pacing.overall.longestMs)}
+              </span>
+            </div>
+            {sessionDuration && (
+              <div>
+                Session Span:{" "}
+                <span className="text-slate-200 font-medium">
+                  {sessionDuration}
+                </span>
+              </div>
+            )}
+          </div>
+          {showPacingDetails && (
+            <div className="space-y-1 max-h-64 overflow-auto pr-1">
+              {pacing.exercises
+                .filter((e) => e.count > 0)
+                .map((e) => {
+                  const ex = exMap.get(e.exerciseId);
+                  const name =
+                    ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
+                  return (
+                    <div
+                      key={e.exerciseId}
+                      className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <button
+                          onClick={() => toggleName(e.exerciseId)}
+                          className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
+                        >
+                          <span
+                            className={`capitalize ${
+                              expandedNames[e.exerciseId]
+                                ? "whitespace-normal break-words"
+                                : ""
+                            }`}
+                          >
+                            {name}
+                          </span>
+                        </button>
+                      </div>
+                      <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
+                        <span>n{e.count}</span>
+                        <span>avg {formatMs(e.averageMs)}</span>
+                        <span>med {formatMs(e.medianMs)}</span>
+                        <span>max {formatMs(e.longestMs)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              {!pacing.exercises.some((e) => e.count > 0) && (
+                <div className="text-[10px] text-slate-500">
+                  No rest intervals yet.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
-      <div className="flex flex-wrap items-center gap-2 sm:mt-0 -mt-6">
+      <div
+        className={`flex flex-wrap items-center gap-2 ${
+          hasMomentumPanel ? "mt-0" : "-mt-6"
+        } sm:mt-0`}
+      >
         <div className="hidden sm:flex items-center gap-2">
           <button
             className="btn-primary-enhanced btn-enhanced px-4 py-2.5 rounded-xl font-medium text-white"
@@ -3076,7 +3082,11 @@ export default function Sessions() {
         </div>
       )}
 
-      <div className="space-y-3 -mt-[72px] sm:mt-0">
+      <div
+        className={`space-y-3 sm:mt-0 ${
+          hasMomentumPanel ? "mt-0" : "-mt-[72px]"
+        }`}
+      >
         {initialLoading && (
           <div className="space-y-3" aria-label="Loading session">
             <div className="h-5 w-40 rounded skeleton" />
@@ -5166,17 +5176,32 @@ function SessionMomentumPanel({
       </div>
       {topMuscles.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
-          {topMuscles.map((m) => (
-            <span
-              key={m.muscle}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 tabular-nums"
-            >
-              <span className="capitalize text-white/80">{m.muscle}</span>
-              <span className="text-emerald-300">
-                {m.workingSets}/{m.totalSets}
+          {topMuscles.map((m) => {
+            const icon = getMuscleIconPath(m.muscle);
+            return (
+              <span
+                key={m.muscle}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 tabular-nums"
+                title={`${m.muscle} · ${m.workingSets}/${m.totalSets} sets`}
+              >
+                {icon ? (
+                  <img
+                    src={icon}
+                    alt={m.muscle}
+                    className="h-5 w-5 rounded-sm border border-white/15 bg-black/20"
+                  />
+                ) : (
+                  <span
+                    className="h-5 w-5 rounded-sm border border-white/10 bg-slate-700/60"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="text-emerald-300">
+                  {m.workingSets}/{m.totalSets}
+                </span>
               </span>
-            </span>
-          ))}
+            );
+          })}
         </div>
       )}
       {analytics.incompleteExercises.length > 0 && (
