@@ -15,6 +15,7 @@ import {
   isPhaseEnd,
 } from "../features/progress/progress";
 import { useNavigate } from "react-router-dom";
+import { clsx } from "clsx";
 
 function Pill({
   active,
@@ -29,29 +30,44 @@ function Pill({
 }) {
   return (
     <button
-      className={`px-2 py-1 rounded-full text-xs ${
+      className={clsx(
+        "group relative overflow-hidden rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 focus:outline-none focus-visible:outline focus-visible:outline-[rgba(59,130,246,0.65)] focus-visible:outline-offset-2",
         active
-          ? "bg-[var(--accent)] text-black shadow-[0_0_12px_rgba(34,197,94,0.5)]"
-          : "bg-slate-800 text-gray-300"
-      }`}
+          ? "text-slate-900 shadow-[0_8px_22px_-14px_rgba(59,130,246,0.8)]"
+          : "text-slate-200/80 border border-white/5 bg-slate-900/60 hover:border-white/15 hover:text-white"
+      )}
       onClick={onClick}
       title={title}
+      aria-pressed={active}
     >
-      {label}
+      <span
+        className={clsx(
+          "absolute inset-0 opacity-0 transition-opacity duration-200",
+          active
+            ? "opacity-100 bg-gradient-to-r from-sky-400 via-[var(--accent)] to-indigo-500"
+            : "group-hover:opacity-100 bg-gradient-to-r from-white/5 to-transparent"
+        )}
+      />
+      <span className="relative z-10 flex items-center gap-1">
+        <span>{label}</span>
+        {active && (
+          <span className="inline-flex h-1.5 w-1.5 rounded-full bg-slate-900/90 shadow-[0_0_0_3px_rgba(255,255,255,0.45)]"></span>
+        )}
+      </span>
     </button>
   );
 }
 
 function ProgressBar({ percent }: { percent: number }) {
   return (
-    <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+  <div className="relative h-3 overflow-hidden rounded-full border border-white/10 bg-slate-900/70">
       <motion.div
-        className="h-full"
-        style={{ background: "var(--accent)" }}
+        className="h-full rounded-full bg-gradient-to-r from-sky-400 via-[var(--accent)] to-indigo-500 shadow-[0_2px_8px_rgba(59,130,246,0.45)]"
         initial={{ width: 0 }}
         animate={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
         transition={{ type: "spring", stiffness: 120, damping: 20 }}
       />
+      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.14)_0%,rgba(255,255,255,0)_48%)]" />
     </div>
   );
 }
@@ -193,6 +209,15 @@ export default function ProgressBars() {
       : 0;
   };
 
+  const completedDaysWithExtras = week.completedDays + extraBeyondTarget();
+  const weekSurplus = Math.max(0, completedDaysWithExtras - weeklyTarget);
+  const weekRemaining = Math.max(0, weeklyTarget - completedDaysWithExtras);
+  const weekStatusLabel = weekSurplus
+    ? `Ahead by ${weekSurplus}`
+    : weekRemaining
+    ? `${weekRemaining} to go`
+    : "Target met";
+
   // ----- Phase Checklist Modal State -----
   const [showChecklist, setShowChecklist] = useState(false);
   const [advancing, setAdvancing] = useState(false);
@@ -252,23 +277,53 @@ export default function ProgressBars() {
         </div>
       )}
       <GlassCard className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="font-medium">This Cycle</div>
-          {isPhaseEnd(curWeek) && (
-            <span className="text-[10px] bg-slate-700 rounded px-2 py-0.5">
-              Deload Week
-            </span>
-          )}
-        </div>
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <div>{week.percent}%</div>
-          <div className="text-gray-400">
-            {week.completedDays + extraBeyondTarget()}/{weeklyTarget}
-            {week.completedDays + extraBeyondTarget() > weeklyTarget ? (
-              <span className="ml-1 text-[10px] bg-yellow-500 text-black rounded px-1">
-                +{week.completedDays + extraBeyondTarget() - weeklyTarget}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.32em] text-gray-400/70">
+                Week snapshot
+              </p>
+              <div className="mt-1 flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-white/90">
+                  Week {curWeek}
+                </h3>
+                {isPhaseEnd(curWeek) && (
+                  <span className="badge badge-outline" data-variant="info">
+                    Deload week
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400">Phase {curPhase}</p>
+              <p className="mt-1 text-sm font-medium text-white/90">
+                {completedDaysWithExtras}/{weeklyTarget} days
+              </p>
+            </div>
+          </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-semibold text-white/90">
+                {week.percent}%
               </span>
-            ) : null}
+              <span className="text-xs uppercase tracking-[0.28em] text-gray-400">
+                Complete
+              </span>
+            </div>
+            <span
+              className={clsx(
+                "badge",
+                weekSurplus
+                  ? undefined
+                  : weekRemaining
+                  ? "badge-outline"
+                  : undefined
+              )}
+              data-variant={weekSurplus ? "success" : undefined}
+            >
+              {weekStatusLabel}
+            </span>
           </div>
         </div>
         <ProgressBar percent={week.percent} />
@@ -280,7 +335,7 @@ export default function ProgressBars() {
             </button>
           </div>
         )}
-        <div className="mt-3 flex flex-wrap gap-2 items-center">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           {dayLabels.map((d, i) => {
             // If program has >7 days we only have sessions addressing those indexes; reuse id format `${phase}-${week}-${i}`
             const sess = sessionForDay(i);
@@ -313,7 +368,7 @@ export default function ProgressBars() {
             <span className="text-[10px] text-gray-500 ml-1">Cycle {programSplit.length}d</span>
           )}
           <button
-            className="text-[10px] px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600"
+            className="text-[10px] px-2 py-1 rounded-full border border-dashed border-white/10 bg-slate-900/60 text-slate-200/80 transition-colors hover:border-white/25 hover:text-white"
             onClick={()=> setExtraRestDays(r=> [...r, dayLabels.length])}
             title="Insert ad-hoc Rest day (not persisted)"
           >+ Rest</button>
@@ -321,13 +376,34 @@ export default function ProgressBars() {
       </GlassCard>
 
       <GlassCard className="p-4">
-        <div className="font-medium mb-2">Phase {curPhase}</div>
-        <div className="flex items-center justify-between mb-2 text-sm">
-          <div>{phase.percent}%</div>
-          <div className="text-gray-400">Week {curWeek} of 9</div>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.32em] text-gray-400/70">
+              Phase overview
+            </p>
+            <h3 className="mt-1 text-lg font-semibold text-white/90">
+              Phase {curPhase}
+            </h3>
+          </div>
+          <div className="text-right text-sm text-gray-400">
+            Week {curWeek} of 9
+          </div>
+        </div>
+        <div className="mt-3 flex items-baseline justify-between">
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-semibold text-white/90">
+              {phase.percent}%
+            </span>
+            <span className="text-xs uppercase tracking-[0.28em] text-gray-400">
+              Complete
+            </span>
+          </div>
+          <span className="badge badge-outline">
+            Avg. adherence {Math.round(adherence || 0)}%
+          </span>
         </div>
         <ProgressBar percent={phase.percent} />
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           {weekDots.map((i) => (
             <div
               key={i}
@@ -344,7 +420,13 @@ export default function ProgressBars() {
           ))}
         </div>
         {sparklinePts.length>1 && (
-          <div className="mt-3">
+          <div className="mt-4 rounded-xl border border-white/5 bg-slate-900/40 p-3">
+            <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-gray-400/70">
+              <span>Trend</span>
+              <span className="text-[10px] capitalize text-gray-400/60">
+                consistency pulse
+              </span>
+            </div>
             <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" className="overflow-visible">
               {(() => {
                 const xs = sparklinePts.map(p=> p.x);
@@ -357,10 +439,17 @@ export default function ProgressBars() {
                   return `${i===0? 'M':'L'}${x.toFixed(2)},${y.toFixed(2)}`;
                 }).join(' ');
                 return <>
-                  <path d={path} fill="none" stroke="var(--accent)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-                  {sparklinePts.map(p=> { const x=(p.x/Math.max(...xs,1))*100; const y=32-(p.y/Math.max(...ys,100))*28-2; return <circle key={p.x} cx={x} cy={y} r={1.5} fill="var(--accent)" /> })}
+                  <path d={path} fill="none" stroke="url(#phase-gradient)" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+                  {sparklinePts.map(p=> { const x=(p.x/Math.max(...xs,1))*100; const y=32-(p.y/Math.max(...ys,100))*28-2; return <circle key={p.x} cx={x} cy={y} r={1.8} fill="var(--accent)" stroke="rgba(255,255,255,0.65)" strokeWidth={0.35} /> })}
                 </>
               })()}
+              <defs>
+                <linearGradient id="phase-gradient" x1="0%" x2="100%" y1="0%" y2="0%">
+                  <stop offset="0%" stopColor="rgba(56,189,248,0.8)" />
+                  <stop offset="50%" stopColor="var(--accent)" />
+                  <stop offset="100%" stopColor="rgba(99,102,241,0.9)" />
+                </linearGradient>
+              </defs>
             </svg>
           </div>
         )}
@@ -373,11 +462,11 @@ export default function ProgressBars() {
           <div className="mt-3 flex items-center gap-2">
             <span className="text-sm">Phase complete</span>
             <button
-              className="text-xs bg-emerald-600 rounded px-2 py-1"
+              className="text-xs rounded px-3 py-1 font-medium text-slate-900 shadow-[0_10px_24px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:brightness-105"
               onClick={()=> setShowChecklist(true)}
             >Start Phase {curPhase + 1}</button>
             {curPhase>1 && <button
-              className="text-xs bg-slate-700 rounded px-2 py-1"
+              className="text-xs rounded px-3 py-1 border border-white/8 bg-slate-900/70 text-slate-200/85 transition hover:border-white/15"
               onClick={async ()=> {
                 if(!window.confirm('Revert to phase '+(curPhase-1)+'?')) return;
                 const s = await getSettings();

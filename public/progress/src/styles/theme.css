@@ -155,6 +155,7 @@ html, body, #root { overflow-x:hidden; }
 .badge { font-size:10px; text-transform:uppercase; letter-spacing:.5px; padding:3px 8px; border-radius: var(--radius-pill); background:rgba(var(--accent-rgb)/0.18); color: var(--accent); display:inline-flex; align-items:center; gap:4px; }
 .badge[data-variant="danger"] { background: rgba(239 68 68 / 0.18); color: var(--danger); }
 .badge[data-variant="info"] { background: rgba(59 130 246 / 0.18); color: var(--info); }
+.badge[data-variant="success"] { background: rgba(34 197 94 / 0.18); color: var(--success); }
 .badge-outline { background: transparent; border:1px solid var(--border-subtle); }
 
 /* Progress bar */
