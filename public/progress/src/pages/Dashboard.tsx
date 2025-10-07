@@ -38,8 +38,39 @@ export default function Dashboard() {
   const [intensityDist, setIntensityDist] = useState<{ bucket:string; sets:number }[]>([]);
   const [plateaus, setPlateaus] = useState<{ exercise:string; changePct:number }[]>([]);
   const [undertrained, setUndertrained] = useState<{ muscle:string; avgSets:number }[]>([]);
+  const [phaseFilter, setPhaseFilter] = useState<'recent' | 'all' | number>('recent');
+  const [availablePhases, setAvailablePhases] = useState<number[]>([]);
+  const [activePhaseWindow, setActivePhaseWindow] = useState<number[]>([]);
   const [RC, setRC] = useState<any | null>(null);
   useEffect(() => { loadRecharts().then(m => setRC(m)); }, []);
+
+  const phaseFilterOptions = useMemo(() => {
+    const sorted = [...availablePhases].sort((a, b) => b - a);
+    const opts: { value: string; label: string }[] = [];
+    if (sorted.length > 2) {
+      opts.push({ value: 'all', label: 'All phases' });
+    }
+    if (sorted.length > 1) {
+      opts.push({ value: 'recent', label: 'Last 2 phases' });
+    }
+    sorted.forEach((phase) => {
+      opts.push({ value: String(phase), label: `Phase ${phase}` });
+    });
+    if (!opts.length) {
+      opts.push({ value: 'recent', label: 'Last 2 phases' });
+    }
+    return opts;
+  }, [availablePhases]);
+
+  const phaseFilterValue = typeof phaseFilter === 'number' ? String(phaseFilter) : phaseFilter;
+
+  const activePhaseLabel = useMemo(() => {
+    if (phaseFilter === 'all') return 'Showing all phases';
+    if (!activePhaseWindow.length) return '';
+    const sorted = [...activePhaseWindow].sort((a, b) => a - b);
+    if (sorted.length === 1) return `Showing phase ${sorted[0]}`;
+    return `Showing phases ${sorted.join(', ')}`;
+  }, [activePhaseWindow, phaseFilter]);
 
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -47,6 +78,25 @@ export default function Dashboard() {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!availablePhases.length) return;
+    if (
+      availablePhases.length === 1 &&
+      (phaseFilter === 'recent' || phaseFilter === 'all')
+    ) {
+      setPhaseFilter(availablePhases[0]);
+      return;
+    }
+    if (
+      typeof phaseFilter === 'number' &&
+      !availablePhases.includes(phaseFilter)
+    ) {
+      setPhaseFilter(
+        availablePhases.length > 1 ? 'recent' : availablePhases[availablePhases.length - 1]
+      );
+    }
+  }, [availablePhases, phaseFilter]);
 
   const loadDashboard = useCallback(
     async (opts?: { force?: boolean }) => {
@@ -63,10 +113,48 @@ export default function Dashboard() {
 
         if (!isMountedRef.current) return;
 
-        const volumeResult = await volumeByMuscleGroup(week, {
-          sessions,
-          exercises,
-        });
+        const phaseOf = (s: Session) =>
+          ((s.phaseNumber ?? s.phase ?? 1) as number) || 1;
+        const phaseNumbers = Array.from(new Set(sessions.map(phaseOf)))
+          .filter((p) => Number.isFinite(p))
+          .sort((a, b) => a - b);
+        setAvailablePhases(phaseNumbers);
+
+        let effectivePhases: number[] = [];
+        if (phaseFilter === 'all') {
+          effectivePhases = phaseNumbers;
+        } else if (phaseFilter === 'recent') {
+          effectivePhases = phaseNumbers.slice(-2);
+        } else if (
+          typeof phaseFilter === 'number' &&
+          phaseNumbers.includes(phaseFilter)
+        ) {
+          effectivePhases = [phaseFilter];
+        }
+        if (!effectivePhases.length && phaseNumbers.length) {
+          const fallback = phaseNumbers.slice(-Math.min(phaseNumbers.length, 2));
+          effectivePhases = fallback.length ? fallback : [phaseNumbers[phaseNumbers.length - 1]];
+        }
+        if (!phaseNumbers.length) {
+          effectivePhases = [];
+        }
+        setActivePhaseWindow(
+          phaseFilter === 'all' ? phaseNumbers : effectivePhases
+        );
+
+        const sessionsForAnalytics =
+          effectivePhases.length && phaseNumbers.length
+            ? sessions.filter((s) => effectivePhases.includes(phaseOf(s)))
+            : sessions;
+
+        const volumeResult = await volumeByMuscleGroup(
+          week,
+          {
+            sessions,
+            exercises,
+          },
+          { phases: effectivePhases }
+        );
         if (!isMountedRef.current) return;
         setVolume(volumeResult);
 
@@ -206,7 +294,7 @@ export default function Dashboard() {
             if (undertrained) setUndertrained(undertrained);
             worker.terminate();
           };
-          worker.postMessage({ sessions, exercises });
+          worker.postMessage({ sessions: sessionsForAnalytics, exercises });
         } catch (err) {
           console.warn('[Dashboard] worker fallback', err);
         }
@@ -214,7 +302,7 @@ export default function Dashboard() {
         console.warn('[Dashboard] failed to load dashboard data', err);
       }
     },
-    [week]
+    [week, phaseFilter]
   );
 
   useEffect(() => {
@@ -418,7 +506,47 @@ export default function Dashboard() {
       {/* Analytics & Insights */}
       <div className="grid xl:grid-cols-3 md:grid-cols-2 gap-4">
         <div className="bg-card rounded-2xl p-4 shadow-soft xl:col-span-2">
-          <h3 className="font-medium mb-2 flex items-center justify-between">Muscle Volume Trend<span className="text-[10px] text-gray-500">Sets / completed</span></h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+            <h3 className="font-medium flex items-center gap-2">
+              <span>Muscle Volume Trend</span>
+              <span className="text-[10px] text-gray-500">Sets / completed</span>
+            </h3>
+            <div className="flex items-center gap-2">
+              {activePhaseLabel && (
+                <span className="text-[11px] text-gray-400 hidden sm:inline">
+                  {activePhaseLabel}
+                </span>
+              )}
+              {phaseFilterOptions.length > 1 && (
+                <select
+                  aria-label="Select phase window"
+                  className="bg-slate-800/80 border border-white/10 rounded-xl px-2 py-1 text-xs text-slate-200"
+                  value={phaseFilterValue}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPhaseFilter(
+                      next === 'recent'
+                        ? 'recent'
+                        : next === 'all'
+                        ? 'all'
+                        : Number(next)
+                    );
+                  }}
+                >
+                  {phaseFilterOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+          {activePhaseLabel && (
+            <div className="text-[10px] text-gray-500 sm:hidden mb-2">
+              {activePhaseLabel}
+            </div>
+          )}
           <div className="h-64">
             {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
             {RC && (
@@ -441,6 +569,11 @@ export default function Dashboard() {
           {!!undertrained.length && (
             <div className="mt-3 text-[11px] flex flex-wrap gap-2">
               {undertrained.map(u=> <span key={u.muscle} className="badge" data-variant="danger">{u.muscle}: {u.avgSets.toFixed(1)} avg</span>)}
+            </div>
+          )}
+          {!undertrained.length && (
+            <div className="mt-3 text-[11px] text-gray-500">
+              Balanced across selected phases.
             </div>
           )}
         </div>

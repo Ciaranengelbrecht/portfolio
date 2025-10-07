@@ -146,14 +146,24 @@ export async function getDeloadPrescriptionsBulk(
   return out as Record<string, ReturnType<typeof getDeloadPrescription> extends Promise<infer R> ? R : never>;
 }
 
-export async function volumeByMuscleGroup(weekNumber: number, deps?: { sessions?: Session[]; exercises?: Exercise[] }) {
+export async function volumeByMuscleGroup(
+  weekNumber: number,
+  deps?: { sessions?: Session[]; exercises?: Exercise[] },
+  opts?: { phases?: number[] }
+) {
   const [sessions, exercises] = await Promise.all([
-    (async ()=> deps?.sessions || (await db.getAll<Session>("sessions")))(),
-    (async ()=> deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
+    (async () => deps?.sessions || (await db.getAll<Session>("sessions")))(),
+    (async () => deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
   ]);
+  const phaseSet = opts?.phases && opts.phases.length ? new Set(opts.phases) : null;
+  const filteredSessions = phaseSet
+    ? sessions.filter((s) =>
+        phaseSet.has((s.phaseNumber ?? s.phase ?? 1) as number)
+      )
+    : sessions;
   const exMap = new Map(exercises.map((e) => [e.id, e]));
   const acc: Record<string, { tonnage: number; sets: number }> = {};
-  sessions
+  filteredSessions
     .filter((s) => s.weekNumber === weekNumber)
     .forEach((s) => {
       s.entries.forEach((e: SessionEntry) => {
