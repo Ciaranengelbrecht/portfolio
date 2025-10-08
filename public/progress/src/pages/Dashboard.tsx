@@ -17,6 +17,63 @@ function useAnimatedNumber(value:number, duration=600){
   return Math.round(display*100)/100;
 }
 
+const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+function computeSessionDurationMs(session: Session): number | null {
+  const log = session.workLog;
+  if (log && Object.keys(log).length) {
+    const entries = Object.entries(log).sort((a, b) => {
+      const countA = a[1]?.count || 0;
+      const countB = b[1]?.count || 0;
+      if (countB !== countA) return countB - countA;
+      const spanA =
+        new Date(a[1]?.last || 0).getTime() -
+        new Date(a[1]?.first || 0).getTime();
+      const spanB =
+        new Date(b[1]?.last || 0).getTime() -
+        new Date(b[1]?.first || 0).getTime();
+      return spanB - spanA;
+    });
+    const top = entries[0]?.[1];
+    if (top?.first && top?.last) {
+      const start = new Date(top.first).getTime();
+      const end = new Date(top.last).getTime();
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
+        const ms = Math.max(0, Math.min(end - start, 1000 * 60 * 60 * 12));
+        return ms;
+      }
+    }
+  }
+  if (session.loggedStartAt && session.loggedEndAt) {
+    const start = new Date(session.loggedStartAt).getTime();
+    const end = new Date(session.loggedEndAt).getTime();
+    if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
+      return Math.max(0, Math.min(end - start, 1000 * 60 * 60 * 12));
+    }
+  }
+  return null;
+}
+
+function formatHours(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0h";
+  if (value >= 100) return `${Math.round(value)}h`;
+  if (value >= 10) return `${value.toFixed(1)}h`;
+  if (value >= 1) return `${value.toFixed(1)}h`;
+  const minutes = Math.round(value * 60);
+  return `${minutes}m`;
+}
+
+function formatCompact(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return "0";
+  const formatted = COMPACT_FORMATTER.format(value);
+  return formatted
+    .replace(/\.0([A-Za-z])/, "$1")
+    .replace(/\.0$/, "");
+}
+
 export default function Dashboard() {
   const [week, setWeek] = useState(1);
   const [volume, setVolume] = useState<
@@ -41,6 +98,21 @@ export default function Dashboard() {
   const [phaseFilter, setPhaseFilter] = useState<'recent' | 'all' | number>('recent');
   const [availablePhases, setAvailablePhases] = useState<number[]>([]);
   const [activePhaseWindow, setActivePhaseWindow] = useState<number[]>([]);
+  const [lifetimeStats, setLifetimeStats] = useState({
+    workouts: 0,
+    sets: 0,
+    hours: 0,
+    tonnage: 0,
+  });
+  const [weeklyStats, setWeeklyStats] = useState({
+    workouts: 0,
+    sets: 0,
+    hours: 0,
+    tonnage: 0,
+    weekNumber: null as number | null,
+    phaseNumber: null as number | null,
+  });
+  const [tonnageUnit, setTonnageUnit] = useState<"kg" | "lb">("kg");
   const [RC, setRC] = useState<any | null>(null);
   useEffect(() => { loadRecharts().then(m => setRC(m)); }, []);
 
@@ -204,23 +276,101 @@ export default function Dashboard() {
         const userTargetDays = nonRest || settingsApp?.progress?.weeklyTargetDays || 6;
         setTargetDays(userTargetDays);
 
+        const usesLb = (settingsApp?.unit ?? "kg") === "lb";
+        setTonnageUnit(usesLb ? "lb" : "kg");
+        const tonnageMultiplier = usesLb ? 2.2046226218 : 1;
+
+        const trackedWeekPref =
+          settingsApp?.dashboardPrefs?.lastLocation?.weekNumber ?? null;
+        const trackedPhasePref =
+          settingsApp?.dashboardPrefs?.lastLocation?.phaseNumber ?? null;
+        const fallbackPhase =
+          phaseNumbers.length > 0
+            ? phaseNumbers[phaseNumbers.length - 1]
+            : null;
+        const trackedWeek = trackedWeekPref ?? week ?? null;
+        const trackedPhase = trackedPhasePref ?? fallbackPhase;
+
+        const lifetimeAgg = {
+          workouts: 0,
+          sets: 0,
+          volume: 0,
+          durationMs: 0,
+        };
+        const weeklyAgg = {
+          workouts: 0,
+          sets: 0,
+          volume: 0,
+          durationMs: 0,
+        };
+
         let totalSets = 0;
         let prCount = 0;
         const byEx: Record<string, number> = {};
-        sessions.forEach((s) =>
-          s.entries.forEach((e) =>
-            e.sets.forEach((st) => {
+
+        for (const session of sessions) {
+          if (session.deletedAt) continue;
+          let sessionSets = 0;
+          let sessionVolume = 0;
+          let hasValidWork = false;
+
+          for (const entry of session.entries) {
+            for (const st of entry.sets) {
               totalSets++;
-              const score = (st.weightKg || 0) * (st.reps || 0);
+              const reps = st.reps || 0;
+              const weight = st.weightKg || 0;
+              const score = weight * reps;
               if (score > 0) {
-                if (score > (byEx[e.exerciseId] || 0)) {
-                  byEx[e.exerciseId] = score;
+                hasValidWork = true;
+                sessionSets += 1;
+                sessionVolume += score;
+                if (score > (byEx[entry.exerciseId] || 0)) {
+                  byEx[entry.exerciseId] = score;
                   prCount++;
                 }
               }
-            })
-          )
-        );
+            }
+          }
+
+          if (!hasValidWork) continue;
+
+          const durationMs = computeSessionDurationMs(session) || 0;
+
+          lifetimeAgg.workouts += 1;
+          lifetimeAgg.sets += sessionSets;
+          lifetimeAgg.volume += sessionVolume;
+          lifetimeAgg.durationMs += durationMs;
+
+          if (
+            trackedWeek != null &&
+            session.weekNumber === trackedWeek &&
+            (trackedPhase == null ||
+              (session.phaseNumber ?? session.phase ?? trackedPhase) ===
+                trackedPhase)
+          ) {
+            weeklyAgg.workouts += 1;
+            weeklyAgg.sets += sessionSets;
+            weeklyAgg.volume += sessionVolume;
+            weeklyAgg.durationMs += durationMs;
+          }
+        }
+
+        setLifetimeStats({
+          workouts: lifetimeAgg.workouts,
+          sets: lifetimeAgg.sets,
+          hours: lifetimeAgg.durationMs / (1000 * 60 * 60),
+          tonnage: lifetimeAgg.volume * tonnageMultiplier,
+        });
+
+        setWeeklyStats({
+          workouts: weeklyAgg.workouts,
+          sets: weeklyAgg.sets,
+          hours: weeklyAgg.durationMs / (1000 * 60 * 60),
+          tonnage: weeklyAgg.volume * tonnageMultiplier,
+          weekNumber: trackedWeek,
+          phaseNumber: trackedPhase,
+        });
+
         const earnedXp = totalSets * 5 + prCount * 20;
         setXp(earnedXp);
         setLevel(Math.max(1, Math.floor(Math.sqrt(earnedXp) / 3) + 1));
@@ -343,11 +493,177 @@ export default function Dashboard() {
   const prevPoint = (series:string,label:any, rows:any[], keyField:string)=> { const idx = rows.findIndex(r=> r[keyField]===label); if(idx>0){ const prev = rows[idx-1]; return prev?.[series]; } return undefined; };
 
   const animXp = useAnimatedNumber(xp);
-  const animWeekVol = useAnimatedNumber(weeklyRecap?.volume||0);
-  const animPR = useAnimatedNumber(weeklyRecap?.prCount||0);
-  const animAdh = useAnimatedNumber(weeklyRecap?.adherence||0);
+  const animWeekVol = useAnimatedNumber(weeklyRecap?.volume || 0);
+  const animPR = useAnimatedNumber(weeklyRecap?.prCount || 0);
+  const animAdh = useAnimatedNumber(weeklyRecap?.adherence || 0);
+  const formatCount = (value: number) => {
+    if (!Number.isFinite(value) || value <= 0) return "0";
+    if (value >= 1000) return formatCompact(value);
+    return Math.round(value).toLocaleString();
+  };
+
+  const lifetimeHasData =
+    lifetimeStats.workouts > 0 ||
+    lifetimeStats.sets > 0 ||
+    lifetimeStats.tonnage > 0 ||
+    lifetimeStats.hours > 0;
+  const weeklyHasData =
+    weeklyStats.workouts > 0 ||
+    weeklyStats.sets > 0 ||
+    weeklyStats.tonnage > 0 ||
+    weeklyStats.hours > 0;
+
+  const lifetimeMetricBlocks = useMemo(
+    () => [
+      {
+        key: "workouts",
+        label: "Workouts",
+        value: formatCount(lifetimeStats.workouts),
+        caption: "sessions",
+      },
+      {
+        key: "sets",
+        label: "Sets",
+        value: formatCount(lifetimeStats.sets),
+        caption: "logged",
+      },
+      {
+        key: "hours",
+        label: "Active Time",
+        value: formatHours(lifetimeStats.hours),
+        caption: "tracked",
+      },
+      {
+        key: "volume",
+        label: "Volume",
+        value: formatCompact(lifetimeStats.tonnage),
+        caption: `${tonnageUnit} lifted`,
+      },
+    ],
+    [lifetimeStats, tonnageUnit]
+  );
+
+  const weeklyMetricBlocks = useMemo(
+    () => [
+      {
+        key: "workouts",
+        label: "Workouts",
+        value: formatCount(weeklyStats.workouts),
+        caption: "logged",
+      },
+      {
+        key: "sets",
+        label: "Sets",
+        value: formatCount(weeklyStats.sets),
+        caption: "valid",
+      },
+      {
+        key: "hours",
+        label: "Active Time",
+        value: formatHours(weeklyStats.hours),
+        caption: "this week",
+      },
+      {
+        key: "volume",
+        label: "Volume",
+        value: formatCompact(weeklyStats.tonnage),
+        caption: `${tonnageUnit} lifted`,
+      },
+    ],
+    [weeklyStats, tonnageUnit]
+  );
+
+  const weeklyTitle = useMemo(() => {
+    if (!weeklyStats.weekNumber) return "Current Week";
+    if (weeklyStats.phaseNumber)
+      return `Phase ${weeklyStats.phaseNumber} • Week ${weeklyStats.weekNumber}`;
+    return `Week ${weeklyStats.weekNumber}`;
+  }, [weeklyStats.phaseNumber, weeklyStats.weekNumber]);
+
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
+          <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-12 -bottom-16 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-6">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.38em] text-white/60">
+                Lifetime
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                Training Ledger
+              </h2>
+            </div>
+            {lifetimeHasData ? (
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                {lifetimeMetricBlocks.map((item) => (
+                  <div key={item.key} className="space-y-2">
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+                      {item.label}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-semibold text-white/90">
+                        {item.value}
+                      </span>
+                      {item.caption && (
+                        <span className="text-xs uppercase tracking-[0.32em] text-white/50">
+                          {item.caption}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/70">
+                Log your first session to unlock lifetime insights.
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/85 p-6 text-slate-100 shadow-[0_25px_70px_-50px_rgba(59,130,246,0.55)]">
+          <div className="pointer-events-none absolute -right-16 top-8 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.38em] text-emerald-200/70">
+                Current Focus
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-white/90">
+                {weeklyTitle}
+              </h2>
+            </div>
+            {weeklyHasData ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {weeklyMetricBlocks.map((item) => (
+                  <div
+                    key={item.key}
+                    className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
+                  >
+                    <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">
+                      {item.label}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-semibold text-white">
+                        {item.value}
+                      </span>
+                      {item.caption && (
+                        <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                          {item.caption}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-300/80">
+                No tracked sessions for this week yet. Log a workout to see trends instantly.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
       <ProgressBars />
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-semibold">Dashboard</h2>
