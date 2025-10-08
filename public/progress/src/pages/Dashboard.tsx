@@ -2,19 +2,47 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { volumeByMuscleGroup } from "../lib/helpers";
 import { getMuscleIconPath } from "../lib/muscles";
 import { loadRecharts } from "../lib/loadRecharts";
-import { getAllCached } from '../lib/dataCache';
-import { Measurement, Session, Settings, Exercise, UserProgram } from "../lib/types";
-import { getProfileProgram } from '../lib/profile';
+import { getAllCached } from "../lib/dataCache";
+import {
+  Measurement,
+  Session,
+  Settings,
+  Exercise,
+  UserProgram,
+} from "../lib/types";
+import { getProfileProgram } from "../lib/profile";
 import UnifiedTooltip from "../components/UnifiedTooltip";
 // Recharts is lazy loaded; see RC state
 import DashboardDeloadTable from "./DashboardDeloadTable";
 import ProgressBars from "../components/ProgressBars";
 
 // Lightweight animated number hook respecting reduced motion
-function useAnimatedNumber(value:number, duration=600){
-  const [display,setDisplay]=useState(value);
-  useEffect(()=>{ if((document.documentElement.getAttribute('data-reduced-motion')==='true')){ setDisplay(value); return; } let start:number|undefined; const from=display; const diff=value-from; if(diff===0) return; const d= Math.max(200,duration); function step(ts:number){ if(start==null) start=ts; const t = (ts-start)/d; const eased = t<1? (1-Math.pow(1-t,3)):1; setDisplay(from + diff*eased); if(t<1) requestAnimationFrame(step); else setDisplay(value); } const r = requestAnimationFrame(step); return ()=> cancelAnimationFrame(r); },[value]);
-  return Math.round(display*100)/100;
+function useAnimatedNumber(value: number, duration = 600) {
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    if (
+      document.documentElement.getAttribute("data-reduced-motion") === "true"
+    ) {
+      setDisplay(value);
+      return;
+    }
+    let start: number | undefined;
+    const from = display;
+    const diff = value - from;
+    if (diff === 0) return;
+    const d = Math.max(200, duration);
+    function step(ts: number) {
+      if (start == null) start = ts;
+      const t = (ts - start) / d;
+      const eased = t < 1 ? 1 - Math.pow(1 - t, 3) : 1;
+      setDisplay(from + diff * eased);
+      if (t < 1) requestAnimationFrame(step);
+      else setDisplay(value);
+    }
+    const r = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(r);
+  }, [value]);
+  return Math.round(display * 100) / 100;
 }
 
 const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -69,9 +97,7 @@ function formatHours(value: number): string {
 function formatCompact(value: number): string {
   if (!Number.isFinite(value) || value === 0) return "0";
   const formatted = COMPACT_FORMATTER.format(value);
-  return formatted
-    .replace(/\.0([A-Za-z])/, "$1")
-    .replace(/\.0$/, "");
+  return formatted.replace(/\.0([A-Za-z])/, "$1").replace(/\.0$/, "");
 }
 
 export default function Dashboard() {
@@ -89,13 +115,26 @@ export default function Dashboard() {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [achievements, setAchievements] = useState<string[]>([]);
-  const [weeklyRecap, setWeeklyRecap] = useState<{ volume:number; prCount:number; bodyDelta?:number; adherence:number }|null>(null);
+  const [weeklyRecap, setWeeklyRecap] = useState<{
+    volume: number;
+    prCount: number;
+    bodyDelta?: number;
+    adherence: number;
+  } | null>(null);
   // Analytics
   const [volumeTrend, setVolumeTrend] = useState<any[]>([]); // per week aggregated sets per muscle
-  const [intensityDist, setIntensityDist] = useState<{ bucket:string; sets:number }[]>([]);
-  const [plateaus, setPlateaus] = useState<{ exercise:string; changePct:number }[]>([]);
-  const [undertrained, setUndertrained] = useState<{ muscle:string; avgSets:number }[]>([]);
-  const [phaseFilter, setPhaseFilter] = useState<'recent' | 'all' | number>('recent');
+  const [intensityDist, setIntensityDist] = useState<
+    { bucket: string; sets: number }[]
+  >([]);
+  const [plateaus, setPlateaus] = useState<
+    { exercise: string; changePct: number }[]
+  >([]);
+  const [undertrained, setUndertrained] = useState<
+    { muscle: string; avgSets: number }[]
+  >([]);
+  const [phaseFilter, setPhaseFilter] = useState<"recent" | "all" | number>(
+    "recent"
+  );
   const [availablePhases, setAvailablePhases] = useState<number[]>([]);
   const [activePhaseWindow, setActivePhaseWindow] = useState<number[]>([]);
   const [lifetimeStats, setLifetimeStats] = useState({
@@ -114,34 +153,37 @@ export default function Dashboard() {
   });
   const [tonnageUnit, setTonnageUnit] = useState<"kg" | "lb">("kg");
   const [RC, setRC] = useState<any | null>(null);
-  useEffect(() => { loadRecharts().then(m => setRC(m)); }, []);
+  useEffect(() => {
+    loadRecharts().then((m) => setRC(m));
+  }, []);
 
   const phaseFilterOptions = useMemo(() => {
     const sorted = [...availablePhases].sort((a, b) => b - a);
     const opts: { value: string; label: string }[] = [];
     if (sorted.length > 2) {
-      opts.push({ value: 'all', label: 'All phases' });
+      opts.push({ value: "all", label: "All phases" });
     }
     if (sorted.length > 1) {
-      opts.push({ value: 'recent', label: 'Last 2 phases' });
+      opts.push({ value: "recent", label: "Last 2 phases" });
     }
     sorted.forEach((phase) => {
       opts.push({ value: String(phase), label: `Phase ${phase}` });
     });
     if (!opts.length) {
-      opts.push({ value: 'recent', label: 'Last 2 phases' });
+      opts.push({ value: "recent", label: "Last 2 phases" });
     }
     return opts;
   }, [availablePhases]);
 
-  const phaseFilterValue = typeof phaseFilter === 'number' ? String(phaseFilter) : phaseFilter;
+  const phaseFilterValue =
+    typeof phaseFilter === "number" ? String(phaseFilter) : phaseFilter;
 
   const activePhaseLabel = useMemo(() => {
-    if (phaseFilter === 'all') return 'Showing all phases';
-    if (!activePhaseWindow.length) return '';
+    if (phaseFilter === "all") return "Showing all phases";
+    if (!activePhaseWindow.length) return "";
     const sorted = [...activePhaseWindow].sort((a, b) => a - b);
     if (sorted.length === 1) return `Showing phase ${sorted[0]}`;
-    return `Showing phases ${sorted.join(', ')}`;
+    return `Showing phases ${sorted.join(", ")}`;
   }, [activePhaseWindow, phaseFilter]);
 
   const isMountedRef = useRef(true);
@@ -155,17 +197,19 @@ export default function Dashboard() {
     if (!availablePhases.length) return;
     if (
       availablePhases.length === 1 &&
-      (phaseFilter === 'recent' || phaseFilter === 'all')
+      (phaseFilter === "recent" || phaseFilter === "all")
     ) {
       setPhaseFilter(availablePhases[0]);
       return;
     }
     if (
-      typeof phaseFilter === 'number' &&
+      typeof phaseFilter === "number" &&
       !availablePhases.includes(phaseFilter)
     ) {
       setPhaseFilter(
-        availablePhases.length > 1 ? 'recent' : availablePhases[availablePhases.length - 1]
+        availablePhases.length > 1
+          ? "recent"
+          : availablePhases[availablePhases.length - 1]
       );
     }
   }, [availablePhases, phaseFilter]);
@@ -193,25 +237,29 @@ export default function Dashboard() {
         setAvailablePhases(phaseNumbers);
 
         let effectivePhases: number[] = [];
-        if (phaseFilter === 'all') {
+        if (phaseFilter === "all") {
           effectivePhases = phaseNumbers;
-        } else if (phaseFilter === 'recent') {
+        } else if (phaseFilter === "recent") {
           effectivePhases = phaseNumbers.slice(-2);
         } else if (
-          typeof phaseFilter === 'number' &&
+          typeof phaseFilter === "number" &&
           phaseNumbers.includes(phaseFilter)
         ) {
           effectivePhases = [phaseFilter];
         }
         if (!effectivePhases.length && phaseNumbers.length) {
-          const fallback = phaseNumbers.slice(-Math.min(phaseNumbers.length, 2));
-          effectivePhases = fallback.length ? fallback : [phaseNumbers[phaseNumbers.length - 1]];
+          const fallback = phaseNumbers.slice(
+            -Math.min(phaseNumbers.length, 2)
+          );
+          effectivePhases = fallback.length
+            ? fallback
+            : [phaseNumbers[phaseNumbers.length - 1]];
         }
         if (!phaseNumbers.length) {
           effectivePhases = [];
         }
         setActivePhaseWindow(
-          phaseFilter === 'all' ? phaseNumbers : effectivePhases
+          phaseFilter === "all" ? phaseNumbers : effectivePhases
         );
 
         const sessionsForAnalytics =
@@ -250,9 +298,7 @@ export default function Dashboard() {
         sessions.forEach((s) => {
           if (
             s.entries.some((e) =>
-              e.sets.some(
-                (st) => (st.reps || 0) > 0 || (st.weightKg || 0) > 0
-              )
+              e.sets.some((st) => (st.reps || 0) > 0 || (st.weightKg || 0) > 0)
             )
           ) {
             sessionDays.add(s.dateISO.slice(0, 10));
@@ -273,7 +319,8 @@ export default function Dashboard() {
         const nonRest = program
           ? program.weeklySplit.filter((d) => d.type !== "Rest").length
           : undefined;
-        const userTargetDays = nonRest || settingsApp?.progress?.weeklyTargetDays || 6;
+        const userTargetDays =
+          nonRest || settingsApp?.progress?.weeklyTargetDays || 6;
         setTargetDays(userTargetDays);
 
         const usesLb = (settingsApp?.unit ?? "kg") === "lb";
@@ -316,17 +363,21 @@ export default function Dashboard() {
 
           for (const entry of session.entries) {
             for (const st of entry.sets) {
-              totalSets++;
-              const reps = st.reps || 0;
-              const weight = st.weightKg || 0;
-              const score = weight * reps;
-              if (score > 0) {
-                hasValidWork = true;
-                sessionSets += 1;
+              const reps = Math.max(0, st.reps || 0);
+              const weight = Math.max(0, st.weightKg || 0);
+              const hasEffort = reps > 0 || weight > 0;
+              if (!hasEffort) continue;
+
+              totalSets += 1;
+              hasValidWork = true;
+              sessionSets += 1;
+
+              if (reps > 0 && weight > 0) {
+                const score = weight * reps;
                 sessionVolume += score;
                 if (score > (byEx[entry.exerciseId] || 0)) {
                   byEx[entry.exerciseId] = score;
-                  prCount++;
+                  prCount += 1;
                 }
               }
             }
@@ -414,7 +465,12 @@ export default function Dashboard() {
             (bwLast7[0].weightKg || 0);
         }
 
-        setWeeklyRecap({ volume: weekVolume, prCount: weekPR, bodyDelta, adherence });
+        setWeeklyRecap({
+          volume: weekVolume,
+          prCount: weekPR,
+          bodyDelta,
+          adherence,
+        });
 
         setVolumeTrend([]);
         setIntensityDist([]);
@@ -427,10 +483,15 @@ export default function Dashboard() {
             { type: "module" }
           );
           worker.onmessage = (evt) => {
-            const { volumeTrend, intensityDist, plateaus, undertrained, error } =
-              evt.data || {};
+            const {
+              volumeTrend,
+              intensityDist,
+              plateaus,
+              undertrained,
+              error,
+            } = evt.data || {};
             if (error) {
-              console.warn('[AnalyticsWorker] error', error);
+              console.warn("[AnalyticsWorker] error", error);
               worker.terminate();
               return;
             }
@@ -446,10 +507,10 @@ export default function Dashboard() {
           };
           worker.postMessage({ sessions: sessionsForAnalytics, exercises });
         } catch (err) {
-          console.warn('[Dashboard] worker fallback', err);
+          console.warn("[Dashboard] worker fallback", err);
         }
       } catch (err) {
-        console.warn('[Dashboard] failed to load dashboard data', err);
+        console.warn("[Dashboard] failed to load dashboard data", err);
       }
     },
     [week, phaseFilter]
@@ -462,7 +523,10 @@ export default function Dashboard() {
   useEffect(() => {
     const onChange = (evt: any) => {
       const tbl = evt?.detail?.table as string | undefined;
-      if (tbl && ["sessions", "exercises", "measurements", "settings"].includes(tbl)) {
+      if (
+        tbl &&
+        ["sessions", "exercises", "measurements", "settings"].includes(tbl)
+      ) {
         loadDashboard({ force: true });
       }
     };
@@ -486,11 +550,51 @@ export default function Dashboard() {
   );
 
   // Build min/max metadata for line series
-  const weightMinMax = useMemo(()=>{ if(!weights.length) return undefined; const vals=weights.map(w=> w.weight); return { weight: { min: Math.min(...vals), max: Math.max(...vals) } }; },[weights]);
-  const waistMinMax = useMemo(()=>{ if(!waist.length) return undefined; const vals=waist.map(w=> w.value); return { value: { min: Math.min(...vals), max: Math.max(...vals) } }; },[waist]);
-  const armMinMax = useMemo(()=>{ if(!arm.length) return undefined; const vals=arm.map(w=> w.value); return { value: { min: Math.min(...vals), max: Math.max(...vals) } }; },[arm]);
-  const volumeTrendMinMax = useMemo(()=>{ if(!volumeTrend.length) return undefined; const out: Record<string,{min:number;max:number}> = {}; volumeTrend.forEach(row=> { Object.keys(row).forEach(k=> { if(k==='week') return; const v=row[k]; if(typeof v!=='number' || isNaN(v)) return; if(!out[k]) out[k]={min:v,max:v}; else { if(v<out[k].min) out[k].min=v; if(v>out[k].max) out[k].max=v; } }); }); return out; },[volumeTrend]);
-  const prevPoint = (series:string,label:any, rows:any[], keyField:string)=> { const idx = rows.findIndex(r=> r[keyField]===label); if(idx>0){ const prev = rows[idx-1]; return prev?.[series]; } return undefined; };
+  const weightMinMax = useMemo(() => {
+    if (!weights.length) return undefined;
+    const vals = weights.map((w) => w.weight);
+    return { weight: { min: Math.min(...vals), max: Math.max(...vals) } };
+  }, [weights]);
+  const waistMinMax = useMemo(() => {
+    if (!waist.length) return undefined;
+    const vals = waist.map((w) => w.value);
+    return { value: { min: Math.min(...vals), max: Math.max(...vals) } };
+  }, [waist]);
+  const armMinMax = useMemo(() => {
+    if (!arm.length) return undefined;
+    const vals = arm.map((w) => w.value);
+    return { value: { min: Math.min(...vals), max: Math.max(...vals) } };
+  }, [arm]);
+  const volumeTrendMinMax = useMemo(() => {
+    if (!volumeTrend.length) return undefined;
+    const out: Record<string, { min: number; max: number }> = {};
+    volumeTrend.forEach((row) => {
+      Object.keys(row).forEach((k) => {
+        if (k === "week") return;
+        const v = row[k];
+        if (typeof v !== "number" || isNaN(v)) return;
+        if (!out[k]) out[k] = { min: v, max: v };
+        else {
+          if (v < out[k].min) out[k].min = v;
+          if (v > out[k].max) out[k].max = v;
+        }
+      });
+    });
+    return out;
+  }, [volumeTrend]);
+  const prevPoint = (
+    series: string,
+    label: any,
+    rows: any[],
+    keyField: string
+  ) => {
+    const idx = rows.findIndex((r) => r[keyField] === label);
+    if (idx > 0) {
+      const prev = rows[idx - 1];
+      return prev?.[series];
+    }
+    return undefined;
+  };
 
   const animXp = useAnimatedNumber(xp);
   const animWeekVol = useAnimatedNumber(weeklyRecap?.volume || 0);
@@ -658,7 +762,8 @@ export default function Dashboard() {
               </div>
             ) : (
               <p className="text-sm text-slate-300/80">
-                No tracked sessions for this week yet. Log a workout to see trends instantly.
+                No tracked sessions for this week yet. Log a workout to see
+                trends instantly.
               </p>
             )}
           </div>
@@ -682,7 +787,10 @@ export default function Dashboard() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-card rounded-2xl p-4 shadow-soft">
-          <h3 className="font-medium mb-2 flex items-center justify-between">Streak & XP <span className="text-xs text-gray-400">Lvl {level}</span></h3>
+          <h3 className="font-medium mb-2 flex items-center justify-between">
+            Streak & XP{" "}
+            <span className="text-xs text-gray-400">Lvl {level}</span>
+          </h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between">
               <span>Current streak</span>
@@ -693,17 +801,30 @@ export default function Dashboard() {
               <span>{targetDays}d</span>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">XP</div>
-              <div className="h-3 bg-slate-700/50 rounded overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-[width] duration-300" style={{width: `${Math.min(100, (xp % 1000)/10)}%`}} />
+              <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">
+                XP
               </div>
-              <div className="text-[10px] text-gray-500 mt-1 tabular-nums">{animXp.toFixed(0)} XP</div>
+              <div className="h-3 bg-slate-700/50 rounded overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-indigo-500 transition-[width] duration-300"
+                  style={{ width: `${Math.min(100, (xp % 1000) / 10)}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-gray-500 mt-1 tabular-nums">
+                {animXp.toFixed(0)} XP
+              </div>
             </div>
-            {achievements.length>0 && (
+            {achievements.length > 0 && (
               <div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">Achievements</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1">
+                  Achievements
+                </div>
                 <div className="flex flex-wrap gap-1">
-                  {achievements.map(a=> <span key={a} className="badge" data-variant="info">{a}</span>)}
+                  {achievements.map((a) => (
+                    <span key={a} className="badge" data-variant="info">
+                      {a}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
@@ -714,44 +835,91 @@ export default function Dashboard() {
           {weeklyRecap ? (
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">Volume</div>
-                <div className="font-semibold tabular-nums">{Math.round(animWeekVol)}</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                  Volume
+                </div>
+                <div className="font-semibold tabular-nums">
+                  {Math.round(animWeekVol)}
+                </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">PRs</div>
-                <div className="font-semibold tabular-nums">{Math.round(animPR)}</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                  PRs
+                </div>
+                <div className="font-semibold tabular-nums">
+                  {Math.round(animPR)}
+                </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">BW Δ</div>
-                <div className="font-semibold tabular-nums">{weeklyRecap.bodyDelta?.toFixed(1) ?? '—'} kg</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                  BW Δ
+                </div>
+                <div className="font-semibold tabular-nums">
+                  {weeklyRecap.bodyDelta?.toFixed(1) ?? "—"} kg
+                </div>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400">Adherence</div>
-                <div className="font-semibold tabular-nums">{Math.round(animAdh)}%</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                  Adherence
+                </div>
+                <div className="font-semibold tabular-nums">
+                  {Math.round(animAdh)}%
+                </div>
               </div>
             </div>
-          ): <div className="text-xs text-gray-500">Need more data for recap.</div>}
+          ) : (
+            <div className="text-xs text-gray-500">
+              Need more data for recap.
+            </div>
+          )}
         </div>
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Weekly Volume by Muscle Group</h3>
           <div className="flex flex-wrap gap-2 mb-3 text-[11px]">
-            {volData.map(v=> (
-              <span key={v.group} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/5">
-                <img src={getMuscleIconPath(v.group)} alt={v.group} className="w-4 h-4 opacity-80" loading="lazy" />
+            {volData.map((v) => (
+              <span
+                key={v.group}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/5"
+              >
+                <img
+                  src={getMuscleIconPath(v.group)}
+                  alt={v.group}
+                  className="w-4 h-4 opacity-80"
+                  loading="lazy"
+                />
                 <span className="capitalize">{v.group}</span>
-                <span className="tabular-nums text-xs opacity-70">{v.sets} sets</span>
+                <span className="tabular-nums text-xs opacity-70">
+                  {v.sets} sets
+                </span>
               </span>
             ))}
           </div>
           <div className="h-56">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.BarChart data={volData}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="group" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: weightMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,weights,'date') }} />} />
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                        context={{
+                          seriesMinMax: weightMinMax,
+                          previousPointLookup: (s, l) =>
+                            prevPoint(s, l, weights, "date"),
+                        }}
+                      />
+                    )}
+                  />
                   <RC.Bar dataKey="tonnage" fill="#3b82f6" name="Tonnage" />
                   <RC.Bar dataKey="sets" fill="#f59e0b" name="Sets" />
                 </RC.BarChart>
@@ -762,17 +930,61 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Bodyweight (kg)</h3>
           <div className="h-56">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={weights}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: waistMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,waist,'date') }} />} />
-                  <RC.Line type="monotone" dataKey="weight" stroke="#3b82f6" dot={false} />
-                    {/* PR marker (max weight) */}
-                    {weights.length>1 && (()=> { const max = Math.max(...weights.map(w=> w.weight)); const idx = weights.findIndex(w=> w.weight===max); if(idx>=0){ const pt = weights[idx]; return <RC.Scatter data={[pt]} shape={(props:any)=> <rect x={props.cx-3} y={props.cy-3} width={6} height={6} className="pr-marker" /> } /> } return null; })()}
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                        context={{
+                          seriesMinMax: waistMinMax,
+                          previousPointLookup: (s, l) =>
+                            prevPoint(s, l, waist, "date"),
+                        }}
+                      />
+                    )}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="weight"
+                    stroke="#3b82f6"
+                    dot={false}
+                  />
+                  {/* PR marker (max weight) */}
+                  {weights.length > 1 &&
+                    (() => {
+                      const max = Math.max(...weights.map((w) => w.weight));
+                      const idx = weights.findIndex((w) => w.weight === max);
+                      if (idx >= 0) {
+                        const pt = weights[idx];
+                        return (
+                          <RC.Scatter
+                            data={[pt]}
+                            shape={(props: any) => (
+                              <rect
+                                x={props.cx - 3}
+                                y={props.cy - 3}
+                                width={6}
+                                height={6}
+                                className="pr-marker"
+                              />
+                            )}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
                 </RC.LineChart>
               </RC.ResponsiveContainer>
             )}
@@ -784,15 +996,37 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Waist (cm)</h3>
           <div className="h-56">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={waist}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: armMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,arm,'date') }} />} />
-                  <RC.Line type="monotone" dataKey="value" stroke="#ef4444" dot={false} />
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                        context={{
+                          seriesMinMax: armMinMax,
+                          previousPointLookup: (s, l) =>
+                            prevPoint(s, l, arm, "date"),
+                        }}
+                      />
+                    )}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#ef4444"
+                    dot={false}
+                  />
                 </RC.LineChart>
               </RC.ResponsiveContainer>
             )}
@@ -801,15 +1035,37 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Upper Arm (cm)</h3>
           <div className="h-56">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={arm}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="date" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} context={{ seriesMinMax: volumeTrendMinMax, previousPointLookup:(s,l)=> prevPoint(s,l,volumeTrend,'week') }} />} />
-                  <RC.Line type="monotone" dataKey="value" stroke="#22c55e" dot={false} />
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                        context={{
+                          seriesMinMax: volumeTrendMinMax,
+                          previousPointLookup: (s, l) =>
+                            prevPoint(s, l, volumeTrend, "week"),
+                        }}
+                      />
+                    )}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#22c55e"
+                    dot={false}
+                  />
                 </RC.LineChart>
               </RC.ResponsiveContainer>
             )}
@@ -825,7 +1081,9 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
             <h3 className="font-medium flex items-center gap-2">
               <span>Muscle Volume Trend</span>
-              <span className="text-[10px] text-gray-500">Sets / completed</span>
+              <span className="text-[10px] text-gray-500">
+                Sets / completed
+              </span>
             </h3>
             <div className="flex items-center gap-2">
               {activePhaseLabel && (
@@ -841,10 +1099,10 @@ export default function Dashboard() {
                   onChange={(e) => {
                     const next = e.target.value;
                     setPhaseFilter(
-                      next === 'recent'
-                        ? 'recent'
-                        : next === 'all'
-                        ? 'all'
+                      next === "recent"
+                        ? "recent"
+                        : next === "all"
+                        ? "all"
                         : Number(next)
                     );
                   }}
@@ -864,27 +1122,71 @@ export default function Dashboard() {
             </div>
           )}
           <div className="h-64">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={volumeTrend}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="week" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} />} />
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                      />
+                    )}
+                  />
                   <RC.Legend />
-                  {['chest','back','legs','shoulders','arms','core','glutes'].filter(m=> volumeTrend.some(r=> r[m])).map((m,i)=> {
-                    const palette=['#f87171','#60a5fa','#34d399','#fbbf24','#c084fc','#f472b6','#a3e635'];
-                    const icon = getMuscleIconPath(m);
-                    return <RC.Line key={m} type="monotone" dataKey={m} name={m} stroke={palette[i%palette.length]} dot={false} legendType="circle" />
-                  })}
+                  {[
+                    "chest",
+                    "back",
+                    "legs",
+                    "shoulders",
+                    "arms",
+                    "core",
+                    "glutes",
+                  ]
+                    .filter((m) => volumeTrend.some((r) => r[m]))
+                    .map((m, i) => {
+                      const palette = [
+                        "#f87171",
+                        "#60a5fa",
+                        "#34d399",
+                        "#fbbf24",
+                        "#c084fc",
+                        "#f472b6",
+                        "#a3e635",
+                      ];
+                      const icon = getMuscleIconPath(m);
+                      return (
+                        <RC.Line
+                          key={m}
+                          type="monotone"
+                          dataKey={m}
+                          name={m}
+                          stroke={palette[i % palette.length]}
+                          dot={false}
+                          legendType="circle"
+                        />
+                      );
+                    })}
                 </RC.LineChart>
               </RC.ResponsiveContainer>
             )}
           </div>
           {!!undertrained.length && (
             <div className="mt-3 text-[11px] flex flex-wrap gap-2">
-              {undertrained.map(u=> <span key={u.muscle} className="badge" data-variant="danger">{u.muscle}: {u.avgSets.toFixed(1)} avg</span>)}
+              {undertrained.map((u) => (
+                <span key={u.muscle} className="badge" data-variant="danger">
+                  {u.muscle}: {u.avgSets.toFixed(1)} avg
+                </span>
+              ))}
             </div>
           )}
           {!undertrained.length && (
@@ -896,14 +1198,26 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Intensity Distribution</h3>
           <div className="h-64">
-            {!RC && <div className="h-full flex items-center justify-center text-xs text-gray-500">Loading…</div>}
+            {!RC && (
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
+                Loading…
+              </div>
+            )}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.BarChart data={intensityDist}>
                   <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                   <RC.XAxis dataKey="bucket" stroke="#9ca3af" />
                   <RC.YAxis stroke="#9ca3af" />
-                  <RC.Tooltip content={({active,payload,label}:any)=> <UnifiedTooltip active={active} payload={payload} label={label} />} />
+                  <RC.Tooltip
+                    content={({ active, payload, label }: any) => (
+                      <UnifiedTooltip
+                        active={active}
+                        payload={payload}
+                        label={label}
+                      />
+                    )}
+                  />
                   <RC.Bar dataKey="sets" name="% Sets" fill="#6366f1" />
                 </RC.BarChart>
               </RC.ResponsiveContainer>
@@ -912,12 +1226,21 @@ export default function Dashboard() {
         </div>
         <div className="bg-card rounded-2xl p-4 shadow-soft xl:col-span-3">
           <h3 className="font-medium mb-2">Plateau Watch</h3>
-          {!plateaus.length && <div className="text-xs text-gray-500">No plateaus detected (need ≥4 weeks history).</div>}
+          {!plateaus.length && (
+            <div className="text-xs text-gray-500">
+              No plateaus detected (need ≥4 weeks history).
+            </div>
+          )}
           {!!plateaus.length && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2 text-[11px]">
-              {plateaus.map(p=> (
-                <div key={p.exercise} className="bg-white/5 rounded px-2 py-2 flex items-center justify-between">
-                  <span className="truncate max-w-[140px]" title={p.exercise}>{p.exercise}</span>
+              {plateaus.map((p) => (
+                <div
+                  key={p.exercise}
+                  className="bg-white/5 rounded px-2 py-2 flex items-center justify-between"
+                >
+                  <span className="truncate max-w-[140px]" title={p.exercise}>
+                    {p.exercise}
+                  </span>
                   <span className="text-danger">{p.changePct}%</span>
                 </div>
               ))}
