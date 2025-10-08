@@ -8,10 +8,61 @@ import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
 import { getDashboardPrefs, getSettings, setDashboardPrefs } from "../../lib/helpers";
 import { getAllCached } from "../../lib/dataCache";
-import { Settings, UserProgram } from "../../lib/types";
+import { Session, Settings, UserProgram } from "../../lib/types";
 import { getProfileProgram } from '../../lib/profile';
 import { loadRecharts } from '../../lib/loadRecharts';
 import { useAggregates } from '../../lib/useAggregates';
+
+const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+function formatCompact(value: number): string {
+  if (!Number.isFinite(value) || value === 0) return "0";
+  return COMPACT_FORMATTER.format(value).replace(/\.0([A-Za-z])/, "$1").replace(/\.0$/, "");
+}
+
+function formatHours(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0h";
+  if (value >= 100) return `${Math.round(value)}h`;
+  if (value >= 10) return `${value.toFixed(1)}h`;
+  if (value >= 1) return `${value.toFixed(1)}h`;
+  const minutes = Math.round(value * 60);
+  return `${minutes}m`;
+}
+
+function formatCount(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  if (value >= 1000) return formatCompact(value);
+  return Math.round(value).toLocaleString();
+}
+
+function computeSessionDurationMs(session: Session): number {
+  const cap = 1000 * 60 * 60 * 12;
+  const clamp = (ms: number) => Math.max(0, Math.min(ms, cap));
+  const log = session.workLog;
+  if (log && Object.keys(log).length) {
+    const entries = Object.values(log)
+      .filter(Boolean)
+      .map((item) => ({
+        first: new Date(item.first || 0).getTime(),
+        last: new Date(item.last || 0).getTime(),
+      }))
+      .filter((item) => !Number.isNaN(item.first) && !Number.isNaN(item.last) && item.last >= item.first)
+      .sort((a, b) => b.last - b.first);
+    const top = entries[0];
+    if (top) return clamp(top.last - top.first);
+  }
+  if (session.loggedStartAt && session.loggedEndAt) {
+    const start = new Date(session.loggedStartAt).getTime();
+    const end = new Date(session.loggedEndAt).getTime();
+    if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
+      return clamp(end - start);
+    }
+  }
+  return 0;
+}
 
 export default function Dashboard() {
   const [phase, setPhase] = useState(1);
@@ -30,6 +81,17 @@ export default function Dashboard() {
   const [dayLabels, setDayLabels] = useState<string[]>([]); // derived from program.weeklySplit
   const [RC,setRC] = useState<any|null>(null);
   const [loading,setLoading] = useState(true);
+  const [settingsState, setSettingsState] = useState<Settings | null>(null);
+  const [tonnageUnit, setTonnageUnit] = useState<"kg" | "lb">("kg");
+  const [lifetimeStats, setLifetimeStats] = useState({ workouts: 0, sets: 0, hours: 0, tonnage: 0 });
+  const [weeklyStats, setWeeklyStats] = useState({
+    workouts: 0,
+    sets: 0,
+    hours: 0,
+    tonnage: 0,
+    weekNumber: null as number | null,
+    phaseNumber: null as number | null,
+  });
   const { data: aggs } = useAggregates();
   useEffect(() => {
     (async () => {
@@ -41,8 +103,9 @@ export default function Dashboard() {
       setHidden(prefs.hidden || {});
       // compute logged sets (preload data once to avoid duplicate queries)
       const phaseNum = prefs.lastLocation?.phaseNumber || 1;
-      const settings = await getSettings();
-      setTargets(settings.volumeTargets || {});
+  const settings = await getSettings();
+  setSettingsState(settings);
+  setTargets(settings.volumeTargets || {});
       const [sessions, exercises] = await Promise.all([
         getAllCached('sessions'),
         getAllCached('exercises')
@@ -87,7 +150,7 @@ export default function Dashboard() {
   }, []);
   // refresh when sessions change realtime
   useEffect(()=>{
-  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); setSessionsState(sessions as any[]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); // recompute day volumes
+  const onChange = (e:any)=>{ if(['sessions','exercises','settings'].includes(e?.detail?.table)){ (async()=>{ const settings = await getSettings(); setSettingsState(settings); setTargets(settings.volumeTargets || {}); const [sessions, exercises] = await Promise.all([getAllCached('sessions',{force:true}), getAllCached('exercises',{force:true})]); setSessionsState(sessions as any[]); const { perWeek, totals } = await computeLoggedSetVolume(phase, { sessions, exercises }); setPerWeek(perWeek); setMuscleWeek(perWeek[week]||{}); setMuscleTotals(totals); const wk=perWeek[week]||{}; setWeeklyBar(Object.entries(wk).map(([m,v])=> ({muscle:m,value:v})).sort((a,b)=> b.value-a.value)); // recompute day volumes
     const dv: Record<number, Record<number, number>> = {}; (sessions as any[]).filter(s=> (s.phaseNumber || s.phase || 1) === phase).forEach(sess=> { const w = sess.weekNumber; const dayId = Number((sess.id||'').split('-')[2]) || 0; let vol = 0; for(const entry of (sess.entries||[])){ for(const set of (entry.sets||[])){ if(typeof set.weightKg === 'number' && typeof set.reps === 'number' && (set.weightKg||0)>0 && (set.reps||0)>0){ vol += (set.weightKg||0)*(set.reps||0); } } } if(!dv[w]) dv[w] = {}; dv[w][dayId] = (dv[w][dayId]||0) + vol; }); setDayVolumes(dv); })(); } };
   window.addEventListener('sb-change', onChange as any);
     return ()=> window.removeEventListener('sb-change', onChange as any);
@@ -103,6 +166,96 @@ export default function Dashboard() {
     }
   },[program?.id, (program as any)?.weeklySplit?.length, Object.keys(dayVolumes).length]);
 
+  useEffect(() => {
+    const sessions = Array.isArray(sessionsState)
+      ? (sessionsState as Session[])
+      : [];
+    const currentWeek = Number.isFinite(week) ? week : null;
+    const currentPhase = Number.isFinite(phase) ? phase : null;
+    const usesLb = (settingsState?.unit ?? "kg") === "lb";
+    const tonnageMultiplier = usesLb ? 2.2046226218 : 1;
+    setTonnageUnit(usesLb ? "lb" : "kg");
+
+    if (!sessions.length) {
+      setLifetimeStats({ workouts: 0, sets: 0, hours: 0, tonnage: 0 });
+      setWeeklyStats({
+        workouts: 0,
+        sets: 0,
+        hours: 0,
+        tonnage: 0,
+        weekNumber: currentWeek,
+        phaseNumber: currentPhase,
+      });
+      return;
+    }
+
+    let lifetimeWorkouts = 0;
+    let lifetimeSets = 0;
+    let lifetimeVolume = 0;
+    let lifetimeDuration = 0;
+
+    let weeklyWorkouts = 0;
+    let weeklySets = 0;
+    let weeklyVolume = 0;
+    let weeklyDuration = 0;
+
+    for (const session of sessions) {
+      if (!session || session.deletedAt) continue;
+      let sessionSets = 0;
+      let sessionVolume = 0;
+      let hasWork = false;
+
+      for (const entry of session.entries || []) {
+        for (const set of entry.sets || []) {
+          const reps = Math.max(0, set?.reps ?? 0);
+          const weight = Math.max(0, set?.weightKg ?? 0);
+          if (reps === 0 && weight === 0) continue;
+
+          hasWork = true;
+          sessionSets += 1;
+          lifetimeSets += 1;
+          if (reps > 0 && weight > 0) {
+            sessionVolume += weight * reps;
+          }
+        }
+      }
+
+      if (!hasWork) continue;
+
+      const durationMs = computeSessionDurationMs(session) || 0;
+      lifetimeWorkouts += 1;
+      lifetimeVolume += sessionVolume;
+      lifetimeDuration += durationMs;
+
+      if (
+        currentWeek != null &&
+        session.weekNumber === currentWeek &&
+        (currentPhase == null || (session.phaseNumber ?? session.phase ?? currentPhase) === currentPhase)
+      ) {
+        weeklyWorkouts += 1;
+        weeklySets += sessionSets;
+        weeklyVolume += sessionVolume;
+        weeklyDuration += durationMs;
+      }
+    }
+
+    setLifetimeStats({
+      workouts: lifetimeWorkouts,
+      sets: lifetimeSets,
+      hours: lifetimeDuration / (1000 * 60 * 60),
+      tonnage: lifetimeVolume * tonnageMultiplier,
+    });
+
+    setWeeklyStats({
+      workouts: weeklyWorkouts,
+      sets: weeklySets,
+      hours: weeklyDuration / (1000 * 60 * 60),
+      tonnage: weeklyVolume * tonnageMultiplier,
+      weekNumber: currentWeek,
+      phaseNumber: currentPhase,
+    });
+  }, [sessionsState, week, phase, settingsState]);
+
   const toggle = async (key: HiddenKey) => {
     const next = { ...(hidden||{}), [key]: !hidden?.[key] };
     setHidden(next);
@@ -113,6 +266,85 @@ export default function Dashboard() {
   const SectionToggle = ({label, flag}:{label:string; flag:HiddenKey}) => (
     <button onClick={()=> toggle(flag)} className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all ${hidden?.[flag]? 'bg-slate-800 text-gray-400 border-white/5':'badge-primary'}`}>{hidden?.[flag]? `Show ${label}`:`Hide ${label}`}</button>
   );
+
+  const lifetimeHasData =
+    lifetimeStats.workouts > 0 ||
+    lifetimeStats.sets > 0 ||
+    lifetimeStats.tonnage > 0 ||
+    lifetimeStats.hours > 0;
+
+  const weeklyHasData =
+    weeklyStats.workouts > 0 ||
+    weeklyStats.sets > 0 ||
+    weeklyStats.tonnage > 0 ||
+    weeklyStats.hours > 0;
+
+  const lifetimeMetricBlocks = useMemo(
+    () => [
+      {
+        key: 'workouts',
+        label: 'Workouts',
+        value: formatCount(lifetimeStats.workouts),
+        caption: 'sessions',
+      },
+      {
+        key: 'sets',
+        label: 'Sets',
+        value: formatCount(lifetimeStats.sets),
+        caption: 'logged',
+      },
+      {
+        key: 'hours',
+        label: 'Active Time',
+        value: formatHours(lifetimeStats.hours),
+        caption: 'tracked',
+      },
+      {
+        key: 'volume',
+        label: 'Volume',
+        value: formatCompact(lifetimeStats.tonnage),
+        caption: `${tonnageUnit} lifted`,
+      },
+    ],
+    [lifetimeStats, tonnageUnit]
+  );
+
+  const weeklyMetricBlocks = useMemo(
+    () => [
+      {
+        key: 'workouts',
+        label: 'Workouts',
+        value: formatCount(weeklyStats.workouts),
+        caption: 'logged',
+      },
+      {
+        key: 'sets',
+        label: 'Sets',
+        value: formatCount(weeklyStats.sets),
+        caption: 'valid',
+      },
+      {
+        key: 'hours',
+        label: 'Active Time',
+        value: formatHours(weeklyStats.hours),
+        caption: 'this week',
+      },
+      {
+        key: 'volume',
+        label: 'Volume',
+        value: formatCompact(weeklyStats.tonnage),
+        caption: `${tonnageUnit} lifted`,
+      },
+    ],
+    [weeklyStats, tonnageUnit]
+  );
+
+  const weeklyTitle = useMemo(() => {
+    if (!weeklyStats.weekNumber) return 'Current Week';
+    if (weeklyStats.phaseNumber)
+      return `Phase ${weeklyStats.phaseNumber} • Week ${weeklyStats.weekNumber}`;
+    return `Week ${weeklyStats.weekNumber}`;
+  }, [weeklyStats.phaseNumber, weeklyStats.weekNumber]);
 
   const WeeklyMuscleBar = () => (
     <GlassCard>
@@ -136,6 +368,61 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
+          <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-12 -bottom-16 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-6">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.38em] text-white/60">Lifetime</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">Training Ledger</h2>
+            </div>
+            {lifetimeHasData ? (
+              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                {lifetimeMetricBlocks.map((item) => (
+                  <div key={item.key} className="space-y-2">
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">{item.label}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-semibold text-white/90">{item.value}</span>
+                      {item.caption && (
+                        <span className="text-xs uppercase tracking-[0.32em] text-white/50">{item.caption}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/70">Log your first session to unlock lifetime insights.</p>
+            )}
+          </div>
+        </div>
+        <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/85 p-6 text-slate-100 shadow-[0_25px_70px_-50px_rgba(59,130,246,0.55)]">
+          <div className="pointer-events-none absolute -right-16 top-8 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="relative z-10 flex flex-col gap-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.38em] text-emerald-200/70">Current Focus</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white/90">{weeklyTitle}</h2>
+            </div>
+            {weeklyHasData ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {weeklyMetricBlocks.map((item) => (
+                  <div key={item.key} className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3">
+                    <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">{item.label}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-semibold text-white">{item.value}</span>
+                      {item.caption && (
+                        <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">{item.caption}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-300/80">No tracked sessions for this week yet. Log a workout to see trends instantly.</p>
+            )}
+          </div>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2 text-label">
         <SectionToggle label="Training" flag="trainingChart" />
         <SectionToggle label="Body" flag="bodyChart" />
