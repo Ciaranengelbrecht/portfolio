@@ -294,6 +294,7 @@ export default function Sessions() {
   const [dateEditValue, setDateEditValue] = useState("");
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const toolbarRef = useRef<HTMLElement | null>(null);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string, string>>({});
@@ -3118,125 +3119,157 @@ export default function Sessions() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
-            {session && (
-              <>
-                <button
-                  className="tool-btn !px-3 !py-1.5"
-                  onClick={() => {
-                    setStampAnimating(true);
-                    setTimeout(() => setStampAnimating(false), 360);
-                    stampToday();
-                  }}
-                  title="Stamp with today's date"
-                >
-                  Stamp
-                </button>
-                <button
-                  className="tool-btn !px-3 !py-1.5"
-                  onClick={() => setShowImport(true)}
-                  title="Import from template"
-                >
-                  Import
-                </button>
-                <button
-                  className="tool-btn !px-3 !py-1.5"
-                  disabled={!session.entries.length}
-                  onClick={() => setShowSaveTemplate(true)}
-                  title={
-                    session.entries.length
-                      ? "Save this session as template"
-                      : "No exercises to save"
-                  }
-                >
-                  Save
-                </button>
-                <button
-                  className="tool-btn !px-3 !py-1.5"
-                  onClick={() => collapseAll()}
-                  title="Collapse all exercises"
-                >
-                  Collapse All
-                </button>
-                <button
-                  className="tool-btn !px-3 !py-1.5"
-                  onClick={() => expandAll()}
-                  title="Expand all exercises"
-                >
-                  Expand All
-                </button>
+            <button
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-800/70 px-3 py-1.5 font-medium text-slate-100 shadow-sm transition hover:bg-slate-700/80"
+              onClick={() => setToolsOpen((open) => !open)}
+              aria-expanded={toolsOpen}
+              aria-controls="session-tools-panel"
+              type="button"
+            >
+              <span>{toolsOpen ? "Hide tools" : "Show tools"}</span>
+              <span
+                className={`text-base leading-none transition-transform duration-150 ${
+                  toolsOpen ? "rotate-180" : ""
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+          </div>
+          <AnimatePresence initial={false}>
+            {toolsOpen && (
+              <motion.div
+                key="session-tools"
+                id="session-tools-panel"
+                className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
+              >
+                {session && (
+                  <>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={() => {
+                        setStampAnimating(true);
+                        setTimeout(() => setStampAnimating(false), 360);
+                        stampToday();
+                      }}
+                      title="Stamp with today's date"
+                    >
+                      Stamp
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={() => setShowImport(true)}
+                      title="Import from template"
+                    >
+                      Import
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      disabled={!session.entries.length}
+                      onClick={() => setShowSaveTemplate(true)}
+                      title={
+                        session.entries.length
+                          ? "Save this session as template"
+                          : "No exercises to save"
+                      }
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={() => collapseAll()}
+                      title="Collapse all exercises"
+                    >
+                      Collapse All
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={() => expandAll()}
+                      title="Expand all exercises"
+                    >
+                      Expand All
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={async () => {
+                        const prevId = `${phase}-${Math.max(
+                          1,
+                          (week as number) - 1
+                        )}-${day}`;
+                        let prev = await db.get<Session>("sessions", prevId);
+                        if (!prev && week === 1 && phase > 1) {
+                          prev = await db.get<Session>(
+                            "sessions",
+                            `${phase - 1}-9-${day}`
+                          );
+                        }
+                        if (prev) {
+                          const copy: Session = {
+                            ...session,
+                            entries: prev.entries.map((e) => ({
+                              ...e,
+                              id: nanoid(),
+                              sets: e.sets.map((s, i) => ({
+                                ...s,
+                                setNumber: i + 1,
+                              })),
+                            })),
+                          };
+                          setSession(copy);
+                          await db.put("sessions", copy);
+                        }
+                      }}
+                      title="Copy previous session"
+                    >
+                      Copy Last
+                    </button>
+                  </>
+                )}
                 <button
                   className="tool-btn !px-3 !py-1.5"
                   onClick={async () => {
-                    const prevId = `${phase}-${Math.max(
-                      1,
-                      (week as number) - 1
-                    )}-${day}`;
-                    let prev = await db.get<Session>("sessions", prevId);
-                    if (!prev && week === 1 && phase > 1) {
-                      prev = await db.get<Session>(
-                        "sessions",
-                        `${phase - 1}-9-${day}`
-                      );
-                    }
-                    if (prev) {
-                      const copy: Session = {
-                        ...session,
-                        entries: prev.entries.map((e) => ({
-                          ...e,
-                          id: nanoid(),
-                          sets: e.sets.map((s, i) => ({
-                            ...s,
-                            setNumber: i + 1,
-                          })),
-                        })),
-                      };
-                      setSession(copy);
-                      await db.put("sessions", copy);
-                    }
+                    const s = await getSettings();
+                    const next = (s.currentPhase || 1) + 1;
+                    await setSettings({ ...s, currentPhase: next });
+                    setPhase(next as number);
+                    setWeek(1 as any);
+                    setDay(0);
                   }}
-                  title="Copy previous session"
+                  title="Next phase"
                 >
-                  Copy Last
+                  Next →
                 </button>
-              </>
+                {phase > 1 && (
+                  <button
+                    className="tool-btn !px-3 !py-1.5"
+                    onClick={async () => {
+                      if (!window.confirm(`Revert to phase ${phase - 1}?`))
+                        return;
+                      const s = await getSettings();
+                      const prev = Math.max(1, (s.currentPhase || 1) - 1);
+                      await setSettings({ ...s, currentPhase: prev });
+                      setPhase(prev);
+                      setWeek(1 as any);
+                      setDay(0);
+                    }}
+                    title="Previous phase"
+                  >
+                    ← Prev
+                  </button>
+                )}
+                {sessionDuration && (
+                  <span className="ml-auto rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-indigo-200">
+                    ⏱ {sessionDuration}
+                  </span>
+                )}
+              </motion.div>
             )}
-            <button
-              className="tool-btn !px-3 !py-1.5"
-              onClick={async () => {
-                const s = await getSettings();
-                const next = (s.currentPhase || 1) + 1;
-                await setSettings({ ...s, currentPhase: next });
-                setPhase(next as number);
-                setWeek(1 as any);
-                setDay(0);
-              }}
-              title="Next phase"
-            >
-              Next →
-            </button>
-            {phase > 1 && (
-              <button
-                className="tool-btn !px-3 !py-1.5"
-                onClick={async () => {
-                  if (!window.confirm(`Revert to phase ${phase - 1}?`)) return;
-                  const s = await getSettings();
-                  const prev = Math.max(1, (s.currentPhase || 1) - 1);
-                  await setSettings({ ...s, currentPhase: prev });
-                  setPhase(prev);
-                  setWeek(1 as any);
-                  setDay(0);
-                }}
-                title="Previous phase"
-              >
-                ← Prev
-              </button>
-            )}
-            {sessionDuration && (
-              <span className="ml-auto rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-indigo-200">
-                ⏱ {sessionDuration}
-              </span>
-            )}
-          </div>
+          </AnimatePresence>
           {focusMode && (
             <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-100 shadow-[0_6px_18px_-12px_rgba(16,185,129,0.6)]">
               <span className="uppercase tracking-[0.24em] text-emerald-200/80">
@@ -5240,7 +5273,6 @@ function DaySelector({
   onChange: (v: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const liveRef = useRef<HTMLDivElement | null>(null);
 
@@ -5295,7 +5327,6 @@ function DaySelector({
       const label = labels[idx] || `Day ${idx + 1}`;
       onChange(idx);
       setOpen(false);
-      setSearch("");
       announceSelection(label);
       try {
         (navigator as any).vibrate?.(10);
@@ -5304,17 +5335,11 @@ function DaySelector({
     [labels, onChange, announceSelection]
   );
 
-  const filteredOptions = useMemo<OptionSheetOption[]>(() => {
+  const dayOptions = useMemo<OptionSheetOption[]>(() => {
     if (!labels.length) return [];
-    const q = search.trim().toLowerCase();
     return labels
       .map((label, idx) => {
         const title = label || `Day ${idx + 1}`;
-        const matches =
-          !q ||
-          title.toLowerCase().includes(q) ||
-          `${idx + 1}`.includes(q.replace(/[^0-9]/g, ""));
-        if (!matches) return null;
         return {
           id: String(idx),
           label: title,
@@ -5325,7 +5350,7 @@ function DaySelector({
         } satisfies OptionSheetOption;
       })
       .filter(Boolean) as OptionSheetOption[];
-  }, [labels, value, search, handleSelect]);
+  }, [labels, value, handleSelect]);
 
   const onTriggerKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
@@ -5361,19 +5386,12 @@ function DaySelector({
         description="Switching days updates the session you are editing."
         onClose={() => {
           setOpen(false);
-          setSearch("");
         }}
-        searchValue={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search by name or number"
-        searchLabel="Filter"
-        initialFocus="search"
-        options={filteredOptions}
+        initialFocus="list"
+        options={dayOptions}
         emptyState={
           <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
-            {search.trim()
-              ? `No day matching "${search.trim()}"`
-              : "No days available."}
+            No days available.
           </div>
         }
         footer={
