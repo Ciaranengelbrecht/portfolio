@@ -49,9 +49,9 @@ import PhaseStepper from "../components/PhaseStepper";
 import { useSnack } from "../state/snackbar";
 import { getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
-import OptionSheet, {
-  OptionSheetOption,
-} from "../components/OptionSheet";
+import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
+
+const KG_TO_LB = 2.2046226218;
 
 function TopMuscleAndContents({
   session,
@@ -159,6 +159,22 @@ type SessionAnalytics = {
   }>;
 };
 
+type ExerciseHistoryRow = {
+  exerciseId: string;
+  sessionId: string;
+  entryId: string;
+  dateISO: string | null | undefined;
+  localDate?: string | null;
+  weekNumber?: number | null;
+  phaseNumber?: number | null;
+  dayName?: string | null;
+  sets: SetEntry[];
+  workingSets: number;
+  totalSets: number;
+  tonnageKg: number;
+  bestSet: { weightKg: number; reps: number; rpe?: number | null } | null;
+};
+
 const DAYS = [
   "Upper A",
   "Lower A",
@@ -195,7 +211,10 @@ const MUSCLE_LABELS: Record<string, string> = {
 
 const formatMuscleLabel = (muscle?: string | null) => {
   if (!muscle) return "General";
-  return MUSCLE_LABELS[muscle] || muscle.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return (
+    MUSCLE_LABELS[muscle] ||
+    muscle.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 };
 export default function Sessions() {
   const { program } = useProgram();
@@ -220,6 +239,15 @@ export default function Sessions() {
   const [showImport, setShowImport] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [historySheetOpen, setHistorySheetOpen] = useState(false);
+  const [historyContext, setHistoryContext] = useState<{
+    exerciseId: string;
+    name: string;
+    entries: ExerciseHistoryRow[];
+  } | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const historyLoadTokenRef = useRef(0);
   // Switch Exercise modal state
   const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(
     null
@@ -2413,66 +2441,61 @@ export default function Sessions() {
         },
       } satisfies OptionSheetOption;
     });
-  }, [
-    exercises,
-    addFilter,
-    query,
-    sessionExerciseIds,
-    addExerciseToSession,
-  ]);
+  }, [exercises, addFilter, query, sessionExerciseIds, addExerciseToSession]);
 
-  const addSheetHighlight =
-    (muscleFilters.length > 1 || recentExercises.length > 0) && (
-      <div className="flex flex-col gap-2 pt-1 text-xs text-white/70">
-        {muscleFilters.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
-              Filter
-            </span>
-            {muscleFilters.map((key) => {
-              const label = key === "all" ? "All muscles" : formatMuscleLabel(key);
-              const active = addFilter === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`rounded-full border px-3 py-1 text-xs transition ${
-                    active
-                      ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-                  }`}
-                  onClick={() => setAddFilter(key)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {recentExercises.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
-              Recent
-            </span>
-            {recentExercises.map((ex) => (
+  const addSheetHighlight = (muscleFilters.length > 1 ||
+    recentExercises.length > 0) && (
+    <div className="flex flex-col gap-2 pt-1 text-xs text-white/70">
+      {muscleFilters.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+            Filter
+          </span>
+          {muscleFilters.map((key) => {
+            const label =
+              key === "all" ? "All muscles" : formatMuscleLabel(key);
+            const active = addFilter === key;
+            return (
               <button
-                key={ex.id}
+                key={key}
                 type="button"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/60 hover:bg-emerald-400/15 hover:text-white"
-                onClick={() => {
-                  addExerciseToSession(ex);
-                  setShowAdd(false);
-                  setQuery("");
-                  setAddFilter("all");
-                }}
+                className={`rounded-full border px-3 py-1 text-xs transition ${
+                  active
+                    ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                    : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+                }`}
+                onClick={() => setAddFilter(key)}
               >
-                {ex.name}
+                {label}
               </button>
-            ))}
-          </div>
-        )}
-      </div>
-    );
+            );
+          })}
+        </div>
+      )}
+      {recentExercises.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+            Recent
+          </span>
+          {recentExercises.map((ex) => (
+            <button
+              key={ex.id}
+              type="button"
+              className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/60 hover:bg-emerald-400/15 hover:text-white"
+              onClick={() => {
+                addExerciseToSession(ex);
+                setShowAdd(false);
+                setQuery("");
+                setAddFilter("all");
+              }}
+            >
+              {ex.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const switchModalContext = useMemo(() => {
     if (!switchTarget || !session) return null;
@@ -2523,41 +2546,315 @@ export default function Sessions() {
     switchExercise,
   ]);
 
-  const switchSheetHighlight =
-    switchModalContext && (
-      <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-white/70">
-        <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
-          Scope
+  const switchSheetHighlight = switchModalContext && (
+    <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-white/70">
+      <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+        Scope
+      </span>
+      <button
+        type="button"
+        className={`rounded-full border px-3 py-1 text-xs transition ${
+          switchScope === "group"
+            ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+        }`}
+        onClick={() => setSwitchScope("group")}
+      >
+        Same muscle
+      </button>
+      <button
+        type="button"
+        className={`rounded-full border px-3 py-1 text-xs transition ${
+          switchScope === "all"
+            ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+            : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+        }`}
+        onClick={() => setSwitchScope("all")}
+      >
+        Show all
+      </button>
+      {switchModalContext.group ? (
+        <span className="ml-auto text-[11px] text-white/50">
+          Targeting {formatMuscleLabel(switchModalContext.group)}
         </span>
-        <button
-          type="button"
-          className={`rounded-full border px-3 py-1 text-xs transition ${
-            switchScope === "group"
-              ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-          }`}
-          onClick={() => setSwitchScope("group")}
-        >
-          Same muscle
-        </button>
-        <button
-          type="button"
-          className={`rounded-full border px-3 py-1 text-xs transition ${
-            switchScope === "all"
-              ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
-              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-          }`}
-          onClick={() => setSwitchScope("all")}
-        >
-          Show all
-        </button>
-        {switchModalContext.group ? (
-          <span className="ml-auto text-[11px] text-white/50">
-            Targeting {formatMuscleLabel(switchModalContext.group)}
-          </span>
-        ) : null}
+      ) : null}
+    </div>
+  );
+
+  const weightUnit = settingsState?.unit === "lb" ? "lb" : "kg";
+
+  const formatWeightDisplay = useCallback(
+    (kg?: number | null) => {
+      if (!Number.isFinite(kg ?? null) || kg == null || kg <= 0) return "BW";
+      const value = weightUnit === "lb" ? kg * KG_TO_LB : kg;
+      if (value >= 200) return `${Math.round(value)}${weightUnit}`;
+      if (value >= 20) return `${value.toFixed(1)}${weightUnit}`;
+      return `${value.toFixed(2)}${weightUnit}`;
+    },
+    [weightUnit]
+  );
+
+  const formatVolumeDisplay = useCallback(
+    (kg: number) => {
+      if (!Number.isFinite(kg) || kg <= 0) return null;
+      const value = weightUnit === "lb" ? kg * KG_TO_LB : kg;
+      if (value >= 10000) return `${(value / 1000).toFixed(1)}k${weightUnit}`;
+      if (value >= 1000) return `${(value / 1000).toFixed(1)}k${weightUnit}`;
+      return `${Math.round(value)}${weightUnit}`;
+    },
+    [weightUnit]
+  );
+
+  const formatSetSummary = useCallback(
+    (sets: SetEntry[]) => {
+      if (!Array.isArray(sets) || sets.length === 0) return "No sets logged";
+      const parts: string[] = [];
+      for (const set of sets) {
+        const reps = set.reps ?? 0;
+        const weight = set.weightKg ?? 0;
+        if (reps <= 0 && weight <= 0) continue;
+        const weightLabel = weight > 0 ? formatWeightDisplay(weight) : "BW";
+        const repLabel = reps > 0 ? reps : "—";
+        const rpe = set.rpe != null ? ` RPE ${set.rpe}` : "";
+        parts.push(`${weightLabel}×${repLabel}${rpe}`);
+      }
+      if (!parts.length) return "No sets logged";
+      return parts.length > 6
+        ? `${parts.slice(0, 6).join(" • ")} …`
+        : parts.join(" • ");
+    },
+    [formatWeightDisplay]
+  );
+
+  const formatHistoryDate = useCallback((row: ExerciseHistoryRow) => {
+    const iso =
+      row.dateISO || (row.localDate ? `${row.localDate}T00:00:00` : null);
+    if (!iso) return "Undated session";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "Undated session";
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  }, []);
+
+  const formatHistoryMeta = useCallback((row: ExerciseHistoryRow) => {
+    const parts: string[] = [];
+    if (row.phaseNumber) parts.push(`Phase ${row.phaseNumber}`);
+    if (row.weekNumber) parts.push(`Week ${row.weekNumber}`);
+    if (row.dayName) parts.push(row.dayName);
+    return parts.join(" • ");
+  }, []);
+
+  const historyOptions = useMemo<OptionSheetOption[]>(() => {
+    if (!historyContext?.entries?.length) return [];
+    return historyContext.entries.map((item, index) => {
+      const meta = formatHistoryMeta(item);
+      const hint = formatSetSummary(item.sets);
+      const volume = formatVolumeDisplay(item.tonnageKg);
+      const best = item.bestSet
+        ? `${formatWeightDisplay(item.bestSet.weightKg)}×${item.bestSet.reps}${
+            item.bestSet.rpe != null ? ` · RPE ${item.bestSet.rpe}` : ""
+          }`
+        : null;
+      return {
+        id: `${item.sessionId}-${item.entryId}-${index}`,
+        label: formatHistoryDate(item),
+        description: meta || undefined,
+        hint,
+        trailing: (
+          <div className="text-right text-[11px] leading-tight text-white/60">
+            <div>{item.totalSets} sets</div>
+            {volume ? <div>{volume} vol</div> : null}
+            {best ? <div>{best}</div> : null}
+          </div>
+        ),
+        selected: index === 0,
+        onSelect: () => {},
+      } satisfies OptionSheetOption;
+    });
+  }, [
+    historyContext?.entries,
+    formatHistoryMeta,
+    formatSetSummary,
+    formatVolumeDisplay,
+    formatWeightDisplay,
+    formatHistoryDate,
+  ]);
+
+  const historyHighlight = useMemo(() => {
+    if (!historyContext || historyLoading || historyError) return null;
+    if (!historyContext.entries.length) return null;
+    const totalVolume = historyContext.entries.reduce(
+      (sum, item) => sum + item.tonnageKg,
+      0
+    );
+    const totalSets = historyContext.entries.reduce(
+      (sum, item) => sum + item.workingSets,
+      0
+    );
+    let peakSet: ExerciseHistoryRow["bestSet"] = null;
+    for (const item of historyContext.entries) {
+      if (!item.bestSet) continue;
+      if (!peakSet || (item.bestSet.weightKg || 0) > (peakSet?.weightKg || 0)) {
+        peakSet = item.bestSet;
+      }
+    }
+    const volumeLabel = formatVolumeDisplay(totalVolume);
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/70">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
+              Exercise
+            </p>
+            <p className="text-sm font-semibold text-white">
+              {historyContext.name}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
+              Sessions
+            </p>
+            <p className="text-lg font-semibold text-white">
+              {historyContext.entries.length}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
+              Sets logged
+            </p>
+            <p className="mt-1 text-sm font-medium text-white">{totalSets}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
+              Volume
+            </p>
+            <p className="mt-1 text-sm font-medium text-white">
+              {volumeLabel ?? "—"}
+            </p>
+          </div>
+          {peakSet ? (
+            <div className="col-span-2">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
+                Heaviest set
+              </p>
+              <p className="mt-1 text-sm font-medium text-white">
+                {formatWeightDisplay(peakSet.weightKg)}×{peakSet.reps}
+                {peakSet.rpe != null ? ` · RPE ${peakSet.rpe}` : ""}
+              </p>
+            </div>
+          ) : null}
+        </div>
       </div>
     );
+  }, [
+    historyContext,
+    historyLoading,
+    historyError,
+    formatVolumeDisplay,
+    formatWeightDisplay,
+  ]);
+
+  const historyEmptyMessage = historyLoading
+    ? "Loading history…"
+    : historyError ?? "No logged sessions yet for this exercise.";
+
+  const openExerciseHistory = useCallback(
+    (exerciseId: string, fallbackName: string) => {
+      const exerciseName =
+        exMap.get(exerciseId)?.name || exNameCache[exerciseId] || fallbackName;
+      const loadToken = ++historyLoadTokenRef.current;
+      setHistorySheetOpen(true);
+      setHistoryLoading(true);
+      setHistoryError(null);
+      setHistoryContext({ exerciseId, name: exerciseName, entries: [] });
+      (async () => {
+        try {
+          const allSessions = await getAllCached<Session>("sessions", {
+            swr: true,
+          });
+          const rows: ExerciseHistoryRow[] = [];
+          for (const s of allSessions) {
+            if (!Array.isArray(s.entries)) continue;
+            const match = s.entries.find((en) => en.exerciseId === exerciseId);
+            if (!match) continue;
+            const sets = Array.isArray(match.sets) ? match.sets : [];
+            const workingSets = sets.filter(
+              (set) => (set.reps || 0) > 0 || (set.weightKg || 0) > 0
+            ).length;
+            const tonnageKg = sets.reduce(
+              (sum, set) => sum + (set.weightKg || 0) * (set.reps || 0),
+              0
+            );
+            let best: ExerciseHistoryRow["bestSet"] = null;
+            for (const set of sets) {
+              const weight = set.weightKg || 0;
+              const reps = set.reps || 0;
+              if (weight <= 0 || reps <= 0) continue;
+              if (!best || weight > (best.weightKg || 0)) {
+                best = { weightKg: weight, reps, rpe: set.rpe ?? null };
+              }
+            }
+            rows.push({
+              exerciseId,
+              sessionId: s.id,
+              entryId: match.id,
+              dateISO: s.dateISO,
+              localDate: s.localDate ?? null,
+              weekNumber:
+                s.weekNumber ??
+                (s as any).weekNumber ??
+                (s as any).loggedWeek ??
+                null,
+              phaseNumber:
+                s.phaseNumber ??
+                (s as any).phaseNumber ??
+                (s as any).phase ??
+                null,
+              dayName: s.dayName ?? (s as any).dayName ?? null,
+              sets,
+              workingSets,
+              totalSets: sets.length,
+              tonnageKg,
+              bestSet: best,
+            });
+          }
+          const parseDate = (item: ExerciseHistoryRow) => {
+            if (item.dateISO) {
+              const value = Date.parse(item.dateISO);
+              if (!Number.isNaN(value)) return value;
+            }
+            if (item.localDate) {
+              const value = Date.parse(`${item.localDate}T00:00:00`);
+              if (!Number.isNaN(value)) return value;
+            }
+            return 0;
+          };
+          rows.sort((a, b) => parseDate(b) - parseDate(a));
+          if (historyLoadTokenRef.current !== loadToken) return;
+          setHistoryContext({ exerciseId, name: exerciseName, entries: rows });
+        } catch (err) {
+          if (historyLoadTokenRef.current !== loadToken) return;
+          console.error("[Sessions] Failed to load exercise history", err);
+          setHistoryError("Unable to load history right now.");
+        } finally {
+          if (historyLoadTokenRef.current === loadToken) {
+            setHistoryLoading(false);
+          }
+        }
+      })();
+    },
+    [exMap, exNameCache]
+  );
+
+  const closeExerciseHistory = useCallback(() => {
+    setHistorySheetOpen(false);
+  }, []);
 
   const reorderEntry = async (from: number, to: number) => {
     if (
@@ -3431,6 +3728,14 @@ export default function Sessions() {
                   (b.weightKg || 0) * (b.reps || 0) -
                   (a.weightKg || 0) * (a.reps || 0)
               )[0];
+            const displayName =
+              ex?.name || exNameCache[entry.exerciseId] || "Deleted exercise";
+            const nameButtonClass = `inline-flex items-center gap-1 min-w-0 ${
+              isCollapsed ? "whitespace-normal break-words" : ""
+            }`;
+            const nameTextClass = isCollapsed
+              ? "whitespace-normal break-words pr-1"
+              : "truncate max-w-[56vw] sm:max-w-none";
             return (
               <div
                 key={entry.id}
@@ -3524,10 +3829,24 @@ export default function Sessions() {
                       >
                         ⋮⋮
                       </span>
-                      <span
-                        className={`inline-flex items-center gap-1 min-w-0 ${
-                          isCollapsed ? "whitespace-normal break-words" : ""
+                      <button
+                        type="button"
+                        className={`${nameButtonClass} -ml-1 px-1 py-0.5 rounded-md text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                          isCollapsed ? "" : "hover:bg-slate-800/60"
                         }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openExerciseHistory(entry.exerciseId, displayName);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openExerciseHistory(entry.exerciseId, displayName);
+                          }
+                        }}
+                        aria-label={`View history for ${displayName}`}
+                        title={`View history for ${displayName}`}
                       >
                         {ex && (
                           <img
@@ -3537,17 +3856,7 @@ export default function Sessions() {
                             loading="lazy"
                           />
                         )}
-                        <span
-                          className={`${
-                            isCollapsed
-                              ? "whitespace-normal break-words pr-1"
-                              : "truncate max-w-[56vw] sm:max-w-none"
-                          }`}
-                        >
-                          {ex?.name ||
-                            exNameCache[entry.exerciseId] ||
-                            "Deleted exercise"}
-                        </span>
+                        <span className={nameTextClass}>{displayName}</span>
                         {!ex && (exNameCache[entry.exerciseId] || true) && (
                           <span
                             className="text-[9px] px-1 py-0.5 rounded bg-rose-700/40 text-rose-200 border border-rose-500/30"
@@ -3564,13 +3873,35 @@ export default function Sessions() {
                             recovered
                           </span>
                         )}
-                        <span
-                          className={`transition-transform text-xs opacity-70 ${
-                            isCollapsed ? "rotate-180" : ""
-                          }`}
-                        >
-                          ▾
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--accent)]/80 font-semibold">
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            className="w-3.5 h-3.5 opacity-80"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 6v6l3 3"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {!isCollapsed && <span>history</span>}
                         </span>
+                      </button>
+                      <span
+                        className={`transition-transform text-xs opacity-70 ${
+                          isCollapsed ? "rotate-180" : ""
+                        }`}
+                      >
+                        ▾
                       </span>
                       {ex?.isOptional && (
                         <span className="hidden sm:inline text-[10px] text-gray-400">
@@ -4971,7 +5302,8 @@ export default function Sessions() {
         emptyState={
           <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
             <p>No alternatives found in this view.</p>
-            {switchScope === "group" && (switchModalContext?.totalCount || 0) > 0 ? (
+            {switchScope === "group" &&
+            (switchModalContext?.totalCount || 0) > 0 ? (
               <button
                 type="button"
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:text-white"
@@ -5085,14 +5417,11 @@ function DaySelector({
     } catch {}
   }, [open]);
 
-  const announceSelection = useCallback(
-    (label: string) => {
-      if (liveRef.current) {
-        liveRef.current.textContent = `Selected ${label}`;
-      }
-    },
-    []
-  );
+  const announceSelection = useCallback((label: string) => {
+    if (liveRef.current) {
+      liveRef.current.textContent = `Selected ${label}`;
+    }
+  }, []);
 
   const handleSelect = useCallback(
     (idx: number) => {
@@ -5152,7 +5481,9 @@ function DaySelector({
         className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 px-3 py-2 text-sm text-white/90 transition hover:border-white/20 hover:bg-slate-700/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
         title={selectedLabel}
       >
-        <span className="truncate max-w-[70vw] sm:max-w-[180px]">{selectedLabel}</span>
+        <span className="truncate max-w-[70vw] sm:max-w-[180px]">
+          {selectedLabel}
+        </span>
         <span className="opacity-70 text-[10px]" aria-hidden="true">
           ▼
         </span>
