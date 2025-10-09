@@ -10,6 +10,7 @@ const Icon = ({ d, active }: { d: string; active: boolean }) => (
 
 const tabs: TabDef[] = [
   { to: '/', label: 'Home', icon: a=> <Icon active={a} d="M3 11.2 12 3l9 8.2V21a1 1 0 0 1-1 1h-5v-6H10v6H4a1 1 0 0 1-1-1v-9.8Z" /> },
+  { to: '/analytics', label: 'Insights', icon: a=> <Icon active={a} d="M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9Zm9-6.5a1 1 0 0 0-1 1v4.09l-3.27 1.87a1 1 0 1 0 1 1.73l3.77-2.16A1 1 0 0 0 13 10V6.5a1 1 0 0 0-1-1Z" /> },
   { to: '/sessions', label: 'Train', icon: a=> <Icon active={a} d="M5 4h14v4H5V4Zm0 6h14v4H5v-4Zm0 6h14v4H5v-4Z" /> },
   { to: '/recovery', label: 'Recovery', icon: a=> <Icon active={a} d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm-.9 4.2c0-.5.4-.9.9-.9s.9.4.9.9v5.2c0 .5-.4.9-.9.9s-.9-.4-.9-.9V7.2Zm.9 9c-.7 0-1.2-.5-1.2-1.2 0-.6.5-1.1 1.2-1.1.6 0 1.1.5 1.1 1.1 0 .7-.5 1.2-1.1 1.2Z" /> },
   { to: '/settings/program', label: 'Program', icon: a=> <Icon active={a} d="M12 2 4.5 6v12L12 22l7.5-4V6L12 2Zm0 2.3 5.5 3.1v.2L12 11 6.5 7.6v-.2L12 4.3ZM6.5 10.2 11 13v6.2l-4.5-2.4v-6.6Zm6.5 8V13l4.5-2.8v6.6L13 18.2Z" /> },

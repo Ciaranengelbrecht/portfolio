@@ -32,6 +32,7 @@ import { SmartSuspenseFallback } from "./components/SmartSuspenseFallback";
 import { SnackProvider } from './state/snackbar';
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
+const Analytics = lazy(() => import("./features/analytics/Analytics"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
@@ -451,6 +452,14 @@ function Shell() {
                 element={
                   <RequireAuth>
                     <Dashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <RequireAuth>
+                    <Analytics />
                   </RequireAuth>
                 }
               />

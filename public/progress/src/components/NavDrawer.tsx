@@ -59,6 +59,7 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
           <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1" aria-label="Primary">
             {[
               ['/', 'Dashboard'],
+              ['/analytics','Analytics'],
               ['/sessions','Sessions'],
               ['/recovery','Recovery'],
               ['/measurements','Measurements'],
