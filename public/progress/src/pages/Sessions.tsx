@@ -320,7 +320,7 @@ export default function Sessions() {
       const raw = sessionStorage.getItem(`collapsedEntries:${session.id}`);
       if (raw) setCollapsedEntries(JSON.parse(raw));
     } catch {}
-  }, [session?.id]);
+  }, [session?.id, program?.id, program?.mesoWeeks, program?.deload]);
   useEffect(() => {
     if (!session?.id) return;
     if (focusMode) return;
@@ -697,11 +697,16 @@ export default function Sessions() {
         const filteredExercises = allExercises.filter((e) =>
           exerciseIds.includes(e.id)
         );
+        const deloadSet = program
+          ? computeDeloadWeeks(program)
+          : new Set<number>();
         const next = buildSuggestions(filteredExercises, allSessions, {
           matchTemplateId: session.templateId,
           matchDayName: session.templateId ? undefined : session.dayName,
           onlyExerciseIds: exerciseIds,
           adaptive: true,
+          currentSession: session,
+          deloadWeeks: deloadSet,
         });
         setSuggestions(next);
       } catch {}
@@ -710,7 +715,12 @@ export default function Sessions() {
     session?.id,
     session?.templateId,
     session?.dayName,
+    session?.weekNumber,
+    session?.phaseNumber,
     settingsState?.progress?.autoProgression,
+    program?.id,
+    program?.mesoWeeks,
+    program?.deload,
   ]);
 
   // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
@@ -1739,7 +1749,15 @@ export default function Sessions() {
     };
     window.addEventListener("cache-refresh", onCache);
     return () => window.removeEventListener("cache-refresh", onCache);
-  }, [session?.id, week, phase, day]);
+  }, [
+    session?.id,
+    week,
+    phase,
+    day,
+    program?.id,
+    program?.mesoWeeks,
+    program?.deload,
+  ]);
 
   // Recompute prev best map whenever week, phase, or day changes
   useEffect(() => {
@@ -1766,31 +1784,54 @@ export default function Sessions() {
         setPrevWeekSourceWeek(null);
         return;
       }
-      let target = (sess.weekNumber || week) - 1;
-      if (target < 1) {
-        setPrevWeekSets({});
-        setPrevWeekSourceWeek(null);
-        return;
-      }
+      const getPhaseNumber = (s: Session) => s.phaseNumber ?? s.phase ?? 1;
+      const getWeekNumber = (s: Session) => s.weekNumber ?? 0;
+      const identityMatches = (s: Session) => {
+        if (sess.templateId && s.templateId)
+          return s.templateId === sess.templateId;
+        if (!sess.templateId && sess.dayName && s.dayName)
+          return s.dayName === sess.dayName;
+        return false;
+      };
+      const programMatches = (s: Session) => {
+        if (!sess.programId || !s.programId) return true;
+        return s.programId === sess.programId;
+      };
+      const deloadSet = program
+        ? computeDeloadWeeks(program)
+        : new Set<number>();
+      const currentPhase = getPhaseNumber(sess);
+      const currentWeek = getWeekNumber(sess);
+
       // Prefer fresh DB to avoid stale cache during rapid edits
       const all = await db.getAll<Session>("sessions");
-      const samePhase = (all as Session[]).filter(
-        (s) =>
-          (s.phaseNumber || s.phase || phase) ===
-          (sess.phaseNumber || sess.phase || phase)
-      );
-      let found: Session | undefined;
-      while (target >= 1 && !found) {
-        found = samePhase.find(
-          (s) =>
-            s.weekNumber === target &&
-            ((sess.templateId &&
-              s.templateId &&
-              s.templateId === sess.templateId) ||
-              (!sess.templateId && s.dayName === sess.dayName))
-        );
-        if (!found) target--; // search further back
-      }
+      const candidates = (all as Session[])
+        .filter((s) => s.id !== sess.id)
+        .filter(identityMatches)
+        .filter(programMatches)
+        .filter((s) => {
+          const phaseNum = getPhaseNumber(s);
+          const weekNum = getWeekNumber(s);
+          if (phaseNum > currentPhase) return false;
+          if (phaseNum === currentPhase && weekNum >= currentWeek) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const phaseDiff = getPhaseNumber(b) - getPhaseNumber(a);
+          if (phaseDiff !== 0) return phaseDiff;
+          const weekDiff = getWeekNumber(b) - getWeekNumber(a);
+          if (weekDiff !== 0) return weekDiff;
+          const dateDiff =
+            (Date.parse(b.dateISO) || 0) - (Date.parse(a.dateISO) || 0);
+          if (dateDiff !== 0) return dateDiff;
+          return (
+            (Date.parse(b.updatedAt || "") || 0) -
+            (Date.parse(a.updatedAt || "") || 0)
+          );
+        });
+
+      const found = candidates.find((s) => !deloadSet.has(getWeekNumber(s)));
+
       if (!found) {
         setPrevWeekSets({});
         setPrevWeekSourceWeek(null);
@@ -1810,7 +1851,7 @@ export default function Sessions() {
           }));
       });
       setPrevWeekSets(map);
-      setPrevWeekSourceWeek(found.weekNumber || target);
+      setPrevWeekSourceWeek(found.weekNumber ?? null);
     } catch {
       setPrevWeekSets({});
       setPrevWeekSourceWeek(null);
@@ -1829,6 +1870,10 @@ export default function Sessions() {
     session?.phaseNumber,
     session?.templateId,
     session?.dayName,
+    session?.programId,
+    program?.id,
+    program?.mesoWeeks,
+    program?.deload,
   ]);
 
   const deloadWeeks = useMemo(
