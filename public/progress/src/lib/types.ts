@@ -97,6 +97,15 @@ export interface Measurement {
   calf?: number;
   upperArm?: number;
   forearm?: number;
+  // Skinfold caliper measurements (millimetres)
+  skinfoldChest?: number;
+  skinfoldAbdomen?: number;
+  skinfoldThigh?: number;
+  skinfoldSuprailiac?: number;
+  skinfoldTricep?: number;
+  skinfoldSubscapular?: number;
+  skinfoldAxilla?: number;
+  skinfoldBicep?: number;
   // Body composition (Evolt 360 import)
   bodyFatPct?: number; // percent
   fatMassKg?: number; // kg
