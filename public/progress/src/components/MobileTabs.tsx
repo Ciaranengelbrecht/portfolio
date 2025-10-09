@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 interface TabDef { to: string; label: string; icon: (active:boolean)=> JSX.Element }
 
 const Icon = ({ d, active }: { d: string; active: boolean }) => (
-  <svg width={24} height={24} viewBox="0 0 24 24" className="shrink-0" aria-hidden focusable="false">
+  <svg width={22} height={22} viewBox="0 0 24 24" className="shrink-0" aria-hidden focusable="false">
     <path d={d} className={active? 'transition-colors fill-emerald-400':'transition-colors fill-slate-400'} />
   </svg>
 );
@@ -24,12 +24,12 @@ export default function MobileTabs(){
   return (
   <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-    <div className="relative mx-auto flex justify-around rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
+    <div className="relative mx-auto flex rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
         {tabs.map(t=> (
           <NavLink
             key={t.to}
             to={t.to}
-              className={({isActive})=>`relative flex flex-col items-center justify-center gap-0.5 px-2.5 py-1 rounded-lg text-[10px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
+              className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
               <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>
             <span className="leading-none">{t.label}</span>
