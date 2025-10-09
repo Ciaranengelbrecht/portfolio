@@ -1,12 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-} from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
@@ -238,7 +230,6 @@ export default function Sessions() {
   const { push } = useSnack();
   const [showImport, setShowImport] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [historyContext, setHistoryContext] = useState<{
     exerciseId: string;
@@ -303,12 +294,7 @@ export default function Sessions() {
   const [dateEditValue, setDateEditValue] = useState("");
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
-  // Scroll state for hiding mobile More button after user scrolls
-  const [scrolled, setScrolled] = useState(false);
-  const toolbarRef = useRef<HTMLDivElement | null>(null);
-  const [toolbarHeight, setToolbarHeight] = useState(56);
-  // Progressive fade for sticky toolbar
-  const [barOpacity, setBarOpacity] = useState(1);
+  const toolbarRef = useRef<HTMLElement | null>(null);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string, string>>({});
   // Ephemeral reps input strings (avoid lag & flicker when clearing digits)
@@ -410,26 +396,24 @@ export default function Sessions() {
     focusPrevCollapsedRef.current = null;
   }, [session]);
 
-  const scrollToExercise = useCallback(
-    (entryId: string) => {
-      if (typeof window === "undefined") return;
-      const target = document.getElementById(`exercise-${entryId}`);
-      if (!target) return;
-      let headerOffset = 0;
-      try {
-        const raw = getComputedStyle(document.documentElement)
-          .getPropertyValue("--app-header-h")
-          .trim();
-        const numeric = parseFloat(raw);
-        if (!Number.isNaN(numeric)) headerOffset = numeric;
-      } catch {}
-      const extraOffset = toolbarHeight + headerOffset + 16;
-      const rect = target.getBoundingClientRect();
-      const destination = rect.top + window.scrollY - extraOffset;
-      window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
-    },
-    [toolbarHeight]
-  );
+  const scrollToExercise = useCallback((entryId: string) => {
+    if (typeof window === "undefined") return;
+    const target = document.getElementById(`exercise-${entryId}`);
+    if (!target) return;
+    let headerOffset = 0;
+    try {
+      const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue("--app-header-h")
+        .trim();
+      const numeric = parseFloat(raw);
+      if (!Number.isNaN(numeric)) headerOffset = numeric;
+    } catch {}
+    const controlHeight = toolbarRef.current?.offsetHeight ?? 0;
+    const extraOffset = headerOffset + controlHeight + 16;
+    const rect = target.getBoundingClientRect();
+    const destination = rect.top + window.scrollY - extraOffset;
+    window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
+  }, []);
 
   const activateFocus = useCallback(
     (entryId: string) => {
@@ -728,39 +712,6 @@ export default function Sessions() {
     settingsState?.progress?.autoProgression,
   ]);
 
-  // Track scroll position; progressive fade of top bar and auto-close mobile tools if open
-  useEffect(() => {
-    const getScrollTop = () =>
-      typeof window !== "undefined"
-        ? window.scrollY ||
-          document.documentElement.scrollTop ||
-          (document.body && (document.body as any).scrollTop) ||
-          0
-        : 0;
-    const onScroll = () => {
-      const y = getScrollTop();
-      const isScrolled = y > 1;
-      // Fade the top bar over the first ~80px of scroll
-      const range = 80;
-      const op = Math.max(0, 1 - Math.min(1, y / range));
-      setBarOpacity(op);
-      setScrolled(isScrolled);
-      if (isScrolled && moreOpen) setMoreOpen(false);
-    };
-    const onWheelOrTouch = () => {
-      if (moreOpen) setMoreOpen(false);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onWheelOrTouch, { passive: true });
-    window.addEventListener("touchmove", onWheelOrTouch, { passive: true });
-    onScroll();
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onWheelOrTouch);
-      window.removeEventListener("touchmove", onWheelOrTouch);
-    };
-  }, [moreOpen]);
-
   // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
   useEffect(() => {
     let done = false;
@@ -782,36 +733,6 @@ export default function Sessions() {
       window.removeEventListener("touchstart", tryUnlock);
       window.removeEventListener("keydown", tryUnlock as any);
     };
-  }, []);
-
-  // Measure toolbar height for spacer (updates on resize)
-  useLayoutEffect(() => {
-    const measure = () => {
-      if (toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-  // Re-measure shortly after mount to catch font / async layout shifts (prevents overlap on mobile)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (toolbarRef.current) setToolbarHeight(toolbarRef.current.offsetHeight);
-    }, 340);
-    return () => clearTimeout(t);
-  }, []);
-  // Observe toolbar size changes (fonts / wrapping) to avoid transient spacer gap
-  useEffect(() => {
-    if (!toolbarRef.current || typeof ResizeObserver === "undefined") return;
-    const el = toolbarRef.current;
-    const ro = new ResizeObserver(() => {
-      if (el) {
-        const h = el.offsetHeight;
-        setToolbarHeight((prev) => (prev !== h ? h : prev));
-      }
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
   }, []);
 
   // After initial mount, choose the most recently ACTIVE session with data.
@@ -3028,34 +2949,57 @@ export default function Sessions() {
         style={{ position: "relative", height: 0 }}
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
-      {/* Fixed selectors bar under main app header */}
-      <div
-        className={"fixed left-0 right-0 will-change-[opacity,transform]"}
-        style={{
-          top: "calc(var(--app-header-h) + 4px)",
-          opacity: barOpacity,
-          transform: `translateY(${
-            barOpacity < 1 ? -4 * (1 - barOpacity) : 0
-          }px)`,
-          pointerEvents: barOpacity < 0.05 ? "none" : undefined,
-        }}
-        ref={toolbarRef}
-      >
-        <div className="flex flex-wrap items-center gap-2 px-4 pt-0 pb-0 bg-[rgba(17,24,39,0.80)] backdrop-blur border-b border-white/10 rounded-b-2xl shadow-sm min-w-0">
-          <h2 className="text-xl font-semibold mr-2">Sessions</h2>
-          <div className="inline-flex w-auto">
-            <PhaseStepper
-              value={phase}
-              onChange={async (p) => {
-                setPhase(p);
-                const s = await getSettings();
-                await setSettings({ ...s, currentPhase: p });
-              }}
-            />
+      <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
+        <div className="rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] backdrop-blur px-4 py-4 sm:px-6 sm:py-5 shadow-[0_20px_48px_rgba(15,23,42,0.55)] space-y-4 min-w-0">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-50">
+                Sessions
+              </h2>
+              <div className="inline-flex">
+                <PhaseStepper
+                  value={phase}
+                  onChange={async (p) => {
+                    setPhase(p);
+                    const s = await getSettings();
+                    await setSettings({ ...s, currentPhase: p });
+                  }}
+                />
+              </div>
+            </div>
+            {session && !!session.entries.length && (
+              <button
+                className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/15 bg-slate-800/80 px-3 py-1.5 text-[11px] font-medium text-slate-200 shadow-sm transition hover:bg-slate-700/80"
+                aria-label={
+                  allCollapsed
+                    ? "Expand all exercises"
+                    : "Collapse all exercises"
+                }
+                title={
+                  allCollapsed
+                    ? "Expand all exercises"
+                    : "Collapse all exercises"
+                }
+                onClick={() => {
+                  if (allCollapsed) expandAll();
+                  else collapseAll();
+                  try {
+                    navigator.vibrate?.(8);
+                  } catch {}
+                }}
+              >
+                <span className="text-base leading-none">
+                  {allCollapsed ? "↓" : "↑"}
+                </span>
+                <span className="hidden sm:inline">
+                  {allCollapsed ? "Expand" : "Collapse"}
+                </span>
+              </button>
+            )}
           </div>
-          <div className="flex flex-wrap items-center gap-2 min-w-0 w-full sm:flex-1">
+          <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,240px)]">
             <select
-              className="bg-card rounded-xl px-2 py-1 min-w-[120px] w-full sm:w-auto"
+              className="bg-slate-900/70 text-slate-100 rounded-xl border border-white/10 px-3 py-2 text-sm shadow-inner"
               value={week}
               onChange={(e) => {
                 setWeek(Number(e.target.value));
@@ -3072,7 +3016,7 @@ export default function Sessions() {
                 </option>
               ))}
             </select>
-            <div className="w-full sm:w-auto">
+            <div className="w-full">
               <DaySelector
                 labels={
                   program
@@ -3088,10 +3032,9 @@ export default function Sessions() {
                 }}
               />
             </div>
-            {/* Insert date/stamp block here (swapped position) */}
             {session && (
               <div
-                className="flex items-center gap-1 text-[11px] bg-slate-800 rounded-xl px-2 py-1 w-full sm:w-auto sm:ml-auto mt-1 sm:mt-0"
+                className="flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-100"
                 title="Current assigned date (edit or stamp)"
               >
                 {!editingDate && (
@@ -3105,21 +3048,21 @@ export default function Sessions() {
                   </span>
                 )}
                 {editingDate && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <input
                       type="date"
-                      className="bg-slate-900 rounded px-1 py-0.5 text-[11px]"
+                      className="rounded px-2 py-1 text-[11px] text-slate-200 bg-slate-800/90"
                       value={dateEditValue}
                       onChange={(e) => setDateEditValue(e.target.value)}
                     />
                     <button
-                      className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                      className="rounded bg-emerald-600/80 px-2 py-1 text-[10px] text-emerald-50 transition hover:bg-emerald-600"
                       onClick={saveManualDate}
                     >
                       Save
                     </button>
                     <button
-                      className="text-[10px] bg-slate-700 rounded px-2 py-0.5"
+                      className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
                       onClick={() => setEditingDate(false)}
                     >
                       Cancel
@@ -3127,9 +3070,9 @@ export default function Sessions() {
                   </div>
                 )}
                 {!editingDate && (
-                  <>
+                  <div className="flex items-center gap-1 ml-auto">
                     <button
-                      className={`text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600 relative overflow-hidden ${
+                      className={`rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600 ${
                         stampAnimating ? "animate-stamp" : ""
                       }`}
                       onClick={() => {
@@ -3139,13 +3082,11 @@ export default function Sessions() {
                       }}
                       aria-label="Stamp with today's date"
                     >
-                      <span className="pointer-events-none select-none">
-                        Stamp
-                      </span>
+                      <span className="select-none">Stamp</span>
                     </button>
                     <button
                       aria-label="Edit date"
-                      className="text-[10px] bg-slate-700 rounded px-2 py-0.5 hover:bg-slate-600"
+                      className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
                       onClick={() => {
                         setDateEditValue(
                           session.localDate || session.dateISO.slice(0, 10)
@@ -3155,11 +3096,19 @@ export default function Sessions() {
                     >
                       ✎
                     </button>
-                  </>
+                    {sessionDuration && (
+                      <span
+                        className="ml-1 rounded bg-indigo-600/40 px-2 py-1 text-indigo-200"
+                        title="Active logging duration (first to last non-zero set)"
+                      >
+                        ⏱ {sessionDuration}
+                      </span>
+                    )}
+                  </div>
                 )}
-                {sessionDuration && !editingDate && (
+                {sessionDuration && editingDate && (
                   <span
-                    className="ml-1 px-2 py-0.5 rounded bg-indigo-600/40 text-indigo-200 font-medium"
+                    className="ml-auto rounded bg-indigo-600/40 px-2 py-1 text-indigo-200"
                     title="Active logging duration (first to last non-zero set)"
                   >
                     ⏱ {sessionDuration}
@@ -3167,107 +3116,34 @@ export default function Sessions() {
                 )}
               </div>
             )}
-            {focusMode && (
-              <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-100 shadow-[0_6px_18px_-12px_rgba(16,185,129,0.6)]">
-                <span className="uppercase tracking-[0.24em] text-emerald-200/80">
-                  Focus mode
-                </span>
-                <button
-                  className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-50 hover:bg-emerald-400/30 transition-colors"
-                  onClick={() => exitFocus()}
-                >
-                  Exit
-                </button>
-              </div>
-            )}
           </div>
-          {/* Mobile expand/collapse all toggle (moved here; swapped with date bar) */}
-          {session && !!session.entries.length && (
-            <button
-              className="sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm"
-              aria-label={
-                allCollapsed ? "Expand all exercises" : "Collapse all exercises"
-              }
-              title={
-                allCollapsed ? "Expand all exercises" : "Collapse all exercises"
-              }
-              onClick={() => {
-                if (allCollapsed) expandAll();
-                else collapseAll();
-                try {
-                  navigator.vibrate?.(8);
-                } catch {}
-              }}
-            >
-              <span className="leading-none select-none">
-                {allCollapsed ? "↓" : "↑"}
-              </span>
-            </button>
-          )}
-          {/* Mobile tools toggle (moved here; swapped with date bar) */}
-          {session && (
-            <button
-              className={`sm:hidden shrink-0 w-8 h-8 rounded-lg border border-white/15 bg-slate-800/90 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-[15px] shadow-sm ${
-                moreOpen ? "rotate-180 text-emerald-300" : "text-slate-300"
-              }`}
-              onClick={() => setMoreOpen((o) => !o)}
-              aria-expanded={moreOpen}
-              aria-controls="mobile-tools-overlay"
-              aria-label={moreOpen ? "Hide tools" : "Show tools"}
-              title="Tools"
-            >
-              <span className="leading-none select-none">▾</span>
-            </button>
-          )}
-        </div>
-      </div>
-      {/* Mobile tools panel rendered as fixed overlay below toolbar (no layout height) */}
-      {createPortal(
-        <AnimatePresence>
-          {moreOpen && (
-            <motion.div
-              id="mobile-tools-overlay"
-              className="fixed left-0 right-0 z-[1000] sm:hidden px-4"
-              style={{
-                top: `calc(var(--app-header-h) + ${toolbarHeight}px + 6px)`,
-              }}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
-            >
-              <div className="grid grid-cols-2 gap-2 text-[11px] p-1 rounded-2xl bg-slate-900/80 border border-white/10 backdrop-blur-md glow-card shadow-xl">
-                {session && (
-                  <button
-                    className="tool-btn"
-                    onClick={() => {
-                      stampToday();
-                      setMoreOpen(false);
-                    }}
-                    title="Stamp with today's date"
-                  >
-                    Stamp
-                  </button>
-                )}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
+            {session && (
+              <>
                 <button
-                  className="tool-btn"
+                  className="tool-btn !px-3 !py-1.5"
                   onClick={() => {
-                    setShowImport(true);
-                    setMoreOpen(false);
+                    setStampAnimating(true);
+                    setTimeout(() => setStampAnimating(false), 360);
+                    stampToday();
                   }}
+                  title="Stamp with today's date"
+                >
+                  Stamp
+                </button>
+                <button
+                  className="tool-btn !px-3 !py-1.5"
+                  onClick={() => setShowImport(true)}
                   title="Import from template"
                 >
                   Import
                 </button>
                 <button
-                  className="tool-btn"
-                  disabled={!session || !session.entries.length}
-                  onClick={() => {
-                    setShowSaveTemplate(true);
-                    setMoreOpen(false);
-                  }}
+                  className="tool-btn !px-3 !py-1.5"
+                  disabled={!session.entries.length}
+                  onClick={() => setShowSaveTemplate(true)}
                   title={
-                    session && session.entries.length
+                    session.entries.length
                       ? "Save this session as template"
                       : "No exercises to save"
                   }
@@ -3275,121 +3151,107 @@ export default function Sessions() {
                   Save
                 </button>
                 <button
-                  className="tool-btn"
-                  onClick={async () => {
-                    const s = await getSettings();
-                    const next = (s.currentPhase || 1) + 1;
-                    await setSettings({ ...s, currentPhase: next });
-                    setPhase(next as number);
-                    setWeek(1 as any);
-                    setDay(0);
-                    setMoreOpen(false);
-                  }}
-                  title="Next phase"
+                  className="tool-btn !px-3 !py-1.5"
+                  onClick={() => collapseAll()}
+                  title="Collapse all exercises"
                 >
-                  Next →
+                  Collapse All
                 </button>
-                {phase > 1 && (
-                  <button
-                    className="tool-btn"
-                    onClick={async () => {
-                      if (
-                        !window.confirm("Revert to phase " + (phase - 1) + "?")
-                      )
-                        return;
-                      const s = await getSettings();
-                      const prev = Math.max(1, (s.currentPhase || 1) - 1);
-                      await setSettings({ ...s, currentPhase: prev });
-                      setPhase(prev);
-                      setWeek(1 as any);
-                      setDay(0);
-                      setMoreOpen(false);
-                    }}
-                    title="Previous phase"
-                  >
-                    ← Prev
-                  </button>
-                )}
-                {session && (
-                  <button
-                    className="tool-btn col-span-2"
-                    onClick={async () => {
-                      const prevId = `${phase}-${Math.max(
-                        1,
-                        (week as number) - 1
-                      )}-${day}`;
-                      let prev = await db.get<Session>("sessions", prevId);
-                      if (!prev && week === 1 && phase > 1) {
-                        prev = await db.get<Session>(
-                          "sessions",
-                          `${phase - 1}-9-${day}`
-                        );
-                      }
-                      if (prev) {
-                        const copy: Session = {
-                          ...session,
-                          entries: prev.entries.map((e) => ({
-                            ...e,
-                            id: nanoid(),
-                            sets: e.sets.map((s, i) => ({
-                              ...s,
-                              setNumber: i + 1,
-                            })),
+                <button
+                  className="tool-btn !px-3 !py-1.5"
+                  onClick={() => expandAll()}
+                  title="Expand all exercises"
+                >
+                  Expand All
+                </button>
+                <button
+                  className="tool-btn !px-3 !py-1.5"
+                  onClick={async () => {
+                    const prevId = `${phase}-${Math.max(
+                      1,
+                      (week as number) - 1
+                    )}-${day}`;
+                    let prev = await db.get<Session>("sessions", prevId);
+                    if (!prev && week === 1 && phase > 1) {
+                      prev = await db.get<Session>(
+                        "sessions",
+                        `${phase - 1}-9-${day}`
+                      );
+                    }
+                    if (prev) {
+                      const copy: Session = {
+                        ...session,
+                        entries: prev.entries.map((e) => ({
+                          ...e,
+                          id: nanoid(),
+                          sets: e.sets.map((s, i) => ({
+                            ...s,
+                            setNumber: i + 1,
                           })),
-                        };
-                        setSession(copy);
-                        await db.put("sessions", copy);
-                      }
-                      setMoreOpen(false);
-                    }}
-                    title="Copy previous session"
-                  >
-                    Copy Last
-                  </button>
-                )}
-                {/* Apply-to-future moved to Program Settings */}
-                {session && (
-                  <button
-                    className="tool-btn"
-                    onClick={() => {
-                      collapseAll();
-                      setMoreOpen(false);
-                    }}
-                    title="Collapse all exercises"
-                  >
-                    Collapse All
-                  </button>
-                )}
-                {session && (
-                  <button
-                    className="tool-btn"
-                    onClick={() => {
-                      expandAll();
-                      setMoreOpen(false);
-                    }}
-                    title="Expand all exercises"
-                  >
-                    Expand All
-                  </button>
-                )}
-                {sessionDuration && (
-                  <div className="col-span-2 text-center text-indigo-300 bg-indigo-500/10 rounded-lg py-1">
-                    ⏱ {sessionDuration}
-                  </div>
-                )}
-              </div>
-            </motion.div>
+                        })),
+                      };
+                      setSession(copy);
+                      await db.put("sessions", copy);
+                    }
+                  }}
+                  title="Copy previous session"
+                >
+                  Copy Last
+                </button>
+              </>
+            )}
+            <button
+              className="tool-btn !px-3 !py-1.5"
+              onClick={async () => {
+                const s = await getSettings();
+                const next = (s.currentPhase || 1) + 1;
+                await setSettings({ ...s, currentPhase: next });
+                setPhase(next as number);
+                setWeek(1 as any);
+                setDay(0);
+              }}
+              title="Next phase"
+            >
+              Next →
+            </button>
+            {phase > 1 && (
+              <button
+                className="tool-btn !px-3 !py-1.5"
+                onClick={async () => {
+                  if (!window.confirm(`Revert to phase ${phase - 1}?`)) return;
+                  const s = await getSettings();
+                  const prev = Math.max(1, (s.currentPhase || 1) - 1);
+                  await setSettings({ ...s, currentPhase: prev });
+                  setPhase(prev);
+                  setWeek(1 as any);
+                  setDay(0);
+                }}
+                title="Previous phase"
+              >
+                ← Prev
+              </button>
+            )}
+            {sessionDuration && (
+              <span className="ml-auto rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-indigo-200">
+                ⏱ {sessionDuration}
+              </span>
+            )}
+          </div>
+          {focusMode && (
+            <div className="flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] text-emerald-100 shadow-[0_6px_18px_-12px_rgba(16,185,129,0.6)]">
+              <span className="uppercase tracking-[0.24em] text-emerald-200/80">
+                Focus mode
+              </span>
+              <button
+                className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] text-emerald-50 transition-colors hover:bg-emerald-400/30"
+                onClick={() => exitFocus()}
+              >
+                Exit
+              </button>
+            </div>
           )}
-        </AnimatePresence>,
-        document.body
-      )}
-      {/* Spacer dynamic (reduced extra gap) */}
-      <div
-        style={{
-          height: `calc(var(--app-header-h) + ${toolbarHeight}px + 0px)`,
-        }}
-        aria-hidden="true"
-      />
+        </div>
+      </section>
       {/* Session analytics & pacing */}
       {!initialLoading && session && analytics && (
         <SessionMomentumPanel
