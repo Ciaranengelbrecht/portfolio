@@ -2605,27 +2605,6 @@ export default function Sessions() {
     [weightUnit]
   );
 
-  const formatSetSummary = useCallback(
-    (sets: SetEntry[]) => {
-      if (!Array.isArray(sets) || sets.length === 0) return "No sets logged";
-      const parts: string[] = [];
-      for (const set of sets) {
-        const reps = set.reps ?? 0;
-        const weight = set.weightKg ?? 0;
-        if (reps <= 0 && weight <= 0) continue;
-        const weightLabel = weight > 0 ? formatWeightDisplay(weight) : "BW";
-        const repLabel = reps > 0 ? reps : "—";
-        const rpe = set.rpe != null ? ` RPE ${set.rpe}` : "";
-        parts.push(`${weightLabel}×${repLabel}${rpe}`);
-      }
-      if (!parts.length) return "No sets logged";
-      return parts.length > 6
-        ? `${parts.slice(0, 6).join(" • ")} …`
-        : parts.join(" • ");
-    },
-    [formatWeightDisplay]
-  );
-
   const formatHistoryDate = useCallback((row: ExerciseHistoryRow) => {
     const iso =
       row.dateISO || (row.localDate ? `${row.localDate}T00:00:00` : null);
@@ -2640,49 +2619,58 @@ export default function Sessions() {
     }).format(date);
   }, []);
 
-  const formatHistoryMeta = useCallback((row: ExerciseHistoryRow) => {
-    const parts: string[] = [];
-    if (row.phaseNumber) parts.push(`Phase ${row.phaseNumber}`);
-    if (row.weekNumber) parts.push(`Week ${row.weekNumber}`);
-    if (row.dayName) parts.push(row.dayName);
-    return parts.join(" • ");
-  }, []);
-
   const historyOptions = useMemo<OptionSheetOption[]>(() => {
     if (!historyContext?.entries?.length) return [];
     return historyContext.entries.map((item, index) => {
-      const meta = formatHistoryMeta(item);
-      const hint = formatSetSummary(item.sets);
-      const volume = formatVolumeDisplay(item.tonnageKg);
-      const best = item.bestSet
-        ? `${formatWeightDisplay(item.bestSet.weightKg)}×${item.bestSet.reps}${
-            item.bestSet.rpe != null ? ` · RPE ${item.bestSet.rpe}` : ""
-          }`
-        : null;
+      const metaParts: string[] = [];
+      if (item.phaseNumber) metaParts.push(`Phase ${item.phaseNumber}`);
+      if (item.weekNumber) metaParts.push(`Week ${item.weekNumber}`);
+      if (item.dayName) metaParts.push(item.dayName);
+      const meta = metaParts.join(" • ");
+      const workingSets = item.sets.filter(
+        (set) => (set.reps || 0) > 0 || (set.weightKg || 0) > 0
+      );
+      const setDetail = (workingSets.length ? workingSets : item.sets).map(
+        (set, setIdx) => {
+          const weight =
+            (set.weightKg || 0) > 0
+              ? formatWeightDisplay(set.weightKg || 0)
+              : "BW";
+          const reps = set.reps != null ? set.reps : "—";
+          return (
+            <div
+              key={`${item.sessionId}-${item.entryId}-set-${setIdx}`}
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+            >
+              <span className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+                Set {setIdx + 1}
+              </span>
+              <span className="text-sm font-semibold text-white">{weight}</span>
+              <span className="text-sm text-white/80">× {reps}</span>
+              {set.rpe != null ? (
+                <span className="text-xs text-white/60">RPE {set.rpe}</span>
+              ) : null}
+            </div>
+          );
+        }
+      );
+      const detail = setDetail.length ? (
+        <div className="space-y-1">{setDetail}</div>
+      ) : (
+        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
+          No sets logged in this session.
+        </div>
+      );
       return {
         id: `${item.sessionId}-${item.entryId}-${index}`,
         label: formatHistoryDate(item),
         description: meta || undefined,
-        hint,
-        trailing: (
-          <div className="text-right text-[11px] leading-tight text-white/60">
-            <div>{item.totalSets} sets</div>
-            {volume ? <div>{volume} vol</div> : null}
-            {best ? <div>{best}</div> : null}
-          </div>
-        ),
+        detail,
         selected: index === 0,
         onSelect: () => {},
       } satisfies OptionSheetOption;
     });
-  }, [
-    historyContext?.entries,
-    formatHistoryMeta,
-    formatSetSummary,
-    formatVolumeDisplay,
-    formatWeightDisplay,
-    formatHistoryDate,
-  ]);
+  }, [historyContext?.entries, formatWeightDisplay, formatHistoryDate]);
 
   const historyHighlight = useMemo(() => {
     if (!historyContext || historyLoading || historyError) return null;
@@ -2787,6 +2775,7 @@ export default function Sessions() {
             const workingSets = sets.filter(
               (set) => (set.reps || 0) > 0 || (set.weightKg || 0) > 0
             ).length;
+            if (workingSets === 0) continue;
             const tonnageKg = sets.reduce(
               (sum, set) => sum + (set.weightKg || 0) * (set.reps || 0),
               0

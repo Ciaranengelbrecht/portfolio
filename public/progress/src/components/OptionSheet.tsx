@@ -13,6 +13,7 @@ export type OptionSheetOption = {
   selected?: boolean;
   disabled?: boolean;
   onSelect: () => void;
+  detail?: ReactNode;
 };
 
 export interface OptionSheetProps {
@@ -222,6 +223,11 @@ export default function OptionSheet({
                                 <p className="mt-1 text-xs uppercase tracking-[0.25em] text-white/40">
                                   {option.hint}
                                 </p>
+                              ) : null}
+                              {option.detail ? (
+                                <div className="mt-3 space-y-1 text-sm text-white/80">
+                                  {option.detail}
+                                </div>
                               ) : null}
                             </div>
                             {option.trailing ? (
