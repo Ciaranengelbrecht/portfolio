@@ -3730,7 +3730,7 @@ export default function Sessions() {
               )[0];
             const displayName =
               ex?.name || exNameCache[entry.exerciseId] || "Deleted exercise";
-            const nameButtonClass = `inline-flex items-center gap-1 min-w-0 ${
+            const nameButtonClass = `inline-flex items-center gap-2 min-w-0 ${
               isCollapsed ? "whitespace-normal break-words" : ""
             }`;
             const nameTextClass = isCollapsed
@@ -3806,22 +3806,40 @@ export default function Sessions() {
                   <div className="absolute inset-px rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_25%_20%,rgba(0,185,255,0.18),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(77,91,255,0.15),transparent_60%)]" />
                   <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand-500/15 via-electric-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between gap-2">
-                    <div
-                      className="font-medium flex items-center gap-2 flex-nowrap min-w-0 cursor-pointer select-none"
-                      onClick={() => toggleEntryCollapsed(entry.id)}
-                      aria-expanded={!isCollapsed}
-                      aria-controls={`entry-${entry.id}-sets`}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          toggleEntryCollapsed(entry.id);
-                        }
-                      }}
-                    >
+                <div
+                  className="relative z-10"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement | null;
+                    if (
+                      target &&
+                      target.closest('[data-history-trigger="true"]')
+                    )
+                      return;
+                    if (e.defaultPrevented) return;
+                    toggleEntryCollapsed(entry.id);
+                  }}
+                  role="group"
+                >
+                  <div
+                    className="flex items-start justify-between gap-2 cursor-pointer select-none"
+                    aria-expanded={!isCollapsed}
+                    aria-controls={`entry-${entry.id}-sets`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        if (
+                          (e.target as HTMLElement | null)?.closest(
+                            '[data-history-trigger="true"]'
+                          )
+                        )
+                          return;
+                        e.preventDefault();
+                        toggleEntryCollapsed(entry.id);
+                      }
+                    }}
+                  >
+                    <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0">
                       <span
                         className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle"
                         title="Drag to reorder"
@@ -3832,7 +3850,7 @@ export default function Sessions() {
                       <button
                         type="button"
                         className={`${nameButtonClass} -ml-1 px-1 py-0.5 rounded-md text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
-                          isCollapsed ? "" : "hover:bg-slate-800/60"
+                          isCollapsed ? "" : "hover:bg-slate-800/40"
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3847,6 +3865,7 @@ export default function Sessions() {
                         }}
                         aria-label={`View history for ${displayName}`}
                         title={`View history for ${displayName}`}
+                        data-history-trigger="true"
                       >
                         {ex && (
                           <img
@@ -3873,28 +3892,6 @@ export default function Sessions() {
                             recovered
                           </span>
                         )}
-                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-[var(--accent)]/80 font-semibold">
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 24 24"
-                            className="w-3.5 h-3.5 opacity-80"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={1.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 6v6l3 3"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {!isCollapsed && <span>history</span>}
-                        </span>
                       </button>
                       <span
                         className={`transition-transform text-xs opacity-70 ${
@@ -5224,6 +5221,25 @@ export default function Sessions() {
           />
         </MobileSummaryFader>
       )}
+
+      <OptionSheet
+        open={historySheetOpen}
+        title={
+          historyContext?.name
+            ? `${historyContext.name} history`
+            : "Exercise history"
+        }
+        description="Review recent sessions logged for this movement."
+        onClose={closeExerciseHistory}
+        options={historyOptions}
+        highlight={historyHighlight ?? undefined}
+        emptyState={
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+            {historyEmptyMessage}
+          </div>
+        }
+        maxListHeight={520}
+      />
 
       <div className="bg-card rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all">
         <div className="flex items-center justify-between mb-2">
