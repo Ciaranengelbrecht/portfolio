@@ -49,6 +49,9 @@ import PhaseStepper from "../components/PhaseStepper";
 import { useSnack } from "../state/snackbar";
 import { getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
+import OptionSheet, {
+  OptionSheetOption,
+} from "../components/OptionSheet";
 
 function TopMuscleAndContents({
   session,
@@ -165,6 +168,35 @@ const DAYS = [
   "Lower C",
   "Rest",
 ];
+
+const MUSCLE_LABELS: Record<string, string> = {
+  chest: "Chest",
+  back: "Back",
+  shoulders: "Shoulders",
+  biceps: "Biceps",
+  triceps: "Triceps",
+  forearms: "Forearms",
+  quads: "Quads",
+  hamstrings: "Hamstrings",
+  glutes: "Glutes",
+  calves: "Calves",
+  core: "Core",
+  traps: "Traps",
+  lats: "Lats",
+  delts: "Delts",
+  upper_back: "Upper Back",
+  lower_back: "Lower Back",
+  abs: "Abs",
+  cardio: "Cardio",
+  conditioning: "Conditioning",
+  mobility: "Mobility",
+  other: "Other",
+};
+
+const formatMuscleLabel = (muscle?: string | null) => {
+  if (!muscle) return "General";
+  return MUSCLE_LABELS[muscle] || muscle.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
 export default function Sessions() {
   const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
@@ -182,6 +214,7 @@ export default function Sessions() {
   const [session, setSession] = useState<Session | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState("");
+  const [addFilter, setAddFilter] = useState<string>("all");
   const [dragEntryIdx, setDragEntryIdx] = useState<number | null>(null);
   const { push } = useSnack();
   const [showImport, setShowImport] = useState(false);
@@ -192,6 +225,16 @@ export default function Sessions() {
     null
   );
   const [switchQuery, setSwitchQuery] = useState("");
+  const [switchScope, setSwitchScope] = useState<"group" | "all">("group");
+  useEffect(() => {
+    if (!switchTarget) {
+      setSwitchScope("group");
+      setSwitchQuery("");
+      return;
+    }
+    setSwitchScope("group");
+    setSwitchQuery("");
+  }, [switchTarget?.entryId]);
   const [prevBestMap, setPrevBestMap] = useState<{
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
@@ -2306,6 +2349,215 @@ export default function Sessions() {
     } catch {}
     push({ message: `Switched to ${newEx.name}` });
   };
+
+  const sessionExerciseIds = useMemo(() => {
+    if (!session) return new Set<string>();
+    return new Set(session.entries.map((en) => en.exerciseId));
+  }, [session?.id, session?.entries]);
+
+  const recentExercises = useMemo(() => {
+    if (!session) return [] as Exercise[];
+    const seen = new Set<string>();
+    const list: Exercise[] = [];
+    for (let i = session.entries.length - 1; i >= 0; i--) {
+      const entry = session.entries[i];
+      if (seen.has(entry.exerciseId)) continue;
+      const ex = exMap.get(entry.exerciseId);
+      if (ex) {
+        list.push(ex);
+        seen.add(entry.exerciseId);
+      }
+      if (list.length === 6) break;
+    }
+    return list;
+  }, [session?.entries, exMap]);
+
+  const muscleFilters = useMemo(() => {
+    const groups = new Set<string>();
+    for (const ex of exercises) {
+      if (ex.muscleGroup) groups.add(ex.muscleGroup);
+    }
+    const sorted = Array.from(groups).sort((a, b) =>
+      formatMuscleLabel(a).localeCompare(formatMuscleLabel(b))
+    );
+    return ["all", ...sorted];
+  }, [exercises]);
+
+  const addExerciseOptions = useMemo<OptionSheetOption[]>(() => {
+    const q = query.trim().toLowerCase();
+    const list = exercises
+      .filter((ex) => addFilter === "all" || ex.muscleGroup === addFilter)
+      .filter((ex) => (q ? ex.name.toLowerCase().includes(q) : true))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 200);
+    return list.map((ex) => {
+      const secondary =
+        ex.secondaryMuscles && ex.secondaryMuscles.length
+          ? `Secondary: ${ex.secondaryMuscles
+              .map((m) => formatMuscleLabel(m))
+              .join(", ")}`
+          : undefined;
+      const isInSession = sessionExerciseIds.has(ex.id);
+      return {
+        id: ex.id,
+        label: ex.name,
+        description: formatMuscleLabel(ex.muscleGroup),
+        hint: secondary,
+        selected: isInSession,
+        trailing: isInSession ? "In session" : undefined,
+        onSelect: () => {
+          addExerciseToSession(ex);
+          setShowAdd(false);
+          setQuery("");
+          setAddFilter("all");
+        },
+      } satisfies OptionSheetOption;
+    });
+  }, [
+    exercises,
+    addFilter,
+    query,
+    sessionExerciseIds,
+    addExerciseToSession,
+  ]);
+
+  const addSheetHighlight =
+    (muscleFilters.length > 1 || recentExercises.length > 0) && (
+      <div className="flex flex-col gap-2 pt-1 text-xs text-white/70">
+        {muscleFilters.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+              Filter
+            </span>
+            {muscleFilters.map((key) => {
+              const label = key === "all" ? "All muscles" : formatMuscleLabel(key);
+              const active = addFilter === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                    active
+                      ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                      : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+                  }`}
+                  onClick={() => setAddFilter(key)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {recentExercises.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+              Recent
+            </span>
+            {recentExercises.map((ex) => (
+              <button
+                key={ex.id}
+                type="button"
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/60 hover:bg-emerald-400/15 hover:text-white"
+                onClick={() => {
+                  addExerciseToSession(ex);
+                  setShowAdd(false);
+                  setQuery("");
+                  setAddFilter("all");
+                }}
+              >
+                {ex.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+
+  const switchModalContext = useMemo(() => {
+    if (!switchTarget || !session) return null;
+    const entry = session.entries.find((e) => e.id === switchTarget.entryId);
+    if (!entry) return null;
+    const currentEx = exMap.get(entry.exerciseId);
+    const group = currentEx?.muscleGroup || null;
+    const q = switchQuery.trim().toLowerCase();
+    const pool = exercises.filter((ex) => ex.id !== currentEx?.id);
+    const scoped =
+      switchScope === "group" && group
+        ? pool.filter((ex) => ex.muscleGroup === group)
+        : pool;
+    const list = scoped
+      .filter((ex) => (q ? ex.name.toLowerCase().includes(q) : true))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 160);
+    const options = list.map((ex) => {
+      const secondary =
+        ex.secondaryMuscles && ex.secondaryMuscles.length
+          ? `Secondary: ${ex.secondaryMuscles
+              .map((m) => formatMuscleLabel(m))
+              .join(", ")}`
+          : undefined;
+      return {
+        id: ex.id,
+        label: ex.name,
+        description: formatMuscleLabel(ex.muscleGroup),
+        hint: secondary,
+        onSelect: () => switchExercise(entry, ex),
+      } satisfies OptionSheetOption;
+    });
+    return {
+      entry,
+      currentEx,
+      group,
+      options,
+      scopedCount: scoped.length,
+      totalCount: pool.length,
+    };
+  }, [
+    switchTarget?.entryId,
+    session?.entries,
+    exMap,
+    exercises,
+    switchQuery,
+    switchScope,
+    switchExercise,
+  ]);
+
+  const switchSheetHighlight =
+    switchModalContext && (
+      <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-white/70">
+        <span className="text-[10px] uppercase tracking-[0.28em] text-white/35">
+          Scope
+        </span>
+        <button
+          type="button"
+          className={`rounded-full border px-3 py-1 text-xs transition ${
+            switchScope === "group"
+              ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+          }`}
+          onClick={() => setSwitchScope("group")}
+        >
+          Same muscle
+        </button>
+        <button
+          type="button"
+          className={`rounded-full border px-3 py-1 text-xs transition ${
+            switchScope === "all"
+              ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+              : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
+          }`}
+          onClick={() => setSwitchScope("all")}
+        >
+          Show all
+        </button>
+        {switchModalContext.group ? (
+          <span className="ml-auto text-[11px] text-white/50">
+            Targeting {formatMuscleLabel(switchModalContext.group)}
+          </span>
+        ) : null}
+      </div>
+    );
 
   const reorderEntry = async (from: number, to: number) => {
     if (
@@ -4655,131 +4907,93 @@ export default function Sessions() {
         {/* Removed full exercise chip list to avoid rendering hundreds; user opens Search to query */}
       </div>
 
-      {/* Add dialog */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur flex items-start sm:items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg p-4 shadow-xl border border-[var(--border)]">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-medium">Add exercise</div>
-              <button
-                className="text-xs bg-slate-800 rounded px-2 py-1"
-                onClick={() => setShowAdd(false)}
-              >
-                Close
-              </button>
-            </div>
-            <input
-              className="w-full bg-slate-800 rounded-xl px-3 py-2"
-              placeholder="Search or type a new exercise name"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && query.trim()) {
+      <OptionSheet
+        open={showAdd}
+        title="Add exercise"
+        description="Search the library or build a custom movement for this session."
+        onClose={() => {
+          setShowAdd(false);
+          setQuery("");
+          setAddFilter("all");
+        }}
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Search or type a new exercise name"
+        searchLabel="Exercise"
+        initialFocus="search"
+        options={addExerciseOptions}
+        highlight={addSheetHighlight || undefined}
+        emptyState={
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+            {query.trim()
+              ? `No exercises match "${query.trim()}". Use the button below to create it.`
+              : "No exercises found. Try syncing or creating a custom exercise."}
+          </div>
+        }
+        primaryAction={
+          query.trim()
+            ? {
+                label: `Create "${query.trim()}"`,
+                onClick: () => {
                   createCustomExercise(query.trim());
                   setShowAdd(false);
                   setQuery("");
-                }
-              }}
-            />
-            <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
-              {exercises
-                .filter((e) =>
-                  e.name.toLowerCase().includes(query.toLowerCase())
-                )
-                .map((e) => (
-                  <button
-                    key={e.id}
-                    className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl"
-                    onClick={() => {
-                      addExerciseToSession(e);
-                      setShowAdd(false);
-                      setQuery("");
-                    }}
-                  >
-                    {e.name}
-                  </button>
-                ))}
-              {query && (
-                <button
-                  className="w-full text-left px-3 py-3 bg-brand-600 rounded-xl"
-                  onClick={() => {
-                    createCustomExercise(query.trim());
-                    setShowAdd(false);
-                    setQuery("");
-                  }}
-                >
-                  Create "{query}"
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                  setAddFilter("all");
+                },
+              }
+            : undefined
+        }
+        maxListHeight={560}
+      />
 
-      {/* Switch exercise modal */}
-      {switchTarget &&
-        session &&
-        (() => {
-          const entry = session.entries.find(
-            (e) => e.id === switchTarget.entryId
-          );
-          const currentEx = entry ? exMap.get(entry.exerciseId) : undefined;
-          const group = currentEx?.muscleGroup;
-          const list = exercises
-            .filter((e) => e.muscleGroup === group && e.id !== currentEx?.id)
-            .filter((e) =>
-              e.name.toLowerCase().includes(switchQuery.toLowerCase())
-            )
-            .sort((a, b) => a.name.localeCompare(b.name));
-          return (
-            <div
-              className="fixed inset-0 bg-black/50 backdrop-blur flex items-start sm:items-center justify-center z-50 p-4"
-              role="dialog"
-              aria-modal="true"
-            >
-              <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg p-4 shadow-xl border border-[var(--border)]">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium">
-                    {currentEx ? `Switch ${currentEx.name}` : "Switch exercise"}
-                    {group ? (
-                      <span className="opacity-70 ml-2 text-xs">({group})</span>
-                    ) : null}
-                  </div>
-                  <button
-                    className="text-xs bg-slate-800 rounded px-2 py-1"
-                    onClick={() => setSwitchTarget(null)}
-                  >
-                    Close
-                  </button>
-                </div>
-                <input
-                  className="w-full bg-slate-800 rounded-xl px-3 py-2"
-                  placeholder={`Search ${group || "muscle"} exercises`}
-                  value={switchQuery}
-                  onChange={(e) => setSwitchQuery(e.target.value)}
-                />
-                <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
-                  {list.map((e) => (
-                    <button
-                      key={e.id}
-                      className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl"
-                      onClick={() => {
-                        if (entry) switchExercise(entry, e);
-                      }}
-                    >
-                      {e.name}
-                    </button>
-                  ))}
-                  {list.length === 0 && (
-                    <div className="px-3 py-4 text-sm text-slate-300 bg-slate-800/70 rounded-xl">
-                      No alternatives found for this muscle group.
-                    </div>
-                  )}
-                </div>
-              </div>
+      <OptionSheet
+        open={Boolean(switchTarget) && Boolean(switchModalContext)}
+        title={
+          switchModalContext?.currentEx
+            ? `Switch ${switchModalContext.currentEx.name}`
+            : "Switch exercise"
+        }
+        description={
+          switchModalContext?.group
+            ? `Browse alternatives for ${formatMuscleLabel(
+                switchModalContext.group
+              )}.`
+            : "Pick a different movement to replace this entry."
+        }
+        onClose={() => setSwitchTarget(null)}
+        searchValue={switchQuery}
+        onSearchChange={setSwitchQuery}
+        searchPlaceholder="Search exercises"
+        searchLabel="Search"
+        initialFocus="search"
+        options={switchModalContext?.options ?? []}
+        highlight={switchSheetHighlight || undefined}
+        emptyState={
+          <div className="space-y-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+            <p>No alternatives found in this view.</p>
+            {switchScope === "group" && (switchModalContext?.totalCount || 0) > 0 ? (
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white/80 transition hover:border-emerald-400/60 hover:bg-emerald-400/20 hover:text-white"
+                onClick={() => setSwitchScope("all")}
+              >
+                Show all exercises
+              </button>
+            ) : null}
+          </div>
+        }
+        footer={
+          switchModalContext?.currentEx ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/70">
+              <span className="text-white/90">Currently:</span>{" "}
+              <span className="font-medium text-white">
+                {switchModalContext.currentEx.name}
+              </span>
             </div>
-          );
-        })()}
+          ) : undefined
+        }
+        maxListHeight={520}
+      />
 
       <div>
         <button className="text-xs underline" onClick={() => undoLast()}>
@@ -4827,256 +5041,152 @@ function DaySelector({
   onChange: (v: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [rendered, setRendered] = useState(false); // for exit animation
-  const [mobile, setMobile] = useState(false);
+  const [search, setSearch] = useState("");
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const touchStartY = useRef<number | null>(null);
   const liveRef = useRef<HTMLDivElement | null>(null);
-  // Guard against stale index (e.g., program shrink) so selector always has a valid label
+
   useEffect(() => {
-    if (value >= labels.length && labels.length) {
+    if (!labels.length) return;
+    if (value < 0) {
       onChange(0);
+      return;
     }
-  }, [value, labels.length]);
-  // Persist last selection across reload (sessionStorage scope)
+    if (value >= labels.length) {
+      onChange(labels.length - 1);
+    }
+  }, [labels.length, value, onChange]);
+
   useEffect(() => {
     try {
       sessionStorage.setItem("lastDayIdx", String(value));
     } catch {}
   }, [value]);
+
   useEffect(() => {
-    if (value === 0) {
-      try {
-        const v = sessionStorage.getItem("lastDayIdx");
-        if (v) onChange(Number(v));
-      } catch {}
-    }
-  }, []);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width:768px)");
-    const handler = () => setMobile(mq.matches);
-    handler();
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  useEffect(() => {
-    if (open) {
-      setRendered(true);
-      requestAnimationFrame(() => {
-        const el = listRef.current?.querySelector(`[data-idx='${value}']`) as
-          | HTMLElement
-          | undefined;
-        el?.scrollIntoView({ block: "center" });
-        try {
-          navigator.vibrate?.(12);
-        } catch {}
-      });
-    } else {
-      // closing
-      if (rendered) {
-        const t = setTimeout(() => setRendered(false), 180);
-        return () => clearTimeout(t);
+    if (!labels.length) return;
+    try {
+      const stored = sessionStorage.getItem("lastDayIdx");
+      if (stored != null) {
+        const idx = Number(stored);
+        if (Number.isFinite(idx)) {
+          const clamped = Math.max(0, Math.min(labels.length - 1, idx));
+          if (clamped !== value) {
+            onChange(clamped);
+          }
+        }
       }
-      triggerRef.current?.focus();
-    }
-  }, [open, value, rendered]);
-  const openList = () => setOpen(true);
-  const closeList = () => setOpen(false);
-  const choose = (i: number) => {
-    onChange(i);
-    closeList();
-    if (liveRef.current) {
-      liveRef.current.textContent = `Selected ${labels[i]}`;
-    }
-  };
-  const onTriggerKey = (e: React.KeyboardEvent) => {
-    if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
-      e.preventDefault();
-      openList();
-    }
-  };
-  const onOptionKey = (e: React.KeyboardEvent, idx: number) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      choose(idx);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const n = listRef.current?.querySelector(`[data-idx='${idx + 1}']`) as
-        | HTMLElement
-        | undefined;
-      n?.focus();
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const p = listRef.current?.querySelector(`[data-idx='${idx - 1}']`) as
-        | HTMLElement
-        | undefined;
-      p?.focus();
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      closeList();
-    }
-  };
-  const sheetTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-  const sheetTouchMove = (e: React.TouchEvent) => {
-    if (touchStartY.current != null) {
-      const dy = e.touches[0].clientY - touchStartY.current;
-      if (dy > 90) {
-        closeList();
-        touchStartY.current = null;
-      }
-    }
-  };
-  // Close on outside click (desktop)
+    } catch {}
+  }, [labels.length, onChange, value]);
+
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      const t = e.target as Node;
-      if (listRef.current && listRef.current.contains(t)) return;
-      if (triggerRef.current && triggerRef.current.contains(t)) return;
-      setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown, true);
-    document.addEventListener("touchstart", onDown, true);
-    return () => {
-      document.removeEventListener("mousedown", onDown, true);
-      document.removeEventListener("touchstart", onDown, true);
-    };
+    try {
+      navigator.vibrate?.(12);
+    } catch {}
   }, [open]);
 
-  const overlay = (rendered || open) && (
-    <div
-      className={
-        mobile
-          ? "fixed inset-0 z-[1000] flex flex-col justify-end"
-          : "fixed inset-0 z-[1000] pointer-events-none"
+  const announceSelection = useCallback(
+    (label: string) => {
+      if (liveRef.current) {
+        liveRef.current.textContent = `Selected ${label}`;
       }
-    >
-      {mobile && (
-        <div
-          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-180 ${
-            open ? "opacity-100" : "opacity-0"
-          } anim-motion-safe`}
-          onClick={closeList}
-        />
-      )}
-      <div
-        className={
-          mobile
-            ? `relative w-full rounded-t-2xl border border-white/10 bg-slate-900/95 backdrop-blur max-h-[70vh] overflow-hidden flex flex-col shadow-xl will-change-transform transition-transform duration-180 ease-[cubic-bezier(.32,.72,.33,1)] ${
-                open
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-full opacity-0"
-              } anim-motion-safe`
-            : `absolute pointer-events-auto rounded-lg border border-white/10 bg-slate-900/95 backdrop-blur shadow-xl max-h-[48vh] overflow-hidden flex flex-col will-change-transform transition-all duration-160 ease-out ${
-                open
-                  ? "scale-100 opacity-100 translate-y-0"
-                  : "scale-95 opacity-0 -translate-y-1"
-              } anim-motion-safe`
-        }
-        style={
-          !mobile
-            ? (() => {
-                const r = triggerRef.current?.getBoundingClientRect();
-                if (!r) return { top: 0, left: 0 };
-                const top = Math.min(
-                  window.innerHeight - window.innerHeight * 0.4,
-                  r.bottom + 4
-                );
-                const left = Math.min(
-                  window.innerWidth - 260,
-                  Math.max(8, r.left)
-                );
-                return {
-                  position: "absolute",
-                  top,
-                  left,
-                  width: Math.min(260, window.innerWidth - 16),
-                };
-              })()
-            : {}
-        }
-        role="dialog"
-        aria-modal={mobile ? "true" : undefined}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
-            closeList();
-          }
-        }}
-        onTouchStart={mobile ? sheetTouchStart : undefined}
-        onTouchMove={mobile ? sheetTouchMove : undefined}
-      >
-        {mobile && (
-          <div className="h-6 flex items-center justify-center relative">
-            <div className="w-10 h-1.5 rounded-full bg-slate-600" />
-            <button
-              className="absolute right-2 top-1 text-xs text-gray-400 px-2 py-1"
-              onClick={closeList}
-            >
-              Close
-            </button>
-          </div>
-        )}
-        <div
-          ref={listRef}
-          className="relative selector-scroll overflow-y-auto px-1 pb-2 focus:outline-none max-h-full"
-          role="listbox"
-          aria-activedescendant={`day-opt-${value}`}
-          tabIndex={-1}
-        >
-          <div className="pointer-events-none absolute top-0 left-0 right-0 h-4 bg-gradient-to-b from-[rgba(15,23,42,0.95)] to-transparent" />
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-[rgba(15,23,42,0.95)] to-transparent" />
-          {labels.map((l, i) => {
-            const selected = i === value;
-            return (
-              <button
-                key={i}
-                id={`day-opt-${i}`}
-                data-idx={i}
-                role="option"
-                aria-selected={selected}
-                className={`w-full text-left px-3 py-3 flex items-center justify-between gap-2 rounded-md mt-1 first:mt-0 focus:outline-none transition-colors duration-120 ${
-                  selected
-                    ? "bg-emerald-600/90 text-black font-medium"
-                    : "hover:bg-white/5 text-gray-200"
-                }`}
-                onClick={() => choose(i)}
-                onKeyDown={(e) => onOptionKey(e, i)}
-              >
-                <span className="flex-1 text-sm break-words leading-snug max-w-[200px]">
-                  {l}
-                </span>
-                {selected && <span className="text-xs">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    },
+    []
   );
+
+  const handleSelect = useCallback(
+    (idx: number) => {
+      const label = labels[idx] || `Day ${idx + 1}`;
+      onChange(idx);
+      setOpen(false);
+      setSearch("");
+      announceSelection(label);
+      try {
+        (navigator as any).vibrate?.(10);
+      } catch {}
+    },
+    [labels, onChange, announceSelection]
+  );
+
+  const filteredOptions = useMemo<OptionSheetOption[]>(() => {
+    if (!labels.length) return [];
+    const q = search.trim().toLowerCase();
+    return labels
+      .map((label, idx) => {
+        const title = label || `Day ${idx + 1}`;
+        const matches =
+          !q ||
+          title.toLowerCase().includes(q) ||
+          `${idx + 1}`.includes(q.replace(/[^0-9]/g, ""));
+        if (!matches) return null;
+        return {
+          id: String(idx),
+          label: title,
+          description: `Day ${idx + 1}`,
+          selected: idx === value,
+          trailing: idx === value ? "Current" : undefined,
+          onSelect: () => handleSelect(idx),
+        } satisfies OptionSheetOption;
+      })
+      .filter(Boolean) as OptionSheetOption[];
+  }, [labels, value, search, handleSelect]);
+
+  const onTriggerKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const selectedLabel = labels[value] || `Day ${value + 1}`;
+
   return (
     <div className="relative">
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         onKeyDown={onTriggerKey}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-controls="day-selector"
-        className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 hover:bg-slate-700/70 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-        title={labels[value]}
+        className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 px-3 py-2 text-sm text-white/90 transition hover:border-white/20 hover:bg-slate-700/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+        title={selectedLabel}
       >
-        <span className="truncate max-w-[70vw] sm:max-w-[180px]">
-          {labels[value]}
+        <span className="truncate max-w-[70vw] sm:max-w-[180px]">{selectedLabel}</span>
+        <span className="opacity-70 text-[10px]" aria-hidden="true">
+          ▼
         </span>
-        <span className="opacity-70 text-[10px]">▼</span>
       </button>
-      {/* Mobile pills removed: only dropdown selector retained */}
-      {overlay && createPortal(overlay, document.body)}
+      <OptionSheet
+        open={open}
+        title="Choose workout day"
+        description="Switching days updates the session you are editing."
+        onClose={() => {
+          setOpen(false);
+          setSearch("");
+        }}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or number"
+        searchLabel="Filter"
+        initialFocus="search"
+        options={filteredOptions}
+        emptyState={
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+            {search.trim()
+              ? `No day matching "${search.trim()}"`
+              : "No days available."}
+          </div>
+        }
+        footer={
+          labels.length > 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+              {labels.length} day{labels.length === 1 ? "" : "s"} in this phase
+            </div>
+          ) : undefined
+        }
+        maxListHeight={420}
+      />
       <div ref={liveRef} className="sr-only" aria-live="polite" />
     </div>
   );
