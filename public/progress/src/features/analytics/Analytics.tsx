@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import GlassCard from "../../components/GlassCard";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { getAllCached } from "../../lib/dataCache";
@@ -518,6 +518,9 @@ export default function Analytics() {
     [sessions, exercises]
   );
 
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const restoreSearchFocus = useRef(false);
+
   const filteredExercises = useMemo(() => {
     const term = exerciseQuery.trim().toLowerCase();
     if (!term) return exercises;
@@ -537,11 +540,23 @@ export default function Analytics() {
   }, [filteredExercises, exercises, selectedExerciseId]);
 
   useEffect(() => {
-    if (!exerciseOptions.length) return;
-    if (!selectedExerciseId || !exerciseOptions.some((exercise) => exercise.id === selectedExerciseId)) {
-      setSelectedExerciseId(exerciseOptions[0].id);
-    }
+    if (selectedExerciseId || !exerciseOptions.length) return;
+    setSelectedExerciseId(exerciseOptions[0].id);
   }, [exerciseOptions, selectedExerciseId]);
+
+  useEffect(() => {
+    if (!restoreSearchFocus.current) return;
+    const input = searchInputRef.current;
+    restoreSearchFocus.current = false;
+    if (!input || document.activeElement === input) return;
+    input.focus({ preventScroll: true });
+    const length = input.value.length;
+    try {
+      input.setSelectionRange(length, length);
+    } catch {
+      /* noop */
+    }
+  }, [exerciseQuery, exerciseOptions, selectedExerciseId]);
 
   useEffect(() => {
     if (!selectedExerciseId) {
@@ -1062,8 +1077,18 @@ export default function Analytics() {
                   />
                 </svg>
                 <input
+                  ref={searchInputRef}
                   value={exerciseQuery}
-                  onChange={(event) => setExerciseQuery(event.target.value)}
+                  onChange={(event) => {
+                    restoreSearchFocus.current = true;
+                    setExerciseQuery(event.target.value);
+                  }}
+                  onFocus={() => {
+                    restoreSearchFocus.current = false;
+                  }}
+                  onBlur={() => {
+                    restoreSearchFocus.current = false;
+                  }}
                   placeholder="Search exercises"
                   className="w-full rounded-2xl border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white/80 placeholder:text-white/40 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60"
                   type="search"
@@ -1072,7 +1097,10 @@ export default function Analytics() {
                 {exerciseQuery && (
                   <button
                     type="button"
-                    onClick={() => setExerciseQuery("")}
+                    onClick={() => {
+                      restoreSearchFocus.current = true;
+                      setExerciseQuery("");
+                    }}
                     className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:text-white/80"
                     aria-label="Clear exercise search"
                   >
