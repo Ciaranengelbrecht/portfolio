@@ -1,12 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Fragment,
-  ReactNode,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-} from "react";
+import { Fragment, ReactNode, useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export type OptionSheetOption = {
@@ -63,6 +56,11 @@ export default function OptionSheet({
   const listRef = useRef<HTMLDivElement | null>(null);
   const lastActive = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +70,7 @@ export default function OptionSheet({
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current?.();
       }
     };
     document.addEventListener("keydown", handler);
@@ -81,10 +79,17 @@ export default function OptionSheet({
       const node = focusTarget.current;
       if (node) {
         if (node instanceof HTMLInputElement) {
-          node.focus({ preventScroll: true });
-          node.select?.();
+          if (document.activeElement !== node) {
+            node.focus({ preventScroll: true });
+            node.select?.();
+          }
         } else {
-          (node.querySelector("[data-option]") as HTMLElement | null)?.focus();
+          const first = node.querySelector(
+            "[data-option]"
+          ) as HTMLElement | null;
+          if (first && document.activeElement !== first) {
+            first.focus();
+          }
         }
       }
     });
@@ -94,7 +99,7 @@ export default function OptionSheet({
       lastActive.current?.focus?.({ preventScroll: true });
       lastActive.current = null;
     };
-  }, [open, onClose, initialFocus]);
+  }, [open, initialFocus]);
 
   const content = useMemo(() => {
     if (!open) return null;
@@ -246,7 +251,22 @@ export default function OptionSheet({
         ) : null}
       </AnimatePresence>
     );
-  }, [open, onClose, title, description, searchValue, onSearchChange, searchPlaceholder, searchLabel, highlight, options, emptyState, primaryAction, footer, maxListHeight]);
+  }, [
+    open,
+    onClose,
+    title,
+    description,
+    searchValue,
+    onSearchChange,
+    searchPlaceholder,
+    searchLabel,
+    highlight,
+    options,
+    emptyState,
+    primaryAction,
+    footer,
+    maxListHeight,
+  ]);
 
   if (!body) return null;
   return createPortal(content, body);
