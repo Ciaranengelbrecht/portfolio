@@ -2997,21 +2997,14 @@ export default function Sessions() {
       {/* Removed mobile floating Add Exercise button (user preference) */}
       <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
         <div className="rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] backdrop-blur px-4 py-4 sm:px-6 sm:py-5 shadow-[0_20px_48px_rgba(15,23,42,0.55)] space-y-4 min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
               <h2 className="text-xl font-semibold tracking-tight text-slate-50">
                 Sessions
               </h2>
-              <div className="inline-flex">
-                <PhaseStepper
-                  value={phase}
-                  onChange={async (p) => {
-                    setPhase(p);
-                    const s = await getSettings();
-                    await setSettings({ ...s, currentPhase: p });
-                  }}
-                />
-              </div>
+              <p className="mt-0.5 text-[12px] text-slate-300/70">
+                Log today’s work, adjust weeks, and keep progressing.
+              </p>
             </div>
             {session && !!session.entries.length && (
               <button
@@ -3043,26 +3036,11 @@ export default function Sessions() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,240px)]">
-            <select
-              className="bg-slate-900/70 text-slate-100 rounded-xl border border-white/10 px-3 py-2 text-sm shadow-inner"
-              value={week}
-              onChange={(e) => {
-                setWeek(Number(e.target.value));
-                setAutoNavDone(true);
-              }}
-            >
-              {(program
-                ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
-                : Array.from({ length: 9 }, (_, i) => i + 1)
-              ).map((w) => (
-                <option key={w} value={w}>
-                  Week {w}
-                  {program && deloadWeeks.has(w) ? " (Deload)" : ""}
-                </option>
-              ))}
-            </select>
-            <div className="w-full">
+          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1fr)]">
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
+                Workout day
+              </span>
               <DaySelector
                 labels={
                   program
@@ -3078,43 +3056,87 @@ export default function Sessions() {
                 }}
               />
             </div>
-            {session && (
-              <div
-                className="flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-100"
-                title="Current assigned date (edit or stamp)"
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
+                Week
+              </span>
+              <select
+                className="bg-slate-900/70 text-slate-100 rounded-xl border border-white/10 px-3 py-2 text-sm shadow-inner"
+                value={week}
+                onChange={(e) => {
+                  setWeek(Number(e.target.value));
+                  setAutoNavDone(true);
+                }}
               >
-                {!editingDate && (
-                  <span
-                    className="font-mono tracking-tight"
-                    title={session.localDate || session.dateISO.slice(0, 10)}
+                {(program
+                  ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
+                  : Array.from({ length: 9 }, (_, i) => i + 1)
+                ).map((w) => (
+                  <option key={w} value={w}>
+                    Week {w}
+                    {program && deloadWeeks.has(w) ? " (Deload)" : ""}
+                  </option>
+                ))}
+              </select>
+              <PhaseStepper
+                variant="compact"
+                value={phase}
+                onChange={async (p) => {
+                  setPhase(p);
+                  const s = await getSettings();
+                  await setSettings({ ...s, currentPhase: p });
+                }}
+              />
+            </div>
+            {session && (
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
+                  Session date
+                </span>
+                <div
+                  className="flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-100"
+                  title="Current assigned date (edit or stamp)"
+                >
+                  {!editingDate && (
+                    <span
+                      className="font-mono tracking-tight"
+                      title={session.localDate || session.dateISO.slice(0, 10)}
+                    >
+                      {displayDate(
+                        session.localDate || session.dateISO.slice(0, 10)
+                      )}
+                    </span>
+                  )}
+                  {editingDate && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <input
+                        type="date"
+                        className="rounded px-2 py-1 text-[11px] text-slate-200 bg-slate-800/90"
+                        value={dateEditValue}
+                        onChange={(e) => setDateEditValue(e.target.value)}
+                      />
+                      <button
+                        className="rounded bg-emerald-600/80 px-2 py-1 text-[10px] text-emerald-50 transition hover:bg-emerald-600"
+                        onClick={saveManualDate}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
+                        onClick={() => setEditingDate(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="ml-auto rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.28em] text-white/60 transition hover:border-white/20 hover:bg-white/15 hover:text-white"
+                    onClick={() => setEditingDate((v) => !v)}
                   >
-                    {displayDate(
-                      session.localDate || session.dateISO.slice(0, 10)
-                    )}
-                  </span>
-                )}
-                {editingDate && (
-                  <div className="flex flex-wrap items-center gap-1">
-                    <input
-                      type="date"
-                      className="rounded px-2 py-1 text-[11px] text-slate-200 bg-slate-800/90"
-                      value={dateEditValue}
-                      onChange={(e) => setDateEditValue(e.target.value)}
-                    />
-                    <button
-                      className="rounded bg-emerald-600/80 px-2 py-1 text-[10px] text-emerald-50 transition hover:bg-emerald-600"
-                      onClick={saveManualDate}
-                    >
-                      Save
-                    </button>
-                    <button
-                      className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
-                      onClick={() => setEditingDate(false)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
+                    {editingDate ? "Cancel" : "Edit"}
+                  </button>
+                </div>
                 {!editingDate && (
                   <div className="flex items-center gap-1 ml-auto">
                     <button
