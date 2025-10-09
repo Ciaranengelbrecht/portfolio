@@ -471,6 +471,7 @@ export default function Analytics() {
   const [RC, setRC] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
+  const [exerciseQuery, setExerciseQuery] = useState("");
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
 
   const aggregates = useAggregates();
@@ -516,6 +517,31 @@ export default function Analytics() {
     () => buildAnalytics(sessions, exercises),
     [sessions, exercises]
   );
+
+  const filteredExercises = useMemo(() => {
+    const term = exerciseQuery.trim().toLowerCase();
+    if (!term) return exercises;
+    return exercises.filter((exercise) =>
+      exercise.name.toLowerCase().includes(term)
+    );
+  }, [exerciseQuery, exercises]);
+
+  const exerciseOptions = useMemo(() => {
+    if (!selectedExerciseId) return filteredExercises;
+    if (filteredExercises.some((exercise) => exercise.id === selectedExerciseId)) {
+      return filteredExercises;
+    }
+    const selected = exercises.find((exercise) => exercise.id === selectedExerciseId);
+    if (!selected) return filteredExercises;
+    return [selected, ...filteredExercises.filter((exercise) => exercise.id !== selected.id)];
+  }, [filteredExercises, exercises, selectedExerciseId]);
+
+  useEffect(() => {
+    if (!exerciseOptions.length) return;
+    if (!selectedExerciseId || !exerciseOptions.some((exercise) => exercise.id === selectedExerciseId)) {
+      setSelectedExerciseId(exerciseOptions[0].id);
+    }
+  }, [exerciseOptions, selectedExerciseId]);
 
   useEffect(() => {
     if (!selectedExerciseId) {
@@ -1012,25 +1038,73 @@ export default function Analytics() {
     <div className="space-y-6">
       <GlassCard>
         <div className="flex flex-wrap items-center gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">
-              Exercise analytics
-            </p>
-            <h3 className="text-lg font-semibold text-white">
-              Choose an exercise to deep dive
-            </h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">
+                Exercise analytics
+              </p>
+              <h3 className="text-lg font-semibold text-white">
+                Choose an exercise to deep dive
+              </h3>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div className="relative w-full sm:w-52">
+                <svg
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9 3.5a5.5 5.5 0 1 0 3.473 9.8l3.113 3.114a.75.75 0 1 0 1.06-1.06l-3.113-3.115A5.5 5.5 0 0 0 9 3.5Zm-4 5.5a4 4 0 1 1 7.999.002A4 4 0 0 1 5 9Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <input
+                  value={exerciseQuery}
+                  onChange={(event) => setExerciseQuery(event.target.value)}
+                  placeholder="Search exercises"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white/80 placeholder:text-white/40 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60"
+                  type="search"
+                  spellCheck={false}
+                />
+                {exerciseQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setExerciseQuery("")}
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:text-white/80"
+                    aria-label="Clear exercise search"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <select
+                className="rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white/80 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60 disabled:cursor-not-allowed disabled:text-white/30"
+                value={exerciseOptions.length ? selectedExerciseId : ""}
+                onChange={(event) => setSelectedExerciseId(event.target.value)}
+                disabled={!exerciseOptions.length}
+              >
+                {exerciseOptions.length ? (
+                  exerciseOptions.map((exercise) => (
+                    <option key={exercise.id} value={exercise.id}>
+                      {exercise.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    No exercises found
+                  </option>
+                )}
+              </select>
+            </div>
           </div>
-          <select
-            className="rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white/80 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60"
-            value={selectedExerciseId}
-            onChange={(e) => setSelectedExerciseId(e.target.value)}
-          >
-            {exercises.map((exercise) => (
-              <option key={exercise.id} value={exercise.id}>
-                {exercise.name}
-              </option>
-            ))}
-          </select>
+          {exerciseQuery && !filteredExercises.length && (
+            <p className="text-xs text-rose-200/70">
+              No exercises match “{exerciseQuery}”. Try a different term.
+            </p>
+          )}
         </div>
       </GlassCard>
 
