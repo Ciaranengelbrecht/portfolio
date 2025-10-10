@@ -34,3 +34,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Bubblewrap / Android (keep local, never commit)
+android/
+output/
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.keystore.properties
+**/keystore.jks
+**/upload.jks
