@@ -88,6 +88,7 @@ export interface Measurement {
   id: UUID;
   dateISO: string;
   weightKg?: number;
+  heightCm?: number;
   // Circumference/tape metrics
   neck?: number;
   chest?: number;
@@ -110,6 +111,7 @@ export interface Measurement {
   bodyFatPct?: number; // percent
   fatMassKg?: number; // kg
   leanMassKg?: number; // kg (LBM)
+  bodyDensity?: number; // g/cm³ from skinfold estimator
   skeletalMuscleMassKg?: number; // kg (SMM)
   visceralFatRating?: number; // often a unitless score
   bmrKcal?: number; // kcal/day
@@ -133,6 +135,8 @@ export interface Measurement {
   rightArmFatKg?: number;
   leftLegFatKg?: number;
   rightLegFatKg?: number;
+  ffmi?: number;
+  ffmiAdjusted?: number;
   deletedAt?: string | null;
 }
 

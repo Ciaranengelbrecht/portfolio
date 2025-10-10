@@ -19,7 +19,45 @@ const TIPS: Record<string, string> = {
   calf: "At the largest point standing.",
   upperArm: "Upper arm cold, flexed lightly.",
   forearm: "At the largest point, arm parallel to floor.",
+  heightCm:
+    "Stand tall without shoes, heels together, back against the wall. Measure to the nearest 0.5 cm.",
 };
+
+const FIELD_LABEL_OVERRIDES: Record<string, string> = {
+  weightKg: "Weight (kg)",
+  heightCm: "Height (cm)",
+  upperArm: "Upper arm",
+  bodyFatPct: "Body fat %",
+  leanMassKg: "Lean mass (kg)",
+  fatMassKg: "Fat mass (kg)",
+  ffmi: "FFMI",
+  ffmiAdjusted: "Adj. FFMI",
+};
+
+const FIELD_UNIT_OVERRIDES: Record<string, string> = {
+  weightKg: "kg",
+  heightCm: "cm",
+  neck: "cm",
+  chest: "cm",
+  waist: "cm",
+  hips: "cm",
+  thigh: "cm",
+  calf: "cm",
+  upperArm: "cm",
+  forearm: "cm",
+};
+
+const formatMeasurementLabel = (key: string) => {
+  if (FIELD_LABEL_OVERRIDES[key]) return FIELD_LABEL_OVERRIDES[key];
+  const withSpaces = key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/_/g, " ")
+    .trim();
+  if (!withSpaces) return key;
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+};
+
+const getUnitForKey = (key: string) => FIELD_UNIT_OVERRIDES[key] || "";
 
 type SkinfoldKey =
   | "skinfoldChest"
@@ -132,6 +170,22 @@ type BodyFatComputationResult =
       ok: false;
       reason: "age" | "sites";
       missingSites?: SkinfoldKey[];
+    };
+
+type FfmiComputationResult =
+  | {
+      ok: true;
+      ffmi: number;
+      ffmiAdjusted: number;
+      heightCm: number;
+      heightM: number;
+      leanMassKg: number;
+      source: "recorded" | "bodyFatMeasurement" | "bodyFatEstimate";
+      bodyFatPctUsed?: number;
+    }
+  | {
+      ok: false;
+      reason: "height" | "leanMass";
     };
 
 function calculateBodyFatFromCalipers({
@@ -296,6 +350,15 @@ export default function Measurements() {
         (r) => r.dateISO.slice(0, 10) === today
       );
       if (existingToday) setM(existingToday);
+      else if (sorted.length) {
+        setM((prev) => ({
+          ...prev,
+          heightCm:
+            typeof prev.heightCm === "number" && !Number.isNaN(prev.heightCm)
+              ? prev.heightCm
+              : sorted[0]?.heightCm,
+        }));
+      }
     })();
   }, []);
 
@@ -335,6 +398,79 @@ export default function Measurements() {
     [bodyFatPrefs.sex, bodyFatPrefs.age, caliperValues, m.weightKg]
   );
 
+  const ffmiResult: FfmiComputationResult = useMemo(() => {
+    const rawHeight =
+      typeof m.heightCm === "number" && !Number.isNaN(m.heightCm)
+        ? m.heightCm
+        : undefined;
+    if (!rawHeight || rawHeight <= 0) {
+      return { ok: false, reason: "height" };
+    }
+    const heightCm = Number(rawHeight.toFixed(1));
+    const heightM = heightCm / 100;
+    if (!heightM || Number.isNaN(heightM) || heightM <= 0) {
+      return { ok: false, reason: "height" };
+    }
+
+    let leanMass: number | undefined;
+    let source:
+      | "recorded"
+      | "bodyFatMeasurement"
+      | "bodyFatEstimate"
+      | undefined;
+    let bodyFatPctUsed: number | undefined;
+
+    if (typeof m.leanMassKg === "number" && m.leanMassKg > 0) {
+      leanMass = m.leanMassKg;
+      source = "recorded";
+    } else if (
+      typeof m.weightKg === "number" &&
+      m.weightKg > 0 &&
+      typeof m.bodyFatPct === "number"
+    ) {
+      leanMass = m.weightKg * (1 - m.bodyFatPct / 100);
+      source = "bodyFatMeasurement";
+      bodyFatPctUsed = m.bodyFatPct;
+    } else if (
+      bodyFatResult.ok &&
+      typeof bodyFatResult.leanMassKg === "number"
+    ) {
+      leanMass = bodyFatResult.leanMassKg;
+      source = "bodyFatEstimate";
+      bodyFatPctUsed = bodyFatResult.bodyFatPct;
+    } else if (
+      typeof m.weightKg === "number" &&
+      m.weightKg > 0 &&
+      bodyFatResult.ok
+    ) {
+      leanMass = m.weightKg * (1 - bodyFatResult.bodyFatPct / 100);
+      source = "bodyFatEstimate";
+      bodyFatPctUsed = bodyFatResult.bodyFatPct;
+    }
+
+    if (!leanMass || Number.isNaN(leanMass) || leanMass <= 0) {
+      return { ok: false, reason: "leanMass" };
+    }
+
+    const leanMassKg = Number(leanMass.toFixed(2));
+    const ffmi = Number((leanMassKg / (heightM * heightM)).toFixed(2));
+    const ffmiAdjusted = Number((ffmi + 6 * (1.8 - heightM)).toFixed(2));
+
+    return {
+      ok: true,
+      ffmi,
+      ffmiAdjusted,
+      heightCm,
+      heightM: Number(heightM.toFixed(3)),
+      leanMassKg,
+      source: source ?? "recorded",
+      bodyFatPctUsed:
+        typeof bodyFatPctUsed === "number"
+          ? Number(bodyFatPctUsed.toFixed(2))
+          : undefined,
+    };
+  }, [bodyFatResult, m.bodyFatPct, m.heightCm, m.leanMassKg, m.weightKg]);
+
   const save = async () => {
     await db.put("measurements", m);
     // refresh list
@@ -345,7 +481,15 @@ export default function Measurements() {
     const today = new Date().toISOString().slice(0, 10);
     const todayEntry = sorted.find((r) => r.dateISO.slice(0, 10) === today);
     if (todayEntry) setM(todayEntry);
-    else setM({ id: nanoid(), dateISO: new Date().toISOString() });
+    else
+      setM({
+        id: nanoid(),
+        dateISO: new Date().toISOString(),
+        heightCm:
+          typeof m.heightCm === "number" && !Number.isNaN(m.heightCm)
+            ? m.heightCm
+            : sorted[0]?.heightCm,
+      });
   };
 
   // Import Evolt 360 PDF/Text
@@ -536,6 +680,34 @@ export default function Measurements() {
     setM((prev) => ({ ...prev, [key]: value } as Measurement));
   };
 
+  const leanMassDisplay = ffmiResult.ok
+    ? ffmiResult.leanMassKg
+    : typeof m.leanMassKg === "number" && m.leanMassKg > 0
+    ? Number(m.leanMassKg.toFixed(2))
+    : bodyFatResult.ok && typeof bodyFatResult.leanMassKg === "number"
+    ? Number(bodyFatResult.leanMassKg.toFixed(2))
+    : typeof m.weightKg === "number" &&
+      typeof m.bodyFatPct === "number" &&
+      m.weightKg > 0
+    ? Number((m.weightKg * (1 - m.bodyFatPct / 100)).toFixed(2))
+    : undefined;
+
+  const leanMassSourceLabel = (() => {
+    if (ffmiResult.ok) {
+      if (ffmiResult.source === "recorded") return "Recorded lean mass";
+      if (ffmiResult.source === "bodyFatMeasurement")
+        return "Weight × recorded body fat";
+      return "Weight × current body-fat estimate";
+    }
+    if (typeof m.leanMassKg === "number" && m.leanMassKg > 0)
+      return "Recorded lean mass";
+    if (typeof m.weightKg === "number" && typeof m.bodyFatPct === "number")
+      return "Weight × recorded body fat";
+    if (bodyFatResult.ok && typeof bodyFatResult.leanMassKg === "number")
+      return "Body-fat estimate";
+    return null;
+  })();
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Measurements</h2>
@@ -555,6 +727,7 @@ export default function Measurements() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             "weightKg",
+            "heightCm",
             "neck",
             "chest",
             "waist",
@@ -563,61 +736,73 @@ export default function Measurements() {
             "calf",
             "upperArm",
             "forearm",
-          ].map((k) => (
-            <label key={k} className="space-y-1">
-              <div className="text-sm text-gray-300 capitalize">{k}</div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="bg-slate-700 rounded px-3 py-2"
-                  onClick={() =>
-                    setM((prev) => ({
-                      ...prev,
-                      [k]: Math.max(0, Number((prev as any)[k] || 0) - 0.5),
-                    }))
-                  }
-                >
-                  -
-                </button>
-                <input
-                  inputMode="decimal"
-                  className="w-full input-number-enhanced"
-                  value={(m as any)[k] || ""}
-                  onKeyDown={(e) => {
-                    if (e.key === "ArrowUp") {
-                      e.preventDefault();
-                      setM((prev) => ({
-                        ...prev,
-                        [k]: Number((prev as any)[k] || 0) + 0.5,
-                      }));
-                    } else if (e.key === "ArrowDown") {
-                      e.preventDefault();
+          ].map((k) => {
+            const label = formatMeasurementLabel(k);
+            const unit = getUnitForKey(k);
+            return (
+              <label key={k} className="space-y-1">
+                <div className="flex items-center justify-between text-sm text-gray-300">
+                  <span>{label}</span>
+                  {unit && (
+                    <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                      {unit}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="bg-slate-700 rounded px-3 py-2"
+                    onClick={() =>
                       setM((prev) => ({
                         ...prev,
                         [k]: Math.max(0, Number((prev as any)[k] || 0) - 0.5),
-                      }));
+                      }))
                     }
-                  }}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                    setM({ ...m, [k]: v === "" ? undefined : Number(v) });
-                  }}
-                />
-                <button
-                  className="bg-slate-700 rounded px-3 py-2"
-                  onClick={() =>
-                    setM((prev) => ({
-                      ...prev,
-                      [k]: Number((prev as any)[k] || 0) + 0.5,
-                    }))
-                  }
-                >
-                  +
-                </button>
-              </div>
-              {TIPS[k] && <p className="text-xs text-gray-400">{TIPS[k]}</p>}
-            </label>
-          ))}
+                  >
+                    -
+                  </button>
+                  <input
+                    inputMode="decimal"
+                    className="w-full input-number-enhanced"
+                    value={(m as any)[k] ?? ""}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setM((prev) => ({
+                          ...prev,
+                          [k]: Number((prev as any)[k] || 0) + 0.5,
+                        }));
+                      } else if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setM((prev) => ({
+                          ...prev,
+                          [k]: Math.max(0, Number((prev as any)[k] || 0) - 0.5),
+                        }));
+                      }
+                    }}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                      setM({ ...m, [k]: v === "" ? undefined : Number(v) });
+                    }}
+                    placeholder={unit}
+                  />
+                  <button
+                    className="bg-slate-700 rounded px-3 py-2"
+                    onClick={() =>
+                      setM((prev) => ({
+                        ...prev,
+                        [k]: Number((prev as any)[k] || 0) + 0.5,
+                      }))
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+                {TIPS[k] && <p className="text-xs text-gray-400">{TIPS[k]}</p>}
+              </label>
+            );
+          })}
         </div>
         <div className="pt-3 border-t border-white/5 space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-2">
@@ -744,7 +929,14 @@ export default function Measurements() {
           <button
             className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
             onClick={() =>
-              setM({ id: nanoid(), dateISO: new Date().toISOString() })
+              setM({
+                id: nanoid(),
+                dateISO: new Date().toISOString(),
+                heightCm:
+                  typeof m.heightCm === "number" && !Number.isNaN(m.heightCm)
+                    ? m.heightCm
+                    : undefined,
+              })
             }
           >
             Add another
@@ -907,6 +1099,7 @@ export default function Measurements() {
                   typeof bodyFatResult.fatMassKg === "number"
                     ? Number(bodyFatResult.fatMassKg.toFixed(2))
                     : prev.fatMassKg,
+                bodyDensity: Number(bodyFatResult.density.toFixed(4)),
               }));
               push({
                 message: "Body fat estimate applied to current measurement.",
@@ -914,6 +1107,142 @@ export default function Measurements() {
             }}
           >
             Apply estimate to measurement
+          </button>
+          <span className="text-[11px] text-slate-400">
+            Save to persist the updated entry.
+          </span>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-100">
+              FFMI calculator
+            </h3>
+            <p className="text-sm text-slate-300/80">
+              Uses height and lean mass to estimate your fat-free mass index.
+            </p>
+          </div>
+          <div className="text-xs text-slate-400">
+            Current entry:{" "}
+            {typeof m.ffmi === "number"
+              ? `${m.ffmi.toFixed(2)}${
+                  typeof m.ffmiAdjusted === "number"
+                    ? ` (${m.ffmiAdjusted.toFixed(2)} adj)`
+                    : ""
+                }`
+              : "—"}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+              Height
+            </div>
+            <div className="text-lg font-semibold text-slate-100">
+              {typeof m.heightCm === "number"
+                ? `${m.heightCm.toFixed(1)} cm`
+                : "—"}
+            </div>
+            {typeof m.heightCm === "number" && (
+              <div className="text-[11px] text-slate-400/80">
+                {(m.heightCm / 100).toFixed(2)} m
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+              Lean mass
+            </div>
+            <div className="text-lg font-semibold text-slate-100">
+              {typeof leanMassDisplay === "number"
+                ? `${leanMassDisplay.toFixed(2)} kg`
+                : "—"}
+            </div>
+            {leanMassSourceLabel && (
+              <div className="text-[11px] text-slate-400/80">
+                {leanMassSourceLabel}
+              </div>
+            )}
+          </div>
+          <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+              Weight
+            </div>
+            <div className="text-lg font-semibold text-slate-100">
+              {typeof m.weightKg === "number"
+                ? `${m.weightKg.toFixed(2)} kg`
+                : "—"}
+            </div>
+            {typeof m.bodyFatPct === "number" && (
+              <div className="text-[11px] text-slate-400/80">
+                Body fat: {m.bodyFatPct.toFixed(1)}%
+              </div>
+            )}
+          </div>
+        </div>
+        {ffmiResult.ok ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2">
+              <div className="text-xs uppercase tracking-[0.24em] text-sky-200">
+                FFMI
+              </div>
+              <div className="text-2xl font-semibold text-sky-100">
+                {ffmiResult.ffmi.toFixed(2)}
+              </div>
+              <div className="text-[11px] text-sky-200/70">
+                Lean mass ÷ height²
+              </div>
+            </div>
+            <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2">
+              <div className="text-xs uppercase tracking-[0.24em] text-sky-200">
+                Adjusted FFMI
+              </div>
+              <div className="text-2xl font-semibold text-sky-100">
+                {ffmiResult.ffmiAdjusted.toFixed(2)}
+              </div>
+              <div className="text-[11px] text-sky-200/70">
+                Normalized to 1.80 m
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-300 space-y-1">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                Inputs used
+              </div>
+              <div>Height: {ffmiResult.heightCm.toFixed(1)} cm</div>
+              <div>Lean mass: {ffmiResult.leanMassKg.toFixed(2)} kg</div>
+              {typeof ffmiResult.bodyFatPctUsed === "number" && (
+                <div>Body fat ref: {ffmiResult.bodyFatPctUsed.toFixed(1)}%</div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            {ffmiResult.reason === "height"
+              ? "Add your height measurement to calculate FFMI."
+              : "Provide lean mass (or weight with body-fat data) to compute FFMI."}
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="bg-sky-600 hover:bg-sky-700 px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!ffmiResult.ok}
+            onClick={() => {
+              if (!ffmiResult.ok) return;
+              setM((prev) => ({
+                ...prev,
+                ffmi: ffmiResult.ffmi,
+                ffmiAdjusted: ffmiResult.ffmiAdjusted,
+                leanMassKg: ffmiResult.leanMassKg,
+              }));
+              push({
+                message: "FFMI calculated and applied to the measurement.",
+              });
+            }}
+          >
+            Apply FFMI to measurement
           </button>
           <span className="text-[11px] text-slate-400">
             Save to persist the updated entry.
@@ -935,6 +1264,8 @@ export default function Measurements() {
             "bodyFatPct",
             "leanMassKg",
             "fatMassKg",
+            "ffmi",
+            "ffmiAdjusted",
           ].map((k) => (
             <button
               key={k}
@@ -945,7 +1276,7 @@ export default function Measurements() {
                   : "bg-white/5 border-white/10"
               }`}
             >
-              {k}
+              {formatMeasurementLabel(k)}
             </button>
           ))}
           <button
@@ -1160,6 +1491,14 @@ export default function Measurements() {
                         Body fat: {row.bodyFatPct.toFixed(1)}%
                       </span>
                     )}
+                    {row.ffmi != null && (
+                      <span className="rounded-full bg-sky-500/10 px-2 py-1 text-[11px] font-medium text-sky-200">
+                        FFMI: {row.ffmi.toFixed(2)}
+                        {row.ffmiAdjusted != null
+                          ? ` (adj ${row.ffmiAdjusted.toFixed(2)})`
+                          : ""}
+                      </span>
+                    )}
                     <button
                       className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-3 py-2"
                       onClick={() =>
@@ -1181,7 +1520,7 @@ export default function Measurements() {
                   </div>
                 </div>
                 {/* Mobile stacked fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div className="bg-slate-900/50 rounded-xl px-2 py-2">
                     <div className="text-[11px] text-gray-400 mb-1">Weight</div>
                     <div className="flex items-center gap-2">
@@ -1226,6 +1565,57 @@ export default function Measurements() {
                         onClick={() =>
                           update(row.id, {
                             weightKg: (row.weightKg || 0) + 0.5,
+                          })
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/50 rounded-xl px-2 py-2">
+                    <div className="text-[11px] text-gray-400 mb-1">Height</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="bg-slate-700 rounded px-3 py-2"
+                        onClick={() =>
+                          update(row.id, {
+                            heightCm: Math.max(0, (row.heightCm || 0) - 0.5),
+                          })
+                        }
+                      >
+                        -
+                      </button>
+                      <input
+                        className="input-number-enhanced w-full"
+                        inputMode="decimal"
+                        value={row.heightCm || ""}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            update(row.id, {
+                              heightCm: (row.heightCm || 0) + 0.5,
+                            });
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            update(row.id, {
+                              heightCm: Math.max(0, (row.heightCm || 0) - 0.5),
+                            });
+                          }
+                        }}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                          update(row.id, {
+                            heightCm: v === "" ? undefined : Number(v),
+                          });
+                        }}
+                        placeholder="cm"
+                      />
+                      <button
+                        className="bg-slate-700 rounded px-3 py-2"
+                        onClick={() =>
+                          update(row.id, {
+                            heightCm: (row.heightCm || 0) + 0.5,
                           })
                         }
                       >
@@ -1346,6 +1736,14 @@ export default function Measurements() {
                         Lean mass ≈{" "}
                         {(row.weightKg * (1 - row.bodyFatPct / 100)).toFixed(2)}{" "}
                         kg
+                      </span>
+                    )}
+                    {row.ffmi != null && (
+                      <span>
+                        FFMI {row.ffmi.toFixed(2)}
+                        {row.ffmiAdjusted != null
+                          ? ` (adj ${row.ffmiAdjusted.toFixed(2)})`
+                          : ""}
                       </span>
                     )}
                   </div>
