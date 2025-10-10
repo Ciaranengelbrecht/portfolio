@@ -61,3 +61,21 @@ next-env.d.ts
 **/*.keystore.properties
 **/keystore.jks
 **/upload.jks
+
+# Bubblewrap generated checksum
+public/progress/manifest-checksum.txt
+
+# Root-level Bubblewrap/Android project (keep outside of repo)
+/app/build.gradle
+/app/build/
+/app/src/
+/gradle/
+/.gradle/
+/gradlew
+/gradlew.bat
+/build.gradle
+/settings.gradle
+/gradle.properties
+/manifest-checksum.txt
+/twa-manifest.json
+/store_icon.png
