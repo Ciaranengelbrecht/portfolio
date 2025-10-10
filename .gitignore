@@ -36,8 +36,25 @@ yarn-error.log*
 next-env.d.ts
 
 # Bubblewrap / Android (keep local, never commit)
-android/
-output/
+/public/progress/android/
+/public/progress/output/
+/public/progress/build/
+/public/progress/app/
+/public/progress/gradle/
+/public/progress/.gradle/
+/progress/android/
+/progress/output/
+/progress/build/
+/progress/app/
+/progress/gradle/
+/progress/.gradle/
+
+# Android bundles/apks/idsigs anywhere
+**/*.aab
+**/*.apk
+**/*.idsig
+
+# Keystores and signing configs anywhere
 **/*.jks
 **/*.keystore
 **/*.p12

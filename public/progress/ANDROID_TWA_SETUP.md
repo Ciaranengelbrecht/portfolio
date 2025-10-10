@@ -32,7 +32,7 @@ bubblewrap init --manifest=https://ciaranengelbrecht.com/progress/manifest.webma
 
 During prompts:
 
-- Application ID (package): use Play-compliant format, e.g. `com.ciaran.liftlog` (do not use `liftlog.app`)
+- Application ID (package): use Play-compliant format, e.g. `com.ciaranengelbrecht.liftlog` (do not use `liftlog.app`)
 - Host name: `ciaranengelbrecht.com`
 - Launch URL: `https://ciaranengelbrecht.com/progress/`
 - Enable notifications if desired (optional)
@@ -60,7 +60,7 @@ Edit both files in this repo:
 
 Replace placeholders with your package name and SHA-256 fingerprint.
 
-For your app, set a Play-compliant package, e.g. `com.ciaran.liftlog`. We will also align `assetlinks.json` with the same package and your upload-key fingerprint:
+For your app, set a Play-compliant package, e.g. `com.ciaranengelbrecht.liftlog`. We will also align `assetlinks.json` with the same package and your upload-key fingerprint:
 
 ```
 A7:E8:18:9C:92:C9:1F:42:93:7A:43:F1:8A:4E:E0:4A:19:29:C4:58:2E:E1:26:0B:AD:E0:B7:A2:86:99:68:06

@@ -1,5 +1,5 @@
 {
-  "packageId": "liftlog.app",
+  "packageId": "com.ciaranengelbrecht.liftlog",
   "host": "ciaranengelbrecht.com",
   "name": "LiftLog",
   "launcherName": "LiftLog",
@@ -13,7 +13,7 @@
   "backgroundColor": "#0B0F14",
   "enableNotifications": true,
   "startUrl": "/progress/dist/index.html",
-  "iconUrl": "https://ciaranengelbrecht.com/progress/pwa-512x512.png",
+  "iconUrl": "https://raw.githubusercontent.com/Ciaranengelbrecht/portfolio/refs/heads/main/public/progress/icons/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "/Users/CiaranIMCC/Desktop/portfolio/public/progress/android.keystore",
