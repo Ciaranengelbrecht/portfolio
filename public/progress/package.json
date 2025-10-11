@@ -9,7 +9,8 @@
     "preview": "vite preview --port 5173",
     "test": "vitest run",
     "verify:dist": "node ./scripts/verify-dist.mjs",
-    "build:verify": "npm run build && npm run verify:dist",
+  "build:verify": "npm run build && npm run verify:dist",
+  "verify:live": "node ./scripts/verify-live.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {
