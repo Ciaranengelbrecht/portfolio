@@ -16,8 +16,8 @@
   "iconUrl": "https://raw.githubusercontent.com/Ciaranengelbrecht/portfolio/refs/heads/main/public/progress/icons/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "/Users/CiaranIMCC/Desktop/portfolio/public/progress/android.keystore",
-    "alias": "android"
+    "path": "/Users/CiaranIMCC/Desktop/portfolio/android.keystore",
+    "alias": "upload"
   },
   "appVersionName": "1",
   "appVersionCode": 1,
