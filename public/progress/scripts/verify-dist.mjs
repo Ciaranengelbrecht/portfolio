@@ -34,8 +34,23 @@ async function main() {
     }
   }
 
+  const legacyAliases = [
+    "index-C-gkLcDY.js",
+    "index-BZO3Pnt1.css",
+    "manifest-xkBwkjBY.webmanifest",
+  ];
+
+  for (const legacy of legacyAliases) {
+    const p = path.join(distDir, "assets", legacy);
+    try {
+      await fs.access(p);
+    } catch {
+      missing.push(p);
+    }
+  }
+
   if (missing.length) {
-    console.error("Missing assets referenced from index.html:");
+    console.error("Missing required assets in dist/assets:");
     for (const p of missing)
       console.error(" -", path.relative(path.resolve(__dirname, ".."), p));
     process.exitCode = 1;

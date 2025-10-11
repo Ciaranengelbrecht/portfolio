@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "postbuild": "node ./scripts/create-legacy-aliases.mjs",
     "preview": "vite preview --port 5173",
     "test": "vitest run",
     "verify:dist": "node ./scripts/verify-dist.mjs",
-  "build:verify": "npm run build && npm run verify:dist",
-  "verify:live": "node ./scripts/verify-live.mjs",
+    "build:verify": "npm run build && npm run verify:dist",
+    "verify:live": "node ./scripts/verify-live.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

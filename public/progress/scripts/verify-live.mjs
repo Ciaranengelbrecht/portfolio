@@ -43,13 +43,26 @@ async function main() {
     if (!ok) failures.push(url);
   }
 
+  const legacyAliases = [
+    'index-C-gkLcDY.js',
+    'index-BZO3Pnt1.css',
+    'manifest-xkBwkjBY.webmanifest',
+  ];
+
+  for (const legacy of legacyAliases) {
+    const url = `${origin}/progress/dist/assets/${legacy}`;
+    const ok = await head(url).catch(() => false);
+    console.log(`${ok ? 'OK ' : 'ERR'} ${url}`);
+    if (!ok) failures.push(url);
+  }
+
   if (failures.length) {
     console.error(`\n[verify-live] ${failures.length} missing assets on production:`);
     failures.forEach(u => console.error(' -', u));
     process.exit(1);
   }
 
-  console.log(`\n[verify-live] Success: ${assetRefs.size} assets referenced in index.html exist on production.`);
+  console.log(`\n[verify-live] Success: ${assetRefs.size + legacyAliases.length} required assets exist on production.`);
 }
 
 main().catch(e => {
