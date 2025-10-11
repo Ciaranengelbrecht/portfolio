@@ -78,13 +78,25 @@ returns your JSON.
 
 ## 6) Build the Android app bundle (AAB)
 
-From the Bubblewrap Android project directory:
+You can build in two ways. We recommend using the repo scripts so the output always lands in `public/progress`.
+
+Option A  recommended (from repo root):
+
+```bash
+npm run twa:build      # builds using Bubblewrap inside public/progress
+npm run twa:cert       # prints SHA1 and SHA256 of the fresh AAB
+```
+
+Option B (from the Bubblewrap Android project directory under `public/progress`):
 
 ```bash
 bubblewrap build
 ```
 
-The output `.aab` lives under `./output/`. Upload this to Play Console.
+The output artifacts are written directly in `public/progress/`:
+
+- `public/progress/app-release-bundle.aab`  upload this to Play
+- `public/progress/app-release-signed.apk` (for sideload/debug only)
 
 ## 7) Play Console steps
 
@@ -117,3 +129,9 @@ The output `.aab` lives under `./output/`. Upload this to Play Console.
 - Update the web app and deploy
 - If no Android project changes, no app update is required (web is served live)
 - If you change package name or signing key, you must update asset links and re-release
+
+Quick checklist when publishing a new Android build:
+
+1. Run `npm run twa:build`
+2. Confirm timestamp and fingerprint with `npm run twa:cert` (should show SHA1 A3:B2:BB:... and SHA256 84:22:4C:...)
+3. Upload `public/progress/app-release-bundle.aab` to Play Console (Internal testing)
