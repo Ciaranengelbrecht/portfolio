@@ -28,25 +28,33 @@
     <script>
       (function () {
         try {
-          var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+          var isLocal =
+            location.hostname === "localhost" ||
+            location.hostname === "127.0.0.1";
           if (isLocal) return; // dev only
           var timeoutMs = 5000;
           var mounted = false;
           // Allow app to signal mount via window.__LL_MOUNTED
-          Object.defineProperty(window, '__LL_MOUNTED', {
+          Object.defineProperty(window, "__LL_MOUNTED", {
             configurable: true,
-            set: function (v) { if (v) mounted = true; }
+            set: function (v) {
+              if (v) {
+                mounted = true;
+                window.__LL_MOUNTED_FLAG = true;
+              }
+            },
           });
           setTimeout(async function () {
             if (mounted) return;
             // Try unregistering service workers scoped to this origin to break out of a bad cache
             try {
-              if ('serviceWorker' in navigator) {
+              if ("serviceWorker" in navigator) {
                 var regs = await navigator.serviceWorker.getRegistrations();
                 for (var i = 0; i < regs.length; i++) {
                   try {
-                    var scope = (regs[i] && regs[i].scope) || '';
-                    if (scope.includes('/progress/')) await regs[i].unregister();
+                    var scope = (regs[i] && regs[i].scope) || "";
+                    if (scope.includes("/progress/"))
+                      await regs[i].unregister();
                   } catch (e) {}
                 }
               }
@@ -55,15 +63,135 @@
               if (window.caches && caches.keys) {
                 var keys = await caches.keys();
                 for (var j = 0; j < keys.length; j++) {
-                  try { await caches.delete(keys[j]); } catch (e) {}
+                  try {
+                    await caches.delete(keys[j]);
+                  } catch (e) {}
                 }
               }
             } catch (e) {}
             // Force reload at the canonical entry
-            var target = '/progress/dist/index.html' + (location.search || '') + (location.hash || '');
+            var target =
+              "/progress/dist/index.html" +
+              (location.search || "") +
+              (location.hash || "");
             location.replace(target);
           }, timeoutMs);
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
+    <!-- Lightweight diagnostics overlay to capture startup errors, especially in the TWA container. -->
+    <script>
+      (function () {
+        var isLocal =
+          location.hostname === "localhost" ||
+          location.hostname === "127.0.0.1";
+        var ua = navigator.userAgent || "";
+        var isLikelyTwa = !isLocal && /android/i.test(ua) && /chrome/i.test(ua);
+        var logs = [];
+        function log(type, message, detail) {
+          try {
+            var entry = {
+              ts: Date.now(),
+              type: type,
+              message: message,
+              detail: detail || null,
+            };
+            logs.push(entry);
+            window.__LL_BOOTLOG = logs;
+            if (window.console && console.log) {
+              console.log("[LiftLog boot]", type + ":", message, detail || "");
+            }
+            if (isLikelyTwa) {
+              ensureOverlay();
+              overlayAppend(message, type);
+            }
+          } catch (err) {}
+        }
+
+        var overlay, list;
+        function ensureOverlay() {
+          if (overlay || !document.body) return;
+          overlay = document.createElement("div");
+          overlay.id = "ll-boot-overlay";
+          overlay.style.cssText =
+            "position:fixed;inset:0;background:rgba(11,15,20,0.94);color:#fff;z-index:2147483647;padding:18px;font-family:system-ui,sans-serif;font-size:13px;line-height:1.4;overflow:auto;";
+          overlay.innerHTML =
+            '<strong>LiftLog is gathering diagnostics…</strong><br><span style="font-size:11px;opacity:0.7">This should only appear inside the Android app if startup fails.</span><hr style="opacity:0.2;margin:12px 0;" />';
+          list = document.createElement("pre");
+          list.style.cssText =
+            "white-space:pre-wrap;font-size:11px;opacity:0.85;";
+          overlay.appendChild(list);
+          document.body.appendChild(overlay);
+        }
+
+        function overlayAppend(message, type) {
+          if (!overlay) ensureOverlay();
+          if (!list) return;
+          var stamp = new Date().toISOString().split("T")[1].replace("Z", "");
+          list.textContent +=
+            "[" + stamp + "] " + type.toUpperCase() + ": " + message + "\n";
+        }
+
+        window.__LL_BOOT_DIAG = function (message, detail) {
+          log("diag", message, detail);
+        };
+
+        window.addEventListener("error", function (ev) {
+          var msg = ev && ev.message ? ev.message : "Unknown runtime error";
+          var where =
+            (ev && ev.filename ? ev.filename : "") +
+            (ev && ev.lineno ? ":" + ev.lineno : "");
+          log(
+            "error",
+            msg + (where ? " @ " + where : ""),
+            ev && ev.error ? String(ev.error.stack || ev.error) : null
+          );
+        });
+
+        window.addEventListener("unhandledrejection", function (ev) {
+          var reason =
+            ev && ev.reason
+              ? ev.reason.message || String(ev.reason)
+              : "Unhandled rejection";
+          log(
+            "promise",
+            reason,
+            ev && ev.reason && ev.reason.stack ? ev.reason.stack : null
+          );
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+          if (isLikelyTwa) {
+            ensureOverlay();
+            overlayAppend("User agent: " + ua, "info");
+            overlayAppend("Location: " + location.href, "info");
+          }
+          log("lifecycle", "DOMContentLoaded fired.");
+        });
+
+        window.addEventListener("load", function () {
+          log("lifecycle", "window load fired.");
+        });
+
+        setTimeout(function () {
+          if (window.__LL_MOUNTED_FLAG) {
+            log("status", "App mounted successfully.");
+            if (overlay && overlay.parentNode)
+              overlay.parentNode.removeChild(overlay);
+          } else {
+            log(
+              "status",
+              "App did not mount within 4s. Collecting diagnostics…"
+            );
+            if (isLikelyTwa)
+              overlayAppend(
+                "App did not mount – attempting recovery. Please try closing/reopening after a few seconds.",
+                "warn"
+              );
+          }
+        }, 4000);
       })();
     </script>
     <link rel="manifest" href="manifest.webmanifest" />
