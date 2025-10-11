@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { volumeByMuscleGroup } from "../lib/helpers";
+import { volumeByMuscleGroup, getSettings, setSettings } from "../lib/helpers";
 import { getMuscleIconPath } from "../lib/muscles";
 import { loadRecharts } from "../lib/loadRecharts";
 import { getAllCached } from "../lib/dataCache";
@@ -1098,13 +1098,37 @@ export default function Dashboard() {
                   value={phaseFilterValue}
                   onChange={(e) => {
                     const next = e.target.value;
-                    setPhaseFilter(
+                    const nextValue =
                       next === "recent"
                         ? "recent"
                         : next === "all"
                         ? "all"
-                        : Number(next)
-                    );
+                        : Number(next);
+                    setPhaseFilter(nextValue as any);
+                    // Persist dashboard phase choice
+                    (async () => {
+                      try {
+                        const s = await getAllCached<Settings>("settings");
+                        const settingsApp = Array.isArray(s)
+                          ? (s.find((x: any) => x.id === "app") as any)
+                          : null;
+                        const current = settingsApp || (await getSettings());
+                        await setSettings({
+                          ...current,
+                          dashboardPrefs: {
+                            ...(current.dashboardPrefs || {}),
+                            lastLocation: {
+                              ...(current.dashboardPrefs?.lastLocation || {}),
+                              phaseNumber:
+                                typeof nextValue === "number"
+                                  ? nextValue
+                                  : current.dashboardPrefs?.lastLocation
+                                      ?.phaseNumber,
+                            },
+                          },
+                        });
+                      } catch {}
+                    })();
                   }}
                 >
                   {phaseFilterOptions.map((opt) => (

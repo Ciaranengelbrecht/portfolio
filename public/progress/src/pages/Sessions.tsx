@@ -212,6 +212,10 @@ export default function Sessions() {
   const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
+  // When user selects a new phase (e.g., Phase 2) without any logged sets yet,
+  // keep the UI on that phase without auto-reverting until a valid set is saved.
+  const [allowEmptyPhase, setAllowEmptyPhase] = useState<boolean>(false);
+  const phaseCommitPendingRef = useRef<number | null>(null);
   const [day, setDay] = useState(0);
   // Gate initial session load until we resolve navigation prefs (prevents brief Week 1 render)
   const [initialRouteReady, setInitialRouteReady] = useState(false);
@@ -930,6 +934,9 @@ export default function Sessions() {
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
   useEffect(() => {
     (async () => {
+      // If user explicitly selected this phase for editing/preview, don't auto-revert
+      // until they leave the page or log a valid set (which will commit the phase).
+      if (allowEmptyPhase) return;
       const all = await db.getAll<Session>("sessions");
       const curPhaseSessions = all.filter(
         (s) => (s.phaseNumber || s.phase || 1) === phase
@@ -959,13 +966,14 @@ export default function Sessions() {
             if (back !== phase) {
               setPhase(back);
               const settings = await getSettings();
-              await setSettings({ ...settings, currentPhase: back });
+              // currentPhase already reflects last phase with data; no need to force a write
+              await setSettings({ ...settings });
             }
           }
         }
       }
     })();
-  }, [phase]);
+  }, [phase, allowEmptyPhase]);
 
   // Phase readiness calculation
   useEffect(() => {
@@ -1444,6 +1452,14 @@ export default function Sessions() {
       }
     })();
   }, [phase, week, day, initialRouteReady]);
+
+  // Reset the transient allowEmptyPhase guard when leaving the page
+  useEffect(() => {
+    return () => {
+      setAllowEmptyPhase(false);
+      phaseCommitPendingRef.current = null;
+    };
+  }, []);
 
   // Wrap entry update to stamp loggedStartAt / loggedEndAt
   const stampActivity = async (sess: Session, updated: Session) => {
@@ -2017,6 +2033,17 @@ export default function Sessions() {
     setSession(updated);
     latestSessionRef.current = updated;
     scheduleFlush();
+    // If this is the first valid set in the selected phase, commit currentPhase
+    if (hasWorkNow && phaseCommitPendingRef.current === phase) {
+      (async () => {
+        try {
+          const s = await getSettings();
+          await setSettings({ ...s, currentPhase: phase });
+        } catch {}
+        setAllowEmptyPhase(false);
+        phaseCommitPendingRef.current = null;
+      })();
+    }
     // Restart the rest timer for this exercise
     try {
       restartRestTimer(entry.id);
@@ -2185,6 +2212,17 @@ export default function Sessions() {
     setSession(updated);
     latestSessionRef.current = updated;
     scheduleFlush();
+    // If first valid set is now present and user had selected this phase, commit it
+    if (hasWorkNow && phaseCommitPendingRef.current === phase) {
+      (async () => {
+        try {
+          const s = await getSettings();
+          await setSettings({ ...s, currentPhase: phase });
+        } catch {}
+        setAllowEmptyPhase(false);
+        phaseCommitPendingRef.current = null;
+      })();
+    }
   };
 
   const removeEntry = async (entryId: string) => {
@@ -3053,6 +3091,7 @@ export default function Sessions() {
                 onChange={(v) => {
                   setDay(v);
                   setAutoNavDone(true);
+                  setAllowEmptyPhase(true);
                 }}
               />
             </div>
@@ -3066,6 +3105,7 @@ export default function Sessions() {
                 onChange={(e) => {
                   setWeek(Number(e.target.value));
                   setAutoNavDone(true);
+                  setAllowEmptyPhase(true);
                 }}
               >
                 {(program
@@ -3082,9 +3122,24 @@ export default function Sessions() {
                 variant="compact"
                 value={phase}
                 onChange={async (p) => {
+                  // User is selecting a phase to view/edit. Do not commit currentPhase yet.
                   setPhase(p);
+                  setAllowEmptyPhase(true);
+                  phaseCommitPendingRef.current = p;
                   const s = await getSettings();
-                  await setSettings({ ...s, currentPhase: p });
+                  await setSettings({
+                    ...s,
+                    dashboardPrefs: {
+                      ...(s.dashboardPrefs || {}),
+                      lastLocation: {
+                        ...(s.dashboardPrefs?.lastLocation || {
+                          weekNumber: 1,
+                          dayId: 0,
+                        }),
+                        phaseNumber: p,
+                      },
+                    },
+                  });
                 }}
               />
             </div>
@@ -3300,12 +3355,26 @@ export default function Sessions() {
                 <button
                   className="tool-btn !px-3 !py-1.5"
                   onClick={async () => {
+                    // Move UI to next phase without committing until data is logged
                     const s = await getSettings();
                     const next = (s.currentPhase || 1) + 1;
-                    await setSettings({ ...s, currentPhase: next });
                     setPhase(next as number);
                     setWeek(1 as any);
                     setDay(0);
+                    setAllowEmptyPhase(true);
+                    phaseCommitPendingRef.current = next;
+                    await setSettings({
+                      ...s,
+                      dashboardPrefs: {
+                        ...(s.dashboardPrefs || {}),
+                        lastLocation: {
+                          ...(s.dashboardPrefs?.lastLocation || {}),
+                          phaseNumber: next,
+                          weekNumber: 1 as any,
+                          dayId: 0,
+                        },
+                      },
+                    });
                   }}
                   title="Next phase"
                 >
@@ -3315,14 +3384,30 @@ export default function Sessions() {
                   <button
                     className="tool-btn !px-3 !py-1.5"
                     onClick={async () => {
-                      if (!window.confirm(`Revert to phase ${phase - 1}?`))
+                      if (
+                        !window.confirm(`Go to phase ${phase - 1} (view only)?`)
+                      )
                         return;
                       const s = await getSettings();
-                      const prev = Math.max(1, (s.currentPhase || 1) - 1);
-                      await setSettings({ ...s, currentPhase: prev });
-                      setPhase(prev);
+                      const prev = Math.max(1, (phase as number) - 1);
+                      // View previous phase, do not change committed currentPhase
+                      setPhase(prev as number);
                       setWeek(1 as any);
                       setDay(0);
+                      setAllowEmptyPhase(true);
+                      phaseCommitPendingRef.current = prev;
+                      await setSettings({
+                        ...s,
+                        dashboardPrefs: {
+                          ...(s.dashboardPrefs || {}),
+                          lastLocation: {
+                            ...(s.dashboardPrefs?.lastLocation || {}),
+                            phaseNumber: prev,
+                            weekNumber: 1 as any,
+                            dayId: 0,
+                          },
+                        },
+                      });
                     }}
                     title="Previous phase"
                   >
