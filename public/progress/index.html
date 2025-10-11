@@ -23,6 +23,49 @@
         }
       })();
     </script>
+    <!-- Startup watchdog: if the app doesn't mount within a few seconds (e.g., due to a stale SW cache),
+         attempt to unregister the SW and reload to recover from a blank screen. No-op on localhost. -->
+    <script>
+      (function () {
+        try {
+          var isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+          if (isLocal) return; // dev only
+          var timeoutMs = 5000;
+          var mounted = false;
+          // Allow app to signal mount via window.__LL_MOUNTED
+          Object.defineProperty(window, '__LL_MOUNTED', {
+            configurable: true,
+            set: function (v) { if (v) mounted = true; }
+          });
+          setTimeout(async function () {
+            if (mounted) return;
+            // Try unregistering service workers scoped to this origin to break out of a bad cache
+            try {
+              if ('serviceWorker' in navigator) {
+                var regs = await navigator.serviceWorker.getRegistrations();
+                for (var i = 0; i < regs.length; i++) {
+                  try {
+                    var scope = (regs[i] && regs[i].scope) || '';
+                    if (scope.includes('/progress/')) await regs[i].unregister();
+                  } catch (e) {}
+                }
+              }
+            } catch (e) {}
+            try {
+              if (window.caches && caches.keys) {
+                var keys = await caches.keys();
+                for (var j = 0; j < keys.length; j++) {
+                  try { await caches.delete(keys[j]); } catch (e) {}
+                }
+              }
+            } catch (e) {}
+            // Force reload at the canonical entry
+            var target = '/progress/dist/index.html' + (location.search || '') + (location.hash || '');
+            location.replace(target);
+          }, timeoutMs);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>LiftLog</title>
