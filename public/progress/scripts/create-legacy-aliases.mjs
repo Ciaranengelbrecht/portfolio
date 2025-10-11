@@ -42,7 +42,7 @@ async function ensureExists(relPath) {
 
 async function writeJsAlias(legacyName, targetName) {
   const aliasPath = path.join(assetsDir, legacyName);
-  const content = `// Auto-generated legacy alias.\n// Ensures stale clients requesting ${legacyName} receive the current bundle.\nexport * from "./${targetName}";\nexport { default } from "./${targetName}";\n`;
+  const content = `// Auto-generated legacy alias.\n// Ensures stale clients requesting ${legacyName} receive the current bundle.\nimport * as mod from "./${targetName}";\nexport * from "./${targetName}";\nexport default mod;\n`;
   await fs.writeFile(aliasPath, content, "utf8");
   return aliasPath;
 }
