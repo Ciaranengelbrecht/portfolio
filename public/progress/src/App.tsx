@@ -104,16 +104,10 @@ function Shell() {
   if(s.ecg.trailMs){ root.style.setProperty('--ecg-trail-ms', String(s.ecg.trailMs)); }
   if(s.ecg.color){ root.style.setProperty('--ecg-custom-color', s.ecg.color); }
       } else document.body.dataset.ecg = 'off';
-  // Theme mode handling (reverted): allow user's setting; default to dark
+  // Theme mode handling: honor user's explicit setting only; default to dark (ignore system)
       const applyThemeMode = () => {
-        const mode = (s.ui?.themeMode as 'dark' | 'light' | 'system' | undefined) || 'dark';
-        let effective: 'dark' | 'light' = 'dark';
-        if (mode === 'light') effective = 'light';
-        if (mode === 'system') {
-          try {
-            effective = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          } catch {}
-        }
+        const mode = (s.ui?.themeMode as 'dark' | 'light' | undefined) || 'dark';
+        const effective: 'dark' | 'light' = mode === 'light' ? 'light' : 'dark';
         document.body.dataset.theme = effective;
         try {
           document.documentElement.setAttribute('data-theme', effective);
@@ -125,22 +119,7 @@ function Shell() {
         setTimeout(()=> document.body.classList.remove('theme-animate'), 600);
       }
       applyThemeMode();
-      // Listen to system theme changes only if user chose 'system'
-      try {
-        const mql = window.matchMedia('(prefers-color-scheme: dark)');
-        const listener = () => {
-          getSettings().then((s2)=>{
-            const mode = (s2.ui?.themeMode as any) || 'dark';
-            if (mode === 'system') {
-              const eff = mql.matches ? 'dark' : 'light';
-              document.body.dataset.theme = eff;
-              document.documentElement.setAttribute('data-theme', eff);
-              document.documentElement.style.colorScheme = eff as any;
-            }
-          }).catch(()=>{});
-        };
-        mql.addEventListener?.('change', listener);
-      } catch {}
+      // No system listeners: mode is user-controlled only
       // Compact mode
       if (s.ui?.compactMode) document.body.dataset.density = 'compact'; else delete document.body.dataset.density;
     })();

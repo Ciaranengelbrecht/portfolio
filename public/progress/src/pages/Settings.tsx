@@ -1180,7 +1180,7 @@ export default function SettingsPage() {
                 <span>Theme mode</span>
                 <select
                   className="bg-transparent outline-none"
-                  value={s.ui?.themeMode === 'dark' ? 'dark' : 'light'}
+                  value={s.ui?.themeMode === 'light' ? 'light' : 'dark'}
                   onChange={async (e)=>{
                     const mode=e.target.value as 'dark'|'light';
                     const next={ ...s, ui:{ ...(s.ui||{}), themeMode: mode } };
@@ -1190,15 +1190,14 @@ export default function SettingsPage() {
                     document.documentElement.setAttribute('data-theme', mode);
                     document.body.dataset.theme = mode;
                     document.documentElement.style.colorScheme = mode;
-                    // body attribute update is handled in root App but we set for immediate feedback
                   }}
                 >
-                  <option value="light">Light</option>
                   <option value="dark">Dark</option>
+                  <option value="light">Light</option>
                 </select>
               </div>
               <p className="text-[11px] text-muted leading-snug max-w-xs">
-                Device dark mode is ignored inside LiftLog to avoid forced color inversion in Samsung Internet. Choose <span className="font-medium">Dark</span> only if you want the app UI to switch manually.
+                The app ignores the device’s theme and defaults to <span className="font-medium">Dark</span>. You can switch to <span className="font-medium">Light</span> manually here.
               </p>
               <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Compact UI</span>
