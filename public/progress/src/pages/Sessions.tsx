@@ -208,6 +208,31 @@ const formatMuscleLabel = (muscle?: string | null) => {
     muscle.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 };
+
+const coerceNumber = (value: unknown): number => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  const fallback = Number((value as number | null | undefined) ?? 0);
+  return Number.isFinite(fallback) ? fallback : 0;
+};
+
+const setHasActualWork = (set?: SetEntry | null) => {
+  if (!set) return false;
+  const weight = coerceNumber(set.weightKg);
+  const reps = coerceNumber(set.reps);
+  return weight > 0 || reps > 0;
+};
+
+const sessionHasRealWork = (session?: Session | null) => {
+  if (!session || session.deletedAt) return false;
+  if (!Array.isArray(session.entries)) return false;
+  return session.entries.some(
+    (entry) => Array.isArray(entry.sets) && entry.sets.some(setHasActualWork)
+  );
+};
 export default function Sessions() {
   const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
@@ -597,9 +622,24 @@ export default function Sessions() {
           hadIntent = sessionStorage.getItem("lastLocationIntent") === "1";
           sessionStorage.removeItem("lastLocationIntent");
         } catch {}
+        let last = s.dashboardPrefs?.lastLocation;
+        if (last) {
+          let candidate: Session | null = null;
+          try {
+            if (last.sessionId) {
+              candidate = (await db.get<Session>("sessions", last.sessionId)) || null;
+            }
+            if (!candidate) {
+              const fallbackId = `${last.phaseNumber}-${last.weekNumber}-${last.dayId}`;
+              candidate = (await db.get<Session>("sessions", fallbackId)) || null;
+            }
+          } catch {}
+          if (!sessionHasRealWork(candidate)) {
+            last = undefined;
+          }
+        }
         if (!pickedLatestRef.current || hadIntent) {
           setPhase(s.currentPhase || 1);
-          const last = s.dashboardPrefs?.lastLocation;
           if (last) {
             if (debugSessions.current) {
               try {
@@ -769,16 +809,12 @@ export default function Sessions() {
       try {
         const all = await db.getAll<Session>("sessions");
         let mutated = false;
-        const hasWork = (s: Session) =>
-          s.entries?.some((e) =>
-            e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-          );
         for (const s of all) {
-          if (hasWork(s) && !s.loggedEndAt) {
+          if (sessionHasRealWork(s) && !s.loggedEndAt) {
             (s as any).loggedEndAt = s.updatedAt || s.createdAt || s.dateISO;
             mutated = true;
           }
-          if (hasWork(s) && !s.loggedStartAt) {
+          if (sessionHasRealWork(s) && !s.loggedStartAt) {
             (s as any).loggedStartAt =
               s.loggedEndAt || s.updatedAt || s.createdAt || s.dateISO;
             mutated = true;
@@ -810,7 +846,7 @@ export default function Sessions() {
             t(s.dateISO)
           );
         };
-        const withData = all.filter(hasWork);
+        const withData = all.filter(sessionHasRealWork);
         if (!withData.length) {
           lastRealSessionAppliedRef.current = true;
           return;
@@ -918,10 +954,7 @@ export default function Sessions() {
       };
       const weekActivity = new Map<number, number>();
       for (const s of byPhase) {
-        const real = s.entries.some((e) =>
-          e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-        );
-        if (!real || typeof s.weekNumber !== "number") continue;
+        if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number") continue;
         const ms = activityMs(s);
         const prev = weekActivity.get(s.weekNumber) ?? -Infinity;
         if (ms > prev) weekActivity.set(s.weekNumber, ms);
@@ -957,22 +990,12 @@ export default function Sessions() {
       );
       // If user is beyond phase 1 and there is zero real data in phase weeks, revert to previous phase with data
       if (phase > 1) {
-        const haveReal = curPhaseSessions.some((s) =>
-          s.entries.some((e) =>
-            e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-          )
-        );
+        const haveReal = curPhaseSessions.some(sessionHasRealWork);
         if (!haveReal) {
           // find latest phase that has data
           const phasesWithData = new Set<number>();
           for (const s of all) {
-            if (
-              s.entries.some((e) =>
-                e.sets.some(
-                  (st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0
-                )
-              )
-            )
+            if (sessionHasRealWork(s))
               phasesWithData.add(s.phaseNumber || s.phase || 1);
           }
           if (phasesWithData.size) {
@@ -1000,12 +1023,7 @@ export default function Sessions() {
       const cur = all.filter((s) => (s.phaseNumber || s.phase || 1) === phase);
       const weeks = new Set<number>();
       for (const s of cur) {
-        if (
-          s.entries.some((e) =>
-            e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-          )
-        )
-          weeks.add(s.weekNumber);
+        if (sessionHasRealWork(s)) weeks.add(s.weekNumber);
       }
       setReadinessPct(
         Math.min(100, Math.round((weeks.size / (program.mesoWeeks || 1)) * 100))
@@ -1397,28 +1415,30 @@ export default function Sessions() {
           }
         }
         setSession(s);
-        // Persist lastLocation after session is resolved; avoid clobbering a newer explicit navigation
+        // Persist lastLocation only when the session contains real logged work to avoid landing on empty templates
         try {
-          const settings = await getSettings();
-          const prev = settings.dashboardPrefs?.lastLocation;
-          const nextLoc = {
-            phaseNumber: phase,
-            weekNumber: week,
-            dayId: day,
-            sessionId: s.id,
-          };
-          const sameTarget =
-            prev &&
-            `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` ===
-              `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
-          if (!prev || sameTarget) {
-            await setSettings({
-              ...settings,
-              dashboardPrefs: {
-                ...(settings.dashboardPrefs || {}),
-                lastLocation: nextLoc,
-              },
-            });
+          if (sessionHasRealWork(s)) {
+            const settings = await getSettings();
+            const prev = settings.dashboardPrefs?.lastLocation;
+            const nextLoc = {
+              phaseNumber: phase,
+              weekNumber: week,
+              dayId: day,
+              sessionId: s.id,
+            };
+            const sameTarget =
+              prev &&
+              `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` ===
+                `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
+            if (!prev || sameTarget) {
+              await setSettings({
+                ...settings,
+                dashboardPrefs: {
+                  ...(settings.dashboardPrefs || {}),
+                  lastLocation: nextLoc,
+                },
+              });
+            }
           }
         } catch (settingsErr) {
           console.warn("[Sessions] failed to save lastLocation", settingsErr);
@@ -1479,12 +1499,8 @@ export default function Sessions() {
   const stampActivity = async (sess: Session, updated: Session) => {
     const now = new Date().toISOString();
     let changed = false;
-    const hadDataBefore = sess.entries.some((e) =>
-      e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-    );
-    const hasDataAfter = updated.entries.some((e) =>
-      e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
-    );
+    const hadDataBefore = sessionHasRealWork(sess);
+    const hasDataAfter = sessionHasRealWork(updated);
     if (hasDataAfter && !hadDataBefore && !updated.loggedStartAt) {
       (updated as any).loggedStartAt = now;
       changed = true;
@@ -2013,9 +2029,7 @@ export default function Sessions() {
       e.id === entry.id ? newEntry : e
     );
     let updated = { ...session, entries: newEntries } as Session;
-    const hasWorkNow = newEntries.some((en) =>
-      en.sets.some((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0)
-    );
+    const hasWorkNow = sessionHasRealWork(updated);
     if (hasWorkNow) {
       const nowIso = new Date().toISOString();
       if (!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
@@ -2122,19 +2136,21 @@ export default function Sessions() {
         }
       }
     }
-    const s = await getSettings();
-    await setSettings({
-      ...s,
-      dashboardPrefs: {
-        ...(s.dashboardPrefs || {}),
-        lastLocation: {
-          phaseNumber: phase,
-          weekNumber: week,
-          dayId: day,
-          sessionId: sToWrite.id,
+    if (sessionHasRealWork(sToWrite)) {
+      const s = await getSettings();
+      await setSettings({
+        ...s,
+        dashboardPrefs: {
+          ...(s.dashboardPrefs || {}),
+          lastLocation: {
+            phaseNumber: phase,
+            weekNumber: week,
+            dayId: day,
+            sessionId: sToWrite.id,
+          },
         },
-      },
-    });
+      });
+    }
   };
   const scheduleFlush = () => {
     if (pendingRef.current) window.clearTimeout(pendingRef.current);
@@ -2171,12 +2187,8 @@ export default function Sessions() {
     );
     let updated = { ...session, entries: newEntries } as Session;
     // If session previously had no working sets and now has at least one, re-stamp date to today
-    const hadWorkBefore = prevSession.entries.some((en) =>
-      en.sets.some((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0)
-    );
-    const hasWorkNow = newEntries.some((en) =>
-      en.sets.some((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0)
-    );
+    const hadWorkBefore = sessionHasRealWork(prevSession);
+    const hasWorkNow = sessionHasRealWork(updated);
     if (!hadWorkBefore && hasWorkNow) {
       const today = new Date();
       const localDayStr = `${today.getFullYear()}-${String(
@@ -2289,9 +2301,7 @@ export default function Sessions() {
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
     const updated = { ...session, entries: [...session.entries, entry] };
     // If this addition brings in working data immediately, stamp
-    const hasWorkNow = updated.entries.some((en) =>
-      en.sets.some((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0)
-    );
+    const hasWorkNow = sessionHasRealWork(updated);
     if (hasWorkNow) {
       const nowIso = new Date().toISOString();
       if (!updated.loggedStartAt) (updated as any).loggedStartAt = nowIso;
@@ -3580,13 +3590,7 @@ export default function Sessions() {
               const curPhaseSessions = all.filter(
                 (s) => (s.phaseNumber || s.phase || 1) === phase
               );
-              const hasReal = curPhaseSessions.some((s) =>
-                s.entries.some((e) =>
-                  e.sets.some(
-                    (st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0
-                  )
-                )
-              );
+              const hasReal = curPhaseSessions.some(sessionHasRealWork);
               if (!hasReal) {
                 if (
                   !window.confirm(
