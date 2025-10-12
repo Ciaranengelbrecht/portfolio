@@ -49,21 +49,6 @@
     radial-gradient(at 40% 80%, #1d4ed8 0%, transparent 55%);
 }
 
-/* Light theme overrides */
-body[data-theme="light"] {
-  --bg: #f5f7fa;
-  --bg-muted: #e9eef3;
-  --surface: rgba(255 255 255 / 0.75);
-  --surface-elevated: rgba(255 255 255 / 0.9);
-  --surface-solid: #ffffff;
-  --text: #17212c;
-  --text-muted: #5b6975;
-  --border-subtle: rgba(0 0 0 / 0.08);
-  --border-strong: rgba(0 0 0 / 0.16);
-  --chart-grid: rgba(0 0 0 / 0.08);
-  --card: var(--surface);
-}
-
 /* Animated theme swap (disabled when instant flag set) */
 body.theme-animate,
 body.theme-animate * {

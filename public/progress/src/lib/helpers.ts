@@ -59,12 +59,12 @@ export async function getSettings(): Promise<Settings> {
       themeV2: { key: "default-glass" },
     } as any);
   let mutated = false;
-  if (!base.theme) {
+  if (!base.theme || base.theme !== "dark") {
     base = { ...base, theme: "dark" };
     mutated = true;
   }
-  if (!base.ui) {
-    (base as any).ui = { themeMode: "dark" };
+  if (!base.ui || base.ui.themeMode !== "dark") {
+    (base as any).ui = { ...(base.ui as any), themeMode: "dark" };
     mutated = true;
   }
   // Backfill new fields if missing
@@ -79,8 +79,13 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function setSettings(s: Settings) {
-  await db.put("settings", { ...s, id: "app" } as any);
-  _settingsCache = { value: s, ts: Date.now() }; // update cache immediately
+  const enforced = {
+    ...s,
+    theme: "dark",
+    ui: { ...(s.ui || {}), themeMode: "dark" },
+  } as Settings;
+  await db.put("settings", { ...enforced, id: "app" } as any);
+  _settingsCache = { value: enforced, ts: Date.now() }; // update cache immediately
 }
 
 // Accept optional injected datasets to remove N+1 patterns (sessions/exercises/settings)

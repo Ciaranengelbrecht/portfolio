@@ -39,28 +39,6 @@ export const THEME_PRESETS: Preset[] = [
     },
   },
   {
-    id: "sunsetSolid",
-    name: "Sunset Solid",
-    theme: "light",
-    accent: "#f59e0b",
-    cardStyle: "solid",
-    cssVars: {
-      "--bg": "#f8fafc",
-      "--card": "#ffffff",
-    },
-  },
-  {
-    id: "monoMinimal",
-    name: "Mono Minimal",
-    theme: "light",
-    accent: "#111827",
-    cardStyle: "minimal",
-    cssVars: {
-      "--bg": "#f3f4f6",
-      "--card": "#ffffff",
-    },
-  },
-  {
     id: "violetGlass",
     name: "Violet Glass",
     theme: "dark",
@@ -85,11 +63,11 @@ const Ctx = createContext<ThemeCtx>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<"dark" | "light">(
-    () => (localStorage.getItem("theme") as "dark" | "light") || "dark"
-  );
+  const [theme, setTheme] = useState<"dark" | "light">(() => "dark");
   useEffect(() => {
-    localStorage.setItem("theme", theme);
+    try {
+      localStorage.setItem("theme", "dark");
+    } catch {}
   }, [theme]);
   // Apply persisted CSS vars
   useEffect(() => {
@@ -107,9 +85,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const applyPreset = (id: PresetId) => {
     const p = THEME_PRESETS.find((x) => x.id === id);
     if (!p) return;
-    setTheme(p.theme);
+  setTheme("dark");
     const root = document.documentElement;
-    root.classList.toggle("dark", p.theme === "dark");
+  root.classList.add("dark");
     root.setAttribute("data-card-style", p.cardStyle);
     root.style.setProperty("--accent", p.accent);
     if (p.cssVars) {

@@ -857,17 +857,13 @@ export default function SettingsPage() {
               <option value="lb">lb</option>
             </select>
           </label>
-          <label className="space-y-1">
+          <div className="space-y-1">
             <div className="text-sm text-app">Theme</div>
-            <select
-              className="input-app rounded-xl px-3 py-2"
-              value={s.theme}
-              onChange={(e) => setS({ ...s, theme: e.target.value as any })}
-            >
-              <option value="dark">dark</option>
-              <option value="light">light</option>
-            </select>
-          </label>
+            <div className="input-app rounded-xl px-3 py-2 text-muted flex items-center justify-between">
+              <span>Dark</span>
+              <span className="text-[11px] uppercase tracking-wide">Locked</span>
+            </div>
+          </div>
           <label className="space-y-1">
             <div className="text-sm text-app">Deload load %</div>
             <input
@@ -1700,45 +1696,9 @@ export default function SettingsPage() {
             <div className="flex flex-wrap gap-2 items-center text-xs">
               <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Theme mode</span>
-                <select
-                  className="bg-transparent outline-none"
-                  value={s.ui?.themeMode || "dark"}
-                  onChange={async (e) => {
-                    const mode = e.target.value as "dark" | "light" | "system";
-                    const next = {
-                      ...s,
-                      ui: { ...(s.ui || {}), themeMode: mode },
-                    };
-                    setS(next);
-                    await db.put("settings", { ...next, id: "app" } as any);
-                    // Apply immediately
-                    try {
-                      const effective =
-                        mode === "system"
-                          ? window.matchMedia("(prefers-color-scheme: light)")
-                              .matches
-                            ? "light"
-                            : "dark"
-                          : mode;
-                      document.documentElement.setAttribute(
-                        "data-theme",
-                        effective
-                      );
-                      document.body.dataset.theme = effective;
-                    } catch {
-                      document.documentElement.setAttribute(
-                        "data-theme",
-                        mode === "system" ? "dark" : mode
-                      );
-                      document.body.dataset.theme =
-                        mode === "system" ? "dark" : mode;
-                    }
-                  }}
-                >
-                  <option value="dark">Dark</option>
-                  <option value="light">Light</option>
-                  <option value="system">System</option>
-                </select>
+                <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-200 text-[11px] uppercase tracking-wide">
+                  Dark locked
+                </span>
               </div>
               <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Compact UI</span>

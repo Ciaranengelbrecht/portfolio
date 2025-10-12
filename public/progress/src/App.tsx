@@ -133,26 +133,12 @@ function Shell() {
           root.style.setProperty("--ecg-custom-color", s.ecg.color);
         }
       } else document.body.dataset.ecg = "off";
-      // Theme mode handling
+      // Theme mode handling: app is dark-only
       const applyThemeMode = () => {
-        const mode =
-          (s.ui?.themeMode as "dark" | "light" | "system" | undefined) ||
-          "dark";
-        const preferSystem = mode === "system";
-        let effective: "dark" | "light" = "dark";
-        if (preferSystem) {
-          try {
-            const mq = window.matchMedia("(prefers-color-scheme: light)");
-            effective = mq.matches ? "light" : "dark";
-          } catch {
-            effective = "dark";
-          }
-        } else {
-          effective = mode;
-        }
-        document.body.dataset.theme = effective;
+        document.body.dataset.theme = "dark";
         try {
-          document.documentElement.setAttribute("data-theme", effective);
+          document.documentElement.setAttribute("data-theme", "dark");
+          document.documentElement.style.colorScheme = "dark";
         } catch {}
       };
       if (!s.ui?.instantThemeTransition) {
@@ -160,14 +146,6 @@ function Shell() {
         setTimeout(() => document.body.classList.remove("theme-animate"), 600);
       }
       applyThemeMode();
-      if (s.ui?.themeMode === "system") {
-        try {
-          const mq = window.matchMedia("(prefers-color-scheme: light)");
-          const listener = () => applyThemeMode();
-          mq.addEventListener("change", listener);
-          setTimeout(() => mq.removeEventListener("change", listener), 30000);
-        } catch {}
-      }
       // Compact mode
       if (s.ui?.compactMode) document.body.dataset.density = "compact";
       else delete document.body.dataset.density;
