@@ -59,6 +59,18 @@ const formatMeasurementLabel = (key: string) => {
 
 const getUnitForKey = (key: string) => FIELD_UNIT_OVERRIDES[key] || "";
 
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+
+const formatChartDateTick = (value: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return SHORT_DATE_FORMATTER.format(date);
+};
+
 type SkinfoldKey =
   | "skinfoldChest"
   | "skinfoldAbdomen"
@@ -1270,7 +1282,7 @@ export default function Measurements() {
             <button
               key={k}
               onClick={() => toggleOverlay(k as keyof Measurement)}
-              className={`px-2 py-1 rounded-lg border ${
+              className={`px-3 py-2 min-h-[36px] text-sm rounded-lg border ${
                 overlayKeys.includes(k as any)
                   ? "bg-emerald-600 border-emerald-500"
                   : "bg-white/5 border-white/10"
@@ -1293,7 +1305,7 @@ export default function Measurements() {
                 return next;
               });
             }}
-            className={`px-2 py-1 rounded-lg border ${
+            className={`px-3 py-2 min-h-[36px] text-sm rounded-lg border ${
               smoothing
                 ? "bg-indigo-600 border-indigo-500"
                 : "bg-white/5 border-white/10"
@@ -1312,22 +1324,38 @@ export default function Measurements() {
             </div>
           )}
           {RC && (
-            <RC.ResponsiveContainer>
-              <RC.LineChart
+            <div className="h-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
+              <div className="h-full min-w-[560px] touch-pan-x touch-pan-y select-none rounded-2xl border border-white/10 bg-slate-950/30">
+                <RC.ResponsiveContainer width="100%" height="100%">
+                  <RC.LineChart
                 data={
                   weightSeries.length
                     ? weightSeries
                     : series(overlayKeys[0] || "weightKg")
                 }
-              >
-                <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <RC.XAxis
+                margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
+                  >
+                    <RC.XAxis
                   dataKey="date"
-                  stroke="#9ca3af"
-                  interval={Math.ceil((weightSeries.length || 30) / 12)}
+                  stroke="#64748b"
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={28}
+                  tickMargin={10}
+                  interval={0}
+                  tickFormatter={formatChartDateTick}
                 />
-                <RC.YAxis stroke="#9ca3af" />
-                <RC.Tooltip
+                    <RC.YAxis
+                  stroke="#64748b"
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={48}
+                />
+                    <RC.Tooltip
+                  cursor={{ stroke: "#334155", strokeWidth: 1.25 }}
+                  wrapperStyle={{ outline: "none", borderRadius: 12 }}
                   content={({ active, payload, label }: any) => (
                     <UnifiedTooltip
                       active={active}
@@ -1337,7 +1365,6 @@ export default function Measurements() {
                     />
                   )}
                 />
-                <RC.Legend />
                 {overlayKeys.map((k, i) => {
                   const sObj = overlaySeries[k];
                   const s = sObj?.raw || series(k);
@@ -1356,7 +1383,9 @@ export default function Measurements() {
                       data={smoothing ? sObj.avg : s}
                       dataKey={smoothing ? "avg" : "value"}
                       stroke={palette[i % palette.length]}
+                      strokeWidth={2}
                       dot={false}
+                      activeDot={{ r: 4 }}
                     />
                   );
                 })}
@@ -1369,6 +1398,7 @@ export default function Measurements() {
                       dataKey="avg"
                       stroke="#ffffff"
                       strokeDasharray="4 4"
+                      strokeWidth={1.5}
                       dot={false}
                     />
                     {weightTrend.length > 0 && (
@@ -1379,13 +1409,23 @@ export default function Measurements() {
                         dataKey="value"
                         stroke="#22c55e"
                         strokeDasharray="2 6"
+                        strokeWidth={1.5}
                         dot={false}
                       />
                     )}
                   </>
                 )}
-              </RC.LineChart>
-            </RC.ResponsiveContainer>
+                    <RC.Brush
+                      dataKey="date"
+                      height={26}
+                      travellerWidth={14}
+                      stroke="#3b82f6"
+                      tickFormatter={formatChartDateTick}
+                    />
+                  </RC.LineChart>
+                </RC.ResponsiveContainer>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -1866,6 +1906,7 @@ function ChartCard({
   useEffect(() => {
     loadRecharts().then((m) => setRC(m));
   }, []);
+  const showBrush = data.length > 24;
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft">
       <h3 className="font-medium mb-2">{title}</h3>
@@ -1876,20 +1917,53 @@ function ChartCard({
           </div>
         )}
         {RC && (
-          <RC.ResponsiveContainer>
-            <RC.LineChart data={data}>
-              <RC.CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <RC.XAxis dataKey="date" stroke="#9ca3af" />
-              <RC.YAxis stroke="#9ca3af" />
-              <RC.Tooltip />
-              <RC.Line
-                type="monotone"
-                dataKey="value"
-                stroke={color}
-                dot={false}
-              />
-            </RC.LineChart>
-          </RC.ResponsiveContainer>
+          <div className="h-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
+            <div className="h-full min-w-[420px] touch-pan-x touch-pan-y select-none rounded-xl border border-white/10 bg-slate-950/30">
+              <RC.ResponsiveContainer width="100%" height="100%">
+                <RC.LineChart data={data} margin={{ top: 16, right: 16, bottom: 12, left: 0 }}>
+                  <RC.XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={24}
+                    tickMargin={8}
+                    interval={0}
+                    tickFormatter={formatChartDateTick}
+                  />
+                  <RC.YAxis
+                    stroke="#64748b"
+                    tick={{ fill: "#94a3b8", fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={44}
+                  />
+                  <RC.Tooltip
+                    cursor={{ stroke: "#334155", strokeWidth: 1 }}
+                    wrapperStyle={{ outline: "none", borderRadius: 12 }}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                  {showBrush && (
+                    <RC.Brush
+                      dataKey="date"
+                      height={24}
+                      travellerWidth={14}
+                      stroke={color}
+                      tickFormatter={formatChartDateTick}
+                    />
+                  )}
+                </RC.LineChart>
+              </RC.ResponsiveContainer>
+            </div>
+          </div>
         )}
       </div>
     </div>
