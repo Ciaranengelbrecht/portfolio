@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import type { PointerEvent } from "react";
 import { db } from "../lib/db";
 import { getSettings, setSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
@@ -64,11 +65,48 @@ const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
 });
 
+const LONG_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
+
 const formatChartDateTick = (value: string) => {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return SHORT_DATE_FORMATTER.format(date);
+};
+
+const formatChartTooltipLabel = (value: string | number) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return LONG_DATE_FORMATTER.format(date);
+};
+
+const OVERLAY_COLORS = [
+  "#3b82f6",
+  "#ef4444",
+  "#22c55e",
+  "#f59e0b",
+  "#a855f7",
+];
+
+const buildTickValues = (points: Array<{ date: string }>) => {
+  if (!points || points.length === 0) return [] as string[];
+  if (points.length <= 3) return Array.from(new Set(points.map((p) => p.date)));
+  const desired = Math.min(6, points.length);
+  const step = Math.max(1, Math.floor(points.length / desired));
+  const ticks: string[] = [];
+  for (let i = 0; i < points.length; i += step) {
+    ticks.push(points[i].date);
+  }
+  const last = points[points.length - 1].date;
+  const first = points[0].date;
+  if (!ticks.includes(first)) ticks.unshift(first);
+  if (!ticks.includes(last)) ticks.push(last);
+  return Array.from(new Set(ticks));
 };
 
 type SkinfoldKey =
@@ -136,7 +174,6 @@ const SKINFOLD_SITES: Array<{
       "Vertical fold on the front of the upper arm, halfway between shoulder and elbow, arm relaxed.",
   },
 ];
-
 const SKINFOLD_GENERAL_TIPS: string[] = [
   "Always measure on the right side of the body for consistency.",
   "Take at least two readings per site and use the average when possible.",
@@ -603,11 +640,16 @@ export default function Measurements() {
   const series = (key: keyof Measurement) =>
     data
       .filter((x) => x[key] != null)
-      .map((x) => ({
-        date: x.dateISO.slice(5),
-        value: Number((x as any)[key]),
-        ts: new Date(x.dateISO).getTime(),
-      }));
+      .map((x) => {
+        const iso = x.dateISO || new Date().toISOString();
+        const timestamp = new Date(iso).getTime();
+        return {
+          date: iso,
+          value: Number((x as any)[key]),
+          ts: Number.isNaN(timestamp) ? 0 : timestamp,
+        };
+      })
+      .sort((a, b) => a.ts - b.ts);
 
   const weightSeries = series("weightKg");
   // 7-day rolling average for weight
@@ -666,6 +708,143 @@ export default function Measurements() {
     });
     return out;
   }, [overlayKeys, data]);
+
+  const primaryKey = (overlayKeys[0] || "weightKg") as keyof Measurement;
+  const primarySeries = useMemo(() => {
+    const current = overlaySeries[primaryKey as string]?.raw;
+    if (current && current.length) return current;
+    if (primaryKey !== "weightKg" && weightSeries.length) return weightSeries;
+    return weightSeries;
+  }, [overlaySeries, primaryKey, weightSeries]);
+
+  const chartSeries = primarySeries.length ? primarySeries : weightSeries;
+  const xTickValues = useMemo(() => buildTickValues(chartSeries), [chartSeries]);
+
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const pointerActiveRef = useRef(false);
+  const [scrub, setScrub] = useState<
+    | {
+        date: string;
+        label: string;
+        payload: any[];
+        cursorX: number;
+      }
+    | null
+  >(null);
+
+  const computePayloadForDate = useCallback(
+    (dateISO: string, basePoint: { value: number }) => {
+      const payload: any[] = [];
+      overlayKeys.forEach((key, idx) => {
+        const sObj = overlaySeries[key as string];
+        if (!sObj) return;
+        const dataset = smoothing ? sObj.avg : sObj.raw;
+        const entry = dataset?.find((p: any) => p.date === dateISO);
+        if (!entry) return;
+        const color = OVERLAY_COLORS[idx % OVERLAY_COLORS.length];
+        payload.push({
+          name: formatMeasurementLabel(key as string),
+          value: smoothing ? entry.avg : entry.value,
+          color,
+          stroke: color,
+          dataKey: key,
+        });
+      });
+      if (!payload.length && basePoint) {
+        payload.push({
+          name: formatMeasurementLabel(primaryKey as string),
+          value: basePoint.value,
+          color: OVERLAY_COLORS[0],
+          stroke: OVERLAY_COLORS[0],
+          dataKey: primaryKey,
+        });
+      }
+      if (overlayKeys.includes("weightKg")) {
+        const avgPoint = weight7.find((p) => p.date === dateISO);
+        if (avgPoint) {
+          payload.push({
+            name: "7d avg",
+            value: avgPoint.avg,
+            color: "#ffffff",
+            stroke: "#ffffff",
+            dataKey: "weight7",
+          });
+        }
+        const trendPoint = weightTrend.find((p) => p.date === dateISO);
+        if (trendPoint) {
+          payload.push({
+            name: "Trend",
+            value: trendPoint.value,
+            color: "#22c55e",
+            stroke: "#22c55e",
+            dataKey: "weightTrend",
+          });
+        }
+      }
+      return payload;
+    },
+    [overlayKeys, overlaySeries, primaryKey, smoothing, weight7, weightTrend]
+  );
+
+  const updateScrubFromClientX = useCallback(
+    (clientX: number) => {
+      const rect = overlayRef.current?.getBoundingClientRect();
+      if (!rect || !chartSeries.length) return;
+      const relative = clientX - rect.left;
+      const clamped = Math.min(Math.max(relative, 0), rect.width);
+      const ratio = rect.width === 0 ? 0 : clamped / rect.width;
+      const idx = Math.min(
+        chartSeries.length - 1,
+        Math.max(0, Math.round(ratio * (chartSeries.length - 1)))
+      );
+      const point = chartSeries[idx];
+      if (!point) return;
+      const payload = computePayloadForDate(point.date, point);
+      setScrub({
+        date: point.date,
+        label: point.date,
+        payload,
+        cursorX: Math.min(Math.max(clamped, 12), Math.max(rect.width - 12, 12)),
+      });
+    },
+    [chartSeries, computePayloadForDate]
+  );
+
+  const handlePointerDown = useCallback(
+    (ev: PointerEvent<HTMLDivElement>) => {
+      if (!chartSeries.length) return;
+      pointerActiveRef.current = true;
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+      if (ev.pointerType === "touch") ev.preventDefault();
+      updateScrubFromClientX(ev.clientX);
+    },
+    [chartSeries.length, updateScrubFromClientX]
+  );
+
+  const handlePointerMove = useCallback(
+    (ev: PointerEvent<HTMLDivElement>) => {
+      if (ev.pointerType === "mouse" && ev.buttons === 0) {
+        updateScrubFromClientX(ev.clientX);
+        return;
+      }
+      if (!pointerActiveRef.current) return;
+      updateScrubFromClientX(ev.clientX);
+    },
+    [updateScrubFromClientX]
+  );
+
+  const handlePointerUp = useCallback((ev: PointerEvent<HTMLDivElement>) => {
+    if (!pointerActiveRef.current) return;
+    pointerActiveRef.current = false;
+    if (ev.currentTarget.hasPointerCapture(ev.pointerId)) {
+      ev.currentTarget.releasePointerCapture(ev.pointerId);
+    }
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    if (pointerActiveRef.current) return;
+    setScrub(null);
+  }, []);
 
   // Provide previous point lookup for UnifiedTooltip
   const prevLookup = (seriesName: string, label: any) => {
@@ -1324,15 +1503,11 @@ export default function Measurements() {
             </div>
           )}
           {RC && (
-            <div className="h-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
-              <div className="h-full min-w-[560px] touch-pan-x touch-pan-y select-none rounded-2xl border border-white/10 bg-slate-950/30">
+            <div className="relative h-full">
+              <div className="relative h-full rounded-2xl border border-white/10 bg-slate-950/30">
                 <RC.ResponsiveContainer width="100%" height="100%">
                   <RC.LineChart
-                    data={
-                      weightSeries.length
-                        ? weightSeries
-                        : series(overlayKeys[0] || "weightKg")
-                    }
+                    data={chartSeries}
                     margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
                   >
                     <RC.XAxis
@@ -1341,9 +1516,9 @@ export default function Measurements() {
                       tick={{ fill: "#94a3b8", fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
-                      minTickGap={28}
-                      tickMargin={10}
+                      tickMargin={12}
                       interval={0}
+                      ticks={xTickValues}
                       tickFormatter={formatChartDateTick}
                     />
                     <RC.YAxis
@@ -1354,38 +1529,41 @@ export default function Measurements() {
                       width={48}
                     />
                     <RC.Tooltip
-                      cursor={{ stroke: "#334155", strokeWidth: 1.25 }}
+                      active={!!scrub && !!scrub.payload.length}
+                      payload={scrub?.payload || []}
+                      label={scrub?.label}
+                      position={scrub ? { x: scrub.cursorX, y: 32 } : undefined}
                       wrapperStyle={{ outline: "none", borderRadius: 12 }}
-                      content={({ active, payload, label }: any) => (
+                      cursor={false}
+                      content={
                         <UnifiedTooltip
-                          active={active}
-                          payload={payload}
-                          label={label}
+                          labelFormatter={formatChartTooltipLabel}
                           context={{ previousPointLookup: prevLookup }}
                         />
-                      )}
+                      }
                     />
+                    {scrub && (
+                      <RC.ReferenceLine
+                        x={scrub.date}
+                        stroke="#475569"
+                        strokeDasharray="3 3"
+                      />
+                    )}
                     {overlayKeys.map((k, i) => {
-                      const sObj = overlaySeries[k];
-                      const s = sObj?.raw || series(k);
-                      const palette = [
-                        "#3b82f6",
-                        "#ef4444",
-                        "#22c55e",
-                        "#f59e0b",
-                        "#a855f7",
-                      ];
+                      const sObj = overlaySeries[k as string];
+                      const lineData = smoothing ? sObj?.avg : sObj?.raw;
+                      const strokeColor = OVERLAY_COLORS[i % OVERLAY_COLORS.length];
+                      if (!lineData) return null;
                       return (
                         <RC.Line
                           key={k}
                           type="monotone"
-                          name={k}
-                          data={smoothing ? sObj.avg : s}
+                          name={formatMeasurementLabel(k as string)}
+                          data={lineData}
                           dataKey={smoothing ? "avg" : "value"}
-                          stroke={palette[i % palette.length]}
+                          stroke={strokeColor}
                           strokeWidth={2}
                           dot={false}
-                          activeDot={{ r: 4 }}
                         />
                       );
                     })}
@@ -1404,7 +1582,7 @@ export default function Measurements() {
                         {weightTrend.length > 0 && (
                           <RC.Line
                             type="monotone"
-                            name="trend"
+                            name="Trend"
                             data={weightTrend}
                             dataKey="value"
                             stroke="#22c55e"
@@ -1415,15 +1593,41 @@ export default function Measurements() {
                         )}
                       </>
                     )}
-                    <RC.Brush
-                      dataKey="date"
-                      height={26}
-                      travellerWidth={14}
-                      stroke="#3b82f6"
-                      tickFormatter={formatChartDateTick}
-                    />
+                    {scrub &&
+                      overlayKeys.map((k, i) => {
+                        const sObj = overlaySeries[k as string];
+                        if (!sObj) return null;
+                        const dataset = smoothing ? sObj.avg : sObj.raw;
+                        const entry = dataset?.find((p: any) => p.date === scrub.date);
+                        if (!entry) return null;
+                        const value = smoothing ? entry.avg : entry.value;
+                        if (value == null) return null;
+                        return (
+                          <RC.ReferenceDot
+                            key={`dot-${k}`}
+                            x={scrub.date}
+                            y={value}
+                            r={4.5}
+                            fill={OVERLAY_COLORS[i % OVERLAY_COLORS.length]}
+                            stroke="#0f172a"
+                            strokeWidth={1}
+                          />
+                        );
+                      })}
                   </RC.LineChart>
                 </RC.ResponsiveContainer>
+                <div
+                  ref={overlayRef}
+                  className={`absolute inset-0 z-10 ${
+                    chartSeries.length ? "cursor-crosshair" : "pointer-events-none"
+                  }`}
+                  style={{ touchAction: chartSeries.length ? "pan-y" : "auto" }}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerLeave}
+                  onPointerCancel={handlePointerUp}
+                />
               </div>
             </div>
           )}
@@ -1899,14 +2103,110 @@ function ChartCard({
   color,
 }: {
   title: string;
-  data: any[];
+  data: Array<{ date?: string; dateISO?: string; ts?: number; value: number }>;
   color: string;
 }) {
   const [RC, setRC] = useState<any | null>(null);
   useEffect(() => {
     loadRecharts().then((m) => setRC(m));
   }, []);
-  const showBrush = data.length > 24;
+
+  const sortedData = useMemo(() => {
+    return [...data]
+      .map((point) => {
+        const ts = point.ts ?? new Date(point.date ?? point.dateISO ?? 0).getTime();
+        const iso = point.date ?? point.dateISO ?? new Date(ts || Date.now()).toISOString();
+        return {
+          ...point,
+          date: iso,
+          ts: Number.isNaN(ts) ? 0 : ts,
+        };
+      })
+      .sort((a, b) => a.ts - b.ts);
+  }, [data]);
+
+  const tickValues = useMemo(() => buildTickValues(sortedData), [sortedData]);
+
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const pointerActiveRef = useRef(false);
+  const [scrub, setScrub] = useState<
+    | {
+        index: number;
+        date: string;
+        payload: any[];
+        cursorX: number;
+      }
+    | null
+  >(null);
+
+  const updateScrubFromClientX = useCallback(
+    (clientX: number) => {
+      const rect = overlayRef.current?.getBoundingClientRect();
+      if (!rect || !sortedData.length) return;
+      const relative = clientX - rect.left;
+      const clamped = Math.min(Math.max(relative, 0), rect.width);
+      const ratio = rect.width === 0 ? 0 : clamped / rect.width;
+      const idx = Math.min(
+        sortedData.length - 1,
+        Math.max(0, Math.round(ratio * (sortedData.length - 1)))
+      );
+      const point = sortedData[idx];
+      if (!point) return;
+      const payload = [
+        {
+          name: title,
+          value: point.value,
+          color,
+          stroke: color,
+          dataKey: "value",
+        },
+      ];
+      setScrub({
+        index: idx,
+        date: point.date,
+        cursorX: Math.min(Math.max(clamped, 12), Math.max(rect.width - 12, 12)),
+        payload,
+      });
+    },
+    [color, sortedData, title]
+  );
+
+  const handlePointerDown = useCallback(
+    (ev: PointerEvent<HTMLDivElement>) => {
+      if (!sortedData.length) return;
+      pointerActiveRef.current = true;
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+      if (ev.pointerType === "touch") ev.preventDefault();
+      updateScrubFromClientX(ev.clientX);
+    },
+    [sortedData.length, updateScrubFromClientX]
+  );
+
+  const handlePointerMove = useCallback(
+    (ev: PointerEvent<HTMLDivElement>) => {
+      if (ev.pointerType === "mouse" && ev.buttons === 0) {
+        updateScrubFromClientX(ev.clientX);
+        return;
+      }
+      if (!pointerActiveRef.current) return;
+      updateScrubFromClientX(ev.clientX);
+    },
+    [updateScrubFromClientX]
+  );
+
+  const handlePointerUp = useCallback((ev: PointerEvent<HTMLDivElement>) => {
+    if (!pointerActiveRef.current) return;
+    pointerActiveRef.current = false;
+    if (ev.currentTarget.hasPointerCapture(ev.pointerId)) {
+      ev.currentTarget.releasePointerCapture(ev.pointerId);
+    }
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    if (pointerActiveRef.current) return;
+    setScrub(null);
+  }, []);
+
   return (
     <div className="bg-card rounded-2xl p-4 shadow-soft">
       <h3 className="font-medium mb-2">{title}</h3>
@@ -1917,55 +2217,77 @@ function ChartCard({
           </div>
         )}
         {RC && (
-          <div className="h-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
-            <div className="h-full min-w-[420px] touch-pan-x touch-pan-y select-none rounded-xl border border-white/10 bg-slate-950/30">
-              <RC.ResponsiveContainer width="100%" height="100%">
-                <RC.LineChart
-                  data={data}
-                  margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
-                >
-                  <RC.XAxis
-                    dataKey="date"
-                    stroke="#64748b"
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={24}
-                    tickMargin={8}
-                    interval={0}
-                    tickFormatter={formatChartDateTick}
+          <div className="relative h-full rounded-xl border border-white/10 bg-slate-950/30">
+            <RC.ResponsiveContainer width="100%" height="100%">
+              <RC.LineChart
+                data={sortedData}
+                margin={{ top: 16, right: 12, bottom: 12, left: 0 }}
+              >
+                <RC.XAxis
+                  dataKey="date"
+                  stroke="#64748b"
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  interval={0}
+                  ticks={tickValues}
+                  tickFormatter={formatChartDateTick}
+                />
+                <RC.YAxis
+                  stroke="#64748b"
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={44}
+                />
+                <RC.Tooltip
+                  active={!!scrub}
+                  payload={scrub?.payload || []}
+                  label={scrub?.date}
+                  position={scrub ? { x: scrub.cursorX, y: 24 } : undefined}
+                  wrapperStyle={{ outline: "none", borderRadius: 12 }}
+                  cursor={false}
+                  content={<UnifiedTooltip labelFormatter={formatChartTooltipLabel} />}
+                />
+                {scrub && (
+                  <RC.ReferenceLine
+                    x={scrub.date}
+                    stroke="#475569"
+                    strokeDasharray="3 3"
                   />
-                  <RC.YAxis
-                    stroke="#64748b"
-                    tick={{ fill: "#94a3b8", fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={44}
+                )}
+                <RC.Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={false}
+                />
+                {scrub && (
+                  <RC.ReferenceDot
+                    x={scrub.date}
+                    y={sortedData[scrub.index]?.value}
+                    r={4.5}
+                    fill={color}
+                    stroke="#0f172a"
+                    strokeWidth={1}
                   />
-                  <RC.Tooltip
-                    cursor={{ stroke: "#334155", strokeWidth: 1 }}
-                    wrapperStyle={{ outline: "none", borderRadius: 12 }}
-                  />
-                  <RC.Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke={color}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                  />
-                  {showBrush && (
-                    <RC.Brush
-                      dataKey="date"
-                      height={24}
-                      travellerWidth={14}
-                      stroke={color}
-                      tickFormatter={formatChartDateTick}
-                    />
-                  )}
-                </RC.LineChart>
-              </RC.ResponsiveContainer>
-            </div>
+                )}
+              </RC.LineChart>
+            </RC.ResponsiveContainer>
+            <div
+              ref={overlayRef}
+              className={`absolute inset-0 z-10 ${
+                sortedData.length ? "cursor-crosshair" : "pointer-events-none"
+              }`}
+              style={{ touchAction: sortedData.length ? "pan-y" : "auto" }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerLeave}
+              onPointerCancel={handlePointerUp}
+            />
           </div>
         )}
       </div>
