@@ -1328,93 +1328,93 @@ export default function Measurements() {
               <div className="h-full min-w-[560px] touch-pan-x touch-pan-y select-none rounded-2xl border border-white/10 bg-slate-950/30">
                 <RC.ResponsiveContainer width="100%" height="100%">
                   <RC.LineChart
-                data={
-                  weightSeries.length
-                    ? weightSeries
-                    : series(overlayKeys[0] || "weightKg")
-                }
-                margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
+                    data={
+                      weightSeries.length
+                        ? weightSeries
+                        : series(overlayKeys[0] || "weightKg")
+                    }
+                    margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
                   >
                     <RC.XAxis
-                  dataKey="date"
-                  stroke="#64748b"
-                  tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={28}
-                  tickMargin={10}
-                  interval={0}
-                  tickFormatter={formatChartDateTick}
-                />
+                      dataKey="date"
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      minTickGap={28}
+                      tickMargin={10}
+                      interval={0}
+                      tickFormatter={formatChartDateTick}
+                    />
                     <RC.YAxis
-                  stroke="#64748b"
-                  tick={{ fill: "#94a3b8", fontSize: 12 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={48}
-                />
+                      stroke="#64748b"
+                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={48}
+                    />
                     <RC.Tooltip
-                  cursor={{ stroke: "#334155", strokeWidth: 1.25 }}
-                  wrapperStyle={{ outline: "none", borderRadius: 12 }}
-                  content={({ active, payload, label }: any) => (
-                    <UnifiedTooltip
-                      active={active}
-                      payload={payload}
-                      label={label}
-                      context={{ previousPointLookup: prevLookup }}
+                      cursor={{ stroke: "#334155", strokeWidth: 1.25 }}
+                      wrapperStyle={{ outline: "none", borderRadius: 12 }}
+                      content={({ active, payload, label }: any) => (
+                        <UnifiedTooltip
+                          active={active}
+                          payload={payload}
+                          label={label}
+                          context={{ previousPointLookup: prevLookup }}
+                        />
+                      )}
                     />
-                  )}
-                />
-                {overlayKeys.map((k, i) => {
-                  const sObj = overlaySeries[k];
-                  const s = sObj?.raw || series(k);
-                  const palette = [
-                    "#3b82f6",
-                    "#ef4444",
-                    "#22c55e",
-                    "#f59e0b",
-                    "#a855f7",
-                  ];
-                  return (
-                    <RC.Line
-                      key={k}
-                      type="monotone"
-                      name={k}
-                      data={smoothing ? sObj.avg : s}
-                      dataKey={smoothing ? "avg" : "value"}
-                      stroke={palette[i % palette.length]}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  );
-                })}
-                {overlayKeys.includes("weightKg") && (
-                  <>
-                    <RC.Line
-                      type="monotone"
-                      name="7d avg"
-                      data={weight7}
-                      dataKey="avg"
-                      stroke="#ffffff"
-                      strokeDasharray="4 4"
-                      strokeWidth={1.5}
-                      dot={false}
-                    />
-                    {weightTrend.length > 0 && (
-                      <RC.Line
-                        type="monotone"
-                        name="trend"
-                        data={weightTrend}
-                        dataKey="value"
-                        stroke="#22c55e"
-                        strokeDasharray="2 6"
-                        strokeWidth={1.5}
-                        dot={false}
-                      />
+                    {overlayKeys.map((k, i) => {
+                      const sObj = overlaySeries[k];
+                      const s = sObj?.raw || series(k);
+                      const palette = [
+                        "#3b82f6",
+                        "#ef4444",
+                        "#22c55e",
+                        "#f59e0b",
+                        "#a855f7",
+                      ];
+                      return (
+                        <RC.Line
+                          key={k}
+                          type="monotone"
+                          name={k}
+                          data={smoothing ? sObj.avg : s}
+                          dataKey={smoothing ? "avg" : "value"}
+                          stroke={palette[i % palette.length]}
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                      );
+                    })}
+                    {overlayKeys.includes("weightKg") && (
+                      <>
+                        <RC.Line
+                          type="monotone"
+                          name="7d avg"
+                          data={weight7}
+                          dataKey="avg"
+                          stroke="#ffffff"
+                          strokeDasharray="4 4"
+                          strokeWidth={1.5}
+                          dot={false}
+                        />
+                        {weightTrend.length > 0 && (
+                          <RC.Line
+                            type="monotone"
+                            name="trend"
+                            data={weightTrend}
+                            dataKey="value"
+                            stroke="#22c55e"
+                            strokeDasharray="2 6"
+                            strokeWidth={1.5}
+                            dot={false}
+                          />
+                        )}
+                      </>
                     )}
-                  </>
-                )}
                     <RC.Brush
                       dataKey="date"
                       height={26}
@@ -1920,7 +1920,10 @@ function ChartCard({
           <div className="h-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
             <div className="h-full min-w-[420px] touch-pan-x touch-pan-y select-none rounded-xl border border-white/10 bg-slate-950/30">
               <RC.ResponsiveContainer width="100%" height="100%">
-                <RC.LineChart data={data} margin={{ top: 16, right: 16, bottom: 12, left: 0 }}>
+                <RC.LineChart
+                  data={data}
+                  margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
+                >
                   <RC.XAxis
                     dataKey="date"
                     stroke="#64748b"
