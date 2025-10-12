@@ -861,7 +861,9 @@ export default function SettingsPage() {
             <div className="text-sm text-app">Theme</div>
             <div className="input-app rounded-xl px-3 py-2 text-muted flex items-center justify-between">
               <span>Dark</span>
-              <span className="text-[11px] uppercase tracking-wide">Locked</span>
+              <span className="text-[11px] uppercase tracking-wide">
+                Locked
+              </span>
             </div>
           </div>
           <label className="space-y-1">

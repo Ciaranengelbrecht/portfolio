@@ -85,9 +85,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const applyPreset = (id: PresetId) => {
     const p = THEME_PRESETS.find((x) => x.id === id);
     if (!p) return;
-  setTheme("dark");
+    setTheme("dark");
     const root = document.documentElement;
-  root.classList.add("dark");
+    root.classList.add("dark");
     root.setAttribute("data-card-style", p.cardStyle);
     root.style.setProperty("--accent", p.accent);
     if (p.cssVars) {
