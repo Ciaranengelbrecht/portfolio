@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import type { PointerEvent, MouseEvent } from "react";
+import type { PointerEvent, MouseEvent, ReactNode } from "react";
 import { db } from "../lib/db";
 import { getSettings, setSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
@@ -176,6 +176,20 @@ const SKINFOLD_GENERAL_TIPS: string[] = [
   "Stay relaxed — flexing or twisting can change the thickness of the fold.",
 ];
 
+const MEASUREMENT_SECTION_COLLAPSE_KEY = "measurements:sectionCollapsed";
+const INTERACTIVE_ELEMENT_SELECTOR =
+  "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']";
+
+type MeasurementSectionId = "entry" | "bodyFat" | "ffmi" | "trends" | "entries";
+
+const DEFAULT_SECTION_STATE: Record<MeasurementSectionId, boolean> = {
+  entry: true,
+  bodyFat: true,
+  ffmi: true,
+  trends: true,
+  entries: true,
+};
+
 const JACKSON_POLLACK_SEVEN: SkinfoldKey[] = [
   "skinfoldChest",
   "skinfoldAxilla",
@@ -351,6 +365,21 @@ export default function Measurements() {
     dateISO: new Date().toISOString(),
   });
   const [data, setData] = useState<Measurement[]>([]);
+  const [sectionCollapsed, setSectionCollapsed] = useState<
+    Record<MeasurementSectionId, boolean>
+  >(() => {
+    if (typeof window === "undefined") return DEFAULT_SECTION_STATE;
+    try {
+      const raw = window.localStorage.getItem(MEASUREMENT_SECTION_COLLAPSE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          return { ...DEFAULT_SECTION_STATE, ...parsed };
+        }
+      }
+    } catch {}
+    return DEFAULT_SECTION_STATE;
+  });
   const { push } = useSnack();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [preview, setPreview] = useState<null | {
@@ -394,6 +423,16 @@ export default function Measurements() {
       return {};
     }
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        MEASUREMENT_SECTION_COLLAPSE_KEY,
+        JSON.stringify(sectionCollapsed)
+      );
+    } catch {}
+  }, [sectionCollapsed]);
 
   useEffect(() => {
     (async () => {
@@ -453,6 +492,36 @@ export default function Measurements() {
     });
   }, [data]);
 
+  const toggleSectionCollapsed = useCallback(
+    (id: MeasurementSectionId, forced?: boolean) => {
+      setSectionCollapsed((prev) => {
+        const current = prev[id] ?? DEFAULT_SECTION_STATE[id];
+        const nextValue = typeof forced === "boolean" ? forced : !current;
+        return { ...DEFAULT_SECTION_STATE, ...prev, [id]: nextValue };
+      });
+    },
+    []
+  );
+
+  const handleSectionHeaderClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>, id: MeasurementSectionId) => {
+      event.stopPropagation();
+      toggleSectionCollapsed(id);
+    },
+    [toggleSectionCollapsed]
+  );
+
+  const handleSectionSurfaceClick = useCallback(
+    (event: MouseEvent<HTMLElement>, id: MeasurementSectionId) => {
+      const collapsed = sectionCollapsed[id] ?? DEFAULT_SECTION_STATE[id];
+      if (!collapsed) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) return;
+      toggleSectionCollapsed(id, false);
+    },
+    [sectionCollapsed, toggleSectionCollapsed]
+  );
+
   const toggleMeasurementCollapsed = (id: string, forced?: boolean) => {
     const nextValue =
       typeof forced === "boolean" ? forced : !(collapsedRows[id] ?? true);
@@ -474,14 +543,73 @@ export default function Measurements() {
     const current = collapsedRows[id] ?? true;
     if (!current) return;
     const target = event.target as HTMLElement | null;
-    if (
-      target?.closest(
-        "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']"
-      )
-    ) {
+    if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) {
       return;
     }
     toggleMeasurementCollapsed(id, false);
+  };
+
+  type SectionCardProps = {
+    id: MeasurementSectionId;
+    eyebrow?: string;
+    title: string;
+    description?: string;
+    badge?: ReactNode;
+    children: ReactNode;
+  };
+
+  const SectionCard = ({
+    id,
+    eyebrow,
+    title,
+    description,
+    badge,
+    children,
+  }: SectionCardProps) => {
+    const collapsed = sectionCollapsed[id] ?? DEFAULT_SECTION_STATE[id];
+    return (
+      <section
+        className={`bg-card rounded-2xl shadow-soft border border-white/5 transition-colors ${
+          collapsed ? "cursor-pointer hover:border-white/10" : ""
+        }`}
+        onClick={(event) => handleSectionSurfaceClick(event, id)}
+        aria-expanded={!collapsed}
+      >
+        <div className="flex flex-wrap items-start gap-3 px-4 py-4">
+          <button
+            type="button"
+            aria-label={collapsed ? "Expand section" : "Collapse section"}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            onClick={(event) => handleSectionHeaderClick(event, id)}
+          >
+            <span
+              className={`inline-block transform text-base transition-transform duration-150 ${
+                collapsed ? "-rotate-90" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          <div className="min-w-0 flex-1 space-y-1">
+            {eyebrow && (
+              <div className="text-[10px] uppercase tracking-[0.32em] text-white/40">
+                {eyebrow}
+              </div>
+            )}
+            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+            {description && (
+              <p className="text-sm text-slate-300/80">{description}</p>
+            )}
+          </div>
+          {badge && (
+            <div className="ml-auto text-right text-xs text-slate-400">
+              {badge}
+            </div>
+          )}
+        </div>
+        {!collapsed && <div className="px-4 pb-4 space-y-4">{children}</div>}
+      </section>
+    );
   };
 
   const caliperValues = useMemo(() => {
@@ -984,257 +1112,272 @@ export default function Measurements() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Measurements</h2>
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3 fade-in">
-        {/* Hidden file input for Evolt import */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.txt"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleEvoltFile(f);
-            e.currentTarget.value = "";
-          }}
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            "weightKg",
-            "heightCm",
-            "neck",
-            "chest",
-            "waist",
-            "hips",
-            "thigh",
-            "calf",
-            "upperArm",
-            "forearm",
-          ].map((k) => {
-            const label = formatMeasurementLabel(k);
-            const unit = getUnitForKey(k);
-            return (
-              <label key={k} className="space-y-1">
-                <div className="flex items-center justify-between text-sm text-gray-300">
-                  <span>{label}</span>
-                  {unit && (
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                      {unit}
+      <SectionCard
+        id="entry"
+        eyebrow="Current entry"
+        title="Capture measurements"
+        description="Log tape, circumference, and skinfold data before saving."
+      >
+        <>
+          {/* Hidden file input for Evolt import */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.txt"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleEvoltFile(f);
+              e.currentTarget.value = "";
+            }}
+          />
+          <div className="space-y-3 fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                "weightKg",
+                "heightCm",
+                "neck",
+                "chest",
+                "waist",
+                "hips",
+                "thigh",
+                "calf",
+                "upperArm",
+                "forearm",
+              ].map((k) => {
+                const label = formatMeasurementLabel(k);
+                const unit = getUnitForKey(k);
+                return (
+                  <label key={k} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm text-gray-300">
+                      <span>{label}</span>
+                      {unit && (
+                        <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                          {unit}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="bg-slate-700 rounded px-3 py-2"
+                        onClick={() =>
+                          setM((prev) => ({
+                            ...prev,
+                            [k]: Math.max(
+                              0,
+                              Number((prev as any)[k] || 0) - 0.5
+                            ),
+                          }))
+                        }
+                      >
+                        -
+                      </button>
+                      <input
+                        inputMode="decimal"
+                        className="w-full input-number-enhanced"
+                        value={(m as any)[k] ?? ""}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setM((prev) => ({
+                              ...prev,
+                              [k]: Number((prev as any)[k] || 0) + 0.5,
+                            }));
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setM((prev) => ({
+                              ...prev,
+                              [k]: Math.max(
+                                0,
+                                Number((prev as any)[k] || 0) - 0.5
+                              ),
+                            }));
+                          }
+                        }}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                          setM({ ...m, [k]: v === "" ? undefined : Number(v) });
+                        }}
+                        placeholder={unit}
+                      />
+                      <button
+                        className="bg-slate-700 rounded px-3 py-2"
+                        onClick={() =>
+                          setM((prev) => ({
+                            ...prev,
+                            [k]: Number((prev as any)[k] || 0) + 0.5,
+                          }))
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                    {TIPS[k] && (
+                      <p className="text-xs text-gray-400">{TIPS[k]}</p>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="pt-3 border-t border-white/5 space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-100">
+                    Skinfold calipers
+                  </h4>
+                  <p className="text-xs text-slate-400/80">
+                    Enter skinfold thickness in millimetres to enable the
+                    body-fat calculator.
+                  </p>
+                </div>
+                <div className="text-[11px] text-slate-400/80 whitespace-nowrap">
+                  {caliperSummary.count > 0 ? (
+                    <span>
+                      {caliperSummary.count} site
+                      {caliperSummary.count === 1 ? "" : "s"}
+                      {caliperSummary.sum > 0
+                        ? ` • Σ ${caliperSummary.sum.toFixed(1)} mm`
+                        : ""}
                     </span>
+                  ) : (
+                    <span>No calipers logged yet</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="bg-slate-700 rounded px-3 py-2"
-                    onClick={() =>
-                      setM((prev) => ({
-                        ...prev,
-                        [k]: Math.max(0, Number((prev as any)[k] || 0) - 0.5),
-                      }))
-                    }
-                  >
-                    -
-                  </button>
-                  <input
-                    inputMode="decimal"
-                    className="w-full input-number-enhanced"
-                    value={(m as any)[k] ?? ""}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowUp") {
-                        e.preventDefault();
-                        setM((prev) => ({
-                          ...prev,
-                          [k]: Number((prev as any)[k] || 0) + 0.5,
-                        }));
-                      } else if (e.key === "ArrowDown") {
-                        e.preventDefault();
-                        setM((prev) => ({
-                          ...prev,
-                          [k]: Math.max(0, Number((prev as any)[k] || 0) - 0.5),
-                        }));
-                      }
-                    }}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                      setM({ ...m, [k]: v === "" ? undefined : Number(v) });
-                    }}
-                    placeholder={unit}
-                  />
-                  <button
-                    className="bg-slate-700 rounded px-3 py-2"
-                    onClick={() =>
-                      setM((prev) => ({
-                        ...prev,
-                        [k]: Number((prev as any)[k] || 0) + 0.5,
-                      }))
-                    }
-                  >
-                    +
-                  </button>
-                </div>
-                {TIPS[k] && <p className="text-xs text-gray-400">{TIPS[k]}</p>}
-              </label>
-            );
-          })}
-        </div>
-        <div className="pt-3 border-t border-white/5 space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-100">
-                Skinfold calipers
-              </h3>
-              <p className="text-xs text-slate-400/80">
-                Enter skinfold thickness in millimetres to enable the body-fat
-                calculator.
-              </p>
-            </div>
-            <div className="text-[11px] text-slate-400/80 whitespace-nowrap">
-              {caliperSummary.count > 0 ? (
-                <span>
-                  {caliperSummary.count} site
-                  {caliperSummary.count === 1 ? "" : "s"}
-                  {caliperSummary.sum > 0
-                    ? ` • Σ ${caliperSummary.sum.toFixed(1)} mm`
-                    : ""}
-                </span>
-              ) : (
-                <span>No calipers logged yet</span>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {SKINFOLD_SITES.map((site) => {
-              const value = (m as any)[site.key] as number | undefined;
-              return (
-                <label key={site.key} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm text-gray-200">
-                    <span>{site.label}</span>
-                    <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
-                      mm
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="bg-slate-700 rounded px-2.5 py-1.5 text-sm"
-                      onClick={() => adjustCurrentCaliper(site.key, -0.5)}
-                    >
-                      -
-                    </button>
-                    <input
-                      inputMode="decimal"
-                      className="w-full input-number-enhanced"
-                      value={value ?? ""}
-                      onKeyDown={(e) => {
-                        if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          adjustCurrentCaliper(site.key, 0.5);
-                        } else if (e.key === "ArrowDown") {
-                          e.preventDefault();
-                          adjustCurrentCaliper(site.key, -0.5);
-                        }
-                      }}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                        const next = v === "" ? undefined : Number(v);
-                        setCurrentCaliper(site.key, next);
-                      }}
-                      placeholder="mm"
-                    />
-                    <button
-                      type="button"
-                      className="bg-slate-700 rounded px-2.5 py-1.5 text-sm"
-                      onClick={() => adjustCurrentCaliper(site.key, 0.5)}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 leading-snug">
-                    {site.description}
-                  </p>
-                </label>
-              );
-            })}
-          </div>
-          <details className="group rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">
-            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.28em] text-white/60 group-open:text-white">
-              Caliper measuring guide
-            </summary>
-            <div className="mt-3 space-y-3">
-              <ul className="list-disc space-y-1 pl-4 text-xs text-slate-300/90">
-                {SKINFOLD_GENERAL_TIPS.map((tip) => (
-                  <li key={tip}>{tip}</li>
-                ))}
-              </ul>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {SKINFOLD_SITES.map((site) => (
-                  <div
-                    key={site.key}
-                    className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2"
-                  >
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                      {site.label}
-                    </div>
-                    <p className="mt-1 text-[11px] leading-5 text-slate-300/90">
-                      {site.description}
-                    </p>
-                  </div>
-                ))}
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {SKINFOLD_SITES.map((site) => {
+                  const value = (m as any)[site.key] as number | undefined;
+                  return (
+                    <label key={site.key} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm text-gray-200">
+                        <span>{site.label}</span>
+                        <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                          mm
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="bg-slate-700 rounded px-2.5 py-1.5 text-sm"
+                          onClick={() => adjustCurrentCaliper(site.key, -0.5)}
+                        >
+                          -
+                        </button>
+                        <input
+                          inputMode="decimal"
+                          className="w-full input-number-enhanced"
+                          value={value ?? ""}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowUp") {
+                              e.preventDefault();
+                              adjustCurrentCaliper(site.key, 0.5);
+                            } else if (e.key === "ArrowDown") {
+                              e.preventDefault();
+                              adjustCurrentCaliper(site.key, -0.5);
+                            }
+                          }}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                            const next = v === "" ? undefined : Number(v);
+                            setCurrentCaliper(site.key, next);
+                          }}
+                          placeholder="mm"
+                        />
+                        <button
+                          type="button"
+                          className="bg-slate-700 rounded px-2.5 py-1.5 text-sm"
+                          onClick={() => adjustCurrentCaliper(site.key, 0.5)}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 leading-snug">
+                        {site.description}
+                      </p>
+                    </label>
+                  );
+                })}
+              </div>
+              <details className="group rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.28em] text-white/60 group-open:text-white">
+                  Caliper measuring guide
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <ul className="list-disc space-y-1 pl-4 text-xs text-slate-300/90">
+                    {SKINFOLD_GENERAL_TIPS.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {SKINFOLD_SITES.map((site) => (
+                      <div
+                        key={site.key}
+                        className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2"
+                      >
+                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                          {site.label}
+                        </div>
+                        <p className="mt-1 text-[11px] leading-5 text-slate-300/90">
+                          {site.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </details>
             </div>
-          </details>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl"
-            onClick={save}
-          >
-            Save
-          </button>
-          <button
-            className="w-full sm:w-auto bg-indigo-700 hover:bg-indigo-600 px-3 py-3 rounded-xl"
-            onClick={onChooseEvolt}
-            title="Import Evolt 360 PDF or exported .txt"
-          >
-            Import Evolt 360
-          </button>
-          <button
-            className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
-            onClick={() =>
-              setM({
-                id: nanoid(),
-                dateISO: new Date().toISOString(),
-                heightCm:
-                  typeof m.heightCm === "number" && !Number.isNaN(m.heightCm)
-                    ? m.heightCm
-                    : undefined,
-              })
-            }
-          >
-            Add another
-          </button>
-          <MeasurementsInfoModal />
-        </div>
-      </div>
-
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-100">
-              Body fat estimator
-            </h3>
-            <p className="text-sm text-slate-300/80">
-              Jackson & Pollock formulas using your recorded skinfold sites.
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl"
+                onClick={save}
+              >
+                Save
+              </button>
+              <button
+                className="w-full sm:w-auto bg-indigo-700 hover:bg-indigo-600 px-3 py-3 rounded-xl"
+                onClick={onChooseEvolt}
+                title="Import Evolt 360 PDF or exported .txt"
+              >
+                Import Evolt 360
+              </button>
+              <button
+                className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
+                onClick={() =>
+                  setM({
+                    id: nanoid(),
+                    dateISO: new Date().toISOString(),
+                    heightCm:
+                      typeof m.heightCm === "number" &&
+                      !Number.isNaN(m.heightCm)
+                        ? m.heightCm
+                        : undefined,
+                  })
+                }
+              >
+                Add another
+              </button>
+              <MeasurementsInfoModal />
+            </div>
           </div>
+        </>
+      </SectionCard>
+
+      <SectionCard
+        id="bodyFat"
+        eyebrow="Composition"
+        title="Body fat estimator"
+        description="Jackson & Pollock formulas using your recorded skinfold sites."
+        badge={
           <div className="text-xs text-slate-400">
             Current entry:{" "}
             {typeof m.bodyFatPct === "number"
               ? `${m.bodyFatPct.toFixed(1)}%`
               : "—"}
           </div>
-        </div>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <label className="space-y-1 text-sm text-slate-200">
             <span className="block text-xs uppercase tracking-[0.28em] text-slate-400">
@@ -1385,18 +1528,14 @@ export default function Measurements() {
             Save to persist the updated entry.
           </span>
         </div>
-      </div>
+      </SectionCard>
 
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-100">
-              FFMI calculator
-            </h3>
-            <p className="text-sm text-slate-300/80">
-              Uses height and lean mass to estimate your fat-free mass index.
-            </p>
-          </div>
+      <SectionCard
+        id="ffmi"
+        eyebrow="Lean mass"
+        title="FFMI calculator"
+        description="Uses height and lean mass to estimate your fat-free mass index."
+        badge={
           <div className="text-xs text-slate-400">
             Current entry:{" "}
             {typeof m.ffmi === "number"
@@ -1407,7 +1546,8 @@ export default function Measurements() {
                 }`
               : "—"}
           </div>
-        </div>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-xs text-slate-300">
             <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
@@ -1521,9 +1661,17 @@ export default function Measurements() {
             Save to persist the updated entry.
           </span>
         </div>
-      </div>
+      </SectionCard>
 
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-4">
+      <SectionCard
+        id="trends"
+        eyebrow="Insights"
+        title="Trend overlays"
+        description="Visualize your weight and circumference changes with optional overlays."
+        badge={
+          <span>Primary: {formatMeasurementLabel(primaryKey as string)}</span>
+        }
+      >
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="uppercase tracking-wide text-gray-400">
             Overlays:
@@ -1735,7 +1883,7 @@ export default function Measurements() {
             </div>
           )}
         </div>
-      </div>
+      </SectionCard>
 
       {/* Preview Modal */}
       {preview && (
@@ -1799,8 +1947,17 @@ export default function Measurements() {
         </div>
       )}
 
-      <div className="bg-card rounded-2xl p-4 shadow-soft">
-        <div className="font-medium mb-2">Entries</div>
+      <SectionCard
+        id="entries"
+        eyebrow="History"
+        title="Measurement history"
+        description="Review, edit, or delete past measurements and skinfold readings."
+        badge={
+          <span>
+            {data.length} entr{data.length === 1 ? "y" : "ies"}
+          </span>
+        }
+      >
         {!data.length && (
           <div className="text-xs text-muted py-6 text-center">
             No measurements yet. Track your first bodyweight to begin a trend.
@@ -2289,7 +2446,7 @@ export default function Measurements() {
             );
           })}
         </div>
-      </div>
+      </SectionCard>
 
       {/* Snackbar migrated to global snack queue */}
     </div>

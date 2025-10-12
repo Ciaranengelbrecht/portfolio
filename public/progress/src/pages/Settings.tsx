@@ -1,5 +1,13 @@
 import { getMuscleIconPath } from "../lib/muscles";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  MouseEvent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTheme, THEME_PRESETS } from "../lib/theme";
 import { useAppTheme } from "../theme/ThemeProvider";
 import { THEMES, ThemeKey } from "../theme/themes";
@@ -17,6 +25,59 @@ import {
 import { playRestBeep, unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
+
+const SETTINGS_SECTION_COLLAPSE_KEY = "settings:sectionCollapsed";
+const INTERACTIVE_ELEMENT_SELECTOR =
+  "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']";
+
+type SettingsSectionId =
+  | "general"
+  | "appearance"
+  | "safety"
+  | "progress"
+  | "exerciseOverrides"
+  | "exerciseLibrary"
+  | "volumeTargets";
+
+const DEFAULT_SETTINGS_SECTION_STATE: Record<SettingsSectionId, boolean> = {
+  general: true,
+  appearance: true,
+  safety: true,
+  progress: true,
+  exerciseOverrides: true,
+  exerciseLibrary: true,
+  volumeTargets: true,
+};
+
+const VOLUME_TARGET_MUSCLES = [
+  "chest",
+  "back",
+  "quads",
+  "hamstrings",
+  "glutes",
+  "shoulders",
+  "biceps",
+  "triceps",
+  "forearms",
+  "calves",
+  "core",
+] as const;
+
+const EXERCISE_LIBRARY_MUSCLES = [
+  "chest",
+  "back",
+  "shoulders",
+  "triceps",
+  "biceps",
+  "forearms",
+  "legs",
+  "hamstrings",
+  "quads",
+  "glutes",
+  "calves",
+  "core",
+  "other",
+] as const;
 
 export default function SettingsPage() {
   const { applyPreset } = useTheme();
@@ -41,6 +102,135 @@ export default function SettingsPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
   const [showGuidedSetup, setShowGuidedSetup] = useState(false);
+  const [exerciseOverrideCount, setExerciseOverrideCount] = useState<
+    number | null
+  >(null);
+  const [exerciseLibraryCount, setExerciseLibraryCount] = useState<
+    number | null
+  >(null);
+  const [sectionCollapsed, setSectionCollapsed] = useState<
+    Record<SettingsSectionId, boolean>
+  >(DEFAULT_SETTINGS_SECTION_STATE);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SETTINGS_SECTION_COLLAPSE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<
+        Record<SettingsSectionId, boolean>
+      >;
+      setSectionCollapsed((prev) => ({
+        ...DEFAULT_SETTINGS_SECTION_STATE,
+        ...prev,
+        ...parsed,
+      }));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SETTINGS_SECTION_COLLAPSE_KEY,
+        JSON.stringify(sectionCollapsed)
+      );
+    } catch {}
+  }, [sectionCollapsed]);
+
+  const toggleSectionCollapsed = useCallback(
+    (id: SettingsSectionId, forced?: boolean) => {
+      setSectionCollapsed((prev) => {
+        const current = prev[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
+        const nextValue = typeof forced === "boolean" ? forced : !current;
+        return { ...DEFAULT_SETTINGS_SECTION_STATE, ...prev, [id]: nextValue };
+      });
+    },
+    []
+  );
+
+  const handleSectionHeaderClick = useCallback(
+    (event: MouseEvent<HTMLButtonElement>, id: SettingsSectionId) => {
+      event.stopPropagation();
+      toggleSectionCollapsed(id);
+    },
+    [toggleSectionCollapsed]
+  );
+
+  const handleSectionSurfaceClick = useCallback(
+    (event: MouseEvent<HTMLElement>, id: SettingsSectionId) => {
+      const collapsed =
+        sectionCollapsed[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
+      if (!collapsed) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) return;
+      toggleSectionCollapsed(id, false);
+    },
+    [sectionCollapsed, toggleSectionCollapsed]
+  );
+
+  type SectionCardProps = {
+    id: SettingsSectionId;
+    eyebrow?: string;
+    title: string;
+    description?: string;
+    badge?: ReactNode;
+    children: ReactNode;
+  };
+
+  const SectionCard = ({
+    id,
+    eyebrow,
+    title,
+    description,
+    badge,
+    children,
+  }: SectionCardProps) => {
+    const collapsed =
+      sectionCollapsed[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
+    return (
+      <section
+        className={`bg-card rounded-2xl shadow-soft border border-white/5 transition-colors ${
+          collapsed ? "cursor-pointer hover:border-white/10" : ""
+        }`}
+        onClick={(event) => handleSectionSurfaceClick(event, id)}
+        aria-expanded={!collapsed}
+      >
+        <div className="flex flex-wrap items-start gap-3 px-4 py-4">
+          <button
+            type="button"
+            aria-label={collapsed ? "Expand section" : "Collapse section"}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            onClick={(event) => handleSectionHeaderClick(event, id)}
+          >
+            <span
+              className={`inline-block transform text-base transition-transform duration-150 ${
+                collapsed ? "-rotate-90" : ""
+              }`}
+            >
+              ▾
+            </span>
+          </button>
+          <div className="min-w-0 flex-1 space-y-1">
+            {eyebrow && (
+              <div className="text-[10px] uppercase tracking-[0.32em] text-white/40">
+                {eyebrow}
+              </div>
+            )}
+            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+            {description && (
+              <p className="text-sm text-slate-300/80">{description}</p>
+            )}
+          </div>
+          {badge && (
+            <div className="ml-auto text-right text-xs text-slate-400">
+              {badge}
+            </div>
+          )}
+        </div>
+        {!collapsed && <div className="px-4 pb-4 space-y-4">{children}</div>}
+      </section>
+    );
+  };
+
   const hslToHex = (hsl: string): string => {
     try {
       const m = hsl.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
@@ -129,6 +319,7 @@ export default function SettingsPage() {
       return { h: 0, s: 0, l: 0 };
     }
   };
+
   const parseHslA = (
     v?: string
   ): { h: number; s: number; l: number; a?: number } | null => {
@@ -177,12 +368,7 @@ export default function SettingsPage() {
       );
     } catch {}
   }, [themesCollapsed]);
-  // Auto-dismiss toast notifications after ~1.8s
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 1800);
-    return () => clearTimeout(t);
-  }, [toast]);
+
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -404,7 +590,11 @@ export default function SettingsPage() {
       <GuidedSetupWizard
         open={showGuidedSetup}
         onClose={() => setShowGuidedSetup(false)}
-        onComplete={() => setToast("Guided setup ready! Adjust templates anytime under Program settings.")}
+        onComplete={() =>
+          setToast(
+            "Guided setup ready! Adjust templates anytime under Program settings."
+          )
+        }
       />
       <Toast
         open={!!toast}
@@ -416,12 +606,21 @@ export default function SettingsPage() {
         message={bigFlash || ""}
         onClose={() => setBigFlash(null)}
       />
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+      <SectionCard
+        id="general"
+        eyebrow="Core"
+        title="General settings"
+        description="Configure rest timer alerts, Supabase sync, and global units."
+        badge={<span>{userEmail ? "Signed in" : "Offline mode"}</span>}
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-white">Jump-start your training plan</div>
+            <div className="text-sm font-semibold text-white">
+              Jump-start your training plan
+            </div>
             <p className="text-xs text-white/70">
-              Launch the guided setup to craft a personalised split, volume targets, and starter templates in minutes.
+              Launch the guided setup to craft a personalised split, volume
+              targets, and starter templates in minutes.
             </p>
           </div>
           <button
@@ -1087,11 +1286,20 @@ export default function SettingsPage() {
           )}
         </div>
         {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
-      </div>
+      </SectionCard>
 
       {/* Appearance */}
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-        <div className="font-medium">Appearance</div>
+      <SectionCard
+        id="appearance"
+        eyebrow="Customization"
+        title="Appearance"
+        description="Adjust theme presets, fine-tune visuals, and control motion preferences."
+        badge={
+          <span className="text-xs text-muted">
+            {Object.keys(THEMES).length} themes
+          </span>
+        }
+      >
         <div className="space-y-2">
           <button
             type="button"
@@ -1976,11 +2184,15 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Safety */}
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-        <div className="font-medium">Safety</div>
+      <SectionCard
+        id="safety"
+        eyebrow="Guard rails"
+        title="Safety"
+        description="Control destructive action confirmations before data gets wiped."
+      >
         <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
           <span className="text-sm text-app">
             Confirm before deleting items
@@ -1996,11 +2208,15 @@ export default function SettingsPage() {
         <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>
           Save Safety Settings
         </button>
-      </div>
+      </SectionCard>
 
       {/* Progress */}
-      <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-        <div className="font-medium">Progress</div>
+      <SectionCard
+        id="progress"
+        eyebrow="Motivation"
+        title="Progress"
+        description="Tune weekly targets and gameplay effects that keep training fresh."
+      >
         <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
           <span className="text-sm text-app">Weekly target days</span>
           <input
@@ -2069,11 +2285,57 @@ export default function SettingsPage() {
         <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>
           Save Progress Settings
         </button>
-      </div>
+      </SectionCard>
 
-      <ExerciseOverrides />
-      <ExerciseLibraryManager />
-      <WeeklyVolumeTargets />
+      <SectionCard
+        id="exerciseOverrides"
+        eyebrow="Deload"
+        title="Exercise overrides"
+        description="Set per-exercise deload load and set percentages to override the global defaults."
+        badge={
+          <span className="text-xs text-muted">
+            {exerciseOverrideCount == null
+              ? "Loading"
+              : `${exerciseOverrideCount} exercise${
+                  exerciseOverrideCount === 1 ? "" : "s"
+                }`}
+          </span>
+        }
+      >
+        <ExerciseOverrides onCountChange={setExerciseOverrideCount} />
+      </SectionCard>
+
+      <SectionCard
+        id="exerciseLibrary"
+        eyebrow="Library"
+        title="Exercise library"
+        description="Search, edit, and tag exercises with primary and secondary muscles."
+        badge={
+          <span className="text-xs text-muted">
+            {exerciseLibraryCount == null
+              ? "Loading"
+              : `${exerciseLibraryCount} exercise${
+                  exerciseLibraryCount === 1 ? "" : "s"
+                }`}
+          </span>
+        }
+      >
+        <ExerciseLibraryManager onCountChange={setExerciseLibraryCount} />
+      </SectionCard>
+
+      <SectionCard
+        id="volumeTargets"
+        eyebrow="Targets"
+        title="Weekly volume targets"
+        description="Define set targets per muscle group to guide programming and dashboards."
+        badge={
+          <span className="text-xs text-muted">
+            {VOLUME_TARGET_MUSCLES.length} muscle groups
+          </span>
+        }
+      >
+        <WeeklyVolumeTargets />
+      </SectionCard>
     </div>
   );
 }
@@ -2138,12 +2400,21 @@ function Toast({
   );
 }
 
-function ExerciseOverrides() {
+type ExerciseOverridesProps = {
+  onCountChange?: (count: number) => void;
+};
+
+function ExerciseOverrides({ onCountChange }: ExerciseOverridesProps) {
   const [list, setList] = useState<any[]>([]);
-  const [collapsed, setCollapsed] = useState(true); // collapsed by default
+
   useEffect(() => {
-    (async () => setList(await db.getAll("exercises")))();
-  }, []);
+    (async () => {
+      const exercises = await db.getAll("exercises");
+      setList(exercises);
+      onCountChange?.(exercises.length);
+    })();
+  }, [onCountChange]);
+
   const save = async (
     i: number,
     k: "deloadLoadPct" | "deloadSetPct",
@@ -2152,121 +2423,93 @@ function ExerciseOverrides() {
     const ex = list[i];
     const updated = { ...ex, defaults: { ...ex.defaults, [k]: v } };
     await db.put("exercises", updated);
-    setList(list.map((e, idx) => (idx === i ? updated : e)));
+    const next = list.map((e, idx) => (idx === i ? updated : e));
+    setList(next);
+    onCountChange?.(next.length);
   };
-  // Persist collapse preference (session scope for now)
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("exOverridesCollapsed");
-      if (raw !== null) setCollapsed(raw === "1");
-    } catch {}
-  }, []);
-  useEffect(() => {
-    try {
-      sessionStorage.setItem("exOverridesCollapsed", collapsed ? "1" : "0");
-    } catch {}
-  }, [collapsed]);
+
+  if (!list.length) {
+    return (
+      <div className="text-sm text-muted">
+        No exercises yet. Add some in the library below to customise deloads.
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-card rounded-2xl shadow-soft overflow-hidden">
-      <button
-        type="button"
-        className="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-emerald-600/50"
-        onClick={() => setCollapsed((c) => !c)}
-        aria-expanded={!collapsed}
-        aria-controls="exercise-overrides-body"
-      >
-        <span className="font-medium flex items-center gap-2">
-          <span
-            className={`inline-block transform transition-transform duration-300 ${
-              collapsed ? "rotate-180" : ""
-            }`}
+    <div className="space-y-3">
+      <div className="text-sm text-muted">
+        Set specific deload % for load and sets. Leave blank to use global
+        defaults.
+      </div>
+      <div className="grid gap-2">
+        {list.map((ex, i) => (
+          <div
+            key={ex.id}
+            className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2 bg-slate-800/40 rounded-xl px-3 py-2"
           >
-            ▾
-          </span>
-          Exercise deload overrides
-        </span>
-        <span className="text-xs text-muted">{list.length} exercises</span>
-      </button>
-      <div
-        id="exercise-overrides-body"
-        className={`transition-all duration-400 ease-out ${
-          collapsed
-            ? "max-h-0 opacity-0 pointer-events-none"
-            : "max-h-[640px] opacity-100"
-        } px-4 ${collapsed ? "" : "pb-4"}`}
-        aria-hidden={collapsed}
-      >
-        <div className="text-sm text-muted mb-3">
-          Set specific deload % for load and sets. Leave blank to use global
-          defaults.
-        </div>
-        <div className="grid gap-2">
-          {list.map((ex, i) => (
-            <div
-              key={ex.id}
-              className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2 bg-slate-800/40 rounded-xl px-3 py-2"
-            >
-              <div className="truncate text-xs sm:text-sm">{ex.name}</div>
-              <input
-                aria-label="Load %"
-                className="input-app rounded-xl px-3 py-2"
-                placeholder="Load %"
-                value={
-                  Math.round((ex.defaults.deloadLoadPct ?? NaN) * 100) || ""
-                }
-                onChange={(e) =>
-                  save(i, "deloadLoadPct", Number(e.target.value) / 100)
-                }
-              />
-              <input
-                aria-label="Set %"
-                className="input-app rounded-xl px-3 py-2"
-                placeholder="Set %"
-                value={
-                  Math.round((ex.defaults.deloadSetPct ?? NaN) * 100) || ""
-                }
-                onChange={(e) =>
-                  save(i, "deloadSetPct", Number(e.target.value) / 100)
-                }
-              />
-            </div>
-          ))}
-        </div>
+            <div className="truncate text-xs sm:text-sm">{ex.name}</div>
+            <input
+              aria-label="Load %"
+              className="input-app rounded-xl px-3 py-2"
+              placeholder="Load %"
+              value={Math.round((ex.defaults.deloadLoadPct ?? NaN) * 100) || ""}
+              onChange={(e) =>
+                save(i, "deloadLoadPct", Number(e.target.value) / 100)
+              }
+            />
+            <input
+              aria-label="Set %"
+              className="input-app rounded-xl px-3 py-2"
+              placeholder="Set %"
+              value={Math.round((ex.defaults.deloadSetPct ?? NaN) * 100) || ""}
+              onChange={(e) =>
+                save(i, "deloadSetPct", Number(e.target.value) / 100)
+              }
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+type ExerciseLibraryManagerProps = {
+  onCountChange?: (count: number) => void;
+};
+
 // New: Exercise library manager (primary + secondary muscles editing)
-function ExerciseLibraryManager() {
+function ExerciseLibraryManager({
+  onCountChange,
+}: ExerciseLibraryManagerProps) {
   const [list, setList] = useState<any[]>([]);
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState("");
   const [muscleFilter, setMuscleFilter] = useState<string>(""); // empty => all
   useEffect(() => {
-    (async () => setList(await db.getAll("exercises")))();
-  }, []);
-  const ALL: string[] = [
-    "chest",
-    "back",
-    "shoulders",
-    "triceps",
-    "biceps",
-    "forearms",
-    "legs",
-    "hamstrings",
-    "quads",
-    "glutes",
-    "calves",
-    "core",
-    "other",
-  ];
+    (async () => {
+      const exercises = await db.getAll("exercises");
+      setList(exercises);
+      onCountChange?.(exercises.length);
+    })();
+  }, [onCountChange]);
+  const ALL = EXERCISE_LIBRARY_MUSCLES;
+  const filtered = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return list
+      .filter((ex) => ex.name.toLowerCase().includes(query))
+      .filter((ex) => !muscleFilter || ex.muscleGroup === muscleFilter);
+  }, [list, muscleFilter, q]);
   const update = async (id: string, mut: (ex: any) => any) => {
-    setList((ls) => ls.map((ex) => (ex.id === id ? mut({ ...ex }) : ex)));
-    const ex = list.find((e) => e.id === id);
-    if (!ex) return;
-    const next = mut({ ...ex });
+    const current = list.find((e) => e.id === id);
+    if (!current) return;
+    const next = mut({ ...current });
     await db.put("exercises", next);
+    setList((ls) => {
+      const derived = ls.map((ex) => (ex.id === id ? next : ex));
+      onCountChange?.(derived.length);
+      return derived;
+    });
   };
   const addSecondary = (ex: any, m: string) =>
     update(ex.id, (e) => ({
@@ -2296,12 +2539,15 @@ function ExerciseLibraryManager() {
       secondaryMuscles: [],
     };
     await db.put("exercises", ex);
-    setList([ex, ...list]);
+    setList((prev) => {
+      const next = [ex, ...prev];
+      onCountChange?.(next.length);
+      return next;
+    });
     setCreating("");
   };
   return (
-    <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-      <div className="font-medium">Exercise Library</div>
+    <div className="space-y-3">
       <div className="text-sm text-muted">
         Edit primary and secondary muscles. Secondary muscles contribute
         indirect volume (0.5x) in allocator.
@@ -2371,10 +2617,16 @@ function ExerciseLibraryManager() {
         ))}
       </div>
       <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
-        {list
-          .filter((ex) => ex.name.toLowerCase().includes(q.toLowerCase()))
-          .filter((ex) => !muscleFilter || ex.muscleGroup === muscleFilter)
-          .map((ex) => {
+        {list.length === 0 ? (
+          <div className="text-sm text-muted">
+            No exercises yet. Add some above to start customising deloads.
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-sm text-muted">
+            No exercises match the current filters.
+          </div>
+        ) : (
+          filtered.map((ex) => {
             const remaining = ALL.filter(
               (m) =>
                 m !== ex.muscleGroup && !(ex.secondaryMuscles || []).includes(m)
@@ -2445,7 +2697,8 @@ function ExerciseLibraryManager() {
                 </div>
               </div>
             );
-          })}
+          })
+        )}
       </div>
     </div>
   );
@@ -2459,19 +2712,6 @@ function WeeklyVolumeTargets() {
       setTargets(s?.volumeTargets || {});
     })();
   }, []);
-  const MUSCLES = [
-    "chest",
-    "back",
-    "quads",
-    "hamstrings",
-    "glutes",
-    "shoulders",
-    "biceps",
-    "triceps",
-    "forearms",
-    "calves",
-    "core",
-  ];
   const save = async () => {
     const cur = await db.get("settings", "app");
     await db.put("settings", {
@@ -2481,14 +2721,13 @@ function WeeklyVolumeTargets() {
     });
   };
   return (
-    <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
-      <div className="font-medium">Weekly Volume Targets</div>
+    <div className="space-y-3">
       <div className="text-sm text-muted">
         Set desired weighted set targets per muscle. Used for allocator and
         dashboard progress bars.
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {MUSCLES.map((m) => (
+        {VOLUME_TARGET_MUSCLES.map((m) => (
           <label key={m} className="space-y-1">
             <span className="text-xs capitalize text-app">{m}</span>
             <input
