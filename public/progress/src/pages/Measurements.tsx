@@ -723,7 +723,8 @@ export default function Measurements() {
       : primaryOverlayData?.raw;
     const dataset = candidate?.length ? candidate : chartSeries;
     const hasAvg = Boolean(
-      smoothing && candidate?.some((point: any) => typeof point.avg === "number")
+      smoothing &&
+        candidate?.some((point: any) => typeof point.avg === "number")
     );
     return {
       data: dataset,
