@@ -3959,6 +3959,7 @@ export default function Sessions() {
                 {session && (
                   <>
                     <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       onClick={() => {
                         setStampAnimating(true);
@@ -3970,6 +3971,7 @@ export default function Sessions() {
                       Stamp
                     </button>
                     <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       onClick={() => setShowImport(true)}
                       title="Import from template"
@@ -3977,6 +3979,7 @@ export default function Sessions() {
                       Import
                     </button>
                     <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       disabled={!session.entries.length}
                       onClick={() => setShowSaveTemplate(true)}
@@ -3989,6 +3992,22 @@ export default function Sessions() {
                       Save
                     </button>
                     <button
+                      type="button"
+                      data-testid="erase-session-tools"
+                      className="tool-btn !px-3 !py-1.5 !border-rose-400/60 !text-rose-100 !shadow-[0_0_12px_rgba(244,63,94,0.35)] hover:!bg-rose-500/20"
+                      onClick={() => {
+                        if (wipeBusy) return;
+                        setWipeScope("day");
+                        setWipeConfirmValue("");
+                        setWipeError(null);
+                        setWipeSheetOpen(true);
+                      }}
+                      title="Erase logged data for this session, week, or phase"
+                    >
+                      Erase Data
+                    </button>
+                    <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       onClick={() => collapseAll()}
                       title="Collapse all exercises"
@@ -3996,6 +4015,7 @@ export default function Sessions() {
                       Collapse All
                     </button>
                     <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       onClick={() => expandAll()}
                       title="Expand all exercises"
@@ -4003,6 +4023,7 @@ export default function Sessions() {
                       Expand All
                     </button>
                     <button
+                      type="button"
                       className="tool-btn !px-3 !py-1.5"
                       onClick={async () => {
                         const prevId = `${phase}-${Math.max(
@@ -4035,19 +4056,6 @@ export default function Sessions() {
                       title="Copy previous session"
                     >
                       Copy Last
-                    </button>
-                    <button
-                      className="tool-btn !px-3 !py-1.5 !border-rose-400/40 !text-rose-100 hover:!bg-rose-500/20"
-                      onClick={() => {
-                        if (wipeBusy) return;
-                        setWipeScope("day");
-                        setWipeConfirmValue("");
-                        setWipeError(null);
-                        setWipeSheetOpen(true);
-                      }}
-                      title="Erase logged data for this session, week, or phase"
-                    >
-                      Erase Data
                     </button>
                   </>
                 )}
