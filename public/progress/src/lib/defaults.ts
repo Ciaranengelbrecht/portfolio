@@ -32,7 +32,8 @@ export const defaultSettings: Settings = {
     gamification: true,
     showDeloadHints: true,
     showPrevHints: true,
-  autoProgression: true,
+    autoProgression: true,
+    guidedSetup: { completed: false },
   },
   volumeTargets: {
     chest: 12,

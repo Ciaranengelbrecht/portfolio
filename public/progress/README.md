@@ -28,6 +28,14 @@ npm run build
 npm run preview
 ```
 
+## Guided setup onboarding
+
+Run the guided setup from `Program → Settings → Guided setup` to generate a starter program tailored to your training experience, equipment access, and priorities.
+
+- Work through the short questionnaire; inline guidance cards explain how each answer influences the generated plan.
+- The review step previews the weekly split, recommended templates (anchor/support exercises), and auto-calculated weekly volume targets.
+- After saving, you can tweak templates, swap exercises, or re-run the wizard at any time—your previous progress stays archived automatically.
+
 ## Deploy to GitHub Pages
 
 

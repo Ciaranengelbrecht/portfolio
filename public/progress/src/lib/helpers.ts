@@ -77,6 +77,16 @@ export async function getSettings(): Promise<Settings> {
   if (base.reducedMotion == null) (base as any).reducedMotion = false;
   if ((base as any).restTimerTargetSeconds == null)
     (base as any).restTimerTargetSeconds = 90;
+  if (!base.progress?.guidedSetup) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        guidedSetup: { completed: false },
+      },
+    };
+    mutated = true;
+  }
   if (mutated) {
     await db.put("settings", { ...base, id: "app" } as any);
   }

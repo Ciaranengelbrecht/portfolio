@@ -21,6 +21,7 @@ import { nanoid } from "nanoid";
 import { getMuscleIconPath } from "../lib/muscles";
 import { computeLoggedSetVolume } from "../lib/volume";
 import { getSettings } from "../lib/helpers";
+import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -54,6 +55,7 @@ export default function ProgramSettings() {
   const [diffItems, setDiffItems] = useState<string[]>([]);
   const [projectedMuscleVolume, setProjectedMuscleVolume] = useState<Record<string, number>>({});
   const [projectedPerDay, setProjectedPerDay] = useState<Record<number, Record<string, number>>>({});
+  const [showGuidedSetup, setShowGuidedSetup] = useState(false);
 
   // Logged set volume (weighted) for current phase (primary +1, secondary +0.5)
   useEffect(()=>{ (async()=>{
@@ -369,8 +371,27 @@ export default function ProgramSettings() {
   })() }, [working.weeklySplit, templates]);
   return (
     <div className="space-y-6">
+      <GuidedSetupWizard
+        open={showGuidedSetup}
+        onClose={() => setShowGuidedSetup(false)}
+        onComplete={() => setToast("Guided setup applied")}
+      />
       <h2 className="text-lg font-semibold">Program</h2>
       {toast && <div className="text-xs text-emerald-400">{toast}</div>}
+      <div className="bg-card rounded-2xl p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-white">Need a personalised starting point?</div>
+          <p className="text-xs text-gray-400">
+            Answer a few questions and we’ll build a split, volume targets, and starter templates for you.
+          </p>
+        </div>
+        <button
+          className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+          onClick={() => setShowGuidedSetup(true)}
+        >
+          Launch guided setup
+        </button>
+      </div>
       <div className="glass-card rounded-2xl p-4 space-y-4">
         {/* Mesocycle timeline */}
         <div className="space-y-2">

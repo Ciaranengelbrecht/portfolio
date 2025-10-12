@@ -188,6 +188,12 @@ export interface Settings {
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
     autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
+    guidedSetup?: {
+      completed?: boolean;
+      lastCompletedStep?: number;
+      draft?: GuidedSetupState;
+      lastUpdatedAt?: string;
+    };
   };
   /** Per-muscle weekly target (weighted sets) */
   volumeTargets?: Record<string, number>;
@@ -260,6 +266,66 @@ export interface Template {
       addRepsFirst?: boolean; // default true
     };
   }[];
+}
+
+export type TrainingExperienceLevel = "beginner" | "intermediate" | "advanced";
+
+export type EquipmentAccessLevel =
+  | "commercial-gym"
+  | "home-gym"
+  | "minimal";
+
+export type TrainingGoalEmphasis = "hypertrophy" | "strength" | "balanced";
+
+export type VolumePreferenceLevel = "lower" | "standard" | "higher";
+
+export interface GuidedSetupScheduleDay {
+  id: string;
+  label: string;
+  type: DayLabel;
+  focusMuscles: MuscleGroup[];
+  /** Optional hint shown to the user while reviewing the day */
+  note?: string;
+}
+
+export type GuidedTemplateHighlightRole = "anchor" | "support";
+
+export interface GuidedTemplateHighlight {
+  exerciseId: string;
+  role: GuidedTemplateHighlightRole;
+}
+
+export interface GuidedTemplateDraft {
+  id: string;
+  name: string;
+  exerciseIds: string[];
+  focusMuscles: MuscleGroup[];
+  plan: {
+    exerciseId: string;
+    plannedSets: number;
+    repRange: string;
+  }[];
+  note?: string;
+  highlights?: GuidedTemplateHighlight[];
+}
+
+export interface GuidedSetupState {
+  experience?: TrainingExperienceLevel;
+  equipment?: EquipmentAccessLevel;
+  goalEmphasis?: TrainingGoalEmphasis;
+  daysPerWeek?: number;
+  preferredRestDays?: number[]; // 0 = Monday
+  setsPerSession?: number;
+  volumePreference?: VolumePreferenceLevel;
+  priorityMuscles?: {
+    primary: MuscleGroup[];
+    secondary: MuscleGroup[];
+    maintenance: MuscleGroup[];
+  };
+  schedule?: GuidedSetupScheduleDay[];
+  recommendedProgram?: UserProgram;
+  templateDrafts?: GuidedTemplateDraft[];
+  lastCalculatedAt?: string;
 }
 
 export type DBVersion = 7;
