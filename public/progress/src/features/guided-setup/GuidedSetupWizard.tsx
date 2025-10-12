@@ -1112,7 +1112,10 @@ async function populateGuidedSessions({
 
       const scheduleDay = scheduleByIndex.get(idx);
       const dayLabel =
-        dayMeta.customLabel || scheduleDay?.label || dayMeta.type || `Day ${idx + 1}`;
+        dayMeta.customLabel ||
+        scheduleDay?.label ||
+        dayMeta.type ||
+        `Day ${idx + 1}`;
       const nowISO = new Date().toISOString();
 
       if (existing) {

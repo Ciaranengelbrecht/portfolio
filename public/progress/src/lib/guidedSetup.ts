@@ -327,7 +327,11 @@ export function buildTemplateDrafts(
   const repRange =
     goal === "strength" ? "4-6" : goal === "hypertrophy" ? "8-12" : "6-10";
 
-  for (let scheduleIndex = 0; scheduleIndex < schedule.length; scheduleIndex++) {
+  for (
+    let scheduleIndex = 0;
+    scheduleIndex < schedule.length;
+    scheduleIndex++
+  ) {
     const day = schedule[scheduleIndex];
     if (day.type === "Rest") continue;
     const focus = day.focusMuscles.length
