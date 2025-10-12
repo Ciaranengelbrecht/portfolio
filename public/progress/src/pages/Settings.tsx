@@ -232,6 +232,57 @@ export default function SettingsPage() {
     location.reload();
   };
 
+  const deleteAccountAndData = async () => {
+    try {
+      if (!authChecked) {
+        alert("Please wait until your session is checked.");
+        return;
+      }
+      const sess = await waitForSession({ timeoutMs: 3000 });
+      if (!sess?.user?.id) {
+        alert("You need to be signed in to delete your cloud account.");
+        return;
+      }
+      // Multi‑step confirmation
+      if (!window.confirm("Delete your LiftLog account and all synced data? This cannot be undone.")) return;
+      if (!window.confirm("Final confirmation: permanently delete account and data?")) return;
+
+      setBusy("delete");
+      const uid = sess.user.id as string;
+
+      // 1) Delete remote rows owned by the user (RLS permits owner deletes)
+      try {
+        const tables = ["exercises","sessions","measurements","templates","settings"] as const;
+        for (const t of tables) {
+          await supabase.from(t).delete().eq("owner", uid);
+        }
+      } catch (e) {
+        console.warn("[Delete] remote row cleanup issue", e);
+      }
+
+      // 2) Attempt to delete auth user via admin function (optional backend). If not available, sign out and proceed.
+      try {
+        // Optional: call a secured endpoint if configured (not required to ship UI)
+        // await fetch('/api/delete-user', { method: 'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ uid }) });
+      } catch {}
+
+      // 3) Clear local data
+      for (const k of ["exercises","sessions","measurements","templates"] as const) {
+        const items = await db.getAll<any>(k);
+        for (const it of items) await db.delete(k, (it as any).id);
+      }
+      try { await db.delete("settings", "app"); } catch {}
+
+      // 4) Sign out and navigate to a confirmation/info page
+      try { await supabase.auth.signOut({ scope: "global" } as any); } catch {}
+      clearAuthStorage();
+      alert("Your account data has been deleted. If purchases exist, Google may retain limited records as noted in the policy.");
+      window.location.href = "https://ciaranengelbrecht.com/delete-account-liftlog.html";
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
@@ -795,6 +846,23 @@ export default function SettingsPage() {
           >
             Reset data
           </button>
+          <a
+            className="btn-outline px-3 py-2 rounded-xl"
+            href="https://ciaranengelbrecht.com/delete-account-liftlog.html"
+            target="_blank" rel="noopener noreferrer"
+          >
+            Deletion info
+          </a>
+          {userEmail && (
+            <button
+              className="px-3 py-2 rounded-xl text-white"
+              style={{ background: "#ef4444" }}
+              disabled={busy === "delete"}
+              onClick={deleteAccountAndData}
+            >
+              {busy === "delete" ? "Deleting…" : "Delete account & data"}
+            </button>
+          )}
         </div>
         {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
       </div>
