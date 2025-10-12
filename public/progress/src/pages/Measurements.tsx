@@ -1826,7 +1826,10 @@ export default function Measurements() {
             const isCollapsed = collapsedRows[row.id] ?? true;
             const formattedDate = row.dateISO.slice(0, 10);
             const summaryParts: string[] = [];
-            if (typeof row.weightKg === "number" && !Number.isNaN(row.weightKg)) {
+            if (
+              typeof row.weightKg === "number" &&
+              !Number.isNaN(row.weightKg)
+            ) {
               summaryParts.push(`Weight ${row.weightKg.toFixed(1)} kg`);
             }
             if (
@@ -1844,7 +1847,9 @@ export default function Measurements() {
                 className={`bg-slate-800 rounded-xl px-3 py-3 space-y-3 transition-colors ${
                   isCollapsed ? "cursor-pointer hover:bg-slate-800/75" : ""
                 }`}
-                onClick={(event) => handleMeasurementSurfaceClick(event, row.id)}
+                onClick={(event) =>
+                  handleMeasurementSurfaceClick(event, row.id)
+                }
                 aria-expanded={!isCollapsed}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1857,7 +1862,9 @@ export default function Measurements() {
                         toggleMeasurementCollapsed(row.id);
                       }}
                       aria-label={
-                        isCollapsed ? "Expand measurement" : "Collapse measurement"
+                        isCollapsed
+                          ? "Expand measurement"
+                          : "Collapse measurement"
                       }
                     >
                       {isCollapsed ? "▶" : "▼"}
@@ -1922,209 +1929,235 @@ export default function Measurements() {
                     </div>
                     {/* Mobile stacked fields */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  <div className="bg-slate-900/50 rounded-xl px-2 py-2">
-                    <div className="text-[11px] text-gray-400 mb-1">Weight</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            weightKg: Math.max(0, (row.weightKg || 0) - 0.5),
-                          })
-                        }
-                      >
-                        -
-                      </button>
-                      <input
-                        className="input-number-enhanced w-full"
-                        inputMode="decimal"
-                        value={row.weightKg || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            update(row.id, {
-                              weightKg: (row.weightKg || 0) + 0.5,
-                            });
-                          } else if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            update(row.id, {
-                              weightKg: Math.max(0, (row.weightKg || 0) - 0.5),
-                            });
-                          }
-                        }}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                          update(row.id, {
-                            weightKg: v === "" ? undefined : Number(v),
-                          });
-                        }}
-                        placeholder="kg"
-                      />
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            weightKg: (row.weightKg || 0) + 0.5,
-                          })
-                        }
-                      >
-                        +
-                      </button>
+                      <div className="bg-slate-900/50 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">
+                          Weight
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                weightKg: Math.max(
+                                  0,
+                                  (row.weightKg || 0) - 0.5
+                                ),
+                              })
+                            }
+                          >
+                            -
+                          </button>
+                          <input
+                            className="input-number-enhanced w-full"
+                            inputMode="decimal"
+                            value={row.weightKg || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  weightKg: (row.weightKg || 0) + 0.5,
+                                });
+                              } else if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  weightKg: Math.max(
+                                    0,
+                                    (row.weightKg || 0) - 0.5
+                                  ),
+                                });
+                              }
+                            }}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                              update(row.id, {
+                                weightKg: v === "" ? undefined : Number(v),
+                              });
+                            }}
+                            placeholder="kg"
+                          />
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                weightKg: (row.weightKg || 0) + 0.5,
+                              })
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">
+                          Height
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                heightCm: Math.max(
+                                  0,
+                                  (row.heightCm || 0) - 0.5
+                                ),
+                              })
+                            }
+                          >
+                            -
+                          </button>
+                          <input
+                            className="input-number-enhanced w-full"
+                            inputMode="decimal"
+                            value={row.heightCm || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  heightCm: (row.heightCm || 0) + 0.5,
+                                });
+                              } else if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  heightCm: Math.max(
+                                    0,
+                                    (row.heightCm || 0) - 0.5
+                                  ),
+                                });
+                              }
+                            }}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                              update(row.id, {
+                                heightCm: v === "" ? undefined : Number(v),
+                              });
+                            }}
+                            placeholder="cm"
+                          />
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                heightCm: (row.heightCm || 0) + 0.5,
+                              })
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">
+                          Waist
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                waist: Math.max(0, (row.waist || 0) - 0.5),
+                              })
+                            }
+                          >
+                            -
+                          </button>
+                          <input
+                            className="input-number-enhanced w-full"
+                            inputMode="decimal"
+                            value={row.waist || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  waist: (row.waist || 0) + 0.5,
+                                });
+                              } else if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  waist: Math.max(0, (row.waist || 0) - 0.5),
+                                });
+                              }
+                            }}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                              update(row.id, {
+                                waist: v === "" ? undefined : Number(v),
+                              });
+                            }}
+                            placeholder="waist"
+                          />
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, { waist: (row.waist || 0) + 0.5 })
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-xl px-2 py-2">
+                        <div className="text-[11px] text-gray-400 mb-1">
+                          Upper Arm
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                upperArm: Math.max(
+                                  0,
+                                  (row.upperArm || 0) - 0.5
+                                ),
+                              })
+                            }
+                          >
+                            -
+                          </button>
+                          <input
+                            className="input-number-enhanced w-full"
+                            inputMode="decimal"
+                            value={row.upperArm || ""}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowUp") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  upperArm: (row.upperArm || 0) + 0.5,
+                                });
+                              } else if (e.key === "ArrowDown") {
+                                e.preventDefault();
+                                update(row.id, {
+                                  upperArm: Math.max(
+                                    0,
+                                    (row.upperArm || 0) - 0.5
+                                  ),
+                                });
+                              }
+                            }}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                              update(row.id, {
+                                upperArm: v === "" ? undefined : Number(v),
+                              });
+                            }}
+                            placeholder="arm"
+                          />
+                          <button
+                            className="bg-slate-700 rounded px-3 py-2"
+                            onClick={() =>
+                              update(row.id, {
+                                upperArm: (row.upperArm || 0) + 0.5,
+                              })
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-xl px-2 py-2">
-                    <div className="text-[11px] text-gray-400 mb-1">Height</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            heightCm: Math.max(0, (row.heightCm || 0) - 0.5),
-                          })
-                        }
-                      >
-                        -
-                      </button>
-                      <input
-                        className="input-number-enhanced w-full"
-                        inputMode="decimal"
-                        value={row.heightCm || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            update(row.id, {
-                              heightCm: (row.heightCm || 0) + 0.5,
-                            });
-                          } else if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            update(row.id, {
-                              heightCm: Math.max(0, (row.heightCm || 0) - 0.5),
-                            });
-                          }
-                        }}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                          update(row.id, {
-                            heightCm: v === "" ? undefined : Number(v),
-                          });
-                        }}
-                        placeholder="cm"
-                      />
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            heightCm: (row.heightCm || 0) + 0.5,
-                          })
-                        }
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-xl px-2 py-2">
-                    <div className="text-[11px] text-gray-400 mb-1">Waist</div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            waist: Math.max(0, (row.waist || 0) - 0.5),
-                          })
-                        }
-                      >
-                        -
-                      </button>
-                      <input
-                        className="input-number-enhanced w-full"
-                        inputMode="decimal"
-                        value={row.waist || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            update(row.id, { waist: (row.waist || 0) + 0.5 });
-                          } else if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            update(row.id, {
-                              waist: Math.max(0, (row.waist || 0) - 0.5),
-                            });
-                          }
-                        }}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                          update(row.id, {
-                            waist: v === "" ? undefined : Number(v),
-                          });
-                        }}
-                        placeholder="waist"
-                      />
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, { waist: (row.waist || 0) + 0.5 })
-                        }
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                  <div className="bg-slate-900/50 rounded-xl px-2 py-2">
-                    <div className="text-[11px] text-gray-400 mb-1">
-                      Upper Arm
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            upperArm: Math.max(0, (row.upperArm || 0) - 0.5),
-                          })
-                        }
-                      >
-                        -
-                      </button>
-                      <input
-                        className="input-number-enhanced w-full"
-                        inputMode="decimal"
-                        value={row.upperArm || ""}
-                        onKeyDown={(e) => {
-                          if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            update(row.id, {
-                              upperArm: (row.upperArm || 0) + 0.5,
-                            });
-                          } else if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            update(row.id, {
-                              upperArm: Math.max(0, (row.upperArm || 0) - 0.5),
-                            });
-                          }
-                        }}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                          update(row.id, {
-                            upperArm: v === "" ? undefined : Number(v),
-                          });
-                        }}
-                        placeholder="arm"
-                      />
-                      <button
-                        className="bg-slate-700 rounded px-3 py-2"
-                        onClick={() =>
-                          update(row.id, {
-                            upperArm: (row.upperArm || 0) + 0.5,
-                          })
-                        }
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                </div>
                     {rowCalipers.length > 0 && !isCaliperOpen && (
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                         <span>
@@ -2136,7 +2169,8 @@ export default function Measurements() {
                           <span>
                             Lean mass ≈{" "}
                             {(
-                              row.weightKg * (1 - row.bodyFatPct / 100)
+                              row.weightKg *
+                              (1 - row.bodyFatPct / 100)
                             ).toFixed(2)}{" "}
                             kg
                           </span>

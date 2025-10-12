@@ -54,9 +54,9 @@ export default function Templates() {
       // Avoid blocking UI; rely on cached session or proceed optimistically
       setExercises(await db.getAll("exercises"));
       setTemplates(await db.getAll("templates"));
-  // subscribe only once needed
-  requestRealtime('exercises');
-  requestRealtime('templates');
+      // subscribe only once needed
+      requestRealtime("exercises");
+      requestRealtime("templates");
     })();
   }, []);
 
@@ -118,18 +118,24 @@ export default function Templates() {
     exerciseId: ex.id,
     plannedSets: ex.defaults?.sets || 3,
     repRange: ex.defaults?.targetRepRange || "8-12",
-    progression: { scheme: 'linear' as const, incrementKg: 2.5, addRepsFirst: true }
+    progression: {
+      scheme: "linear" as const,
+      incrementKg: 2.5,
+      addRepsFirst: true,
+    },
   });
 
   const addTemplate = async () => {
     const raw = name || `Template ${templates.length + 1}`;
-    const clean = raw.trim().replace(/\s+/g,' ').slice(0,60) || `Template ${templates.length + 1}`;
+    const clean =
+      raw.trim().replace(/\s+/g, " ").slice(0, 60) ||
+      `Template ${templates.length + 1}`;
     const initial = exercises.slice(0, 4);
     const t: Template = {
       id: nanoid(),
       name: clean,
       exerciseIds: initial.map((e) => e.id),
-      plan: initial.map(buildDefaultPlan)
+      plan: initial.map(buildDefaultPlan),
     };
     await db.put("templates", t);
     setTemplates([t, ...templates]);
@@ -147,7 +153,7 @@ export default function Templates() {
       id: nanoid(),
       name: `${t.name} (copy)`,
       exerciseIds: [...t.exerciseIds],
-      plan: t.plan ? t.plan.map(p=> ({ ...p })) : undefined,
+      plan: t.plan ? t.plan.map((p) => ({ ...p })) : undefined,
     };
     await db.put("templates", copy);
     setTemplates([copy, ...templates]);
@@ -169,7 +175,11 @@ export default function Templates() {
       return;
     }
     const planEntry = buildDefaultPlan(ex);
-    const nt: Template = { ...t, exerciseIds: [...t.exerciseIds, ex.id], plan: [...(t.plan||[]), planEntry] };
+    const nt: Template = {
+      ...t,
+      exerciseIds: [...t.exerciseIds, ex.id],
+      plan: [...(t.plan || []), planEntry],
+    };
     await db.put("templates", nt);
     setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
     setShowAddFor(null);
@@ -177,7 +187,11 @@ export default function Templates() {
   };
 
   const removeExerciseFromTemplate = async (t: Template, id: string) => {
-    const nt: Template = { ...t, exerciseIds: t.exerciseIds.filter((x) => x !== id), plan: t.plan?.filter(p=> p.exerciseId!==id) };
+    const nt: Template = {
+      ...t,
+      exerciseIds: t.exerciseIds.filter((x) => x !== id),
+      plan: t.plan?.filter((p) => p.exerciseId !== id),
+    };
     await db.put("templates", nt);
     setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
   };
@@ -254,55 +268,69 @@ export default function Templates() {
   };
 
   // Lightweight fuzzy matcher: returns score (higher = better)
-  const fuzzyScore = (term:string, target:string)=> {
-    term = term.toLowerCase(); target = target.toLowerCase();
-    if(target.includes(term)) return term.length * 4; // direct substring boost
+  const fuzzyScore = (term: string, target: string) => {
+    term = term.toLowerCase();
+    target = target.toLowerCase();
+    if (target.includes(term)) return term.length * 4; // direct substring boost
     // sequential character match score
-    let ti=0, score=0;
-    for(let i=0;i<target.length && ti<term.length;i++){
-      if(target[i]===term[ti]){ score+=2; ti++; }
+    let ti = 0,
+      score = 0;
+    for (let i = 0; i < target.length && ti < term.length; i++) {
+      if (target[i] === term[ti]) {
+        score += 2;
+        ti++;
+      }
     }
-    return ti===term.length? score : 0;
+    return ti === term.length ? score : 0;
   };
   // Multi-token + tag aware search: tokens separated by space. Support prefix filters:
   // tag:xyz (matches tags) mg:group sec:group eq:equipment (equipment tag)
-  const searchedExercises = useMemo(()=> {
+  const searchedExercises = useMemo(() => {
     const raw = exerciseQuery.trim();
     const all = exercises;
-    if(!raw){ return showAllExercises? all : []; }
-    const tokens = raw.split(/\s+/).slice(0,6); // cap tokens
+    if (!raw) {
+      return showAllExercises ? all : [];
+    }
+    const tokens = raw.split(/\s+/).slice(0, 6); // cap tokens
     const scored: { e: Exercise; score: number }[] = [];
-    outer: for(const e of all){
+    outer: for (const e of all) {
       const nameL = e.name.toLowerCase();
-      const tags = (e.tags||[]).map(t=> t.toLowerCase());
+      const tags = (e.tags || []).map((t) => t.toLowerCase());
       let total = 0;
-      for(const t of tokens){
+      for (const t of tokens) {
         const tl = t.toLowerCase();
-        if(tl.startsWith('tag:')){
+        if (tl.startsWith("tag:")) {
           const want = tl.slice(4);
-            if(!tags.some(x=> x===want)) continue outer;
-            total += 30;
-            continue;
+          if (!tags.some((x) => x === want)) continue outer;
+          total += 30;
+          continue;
         }
-        if(tl.startsWith('mg:')){
+        if (tl.startsWith("mg:")) {
           const want = tl.slice(3);
-          if(!tags.includes('mg:'+want)) continue outer;
-          total += 25; continue;
+          if (!tags.includes("mg:" + want)) continue outer;
+          total += 25;
+          continue;
         }
-        if(tl.startsWith('sec:')){
+        if (tl.startsWith("sec:")) {
           const want = tl.slice(4);
-          if(!tags.includes('sec:'+want)) continue outer;
-          total += 15; continue;
+          if (!tags.includes("sec:" + want)) continue outer;
+          total += 15;
+          continue;
         }
         // Plain token: match name OR tags subsequence
-        const tagHit = tags.some(tag=> tag.includes(tl));
+        const tagHit = tags.some((tag) => tag.includes(tl));
         const sName = fuzzyScore(tl, nameL);
-        if(sName===0 && !tagHit){ continue outer; }
-        total += sName + (tagHit? 10:0);
+        if (sName === 0 && !tagHit) {
+          continue outer;
+        }
+        total += sName + (tagHit ? 10 : 0);
       }
-      if(total>0) scored.push({ e, score: total });
+      if (total > 0) scored.push({ e, score: total });
     }
-    return scored.sort((a,b)=> b.score - a.score || a.e.name.localeCompare(b.e.name)).slice(0, 250).map(x=> x.e);
+    return scored
+      .sort((a, b) => b.score - a.score || a.e.name.localeCompare(b.e.name))
+      .slice(0, 250)
+      .map((x) => x.e);
   }, [exerciseQuery, exercises, showAllExercises]);
 
   return (
@@ -364,12 +392,17 @@ export default function Templates() {
                     e.stopPropagation();
                     toggleTemplateCollapsed(t.id);
                   }}
-                  title={collapsed[t.id] ? 'Expand template' : 'Collapse template'}
+                  title={
+                    collapsed[t.id] ? "Expand template" : "Collapse template"
+                  }
                 >
-                  {collapsed[t.id] ? '▶' : '▼'}
+                  {collapsed[t.id] ? "▶" : "▼"}
                 </button>
                 {collapsed[t.id] ? (
-                  <div className="font-medium text-sm text-gray-100 truncate" title={t.name || "Untitled template"}>
+                  <div
+                    className="font-medium text-sm text-gray-100 truncate"
+                    title={t.name || "Untitled template"}
+                  >
                     {t.name || "Untitled template"}
                   </div>
                 ) : (
@@ -380,14 +413,18 @@ export default function Templates() {
                     onChange={(e) => {
                       e.stopPropagation();
                       const nt = { ...t, name: e.target.value };
-                      setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
+                      setTemplates(
+                        templates.map((x) => (x.id === t.id ? nt : x))
+                      );
                       db.put("templates", nt);
                     }}
                   />
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <div className="text-[11px] opacity-70">{t.exerciseIds.length} ex</div>
+                <div className="text-[11px] opacity-70">
+                  {t.exerciseIds.length} ex
+                </div>
                 <button
                   className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
                   onClick={(e) => {
@@ -419,7 +456,13 @@ export default function Templates() {
             </div>
             {collapsed[t.id] ? (
               <div className="mt-2 text-[11px] text-gray-400 line-clamp-2">
-                {(t.exerciseIds.map(id => exercises.find(e=> e.id===id)?.name || 'Unknown').filter(Boolean)).join(', ')}
+                {t.exerciseIds
+                  .map(
+                    (id) =>
+                      exercises.find((e) => e.id === id)?.name || "Unknown"
+                  )
+                  .filter(Boolean)
+                  .join(", ")}
               </div>
             ) : (
               <>
@@ -429,9 +472,12 @@ export default function Templates() {
                 <div className="mt-3 space-y-2">
                   {t.exerciseIds.map((id, idx) => {
                     const ex = exercises.find((e) => e.id === id);
-                    const planEntry = t.plan?.find(p=> p.exerciseId===id);
+                    const planEntry = t.plan?.find((p) => p.exerciseId === id);
                     return (
-                      <div key={id} className="bg-slate-800 rounded-xl px-3 py-3 space-y-2">
+                      <div
+                        key={id}
+                        className="bg-slate-800 rounded-xl px-3 py-3 space-y-2"
+                      >
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                           <div className="w-full sm:flex-1 text-sm sm:text-base break-words">
                             {ex?.name || "Unknown"}
@@ -457,12 +503,18 @@ export default function Templates() {
                             >
                               {ex?.isOptional ? (
                                 <>
-                                  <span className="hidden sm:inline">Optional ✓</span>
-                                  <span className="inline sm:hidden">Opt ✓</span>
+                                  <span className="hidden sm:inline">
+                                    Optional ✓
+                                  </span>
+                                  <span className="inline sm:hidden">
+                                    Opt ✓
+                                  </span>
                                 </>
                               ) : (
                                 <>
-                                  <span className="hidden sm:inline">Optional</span>
+                                  <span className="hidden sm:inline">
+                                    Optional
+                                  </span>
                                   <span className="inline sm:hidden">Opt</span>
                                 </>
                               )}
@@ -478,7 +530,9 @@ export default function Templates() {
                                 className="text-[11px] sm:text-xs bg-red-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
                                 onClick={() => deleteExercise(ex)}
                               >
-                                <span className="hidden sm:inline">Delete exercise</span>
+                                <span className="hidden sm:inline">
+                                  Delete exercise
+                                </span>
                                 <span className="inline sm:hidden">Delete</span>
                               </button>
                             )}
@@ -491,16 +545,33 @@ export default function Templates() {
                               type="number"
                               min={1}
                               max={10}
-                              value={planEntry?.plannedSets ?? ex?.defaults.sets ?? 3}
-                              onChange={(e)=> {
-                                const v = Math.min(10, Math.max(1, Number(e.target.value)||1));
-                                const nextPlan = [...(t.plan||[])];
-                                const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
-                                if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], plannedSets: v };
-                                else nextPlan.push({ ...buildDefaultPlan(ex!), plannedSets: v });
+                              value={
+                                planEntry?.plannedSets ?? ex?.defaults.sets ?? 3
+                              }
+                              onChange={(e) => {
+                                const v = Math.min(
+                                  10,
+                                  Math.max(1, Number(e.target.value) || 1)
+                                );
+                                const nextPlan = [...(t.plan || [])];
+                                const idxP = nextPlan.findIndex(
+                                  (p) => p.exerciseId === id
+                                );
+                                if (idxP >= 0)
+                                  nextPlan[idxP] = {
+                                    ...nextPlan[idxP],
+                                    plannedSets: v,
+                                  };
+                                else
+                                  nextPlan.push({
+                                    ...buildDefaultPlan(ex!),
+                                    plannedSets: v,
+                                  });
                                 const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(templates.map(x=> x.id===t.id? nt: x));
-                                db.put('templates', nt);
+                                setTemplates(
+                                  templates.map((x) => (x.id === t.id ? nt : x))
+                                );
+                                db.put("templates", nt);
                               }}
                               className="bg-slate-700 rounded px-2 py-1"
                             />
@@ -509,16 +580,34 @@ export default function Templates() {
                             <span className="opacity-70">Rep Range</span>
                             <input
                               type="text"
-                              value={planEntry?.repRange ?? ex?.defaults.targetRepRange ?? '8-12'}
-                              onChange={(e)=> {
-                                const v = e.target.value.replace(/[^0-9\-–]/g,'').slice(0,9);
-                                const nextPlan = [...(t.plan||[])];
-                                const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
-                                if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], repRange: v };
-                                else nextPlan.push({ ...buildDefaultPlan(ex!), repRange: v });
+                              value={
+                                planEntry?.repRange ??
+                                ex?.defaults.targetRepRange ??
+                                "8-12"
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value
+                                  .replace(/[^0-9\-–]/g, "")
+                                  .slice(0, 9);
+                                const nextPlan = [...(t.plan || [])];
+                                const idxP = nextPlan.findIndex(
+                                  (p) => p.exerciseId === id
+                                );
+                                if (idxP >= 0)
+                                  nextPlan[idxP] = {
+                                    ...nextPlan[idxP],
+                                    repRange: v,
+                                  };
+                                else
+                                  nextPlan.push({
+                                    ...buildDefaultPlan(ex!),
+                                    repRange: v,
+                                  });
                                 const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(templates.map(x=> x.id===t.id? nt: x));
-                                db.put('templates', nt);
+                                setTemplates(
+                                  templates.map((x) => (x.id === t.id ? nt : x))
+                                );
+                                db.put("templates", nt);
                               }}
                               placeholder="8-12"
                               className="bg-slate-700 rounded px-2 py-1"
@@ -530,15 +619,36 @@ export default function Templates() {
                               type="number"
                               step={0.5}
                               value={planEntry?.progression?.incrementKg ?? 2.5}
-                              onChange={(e)=> {
-                                const v = Number(e.target.value)||0;
-                                const nextPlan = [...(t.plan||[])];
-                                const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
-                                if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], progression: { ...(nextPlan[idxP].progression||{ scheme:'linear'}), incrementKg: v } };
-                                else nextPlan.push({ ...buildDefaultPlan(ex!), progression: { scheme:'linear', incrementKg: v, addRepsFirst: true } });
+                              onChange={(e) => {
+                                const v = Number(e.target.value) || 0;
+                                const nextPlan = [...(t.plan || [])];
+                                const idxP = nextPlan.findIndex(
+                                  (p) => p.exerciseId === id
+                                );
+                                if (idxP >= 0)
+                                  nextPlan[idxP] = {
+                                    ...nextPlan[idxP],
+                                    progression: {
+                                      ...(nextPlan[idxP].progression || {
+                                        scheme: "linear",
+                                      }),
+                                      incrementKg: v,
+                                    },
+                                  };
+                                else
+                                  nextPlan.push({
+                                    ...buildDefaultPlan(ex!),
+                                    progression: {
+                                      scheme: "linear",
+                                      incrementKg: v,
+                                      addRepsFirst: true,
+                                    },
+                                  });
                                 const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(templates.map(x=> x.id===t.id? nt: x));
-                                db.put('templates', nt);
+                                setTemplates(
+                                  templates.map((x) => (x.id === t.id ? nt : x))
+                                );
+                                db.put("templates", nt);
                               }}
                               className="bg-slate-700 rounded px-2 py-1"
                             />
@@ -546,16 +656,39 @@ export default function Templates() {
                           <label className="flex flex-col gap-1">
                             <span className="opacity-70">Reps First?</span>
                             <select
-                              value={String(planEntry?.progression?.addRepsFirst ?? true)}
-                              onChange={(e)=> {
-                                const v = e.target.value === 'true';
-                                const nextPlan = [...(t.plan||[])];
-                                const idxP = nextPlan.findIndex(p=> p.exerciseId===id);
-                                if(idxP>=0) nextPlan[idxP] = { ...nextPlan[idxP], progression: { ...(nextPlan[idxP].progression||{ scheme:'linear'}), addRepsFirst: v } };
-                                else nextPlan.push({ ...buildDefaultPlan(ex!), progression: { scheme:'linear', incrementKg: 2.5, addRepsFirst: v } });
+                              value={String(
+                                planEntry?.progression?.addRepsFirst ?? true
+                              )}
+                              onChange={(e) => {
+                                const v = e.target.value === "true";
+                                const nextPlan = [...(t.plan || [])];
+                                const idxP = nextPlan.findIndex(
+                                  (p) => p.exerciseId === id
+                                );
+                                if (idxP >= 0)
+                                  nextPlan[idxP] = {
+                                    ...nextPlan[idxP],
+                                    progression: {
+                                      ...(nextPlan[idxP].progression || {
+                                        scheme: "linear",
+                                      }),
+                                      addRepsFirst: v,
+                                    },
+                                  };
+                                else
+                                  nextPlan.push({
+                                    ...buildDefaultPlan(ex!),
+                                    progression: {
+                                      scheme: "linear",
+                                      incrementKg: 2.5,
+                                      addRepsFirst: v,
+                                    },
+                                  });
                                 const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(templates.map(x=> x.id===t.id? nt: x));
-                                db.put('templates', nt);
+                                setTemplates(
+                                  templates.map((x) => (x.id === t.id ? nt : x))
+                                );
+                                db.put("templates", nt);
                               }}
                               className="bg-slate-700 rounded px-2 py-1"
                             >
@@ -564,7 +697,10 @@ export default function Templates() {
                             </select>
                           </label>
                           <div className="flex flex-col gap-1 text-[10px] sm:text-xs justify-end">
-                            <div className="opacity-60 leading-tight">Guides next session progression (editable on import)</div>
+                            <div className="opacity-60 leading-tight">
+                              Guides next session progression (editable on
+                              import)
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -659,60 +795,135 @@ export default function Templates() {
           />
         </div>
         <div className="text-xs text-gray-500 mb-2 flex items-center gap-3 flex-wrap">
-          <span>{exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length: 0)} exercise{(exerciseQuery? searchedExercises.length : (showAllExercises? exercises.length:0))===1?'':'s'} shown</span>
-          <button className="badge-secondary" onClick={()=> setShowAllExercises(v=> !v)}>{showAllExercises? 'Hide All':'Show All'}</button>
+          <span>
+            {exerciseQuery
+              ? searchedExercises.length
+              : showAllExercises
+              ? exercises.length
+              : 0}{" "}
+            exercise
+            {(exerciseQuery
+              ? searchedExercises.length
+              : showAllExercises
+              ? exercises.length
+              : 0) === 1
+              ? ""
+              : "s"}{" "}
+            shown
+          </span>
+          <button
+            className="badge-secondary"
+            onClick={() => setShowAllExercises((v) => !v)}
+          >
+            {showAllExercises ? "Hide All" : "Show All"}
+          </button>
         </div>
         <div className="grid gap-2">
           {searchedExercises.map((ex) => (
-              <div
-                key={ex.id}
-                className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
-              >
-                <div className="flex-1 min-w-[140px]">
-                  <div className="truncate text-sm">{ex.name}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-400">
-                    <select
-                      value={ex.muscleGroup}
-                      onChange={async(e)=> { const next={...ex, muscleGroup: e.target.value as any}; await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }}
-                      className="bg-slate-700 rounded px-1 py-0.5"
-                    >
-                      {['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'].map(m=> <option key={m} value={m}>{m}</option>)}
-                    </select>
-                    <div className="flex flex-wrap gap-1 items-center">
-                      {(ex.secondaryMuscles||[]).map(sec=> (
-                        <span key={sec} className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                          {sec}
-                          <button
-                            className="opacity-70 hover:opacity-100"
-                            onClick={async()=> { const next={...ex, secondaryMuscles: (ex.secondaryMuscles||[]).filter(s=> s!==sec)}; await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }}
-                          >×</button>
-                        </span>
-                      ))}
-                      <SecondaryMusclePicker ex={ex} update={async(next)=> { await db.put('exercises', next); setExercises(es=> es.map(x=> x.id===ex.id? next: x)); }} />
-                    </div>
+            <div
+              key={ex.id}
+              className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
+            >
+              <div className="flex-1 min-w-[140px]">
+                <div className="truncate text-sm">{ex.name}</div>
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-400">
+                  <select
+                    value={ex.muscleGroup}
+                    onChange={async (e) => {
+                      const next = {
+                        ...ex,
+                        muscleGroup: e.target.value as any,
+                      };
+                      await db.put("exercises", next);
+                      setExercises((es) =>
+                        es.map((x) => (x.id === ex.id ? next : x))
+                      );
+                    }}
+                    className="bg-slate-700 rounded px-1 py-0.5"
+                  >
+                    {[
+                      "chest",
+                      "back",
+                      "shoulders",
+                      "triceps",
+                      "biceps",
+                      "legs",
+                      "hamstrings",
+                      "quads",
+                      "glutes",
+                      "calves",
+                      "core",
+                      "other",
+                    ].map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex flex-wrap gap-1 items-center">
+                    {(ex.secondaryMuscles || []).map((sec) => (
+                      <span
+                        key={sec}
+                        className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1"
+                      >
+                        {sec}
+                        <button
+                          className="opacity-70 hover:opacity-100"
+                          onClick={async () => {
+                            const next = {
+                              ...ex,
+                              secondaryMuscles: (
+                                ex.secondaryMuscles || []
+                              ).filter((s) => s !== sec),
+                            };
+                            await db.put("exercises", next);
+                            setExercises((es) =>
+                              es.map((x) => (x.id === ex.id ? next : x))
+                            );
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <SecondaryMusclePicker
+                      ex={ex}
+                      update={async (next) => {
+                        await db.put("exercises", next);
+                        setExercises((es) =>
+                          es.map((x) => (x.id === ex.id ? next : x))
+                        );
+                      }}
+                    />
                   </div>
-                  {ex.tags && ex.tags.length>0 && (
-                    <div className="mt-1 flex flex-wrap gap-1 max-w-full">
-                      {ex.tags.slice(0,12).map(tag=> (
-                        <span key={tag} className="text-[9px] bg-slate-700/70 px-1.5 py-0.5 rounded">{tag}</span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-                <button
-                  className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2"
-                  onClick={() => toggleOptional(ex)}
-                >
-                  {ex.isOptional ? "Optional \u2713" : "Optional"}
-                </button>
-                <button
-                  className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2"
-                  onClick={() => deleteExercise(ex)}
-                >
-                  Delete
-                </button>
+                {ex.tags && ex.tags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1 max-w-full">
+                    {ex.tags.slice(0, 12).map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[9px] bg-slate-700/70 px-1.5 py-0.5 rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+              <button
+                className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2"
+                onClick={() => toggleOptional(ex)}
+              >
+                {ex.isOptional ? "Optional \u2713" : "Optional"}
+              </button>
+              <button
+                className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2"
+                onClick={() => deleteExercise(ex)}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -720,20 +931,63 @@ export default function Templates() {
 }
 
 // Inline helper component to pick secondary muscles with quick-add chips
-function SecondaryMusclePicker({ ex, update }: { ex: Exercise; update: (next: Exercise)=> void }) {
-  const ALL: Exercise['muscleGroup'][] = ['chest','back','shoulders','triceps','biceps','legs','hamstrings','quads','glutes','calves','core','other'];
-  const remaining = ALL.filter(m=> m!==ex.muscleGroup && !(ex.secondaryMuscles||[]).includes(m));
-  const [open,setOpen] = useState(false);
-  if(!open) return <button className="text-[10px] bg-slate-700/60 hover:bg-slate-700 px-2 py-0.5 rounded" onClick={()=> setOpen(true)}>+ add</button>;
+function SecondaryMusclePicker({
+  ex,
+  update,
+}: {
+  ex: Exercise;
+  update: (next: Exercise) => void;
+}) {
+  const ALL: Exercise["muscleGroup"][] = [
+    "chest",
+    "back",
+    "shoulders",
+    "triceps",
+    "biceps",
+    "legs",
+    "hamstrings",
+    "quads",
+    "glutes",
+    "calves",
+    "core",
+    "other",
+  ];
+  const remaining = ALL.filter(
+    (m) => m !== ex.muscleGroup && !(ex.secondaryMuscles || []).includes(m)
+  );
+  const [open, setOpen] = useState(false);
+  if (!open)
+    return (
+      <button
+        className="text-[10px] bg-slate-700/60 hover:bg-slate-700 px-2 py-0.5 rounded"
+        onClick={() => setOpen(true)}
+      >
+        + add
+      </button>
+    );
   return (
     <div className="flex flex-wrap gap-1">
-      {remaining.map(m=> (
-        <button key={m} className="text-[10px] bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded"
-          onClick={()=> { const next={...ex, secondaryMuscles: [...(ex.secondaryMuscles||[]), m]}; update(next); }}>
+      {remaining.map((m) => (
+        <button
+          key={m}
+          className="text-[10px] bg-slate-700 hover:bg-slate-600 px-1.5 py-0.5 rounded"
+          onClick={() => {
+            const next = {
+              ...ex,
+              secondaryMuscles: [...(ex.secondaryMuscles || []), m],
+            };
+            update(next);
+          }}
+        >
           {m}
         </button>
       ))}
-      <button className="text-[10px] text-red-400 px-1.5" onClick={()=> setOpen(false)}>×</button>
+      <button
+        className="text-[10px] text-red-400 px-1.5"
+        onClick={() => setOpen(false)}
+      >
+        ×
+      </button>
     </div>
   );
 }
