@@ -716,6 +716,20 @@ export default function Measurements() {
     () => buildTickValues(chartSeries),
     [chartSeries]
   );
+  const primaryOverlayData = overlaySeries[primaryKey as string];
+  const areaSource = useMemo(() => {
+    const candidate = smoothing
+      ? primaryOverlayData?.avg
+      : primaryOverlayData?.raw;
+    const dataset = candidate?.length ? candidate : chartSeries;
+    const hasAvg = Boolean(
+      smoothing && candidate?.some((point: any) => typeof point.avg === "number")
+    );
+    return {
+      data: dataset,
+      key: hasAvg ? "avg" : "value",
+    };
+  }, [chartSeries, primaryOverlayData, smoothing]);
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const pointerActiveRef = useRef(false);
@@ -759,8 +773,8 @@ export default function Measurements() {
           payload.push({
             name: "7d avg",
             value: avgPoint.avg,
-            color: "#ffffff",
-            stroke: "#ffffff",
+            color: "rgba(59,130,246,0.9)",
+            stroke: "rgba(59,130,246,0.9)",
             dataKey: "weight7",
           });
         }
@@ -769,8 +783,8 @@ export default function Measurements() {
           payload.push({
             name: "Trend",
             value: trendPoint.value,
-            color: "#22c55e",
-            stroke: "#22c55e",
+            color: "rgba(96,165,250,0.85)",
+            stroke: "rgba(96,165,250,0.85)",
             dataKey: "weightTrend",
           });
         }
@@ -1500,14 +1514,18 @@ export default function Measurements() {
             <div className="relative h-full">
               <div className="relative h-full rounded-2xl border border-white/10 bg-slate-950/30">
                 <RC.ResponsiveContainer width="100%" height="100%">
-                  <RC.LineChart
-                    data={chartSeries}
-                    margin={{ top: 16, right: 16, bottom: 12, left: 0 }}
+                  <RC.ComposedChart
+                    data={areaSource.data}
+                    margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
                   >
+                    <RC.CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(148,163,184,0.15)"
+                    />
                     <RC.XAxis
                       dataKey="date"
-                      stroke="#64748b"
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                      stroke="rgba(226,232,240,0.65)"
+                      tick={{ fill: "rgba(226,232,240,0.85)", fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
                       tickMargin={12}
@@ -1516,8 +1534,8 @@ export default function Measurements() {
                       tickFormatter={formatChartDateTick}
                     />
                     <RC.YAxis
-                      stroke="#64748b"
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
+                      stroke="rgba(226,232,240,0.65)"
+                      tick={{ fill: "rgba(226,232,240,0.85)", fontSize: 12 }}
                       tickLine={false}
                       axisLine={false}
                       width={48}
@@ -1536,10 +1554,22 @@ export default function Measurements() {
                         />
                       }
                     />
+                    {areaSource.data.length > 0 && (
+                      <RC.Area
+                        type="monotone"
+                        dataKey={areaSource.key}
+                        stroke="rgba(248,113,113,0.9)"
+                        fill="rgba(248,113,113,0.2)"
+                        strokeWidth={2.4}
+                        dot={false}
+                        name={formatMeasurementLabel(primaryKey as string)}
+                        isAnimationActive={false}
+                      />
+                    )}
                     {scrub && (
                       <RC.ReferenceLine
                         x={scrub.date}
-                        stroke="#475569"
+                        stroke="rgba(148,163,184,0.3)"
                         strokeDasharray="3 3"
                       />
                     )}
@@ -1557,7 +1587,7 @@ export default function Measurements() {
                           data={lineData}
                           dataKey={smoothing ? "avg" : "value"}
                           stroke={strokeColor}
-                          strokeWidth={2}
+                          strokeWidth={2.4}
                           dot={false}
                         />
                       );
@@ -1569,9 +1599,9 @@ export default function Measurements() {
                           name="7d avg"
                           data={weight7}
                           dataKey="avg"
-                          stroke="#ffffff"
-                          strokeDasharray="4 4"
-                          strokeWidth={1.5}
+                          stroke="rgba(59,130,246,0.9)"
+                          strokeDasharray="5 4"
+                          strokeWidth={2.2}
                           dot={false}
                         />
                         {weightTrend.length > 0 && (
@@ -1580,9 +1610,9 @@ export default function Measurements() {
                             name="Trend"
                             data={weightTrend}
                             dataKey="value"
-                            stroke="#22c55e"
-                            strokeDasharray="2 6"
-                            strokeWidth={1.5}
+                            stroke="rgba(96,165,250,0.85)"
+                            strokeDasharray="6 5"
+                            strokeWidth={2}
                             dot={false}
                           />
                         )}
@@ -1606,12 +1636,12 @@ export default function Measurements() {
                             y={value}
                             r={4.5}
                             fill={OVERLAY_COLORS[i % OVERLAY_COLORS.length]}
-                            stroke="#0f172a"
-                            strokeWidth={1}
+                            stroke="rgba(15,23,42,0.85)"
+                            strokeWidth={1.5}
                           />
                         );
                       })}
-                  </RC.LineChart>
+                  </RC.ComposedChart>
                 </RC.ResponsiveContainer>
                 <div
                   ref={overlayRef}
@@ -2219,14 +2249,18 @@ function ChartCard({
         {RC && (
           <div className="relative h-full rounded-xl border border-white/10 bg-slate-950/30">
             <RC.ResponsiveContainer width="100%" height="100%">
-              <RC.LineChart
+              <RC.ComposedChart
                 data={sortedData}
-                margin={{ top: 16, right: 12, bottom: 12, left: 0 }}
+                margin={{ left: 8, right: 12, top: 12, bottom: 8 }}
               >
+                <RC.CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(148,163,184,0.15)"
+                />
                 <RC.XAxis
                   dataKey="date"
-                  stroke="#64748b"
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  stroke="rgba(226,232,240,0.65)"
+                  tick={{ fill: "rgba(226,232,240,0.8)", fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
@@ -2235,8 +2269,8 @@ function ChartCard({
                   tickFormatter={formatChartDateTick}
                 />
                 <RC.YAxis
-                  stroke="#64748b"
-                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  stroke="rgba(226,232,240,0.65)"
+                  tick={{ fill: "rgba(226,232,240,0.8)", fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
                   width={44}
@@ -2255,7 +2289,7 @@ function ChartCard({
                 {scrub && (
                   <RC.ReferenceLine
                     x={scrub.date}
-                    stroke="#475569"
+                    stroke="rgba(148,163,184,0.3)"
                     strokeDasharray="3 3"
                   />
                 )}
@@ -2263,7 +2297,7 @@ function ChartCard({
                   type="monotone"
                   dataKey="value"
                   stroke={color}
-                  strokeWidth={2}
+                  strokeWidth={2.4}
                   dot={false}
                 />
                 {scrub && (
@@ -2272,11 +2306,11 @@ function ChartCard({
                     y={sortedData[scrub.index]?.value}
                     r={4.5}
                     fill={color}
-                    stroke="#0f172a"
-                    strokeWidth={1}
+                    stroke="rgba(15,23,42,0.85)"
+                    strokeWidth={1.5}
                   />
                 )}
-              </RC.LineChart>
+              </RC.ComposedChart>
             </RC.ResponsiveContainer>
             <div
               ref={overlayRef}
