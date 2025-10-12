@@ -381,6 +381,7 @@ export default function Sessions() {
   const [collapsedEntries, setCollapsedEntries] = useState<
     Record<string, boolean>
   >({});
+  const [collapsedInitialized, setCollapsedInitialized] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [focusedEntryId, setFocusedEntryId] = useState<string | null>(null);
   const focusPrevCollapsedRef = useRef<Record<string, boolean> | null>(null);
@@ -392,12 +393,57 @@ export default function Sessions() {
   const pickedLatestRef = useRef(false);
   // Persist collapsed state per-session (mobile UX enhancement)
   useEffect(() => {
+    setCollapsedInitialized(false);
+  }, [session?.id]);
+  useEffect(() => {
     if (!session?.id) return;
+    if (collapsedInitialized) return;
+    let initial: Record<string, boolean> | null = null;
     try {
       const raw = sessionStorage.getItem(`collapsedEntries:${session.id}`);
-      if (raw) setCollapsedEntries(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          initial = parsed;
+        }
+      }
     } catch {}
-  }, [session?.id, program?.id, program?.mesoWeeks, program?.deload]);
+    if (!initial) {
+      initial = {};
+    } else {
+      initial = { ...initial };
+    }
+    if (Array.isArray(session?.entries)) {
+      for (const entry of session.entries) {
+        if (initial[entry.id] === undefined) {
+          initial[entry.id] = true;
+        }
+      }
+    }
+    setCollapsedEntries(initial);
+    setCollapsedInitialized(true);
+  }, [session?.id, session?.entries?.length, collapsedInitialized]);
+  useEffect(() => {
+    if (!session?.entries?.length) return;
+    setCollapsedEntries((prev) => {
+      if (!prev || typeof prev !== "object") {
+        const next: Record<string, boolean> = {};
+        for (const entry of session.entries) {
+          next[entry.id] = true;
+        }
+        return next;
+      }
+      let changed = false;
+      const next = { ...prev };
+      for (const entry of session.entries) {
+        if (next[entry.id] === undefined) {
+          next[entry.id] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [session?.entries?.length]);
   useEffect(() => {
     if (!session?.id) return;
     if (focusMode) return;

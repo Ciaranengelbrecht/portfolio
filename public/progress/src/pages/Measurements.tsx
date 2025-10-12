@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import type { PointerEvent } from "react";
+import type { PointerEvent, MouseEvent } from "react";
 import { db } from "../lib/db";
 import { getSettings, setSettings } from "../lib/helpers";
 import { Measurement } from "../lib/types";
@@ -198,6 +198,8 @@ const JACKSON_POLLACK_FEMALE_THREE: SkinfoldKey[] = [
   "skinfoldThigh",
 ];
 
+const MEASUREMENT_COLLAPSE_KEY = "measurements:collapsedState";
+
 type BodyFatComputationResult =
   | {
       ok: true;
@@ -379,6 +381,19 @@ export default function Measurements() {
   const [caliperRowsOpen, setCaliperRowsOpen] = useState<
     Record<string, boolean>
   >({});
+  const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
+    () => {
+      if (typeof window === "undefined") return {};
+      try {
+        const raw = window.localStorage.getItem(MEASUREMENT_COLLAPSE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") return parsed;
+        }
+      } catch {}
+      return {};
+    }
+  );
 
   useEffect(() => {
     (async () => {
@@ -410,6 +425,64 @@ export default function Measurements() {
       window.localStorage.setItem("bodyFatPrefs", JSON.stringify(bodyFatPrefs));
     } catch {}
   }, [bodyFatPrefs]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        MEASUREMENT_COLLAPSE_KEY,
+        JSON.stringify(collapsedRows)
+      );
+    } catch {}
+  }, [collapsedRows]);
+
+  useEffect(() => {
+    setCollapsedRows((prev) => {
+      if (!data.length && Object.keys(prev).length === 0) return prev;
+      const next: Record<string, boolean> = {};
+      for (const row of data) {
+        next[row.id] = prev[row.id] ?? true;
+      }
+      if (Object.keys(prev).length === Object.keys(next).length) {
+        const same = Object.entries(next).every(
+          ([key, value]) => prev[key] === value
+        );
+        if (same) return prev;
+      }
+      return next;
+    });
+  }, [data]);
+
+  const toggleMeasurementCollapsed = (id: string, forced?: boolean) => {
+    const nextValue =
+      typeof forced === "boolean" ? forced : !(collapsedRows[id] ?? true);
+    if (nextValue) {
+      setCaliperRowsOpen((prev) => {
+        if (!prev[id]) return prev;
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    }
+    setCollapsedRows((prev) => ({ ...prev, [id]: nextValue }));
+  };
+
+  const handleMeasurementSurfaceClick = (
+    event: MouseEvent<HTMLDivElement>,
+    id: string
+  ) => {
+    const current = collapsedRows[id] ?? true;
+    if (!current) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']"
+      )
+    ) {
+      return;
+    }
+    toggleMeasurementCollapsed(id, false);
+  };
 
   const caliperValues = useMemo(() => {
     const result: Partial<Record<SkinfoldKey, number>> = {};
@@ -1750,14 +1823,55 @@ export default function Measurements() {
               0
             );
             const isCaliperOpen = !!caliperRowsOpen[row.id];
+            const isCollapsed = collapsedRows[row.id] ?? true;
+            const formattedDate = row.dateISO.slice(0, 10);
+            const summaryParts: string[] = [];
+            if (typeof row.weightKg === "number" && !Number.isNaN(row.weightKg)) {
+              summaryParts.push(`Weight ${row.weightKg.toFixed(1)} kg`);
+            }
+            if (
+              typeof row.bodyFatPct === "number" &&
+              !Number.isNaN(row.bodyFatPct)
+            ) {
+              summaryParts.push(`Body fat ${row.bodyFatPct.toFixed(1)}%`);
+            }
+            if (typeof row.waist === "number" && !Number.isNaN(row.waist)) {
+              summaryParts.push(`Waist ${row.waist.toFixed(1)} cm`);
+            }
             return (
               <div
                 key={row.id}
-                className="bg-slate-800 rounded-xl px-3 py-3 space-y-3"
+                className={`bg-slate-800 rounded-xl px-3 py-3 space-y-3 transition-colors ${
+                  isCollapsed ? "cursor-pointer hover:bg-slate-800/75" : ""
+                }`}
+                onClick={(event) => handleMeasurementSurfaceClick(event, row.id)}
+                aria-expanded={!isCollapsed}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs text-gray-400">
-                    {row.dateISO.slice(0, 10)}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <button
+                      type="button"
+                      className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-2 py-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleMeasurementCollapsed(row.id);
+                      }}
+                      aria-label={
+                        isCollapsed ? "Expand measurement" : "Collapse measurement"
+                      }
+                    >
+                      {isCollapsed ? "▶" : "▼"}
+                    </button>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-100">
+                        {formattedDate}
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate">
+                        {summaryParts.length
+                          ? summaryParts.join(" • ")
+                          : "No metrics recorded"}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {row.bodyFatPct != null && (
@@ -1774,27 +1888,40 @@ export default function Measurements() {
                       </span>
                     )}
                     <button
-                      className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-3 py-2"
-                      onClick={() =>
-                        setCaliperRowsOpen((prev) => ({
-                          ...prev,
-                          [row.id]: !prev[row.id],
-                        }))
-                      }
-                    >
-                      {isCaliperOpen ? "Hide calipers" : "Calipers"}
-                      {rowCalipers.length ? ` (${rowCalipers.length})` : ""}
-                    </button>
-                    <button
                       className="text-xs bg-red-600 hover:bg-red-500 rounded px-3 py-2"
-                      onClick={() => remove(row.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        remove(row.id);
+                      }}
                     >
                       Delete
                     </button>
                   </div>
                 </div>
-                {/* Mobile stacked fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                {!isCollapsed && (
+                  <>
+                    <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-slate-300">
+                      <button
+                        className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-3 py-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCaliperRowsOpen((prev) => ({
+                            ...prev,
+                            [row.id]: !prev[row.id],
+                          }));
+                        }}
+                      >
+                        {isCaliperOpen ? "Hide calipers" : "Calipers"}
+                        {rowCalipers.length ? ` (${rowCalipers.length})` : ""}
+                      </button>
+                      {rowCalipers.length > 0 && !isCaliperOpen && (
+                        <span className="text-slate-400">
+                          Σ skinfolds: {rowCaliperSum.toFixed(1)} mm
+                        </span>
+                      )}
+                    </div>
+                    {/* Mobile stacked fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                   <div className="bg-slate-900/50 rounded-xl px-2 py-2">
                     <div className="text-[11px] text-gray-400 mb-1">Weight</div>
                     <div className="flex items-center gap-2">
@@ -1998,123 +2125,131 @@ export default function Measurements() {
                     </div>
                   </div>
                 </div>
-                {rowCalipers.length > 0 && !isCaliperOpen && (
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                    <span>
-                      Σ skinfolds: {rowCaliperSum.toFixed(1)} mm (
-                      {rowCalipers.length} site
-                      {rowCalipers.length === 1 ? "" : "s"})
-                    </span>
-                    {row.bodyFatPct != null && row.weightKg != null && (
-                      <span>
-                        Lean mass ≈{" "}
-                        {(row.weightKg * (1 - row.bodyFatPct / 100)).toFixed(2)}{" "}
-                        kg
-                      </span>
+                    {rowCalipers.length > 0 && !isCaliperOpen && (
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                        <span>
+                          Σ skinfolds: {rowCaliperSum.toFixed(1)} mm (
+                          {rowCalipers.length} site
+                          {rowCalipers.length === 1 ? "" : "s"})
+                        </span>
+                        {row.bodyFatPct != null && row.weightKg != null && (
+                          <span>
+                            Lean mass ≈{" "}
+                            {(
+                              row.weightKg * (1 - row.bodyFatPct / 100)
+                            ).toFixed(2)}{" "}
+                            kg
+                          </span>
+                        )}
+                        {row.ffmi != null && (
+                          <span>
+                            FFMI {row.ffmi.toFixed(2)}
+                            {row.ffmiAdjusted != null
+                              ? ` (adj ${row.ffmiAdjusted.toFixed(2)})`
+                              : ""}
+                          </span>
+                        )}
+                      </div>
                     )}
-                    {row.ffmi != null && (
-                      <span>
-                        FFMI {row.ffmi.toFixed(2)}
-                        {row.ffmiAdjusted != null
-                          ? ` (adj ${row.ffmiAdjusted.toFixed(2)})`
-                          : ""}
-                      </span>
+                    {isCaliperOpen && (
+                      <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-3 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-300">
+                          <span>
+                            Σ {rowCaliperSum.toFixed(1)} mm across{" "}
+                            {rowCalipers.length} site
+                            {rowCalipers.length === 1 ? "" : "s"}
+                          </span>
+                          <span className="text-slate-500">Values in mm</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {SKINFOLD_SITES.map((site) => {
+                            const value = (row as any)[site.key] as
+                              | number
+                              | undefined;
+                            return (
+                              <label
+                                key={site.key}
+                                className="space-y-1 text-xs text-slate-200"
+                              >
+                                <div className="flex items-center justify-between text-[11px] text-gray-300">
+                                  <span>{site.label}</span>
+                                  <span className="uppercase tracking-[0.24em] text-slate-500">
+                                    mm
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    className="bg-slate-800 rounded px-2 py-1"
+                                    onClick={() =>
+                                      update(row.id, {
+                                        [site.key]: Math.max(
+                                          0,
+                                          Number(
+                                            ((value ?? 0) - 0.5).toFixed(1)
+                                          )
+                                        ),
+                                      } as Partial<Measurement>)
+                                    }
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    className="input-number-enhanced w-full"
+                                    inputMode="decimal"
+                                    value={value ?? ""}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "ArrowUp") {
+                                        e.preventDefault();
+                                        update(row.id, {
+                                          [site.key]: Number(
+                                            ((value ?? 0) + 0.5).toFixed(1)
+                                          ),
+                                        } as Partial<Measurement>);
+                                      } else if (e.key === "ArrowDown") {
+                                        e.preventDefault();
+                                        update(row.id, {
+                                          [site.key]: Math.max(
+                                            0,
+                                            Number(
+                                              ((value ?? 0) - 0.5).toFixed(1)
+                                            )
+                                          ),
+                                        } as Partial<Measurement>);
+                                      }
+                                    }}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                                      const patch: Partial<Measurement> = {
+                                        [site.key]:
+                                          v === "" ? undefined : Number(v),
+                                      } as Partial<Measurement>;
+                                      update(row.id, patch);
+                                    }}
+                                    placeholder="mm"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="bg-slate-800 rounded px-2 py-1"
+                                    onClick={() =>
+                                      update(row.id, {
+                                        [site.key]: Number(
+                                          ((value ?? 0) + 0.5).toFixed(1)
+                                        ),
+                                      } as Partial<Measurement>)
+                                    }
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                )}
-                {isCaliperOpen && (
-                  <div className="rounded-xl border border-white/10 bg-slate-900/60 px-3 py-3 space-y-2">
-                    <div className="flex items-center justify-between text-[11px] text-slate-300">
-                      <span>
-                        Σ {rowCaliperSum.toFixed(1)} mm across{" "}
-                        {rowCalipers.length} site
-                        {rowCalipers.length === 1 ? "" : "s"}
-                      </span>
-                      <span className="text-slate-500">Values in mm</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {SKINFOLD_SITES.map((site) => {
-                        const value = (row as any)[site.key] as
-                          | number
-                          | undefined;
-                        return (
-                          <label
-                            key={site.key}
-                            className="space-y-1 text-xs text-slate-200"
-                          >
-                            <div className="flex items-center justify-between text-[11px] text-gray-300">
-                              <span>{site.label}</span>
-                              <span className="uppercase tracking-[0.24em] text-slate-500">
-                                mm
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                className="bg-slate-800 rounded px-2 py-1"
-                                onClick={() =>
-                                  update(row.id, {
-                                    [site.key]: Math.max(
-                                      0,
-                                      Number(((value ?? 0) - 0.5).toFixed(1))
-                                    ),
-                                  } as Partial<Measurement>)
-                                }
-                              >
-                                -
-                              </button>
-                              <input
-                                className="input-number-enhanced w-full"
-                                inputMode="decimal"
-                                value={value ?? ""}
-                                onKeyDown={(e) => {
-                                  if (e.key === "ArrowUp") {
-                                    e.preventDefault();
-                                    update(row.id, {
-                                      [site.key]: Number(
-                                        ((value ?? 0) + 0.5).toFixed(1)
-                                      ),
-                                    } as Partial<Measurement>);
-                                  } else if (e.key === "ArrowDown") {
-                                    e.preventDefault();
-                                    update(row.id, {
-                                      [site.key]: Math.max(
-                                        0,
-                                        Number(((value ?? 0) - 0.5).toFixed(1))
-                                      ),
-                                    } as Partial<Measurement>);
-                                  }
-                                }}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                                  const patch: Partial<Measurement> = {
-                                    [site.key]:
-                                      v === "" ? undefined : Number(v),
-                                  } as Partial<Measurement>;
-                                  update(row.id, patch);
-                                }}
-                                placeholder="mm"
-                              />
-                              <button
-                                type="button"
-                                className="bg-slate-800 rounded px-2 py-1"
-                                onClick={() =>
-                                  update(row.id, {
-                                    [site.key]: Number(
-                                      ((value ?? 0) + 0.5).toFixed(1)
-                                    ),
-                                  } as Partial<Measurement>)
-                                }
-                              >
-                                +
-                              </button>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             );

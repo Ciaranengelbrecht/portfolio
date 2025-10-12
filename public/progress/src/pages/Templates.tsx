@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type MouseEvent } from "react";
 import { db } from "../lib/db";
 import { requestRealtime } from "../lib/supabaseSync";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Template } from "../lib/types";
 import { nanoid } from "nanoid";
+
+const TEMPLATE_COLLAPSE_KEY = "templates:collapsedState";
 
 export default function Templates() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -13,8 +15,17 @@ export default function Templates() {
   const [query, setQuery] = useState("");
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [showAllExercises, setShowAllExercises] = useState(false);
-  // UI-only collapsed state (not persisted)
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(TEMPLATE_COLLAPSE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+      }
+    } catch {}
+    return {};
+  });
 
   const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, " ");
   const findExerciseByName = (n: string) => {
@@ -71,6 +82,37 @@ export default function Templates() {
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        TEMPLATE_COLLAPSE_KEY,
+        JSON.stringify(collapsed)
+      );
+    } catch {}
+  }, [collapsed]);
+
+  useEffect(() => {
+    if (!templates.length) return;
+    setCollapsed((prev) => {
+      let changed = false;
+      const next = { ...prev } as Record<string, boolean>;
+      for (const tpl of templates) {
+        if (next[tpl.id] === undefined) {
+          next[tpl.id] = true;
+          changed = true;
+        }
+      }
+      for (const key of Object.keys(next)) {
+        if (!templates.some((tpl) => tpl.id === key)) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [templates]);
 
   const buildDefaultPlan = (ex: Exercise) => ({
     exerciseId: ex.id,
@@ -144,6 +186,32 @@ export default function Templates() {
     const next = { ...ex, isOptional: !ex.isOptional };
     await db.put("exercises", next);
     setExercises(exercises.map((e) => (e.id === ex.id ? next : e)));
+  };
+
+  const toggleTemplateCollapsed = (id: string, forced?: boolean) => {
+    setCollapsed((prev) => {
+      const current = prev[id];
+      const nextValue =
+        typeof forced === "boolean" ? forced : !(current ?? true);
+      return { ...prev, [id]: nextValue };
+    });
+  };
+
+  const handleTemplateSurfaceClick = (
+    event: MouseEvent<HTMLDivElement>,
+    templateId: string
+  ) => {
+    const current = collapsed[templateId] ?? true;
+    if (!current) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']"
+      )
+    ) {
+      return;
+    }
+    toggleTemplateCollapsed(templateId, false);
   };
 
   const deleteTemplate = async (t: Template) => {
@@ -260,7 +328,6 @@ export default function Templates() {
             <button
               className="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2"
               onClick={() => {
-                // Collapse all
                 const next: Record<string, boolean> = {};
                 for (const t of templates) next[t.id] = true;
                 setCollapsed(next);
@@ -270,7 +337,11 @@ export default function Templates() {
             </button>
             <button
               className="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2"
-              onClick={() => setCollapsed({})}
+              onClick={() => {
+                const next: Record<string, boolean> = {};
+                for (const t of templates) next[t.id] = false;
+                setCollapsed(next);
+              }}
               disabled={Object.keys(collapsed).length === 0}
             >
               Expand All
@@ -280,43 +351,67 @@ export default function Templates() {
       </div>
       <div className="space-y-3">
         {templates.map((t) => (
-          <div key={t.id} className="bg-card rounded-2xl p-4 shadow-soft">
+          <div
+            key={t.id}
+            className="bg-card rounded-2xl p-4 shadow-soft relative transition"
+            onClick={(event) => handleTemplateSurfaceClick(event, t.id)}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button
                   className="text-xs bg-slate-800 rounded-md px-2 py-1 shrink-0"
-                  onClick={() => setCollapsed(c => ({ ...c, [t.id]: !c[t.id] }))}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTemplateCollapsed(t.id);
+                  }}
                   title={collapsed[t.id] ? 'Expand template' : 'Collapse template'}
                 >
                   {collapsed[t.id] ? '▶' : '▼'}
                 </button>
-                <input
-                  className="bg-transparent font-medium flex-1 min-w-0"
-                  value={t.name}
-                  onChange={(e) => {
-                    const nt = { ...t, name: e.target.value };
-                    setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
-                    db.put("templates", nt);
-                  }}
-                />
+                {collapsed[t.id] ? (
+                  <div className="font-medium text-sm text-gray-100 truncate" title={t.name || "Untitled template"}>
+                    {t.name || "Untitled template"}
+                  </div>
+                ) : (
+                  <input
+                    className="bg-transparent font-medium flex-1 min-w-0"
+                    value={t.name}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const nt = { ...t, name: e.target.value };
+                      setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
+                      db.put("templates", nt);
+                    }}
+                  />
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="text-[11px] opacity-70">{t.exerciseIds.length} ex</div>
                 <button
                   className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
-                  onClick={() => duplicate(t)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    duplicate(t);
+                  }}
                 >
                   Duplicate
                 </button>
                 <button
                   className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
-                  onClick={() => toggle(t)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggle(t);
+                  }}
                 >
                   {t.hidden ? "Show" : "Hide"}
                 </button>
                 <button
                   className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2"
-                  onClick={() => deleteTemplate(t)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTemplate(t);
+                  }}
                 >
                   Delete
                 </button>

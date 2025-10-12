@@ -17,6 +17,25 @@ import { getProfileProgram } from "../../lib/profile";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { useAggregates } from "../../lib/useAggregates";
 
+type HiddenKey =
+  | "trainingChart"
+  | "bodyChart"
+  | "weekVolume"
+  | "phaseTotals"
+  | "compliance"
+  | "weeklyMuscleBar"
+  | "sessionVolumeTrend";
+
+const DASHBOARD_DEFAULT_HIDDEN: Record<HiddenKey, boolean> = {
+  trainingChart: true,
+  bodyChart: true,
+  weekVolume: true,
+  phaseTotals: true,
+  compliance: true,
+  weeklyMuscleBar: true,
+  sessionVolumeTrend: true,
+};
+
 const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
@@ -120,11 +139,21 @@ export default function Dashboard() {
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
+      const mergedHidden: Record<HiddenKey, boolean> = {
+        ...DASHBOARD_DEFAULT_HIDDEN,
+        ...(prefs.hidden || {}),
+      };
+      setHidden(mergedHidden);
+      const missingHiddenDefaults = Object.keys(DASHBOARD_DEFAULT_HIDDEN).some(
+        (key) => (prefs.hidden as any)?.[key] === undefined
+      );
+      if (!prefs.hidden || missingHiddenDefaults) {
+        await setDashboardPrefs({ hidden: mergedHidden });
+      }
       if (prefs.lastLocation) {
         setPhase(prefs.lastLocation.phaseNumber);
         setWeek(prefs.lastLocation.weekNumber);
       }
-      setHidden(prefs.hidden || {});
       // compute logged sets (preload data once to avoid duplicate queries)
       const phaseNum = prefs.lastLocation?.phaseNumber || 1;
       const settings = await getSettings();
@@ -364,15 +393,6 @@ export default function Dashboard() {
     setHidden(next);
     await setDashboardPrefs({ hidden: next });
   };
-
-  type HiddenKey =
-    | "trainingChart"
-    | "bodyChart"
-    | "weekVolume"
-    | "phaseTotals"
-    | "compliance"
-    | "weeklyMuscleBar"
-    | "sessionVolumeTrend";
   const SectionToggle = ({
     label,
     flag,

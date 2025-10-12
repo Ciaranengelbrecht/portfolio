@@ -522,32 +522,6 @@ export default function ProgramSettings() {
         </button>
       </div>
       <div className="glass-card rounded-2xl p-4 space-y-4">
-        {/* Mesocycle timeline */}
-        <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">
-            Mesocycle Timeline (Logged Weighted Sets)
-          </div>
-          <div className="flex items-end gap-1 h-24">
-            {volumeByWeek.map((v, i) => {
-              const max = Math.max(1, ...volumeByWeek);
-              const pct = Math.round((v / max) * 100);
-              return (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-1"
-                >
-                  <div className="w-full bg-slate-700/40 rounded relative h-full flex items-end">
-                    <div
-                      className="w-full bg-gradient-to-t from-indigo-600/70 to-indigo-400/70 rounded transition-all"
-                      style={{ height: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="text-[9px] text-gray-500">W{i + 1}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
         {/* Muscle group heatmap */}
         <div className="space-y-2">
           <div className="text-xs uppercase tracking-wide text-gray-400">
