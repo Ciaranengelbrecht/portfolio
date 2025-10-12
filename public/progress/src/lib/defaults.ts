@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 
 export const defaultSettings: Settings = {
   unit: "kg",
-  theme: "dark",
+  theme: "light",
   themeV2: { key: "default-glass" },
   deloadDefaults: { loadPct: 0.55, setPct: 0.5 }, // default per requirement
   reducedMotion: false,
@@ -62,7 +62,7 @@ export const defaultSettings: Settings = {
     compactMode: false,
     instantThemeTransition: false,
     smoothingDefault: false,
-    themeMode: "dark",
+    themeMode: "light",
   },
   restTimerTargetSeconds: 90,
   restTimerBeep: true,

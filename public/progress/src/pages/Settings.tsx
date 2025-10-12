@@ -1112,22 +1112,26 @@ export default function SettingsPage() {
                 <span>Theme mode</span>
                 <select
                   className="bg-transparent outline-none"
-                  value={s.ui?.themeMode || 'dark'}
+                  value={s.ui?.themeMode === 'dark' ? 'dark' : 'light'}
                   onChange={async (e)=>{
-                    const mode=e.target.value as any;
+                    const mode=e.target.value as 'dark'|'light';
                     const next={ ...s, ui:{ ...(s.ui||{}), themeMode: mode } };
                     setS(next);
                     await db.put('settings',{ ...next, id:'app' } as any);
                     // Apply immediately
-                    document.documentElement.setAttribute('data-theme', mode==='system'? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'): mode);
+                    document.documentElement.setAttribute('data-theme', mode);
+                    document.body.dataset.theme = mode;
+                    document.documentElement.style.colorScheme = mode;
                     // body attribute update is handled in root App but we set for immediate feedback
                   }}
                 >
-                  <option value="dark">Dark</option>
                   <option value="light">Light</option>
-                  <option value="system">System</option>
+                  <option value="dark">Dark</option>
                 </select>
               </div>
+              <p className="text-[11px] text-muted leading-snug max-w-xs">
+                Device dark mode is ignored inside LiftLog to avoid forced color inversion in Samsung Internet. Choose <span className="font-medium">Dark</span> only if you want the app UI to switch manually.
+              </p>
               <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Compact UI</span>
                 <input type="checkbox" checked={!!s.ui?.compactMode} onChange={async(e)=>{

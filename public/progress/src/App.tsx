@@ -106,28 +106,20 @@ function Shell() {
       } else document.body.dataset.ecg = 'off';
       // Theme mode handling
       const applyThemeMode = () => {
-        const mode = s.ui?.themeMode || 'dark';
-        const preferSystem = mode === 'system';
-        let effective: 'dark' | 'light' = 'dark';
-        if (preferSystem) {
-          const mq = window.matchMedia('(prefers-color-scheme: light)');
-            effective = mq.matches ? 'light' : 'dark';
-        } else effective = mode;
+        const mode = (s.ui?.themeMode as 'dark' | 'light' | 'system' | undefined) || 'light';
+        const effective: 'dark' | 'light' = mode === 'dark' ? 'dark' : 'light';
         document.body.dataset.theme = effective;
+        try {
+          document.documentElement.setAttribute('data-theme', effective);
+          document.documentElement.style.colorScheme = effective;
+        } catch {}
       };
       if(!s.ui?.instantThemeTransition){
         document.body.classList.add('theme-animate');
         setTimeout(()=> document.body.classList.remove('theme-animate'), 600);
       }
       applyThemeMode();
-      if (s.ui?.themeMode === 'system') {
-        try {
-          const mq = window.matchMedia('(prefers-color-scheme: light)');
-          const listener = () => applyThemeMode();
-          mq.addEventListener('change', listener);
-          setTimeout(()=> mq.removeEventListener('change', listener), 30000); // temp listener (can be persisted refactor later)
-        } catch {}
-      }
+      // System mode always resolves to light; no media listeners required
       // Compact mode
       if (s.ui?.compactMode) document.body.dataset.density = 'compact'; else delete document.body.dataset.density;
     })();

@@ -50,16 +50,33 @@ export async function getSettings(): Promise<Settings> {
   if (_settingsCache && now - _settingsCache.ts < SETTINGS_TTL_MS) {
     return _settingsCache.value;
   }
-  const base: Settings =
+  let base: Settings =
     (await db.get<Settings>("settings", "app")) || ({
       unit: "kg",
       deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
-      theme: "dark",
+      theme: "light",
       themeV2: { key: "default-glass" },
     } as any);
+  let mutated = false;
+  if (!base.ui) {
+    (base as any).ui = { themeMode: "light" };
+    mutated = true;
+  }
+  if (!base.theme) {
+    base = { ...base, theme: "light" };
+    mutated = true;
+  }
+  const mode = base.ui?.themeMode;
+  if (mode == null || mode === "system") {
+    base = { ...base, ui: { ...(base.ui || {}), themeMode: "light" } };
+    mutated = true;
+  }
   // Backfill new fields if missing
   if (base.reducedMotion == null) (base as any).reducedMotion = false;
   if ((base as any).restTimerTargetSeconds == null) (base as any).restTimerTargetSeconds = 90;
+  if (mutated) {
+    await db.put("settings", { ...base, id: "app" } as any);
+  }
   _settingsCache = { value: base, ts: now };
   return base;
 }

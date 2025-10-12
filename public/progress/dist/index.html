@@ -1,12 +1,24 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0b0f14" />
+    <meta name="theme-color" content="#f5f7fa" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <meta name="forced-colors" content="none" />
+    <script>
+      (function () {
+        try {
+          document.documentElement.style.colorScheme = "light";
+          document.documentElement.dataset.colorScheme = "light";
+          document.documentElement.setAttribute("data-theme", "light");
+        } catch (e) {}
+      })();
+    </script>
     <!-- If opened from the deployed site (not localhost) and not already under /dist, redirect to the built app -->
     <script>
       (function () {
@@ -23,15 +35,23 @@
         }
       })();
     </script>
-    <link rel="manifest" href="./assets/manifest-K3Qj3Cxy.webmanifest" />
+    <link rel="manifest" href="./assets/manifest-DEBezCwj.webmanifest" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>LiftLog</title>
-    <script type="module" crossorigin src="./assets/index-9VdiHBfU.js"></script>
+    <script type="module" crossorigin src="./assets/index-99Z_m9z_.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/vendor-DTtRowIX.js">
     <link rel="modulepreload" crossorigin href="./assets/charts-Cu4NAUVk.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-C57Xq5H0.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DcAUyRax.css">
   <link rel="manifest" href="./manifest.webmanifest"></head>
-  <body class="bg-bg text-white">
+  <body data-theme="light" class="bg-app text-app" style="background:#f5f7fa;color:#17212c;">
+    <script>
+      (function () {
+        try {
+          document.body.dataset.theme = "light";
+          document.documentElement.setAttribute("data-theme", "light");
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <noscript>
       <p>
