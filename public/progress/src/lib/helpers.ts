@@ -54,21 +54,16 @@ export async function getSettings(): Promise<Settings> {
     (await db.get<Settings>("settings", "app")) || ({
       unit: "kg",
       deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
-      theme: "light",
+      theme: "dark",
       themeV2: { key: "default-glass" },
     } as any);
   let mutated = false;
-  if (!base.ui) {
-    (base as any).ui = { themeMode: "dark" };
-    mutated = true;
-  }
   if (!base.theme) {
     base = { ...base, theme: "dark" };
     mutated = true;
   }
-  // Coerce legacy 'system' or null to 'dark' — user can explicitly pick 'light' in Settings
-  if (base.ui && ((base.ui as any).themeMode == null || (base.ui as any).themeMode === 'system')) {
-    (base as any).ui = { ...(base.ui as any), themeMode: 'dark' };
+  if (!base.ui) {
+    (base as any).ui = { themeMode: "dark" };
     mutated = true;
   }
   // Backfill new fields if missing

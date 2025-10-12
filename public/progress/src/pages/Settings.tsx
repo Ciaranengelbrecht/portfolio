@@ -1180,25 +1180,30 @@ export default function SettingsPage() {
                 <span>Theme mode</span>
                 <select
                   className="bg-transparent outline-none"
-                  value={s.ui?.themeMode === 'light' ? 'light' : 'dark'}
+                  value={s.ui?.themeMode || 'dark'}
                   onChange={async (e)=>{
-                    const mode=e.target.value as 'dark'|'light';
+                    const mode=e.target.value as 'dark'|'light'|'system';
                     const next={ ...s, ui:{ ...(s.ui||{}), themeMode: mode } };
                     setS(next);
                     await db.put('settings',{ ...next, id:'app' } as any);
                     // Apply immediately
-                    document.documentElement.setAttribute('data-theme', mode);
-                    document.body.dataset.theme = mode;
-                    document.documentElement.style.colorScheme = mode;
+                    try {
+                      const effective = mode==='system'
+                        ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+                        : mode;
+                      document.documentElement.setAttribute('data-theme', effective);
+                      document.body.dataset.theme = effective;
+                    } catch {
+                      document.documentElement.setAttribute('data-theme', mode === 'system' ? 'dark' : mode);
+                      document.body.dataset.theme = mode === 'system' ? 'dark' : mode;
+                    }
                   }}
                 >
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
-                </select>
+                  <option value="system">System</option>
+              </select>
               </div>
-              <p className="text-[11px] text-muted leading-snug max-w-xs">
-                The app ignores the device’s theme and defaults to <span className="font-medium">Dark</span>. You can switch to <span className="font-medium">Light</span> manually here.
-              </p>
               <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
                 <span>Compact UI</span>
                 <input type="checkbox" checked={!!s.ui?.compactMode} onChange={async(e)=>{

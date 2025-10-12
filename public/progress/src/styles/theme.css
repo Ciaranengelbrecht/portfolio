@@ -1,5 +1,4 @@
 :root {
-  color-scheme: dark;
   /* Core palette */
   --bg: #0b0f14;
   --bg-muted: #0e1520;
@@ -62,10 +61,6 @@ body[data-theme="light"] {
   --border-strong: rgba(0 0 0 / 0.16);
   --chart-grid: rgba(0 0 0 / 0.08);
   --card: var(--surface);
-}
-
-body[data-theme="dark"] {
-  color-scheme: dark;
 }
 
 /* Animated theme swap (disabled when instant flag set) */

@@ -104,14 +104,24 @@ function Shell() {
   if(s.ecg.trailMs){ root.style.setProperty('--ecg-trail-ms', String(s.ecg.trailMs)); }
   if(s.ecg.color){ root.style.setProperty('--ecg-custom-color', s.ecg.color); }
       } else document.body.dataset.ecg = 'off';
-  // Theme mode handling: honor user's explicit setting only; default to dark (ignore system)
+      // Theme mode handling
       const applyThemeMode = () => {
-        const mode = (s.ui?.themeMode as 'dark' | 'light' | undefined) || 'dark';
-        const effective: 'dark' | 'light' = mode === 'light' ? 'light' : 'dark';
+        const mode = (s.ui?.themeMode as 'dark' | 'light' | 'system' | undefined) || 'dark';
+        const preferSystem = mode === 'system';
+        let effective: 'dark' | 'light' = 'dark';
+        if (preferSystem) {
+          try {
+            const mq = window.matchMedia('(prefers-color-scheme: light)');
+            effective = mq.matches ? 'light' : 'dark';
+          } catch {
+            effective = 'dark';
+          }
+        } else {
+          effective = mode;
+        }
         document.body.dataset.theme = effective;
         try {
           document.documentElement.setAttribute('data-theme', effective);
-          document.documentElement.style.colorScheme = effective;
         } catch {}
       };
       if(!s.ui?.instantThemeTransition){
@@ -119,7 +129,14 @@ function Shell() {
         setTimeout(()=> document.body.classList.remove('theme-animate'), 600);
       }
       applyThemeMode();
-      // No system listeners: mode is user-controlled only
+      if (s.ui?.themeMode === 'system') {
+        try {
+          const mq = window.matchMedia('(prefers-color-scheme: light)');
+          const listener = () => applyThemeMode();
+          mq.addEventListener('change', listener);
+          setTimeout(() => mq.removeEventListener('change', listener), 30000);
+        } catch {}
+      }
       // Compact mode
       if (s.ui?.compactMode) document.body.dataset.density = 'compact'; else delete document.body.dataset.density;
     })();
