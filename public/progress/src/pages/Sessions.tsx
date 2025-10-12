@@ -3155,49 +3155,28 @@ export default function Sessions() {
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
       <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
-        <div className="rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] backdrop-blur px-4 py-4 sm:px-6 sm:py-5 shadow-[0_20px_48px_rgba(15,23,42,0.55)] space-y-4 min-w-0">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-3 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-4 py-4 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <h2 className="text-xl font-semibold tracking-tight text-slate-50">
+              <h2 className="text-lg font-semibold tracking-tight text-slate-50">
                 Sessions
               </h2>
-              <p className="mt-0.5 text-[12px] text-slate-300/70">
-                Log today’s work, adjust weeks, and keep progressing.
+              <p className="text-[11px] text-slate-300/70">
+                Manage today’s plan without the clutter.
               </p>
             </div>
-            {session && !!session.entries.length && (
-              <button
-                className="inline-flex items-center justify-center gap-1 rounded-xl border border-white/15 bg-slate-800/80 px-3 py-1.5 text-[11px] font-medium text-slate-200 shadow-sm transition hover:bg-slate-700/80"
-                aria-label={
-                  allCollapsed
-                    ? "Expand all exercises"
-                    : "Collapse all exercises"
-                }
-                title={
-                  allCollapsed
-                    ? "Expand all exercises"
-                    : "Collapse all exercises"
-                }
-                onClick={() => {
-                  if (allCollapsed) expandAll();
-                  else collapseAll();
-                  try {
-                    navigator.vibrate?.(8);
-                  } catch {}
-                }}
+            {sessionDuration && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200"
+                title="Active logging duration (first to last non-zero set)"
               >
-                <span className="text-base leading-none">
-                  {allCollapsed ? "↓" : "↑"}
-                </span>
-                <span className="hidden sm:inline">
-                  {allCollapsed ? "Expand" : "Collapse"}
-                </span>
-              </button>
+                ⏱ {sessionDuration}
+              </span>
             )}
           </div>
-          <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,1fr)]">
-            <div className="flex flex-col gap-2">
-              <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+            <div className="flex min-w-[200px] flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
                 Workout day
               </span>
               <DaySelector
@@ -3216,64 +3195,88 @@ export default function Sessions() {
                 }}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
-                Week
+            <div className="flex min-w-[220px] flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
+                Week & phase
               </span>
-              <select
-                className="bg-slate-900/70 text-slate-100 rounded-xl border border-white/10 px-3 py-2 text-sm shadow-inner"
-                value={week}
-                onChange={(e) => {
-                  setWeek(Number(e.target.value));
-                  setAutoNavDone(true);
-                  setAllowEmptyPhase(true);
-                }}
-              >
-                {(program
-                  ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
-                  : Array.from({ length: 9 }, (_, i) => i + 1)
-                ).map((w) => (
-                  <option key={w} value={w}>
-                    Week {w}
-                    {program && deloadWeeks.has(w) ? " (Deload)" : ""}
-                  </option>
-                ))}
-              </select>
-              <PhaseStepper
-                variant="compact"
-                value={phase}
-                onChange={async (p) => {
-                  // User is selecting a phase to view/edit. Do not commit currentPhase yet.
-                  setPhase(p);
-                  setAllowEmptyPhase(true);
-                  phaseCommitPendingRef.current = p;
-                  const s = await getSettings();
-                  await setSettings({
-                    ...s,
-                    dashboardPrefs: {
-                      ...(s.dashboardPrefs || {}),
-                      lastLocation: {
-                        ...(s.dashboardPrefs?.lastLocation || {
-                          weekNumber: 1,
-                          dayId: 0,
-                        }),
-                        phaseNumber: p,
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  className="rounded-lg border border-white/10 bg-slate-900/80 px-3 py-1.5 text-sm text-slate-100 shadow-inner"
+                  value={week}
+                  onChange={(e) => {
+                    setWeek(Number(e.target.value));
+                    setAutoNavDone(true);
+                    setAllowEmptyPhase(true);
+                  }}
+                >
+                  {(program
+                    ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
+                    : Array.from({ length: 9 }, (_, i) => i + 1)
+                  ).map((w) => (
+                    <option key={w} value={w}>
+                      Week {w}
+                      {program && deloadWeeks.has(w) ? " (Deload)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <PhaseStepper
+                  variant="compact"
+                  value={phase}
+                  onChange={async (p) => {
+                    setPhase(p);
+                    setAllowEmptyPhase(true);
+                    phaseCommitPendingRef.current = p;
+                    const s = await getSettings();
+                    await setSettings({
+                      ...s,
+                      dashboardPrefs: {
+                        ...(s.dashboardPrefs || {}),
+                        lastLocation: {
+                          ...(s.dashboardPrefs?.lastLocation || {
+                            weekNumber: 1,
+                            dayId: 0,
+                          }),
+                          phaseNumber: p,
+                        },
                       },
-                    },
-                  });
-                }}
-              />
+                    });
+                  }}
+                />
+              </div>
             </div>
             {session && (
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] uppercase tracking-[0.32em] text-slate-300/60">
-                  Session date
+              <div className="flex min-w-[240px] flex-1 flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
+                  Session date & quick actions
                 </span>
                 <div
-                  className="flex flex-wrap items-center gap-1 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-100"
+                  className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/75 px-3 py-2 text-[11px] text-slate-100"
                   title="Current assigned date (edit or stamp)"
                 >
-                  {!editingDate && (
+                  {editingDate ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <input
+                        type="date"
+                        className="rounded border border-white/10 bg-slate-800/90 px-2 py-1 text-[11px] text-slate-200"
+                        value={dateEditValue}
+                        onChange={(e) => setDateEditValue(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="rounded bg-emerald-500/80 px-2 py-1 text-[10px] font-medium text-emerald-900 transition hover:bg-emerald-400"
+                        onClick={saveManualDate}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
+                        onClick={() => setEditingDate(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
                     <span
                       className="font-mono tracking-tight"
                       title={session.localDate || session.dateISO.slice(0, 10)}
@@ -3283,81 +3286,72 @@ export default function Sessions() {
                       )}
                     </span>
                   )}
-                  {editingDate && (
-                    <div className="flex flex-wrap items-center gap-1">
-                      <input
-                        type="date"
-                        className="rounded px-2 py-1 text-[11px] text-slate-200 bg-slate-800/90"
-                        value={dateEditValue}
-                        onChange={(e) => setDateEditValue(e.target.value)}
-                      />
+                  <div className="ml-auto flex items-center gap-1.5">
+                    {!editingDate && (
                       <button
-                        className="rounded bg-emerald-600/80 px-2 py-1 text-[10px] text-emerald-50 transition hover:bg-emerald-600"
-                        onClick={saveManualDate}
+                        type="button"
+                        className={`rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600 ${
+                          stampAnimating ? "animate-stamp" : ""
+                        }`}
+                        onClick={() => {
+                          setStampAnimating(true);
+                          setTimeout(() => setStampAnimating(false), 360);
+                          stampToday();
+                        }}
+                        aria-label="Stamp with today's date"
                       >
-                        Save
+                        Stamp
                       </button>
-                      <button
-                        className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
-                        onClick={() => setEditingDate(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    className="ml-auto rounded-lg border border-white/10 bg-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.28em] text-white/60 transition hover:border-white/20 hover:bg-white/15 hover:text-white"
-                    onClick={() => setEditingDate((v) => !v)}
-                  >
-                    {editingDate ? "Cancel" : "Edit"}
-                  </button>
-                </div>
-                {!editingDate && (
-                  <div className="flex items-center gap-1 ml-auto">
-                    <button
-                      className={`rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600 ${
-                        stampAnimating ? "animate-stamp" : ""
-                      }`}
-                      onClick={() => {
-                        setStampAnimating(true);
-                        setTimeout(() => setStampAnimating(false), 360);
-                        stampToday();
-                      }}
-                      aria-label="Stamp with today's date"
-                    >
-                      <span className="select-none">Stamp</span>
-                    </button>
-                    <button
-                      aria-label="Edit date"
-                      className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
-                      onClick={() => {
-                        setDateEditValue(
-                          session.localDate || session.dateISO.slice(0, 10)
-                        );
-                        setEditingDate(true);
-                      }}
-                    >
-                      ✎
-                    </button>
-                    {sessionDuration && (
-                      <span
-                        className="ml-1 rounded bg-indigo-600/40 px-2 py-1 text-indigo-200"
-                        title="Active logging duration (first to last non-zero set)"
-                      >
-                        ⏱ {sessionDuration}
-                      </span>
                     )}
+                    {!editingDate && (
+                      <button
+                        type="button"
+                        aria-label="Edit date"
+                        className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
+                        onClick={() => {
+                          setDateEditValue(
+                            session.localDate || session.dateISO.slice(0, 10)
+                          );
+                          setEditingDate(true);
+                        }}
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {session && !!session.entries.length && (
+                      <button
+                        type="button"
+                        className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
+                        aria-label={
+                          allCollapsed
+                            ? "Expand all exercises"
+                            : "Collapse all exercises"
+                        }
+                        title={
+                          allCollapsed
+                            ? "Expand all exercises"
+                            : "Collapse all exercises"
+                        }
+                        onClick={() => {
+                          if (allCollapsed) expandAll();
+                          else collapseAll();
+                          try {
+                            navigator.vibrate?.(8);
+                          } catch {}
+                        }}
+                      >
+                        {allCollapsed ? "Expand" : "Collapse"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="rounded bg-slate-800/70 px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70 transition hover:bg-slate-700/70"
+                      onClick={() => setEditingDate((v) => !v)}
+                    >
+                      {editingDate ? "Done" : "Edit"}
+                    </button>
                   </div>
-                )}
-                {sessionDuration && editingDate && (
-                  <span
-                    className="ml-auto rounded bg-indigo-600/40 px-2 py-1 text-indigo-200"
-                    title="Active logging duration (first to last non-zero set)"
-                  >
-                    ⏱ {sessionDuration}
-                  </span>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -5694,94 +5688,84 @@ function SessionMomentumPanel({
     (m) => m.workingSets > 0
   ).length;
   const topMuscles = analytics.muscleLoad.slice(0, 4);
-  const upNext: SessionAnalytics["incompleteExercises"] = [];
-  for (const task of analytics.incompleteExercises) {
-    if (task.workingSets === 0) {
-      upNext.push(task);
-    }
-    if (upNext.length === 3) break;
-  }
-  const remainingTasks = upNext.length;
+  const incompleteQueue = analytics.incompleteExercises.filter(
+    (task) => task.workingSets === 0
+  );
+  const nextTask = incompleteQueue[0];
+  const remainingTasks = incompleteQueue.length;
+  const queueRemainder = Math.max(0, remainingTasks - 1);
 
   return (
-    <div className="mx-4 mt-2 space-y-4 rounded-2xl border border-white/8 bg-slate-950/70 p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.85)] fade-in">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-4 mt-2 space-y-3 rounded-2xl border border-white/12 bg-[rgba(15,23,42,0.78)] px-4 py-4 shadow-[0_14px_30px_-24px_rgba(59,130,246,0.55)] backdrop-blur-sm sm:px-5 sm:py-4 fade-in">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.32em] text-gray-400/70">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400/80">
             Session momentum
           </p>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-3xl font-semibold text-white/90">
+          <div className="mt-1 flex items-baseline gap-1.5">
+            <span className="text-2xl font-semibold text-white/90">
               {completion}%
             </span>
-            <span className="text-xs uppercase tracking-[0.28em] text-gray-400">
+            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-400">
               Complete
             </span>
           </div>
         </div>
-        <div className="text-right text-sm text-gray-300">
-          <div className="font-medium text-white/90">
+        <div className="text-right text-[11px] text-slate-300">
+          <div className="font-medium text-white/90 leading-tight">
             {analytics.completedSets.toLocaleString()} /{" "}
             {analytics.plannedSets.toLocaleString()} sets
           </div>
-          <div className="text-[11px] text-gray-500">
+          <div className="text-[10px] text-slate-400">
             {analytics.completedExercises}/{analytics.totalExercises} exercises
             logged
           </div>
         </div>
       </div>
-      <div className="progress-track mt-3">
+      <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
         <div
-          className="progress-fill"
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400/80 via-emerald-400/70 to-emerald-300/70"
           style={{ width: `${completion}%` }}
           aria-hidden="true"
         />
       </div>
-      <div className="grid gap-3 text-[11px] text-gray-300 sm:grid-cols-4">
-        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
-          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+      <div className="flex flex-wrap gap-2 text-[10px] text-slate-200">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+          <span className="text-slate-400 uppercase tracking-[0.24em]">
             Sets
           </span>
-          <span className="mt-1 text-sm font-semibold text-white/90">
-            {analytics.completedSets.toLocaleString()}
+          <span className="text-white/90">
+            {analytics.completedSets.toLocaleString()} /{" "}
+            {analytics.plannedSets.toLocaleString()}
           </span>
-          <span className="ml-1 text-[10px] text-gray-500">
-            of {analytics.plannedSets.toLocaleString()}
-          </span>
-        </div>
-        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
-          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+          <span className="text-slate-400 uppercase tracking-[0.24em]">
             Volume
           </span>
-          <span className="mt-1 text-sm font-semibold text-emerald-300">
+          <span className="text-emerald-300">
             {analytics.totalVolume.toLocaleString()}
           </span>
-        </div>
-        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
-          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
-            PR Signals
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+          <span className="text-slate-400 uppercase tracking-[0.24em]">PR</span>
+          <span className="text-white/90">{analytics.prSignals}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+          <span className="text-slate-400 uppercase tracking-[0.24em]">
+            Muscles
           </span>
-          <span className="mt-1 text-sm font-semibold text-white/90">
-            {analytics.prSignals}
-          </span>
-        </div>
-        <div className="rounded-xl border border-white/8 bg-slate-900/60 px-3 py-2 shadow-inner">
-          <span className="block text-[9px] uppercase tracking-[0.28em] text-gray-500">
-            Muscles active
-          </span>
-          <span className="mt-1 text-sm font-semibold text-white/90">
-            {activeMuscleCount}
-          </span>
-        </div>
+          <span className="text-white/90">{activeMuscleCount}</span>
+        </span>
       </div>
       {topMuscles.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
           {topMuscles.map((m) => {
             const icon = getMuscleIconPath(m.muscle);
             return (
               <span
                 key={m.muscle}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/60 px-3 py-1 tabular-nums"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
                 title={`${m.muscle} · ${m.workingSets}/${m.totalSets} sets`}
               >
                 {icon ? (
@@ -5796,7 +5780,7 @@ function SessionMomentumPanel({
                     aria-hidden="true"
                   />
                 )}
-                <span className="text-emerald-300">
+                <span className="font-medium text-emerald-200">
                   {m.workingSets}/{m.totalSets}
                 </span>
               </span>
@@ -5804,51 +5788,39 @@ function SessionMomentumPanel({
           })}
         </div>
       )}
-      {remainingTasks > 0 && (
-        <div className="rounded-xl border border-white/10 bg-slate-900/70 p-3">
-          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-gray-400">
+      {nextTask && (
+        <div className="rounded-xl border border-white/12 bg-white/5 px-3 py-3">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-slate-400">
             <span>Up next</span>
-            <span className="text-gray-500 normal-case tracking-normal">
-              {remainingTasks} item{remainingTasks === 1 ? "" : "s"}
+            <span className="text-slate-500 normal-case tracking-normal">
+              {queueRemainder > 0
+                ? `+${queueRemainder} more`
+                : `${remainingTasks} item${remainingTasks === 1 ? "" : "s"}`}
             </span>
           </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {upNext.map((task) => {
-              const isFocused = focusedEntryId === task.entryId;
-              return (
-                <div
-                  key={task.entryId}
-                  className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-[11px] ${
-                    isFocused
-                      ? "border-emerald-400/50 bg-emerald-500/10 text-emerald-100"
-                      : "border-white/10 bg-slate-800/60 text-slate-200"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-white/90">
-                      {task.name}
-                    </div>
-                    <div className="text-[10px] text-gray-400">
-                      {task.missingSets} set{task.missingSets === 1 ? "" : "s"}{" "}
-                      remaining ·{" "}
-                      <span className="capitalize">{task.muscle}</span>
-                    </div>
-                  </div>
-                  {onFocusRequest && (
-                    <button
-                      className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium transition ${
-                        isFocused
-                          ? "bg-emerald-400 text-slate-950"
-                          : "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                      }`}
-                      onClick={() => onFocusRequest(task.entryId)}
-                    >
-                      {isFocused ? "Focused" : "Focus"}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-200">
+            <div className="min-w-0">
+              <div className="truncate font-medium text-white/90">
+                {nextTask.name}
+              </div>
+              <div className="text-[10px] text-slate-400">
+                {nextTask.missingSets} set
+                {nextTask.missingSets === 1 ? "" : "s"} remaining ·{" "}
+                <span className="capitalize">{nextTask.muscle}</span>
+              </div>
+            </div>
+            {onFocusRequest && (
+              <button
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+                  focusedEntryId === nextTask.entryId
+                    ? "bg-emerald-400 text-slate-950"
+                    : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                }`}
+                onClick={() => onFocusRequest(nextTask.entryId)}
+              >
+                {focusedEntryId === nextTask.entryId ? "Focused" : "Focus"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -5938,17 +5910,17 @@ function SessionSummary({
         </div>
         {/* Per-muscle set & tonnage summary */}
         {muscleStats.length > 0 && (
-          <div className="inline-flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
             {muscleStats.map(([k, v]) => (
               <span
                 key={k}
-                className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-white/10 tabular-nums"
+                className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
                 title={`${k} • ${v.sets} sets • ${v.tonnage} tonnage`}
               >
-                <span className="opacity-70 mr-1">
-                  {k.charAt(0).toUpperCase() + k.slice(1)}:
+                <span className="font-medium text-white/80">
+                  {k.charAt(0).toUpperCase() + k.slice(1)}
                 </span>
-                <span>
+                <span className="text-slate-300/90">
                   {v.sets} sets · {v.tonnage}
                 </span>
               </span>
