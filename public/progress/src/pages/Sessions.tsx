@@ -627,11 +627,13 @@ export default function Sessions() {
           let candidate: Session | null = null;
           try {
             if (last.sessionId) {
-              candidate = (await db.get<Session>("sessions", last.sessionId)) || null;
+              candidate =
+                (await db.get<Session>("sessions", last.sessionId)) || null;
             }
             if (!candidate) {
               const fallbackId = `${last.phaseNumber}-${last.weekNumber}-${last.dayId}`;
-              candidate = (await db.get<Session>("sessions", fallbackId)) || null;
+              candidate =
+                (await db.get<Session>("sessions", fallbackId)) || null;
             }
           } catch {}
           if (!sessionHasRealWork(candidate)) {
@@ -954,7 +956,8 @@ export default function Sessions() {
       };
       const weekActivity = new Map<number, number>();
       for (const s of byPhase) {
-        if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number") continue;
+        if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number")
+          continue;
         const ms = activityMs(s);
         const prev = weekActivity.get(s.weekNumber) ?? -Infinity;
         if (ms > prev) weekActivity.set(s.weekNumber, ms);
