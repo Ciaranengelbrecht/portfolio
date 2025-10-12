@@ -44,6 +44,56 @@ const DEFAULT_DAY_FOCUS: Partial<Record<DayLabel, MuscleGroup[]>> = {
   Arms: ["biceps", "triceps", "forearms"],
 };
 
+type PriorityLane = "primary" | "secondary" | "maintenance";
+
+const MUSCLE_PRIORITY_SHARES: Record<PriorityLane, number> = {
+  primary: 0.6,
+  secondary: 0.3,
+  maintenance: 0.1,
+};
+
+const MUSCLE_PRIORITY_BASE_WEIGHT: Record<PriorityLane, number> = {
+  primary: 3,
+  secondary: 2,
+  maintenance: 1,
+};
+
+const PRIORITY_ORDER: PriorityLane[] = ["primary", "secondary", "maintenance"];
+
+const LOWER_BODY_MUSCLES = new Set<MuscleGroup>([
+  "glutes",
+  "hamstrings",
+  "quads",
+  "calves",
+]);
+
+const POPULAR_EXERCISE_KEYWORDS = [
+  "squat",
+  "deadlift",
+  "bench",
+  "press",
+  "row",
+  "pull-up",
+  "chin-up",
+  "hip thrust",
+  "lunge",
+  "leg press",
+  "romanian",
+  "rdl",
+  "split squat",
+  "dip",
+];
+
+const NICHE_EXERCISE_KEYWORDS = [
+  "bosu",
+  "trx",
+  "balance",
+  "stability ball",
+  "combo",
+  "plyo",
+  "complex",
+];
+
 const TRAINING_PATTERNS: Record<number, DayLabel[]> = {
   3: ["Full Body", "Upper", "Lower"],
   4: ["Upper", "Lower", "Push", "Pull"],
@@ -53,6 +103,16 @@ const TRAINING_PATTERNS: Record<number, DayLabel[]> = {
 };
 
 const DEFAULT_REST_ORDER = [6, 2, 4, 0, 5, 1, 3];
+
+const DAY_TYPE_OPTIONS: DayLabel[] = [
+  "Lower",
+  "Legs",
+  "Upper",
+  "Push",
+  "Pull",
+  "Full Body",
+  "Arms",
+];
 
 const BASE_VOLUME: Record<MuscleGroup, number> = {
   chest: 12,
@@ -70,6 +130,8 @@ const BASE_VOLUME: Record<MuscleGroup, number> = {
   other: 0,
 };
 
+const ALL_MUSCLE_GROUPS = Object.keys(BASE_VOLUME) as MuscleGroup[];
+
 const EXPERIENCE_MULTIPLIER: Record<TrainingExperienceLevel, number> = {
   beginner: 0.85,
   intermediate: 1,
@@ -80,12 +142,6 @@ const GOAL_EMPHASIS_MULTIPLIER: Record<TrainingGoalEmphasis, number> = {
   hypertrophy: 1.05,
   balanced: 1,
   strength: 0.95,
-};
-
-const PRIORITY_WEIGHTS = {
-  primary: 1.25,
-  secondary: 1.1,
-  maintenance: 0.8,
 };
 
 const VOLUME_PREF_MULTIPLIER = {
@@ -140,32 +196,297 @@ function resolvePattern(days: number): DayLabel[] {
   return [...TRAINING_PATTERNS[5]];
 }
 
-export function suggestWeeklySplit(
+function createVolumeRecord(initial = 0): Record<MuscleGroup, number> {
+  const record = {} as Record<MuscleGroup, number>;
+  ALL_MUSCLE_GROUPS.forEach((muscle) => {
+    record[muscle] = initial;
+  });
+  return record;
+}
+
+function derivePriorityBuckets(
   state: GuidedSetupState
+): Record<PriorityLane, MuscleGroup[]> {
+  const primarySet = new Set(state.priorityMuscles?.primary || []);
+  const secondarySet = new Set(
+    (state.priorityMuscles?.secondary || []).filter(
+      (muscle) => !primarySet.has(muscle)
+    )
+  );
+  const maintenanceSet = new Set(
+    (state.priorityMuscles?.maintenance || []).filter(
+      (muscle) => !primarySet.has(muscle) && !secondarySet.has(muscle)
+    )
+  );
+
+  return {
+    primary: Array.from(primarySet),
+    secondary: Array.from(secondarySet),
+    maintenance: Array.from(maintenanceSet),
+  };
+}
+
+function deriveMusclePriorityWeights(
+  state: GuidedSetupState
+): Map<MuscleGroup, number> {
+  const buckets = derivePriorityBuckets(state);
+  const map = new Map<MuscleGroup, number>();
+  (Object.keys(buckets) as PriorityLane[]).forEach((lane) => {
+    const weight = MUSCLE_PRIORITY_BASE_WEIGHT[lane];
+    buckets[lane].forEach((muscle) => {
+      map.set(muscle, weight);
+    });
+  });
+  return map;
+}
+
+function computeWeeklySetBudget(
+  state: GuidedSetupState,
+  trainingDays: number
+): number {
+  const days = Math.max(1, trainingDays);
+  const sets = Math.max(8, Math.min(24, state.setsPerSession || 12));
+  return days * sets;
+}
+
+function buildPriorityVolumeTargets(
+  state: GuidedSetupState,
+  trainingDays: number
+): Partial<Record<MuscleGroup, number>> | null {
+  const buckets = derivePriorityBuckets(state);
+  const activeBuckets = (
+    Object.entries(buckets) as [PriorityLane, MuscleGroup[]][]
+  ).filter(([, muscles]) => muscles.length > 0);
+  if (!activeBuckets.length) return null;
+
+  const totalSets = computeWeeklySetBudget(state, trainingDays);
+  const totalShare = activeBuckets.reduce(
+    (sum, [lane]) => sum + MUSCLE_PRIORITY_SHARES[lane],
+    0
+  );
+  const volume: Partial<Record<MuscleGroup, number>> = {};
+
+  activeBuckets.forEach(([lane, muscles]) => {
+    const share = MUSCLE_PRIORITY_SHARES[lane] / (totalShare || 1);
+    const bucketSets = totalSets * share;
+    const perMuscle = muscles.length ? bucketSets / muscles.length : 0;
+    muscles.forEach((muscle) => {
+      volume[muscle] = Number(perMuscle.toFixed(1));
+    });
+  });
+
+  const sum = Object.values(volume).reduce((acc, value) => acc + value, 0) || 1;
+  const scale = totalSets / sum;
+  Object.keys(volume).forEach((muscle) => {
+    volume[muscle as MuscleGroup] = Number(
+      ((volume[muscle as MuscleGroup] || 0) * scale).toFixed(1)
+    );
+  });
+
+  return volume;
+}
+
+function buildPriorityLookup(
+  state: GuidedSetupState
+): Map<MuscleGroup, PriorityLane> {
+  const buckets = derivePriorityBuckets(state);
+  const lookup = new Map<MuscleGroup, PriorityLane>();
+  (Object.keys(buckets) as PriorityLane[]).forEach((lane) => {
+    buckets[lane].forEach((muscle) => lookup.set(muscle, lane));
+  });
+  return lookup;
+}
+
+function topMusclesByRemaining(
+  remainingVolume: Map<MuscleGroup, number>,
+  muscleWeights: Map<MuscleGroup, number>,
+  limit: number
+): MuscleGroup[] {
+  const ranked = ALL_MUSCLE_GROUPS.map((muscle) => {
+    const remaining = remainingVolume.get(muscle) ?? 0;
+    const weight = muscleWeights.get(muscle) ?? 0;
+    return { muscle, remaining, weight };
+  })
+    .filter((item) => item.remaining > 0 || item.weight > 0)
+    .sort((a, b) => {
+      if (b.remaining !== a.remaining) return b.remaining - a.remaining;
+      return b.weight - a.weight;
+    });
+  return ranked.slice(0, Math.max(0, limit)).map((item) => item.muscle);
+}
+
+function pickDayType(
+  remainingVolume: Map<MuscleGroup, number>,
+  muscleWeights: Map<MuscleGroup, number>,
+  usedCounts: Map<DayLabel, number>,
+  lowerTarget: number,
+  remainingSlots: number,
+  lowerUsedSoFar: number
+): DayLabel {
+  if (
+    lowerTarget > 0 &&
+    lowerTarget - lowerUsedSoFar >= remainingSlots &&
+    remainingSlots > 0
+  ) {
+    return "Lower";
+  }
+  const totals = ALL_MUSCLE_GROUPS.reduce(
+    (acc, muscle) => {
+      const remaining = remainingVolume.get(muscle) ?? 0;
+      acc.total += remaining;
+      if (LOWER_BODY_MUSCLES.has(muscle)) acc.lower += remaining;
+      return acc;
+    },
+    { total: 0, lower: 0 }
+  );
+  const lowerShare = totals.total > 0 ? totals.lower / totals.total : 0;
+  let best: { type: DayLabel; score: number } | null = null;
+  for (const type of DAY_TYPE_OPTIONS) {
+    const focus = DEFAULT_DAY_FOCUS[type] || [];
+    if (!focus.length) continue;
+    let score = 0;
+    focus.forEach((muscle) => {
+      const remaining = remainingVolume.get(muscle) ?? 0;
+      const weight = muscleWeights.get(muscle) ?? 0.1;
+      score += remaining * 2.2 + weight;
+    });
+    if (type === "Lower" || type === "Legs") {
+      score *= 1 + lowerShare;
+    } else if (type === "Upper" || type === "Push" || type === "Pull") {
+      const upperShare =
+        totals.total > 0 ? (totals.total - totals.lower) / totals.total : 0.5;
+      score *= 1 + upperShare * 0.6;
+    }
+    const penalty = usedCounts.get(type) ?? 0;
+    score -= penalty * 1.4;
+    if (!best || score > best.score) best = { type, score };
+  }
+  if (lowerShare > 0.45 && lowerUsedSoFar === 0) {
+    return "Lower";
+  }
+  if (best && best.score > 0.2) {
+    return best.type;
+  }
+  const fallback = topMusclesByRemaining(remainingVolume, muscleWeights, 1)[0];
+  if (fallback && LOWER_BODY_MUSCLES.has(fallback)) return "Lower";
+  if (fallback) return "Upper";
+  return "Full Body";
+}
+
+function selectFocusMuscles(
+  type: DayLabel,
+  remainingVolume: Map<MuscleGroup, number>,
+  muscleWeights: Map<MuscleGroup, number>,
+  priorityLookup: Map<MuscleGroup, PriorityLane>
+): MuscleGroup[] {
+  const base = Array.from(new Set(DEFAULT_DAY_FOCUS[type] || []));
+  const scored = base.map((muscle) => ({
+    muscle,
+    remaining: remainingVolume.get(muscle) ?? 0,
+    weight: muscleWeights.get(muscle) ?? 0,
+    lane: priorityLookup.get(muscle),
+  }));
+  const positive = scored.filter((item) => item.remaining > 0.1);
+  const source = positive.length ? positive : scored;
+  const ordered = source
+    .sort((a, b) => {
+      if (b.remaining !== a.remaining) return b.remaining - a.remaining;
+      if ((a.lane || "") !== (b.lane || "")) {
+        const laneRank = (lane?: PriorityLane) =>
+          lane ? PRIORITY_ORDER.indexOf(lane) : PRIORITY_ORDER.length;
+        return laneRank(a.lane) - laneRank(b.lane);
+      }
+      return b.weight - a.weight;
+    })
+    .map((item) => item.muscle)
+    .filter(Boolean);
+  const limited = ordered.slice(0, 4);
+  if (limited.length) return limited;
+  return topMusclesByRemaining(remainingVolume, muscleWeights, 3);
+}
+
+function consumeVolumeForDay(
+  remainingVolume: Map<MuscleGroup, number>,
+  muscles: MuscleGroup[],
+  budget: number,
+  muscleWeights: Map<MuscleGroup, number>
+) {
+  if (!muscles.length || budget <= 0) return;
+  const entries = muscles.map((muscle) => {
+    const remaining = remainingVolume.get(muscle) ?? 0;
+    const weight = muscleWeights.get(muscle) ?? 0.1;
+    const score = remaining > 0 ? remaining * 2 + weight : weight;
+    return { muscle, remaining, weight: score > 0 ? score : 1 };
+  });
+  let totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!totalWeight) totalWeight = entries.length || 1;
+  const allocations = entries.map((entry) => {
+    const raw = (entry.weight / totalWeight) * budget;
+    return Math.max(1, Math.round(raw));
+  });
+  let total = allocations.reduce((sum, value) => sum + value, 0);
+  let idx = 0;
+  while (total > budget && allocations.length) {
+    const target = allocations[idx % allocations.length];
+    if (target > 1) {
+      allocations[idx % allocations.length] -= 1;
+      total -= 1;
+    }
+    idx += 1;
+    if (idx > allocations.length * 4) break;
+  }
+  idx = 0;
+  while (total < budget && allocations.length) {
+    allocations[idx % allocations.length] += 1;
+    total += 1;
+    idx += 1;
+    if (idx > allocations.length * 4) break;
+  }
+
+  allocations.forEach((sets, i) => {
+    const muscle = entries[i].muscle;
+    const current = remainingVolume.get(muscle) ?? 0;
+    const applied = Math.min(sets, Math.max(0, current));
+    const next = Math.max(0, Number((current - applied).toFixed(1)));
+    remainingVolume.set(muscle, next);
+  });
+}
+
+function buildScheduleNote(
+  focus: MuscleGroup[],
+  priorityLookup: Map<MuscleGroup, PriorityLane>
+): string | undefined {
+  if (!focus.length) return undefined;
+  const grouped: Record<PriorityLane, MuscleGroup[]> = {
+    primary: [],
+    secondary: [],
+    maintenance: [],
+  };
+  focus.forEach((muscle) => {
+    const lane = priorityLookup.get(muscle);
+    if (lane) grouped[lane].push(muscle);
+  });
+  const notes: string[] = [];
+  if (grouped.primary.length) {
+    notes.push(`Primary focus: ${formatList(grouped.primary)}`);
+  }
+  if (grouped.secondary.length) {
+    notes.push(`Secondary: ${formatList(grouped.secondary)}`);
+  }
+  if (!notes.length) {
+    notes.push(`Emphasis: ${formatList(focus)}`);
+  }
+  return notes.join(" • ");
+}
+
+function buildPatternSchedule(
+  state: GuidedSetupState,
+  restSet: Set<number>
 ): GuidedSetupScheduleDay[] {
   const trainingDays = clampTrainingDays(state.daysPerWeek);
   const pattern = resolvePattern(trainingDays);
-  const restNeeded = Math.max(0, 7 - pattern.length);
-  const preferredRest = Array.isArray(state.preferredRestDays)
-    ? state.preferredRestDays
-        .map((d) => Math.max(0, Math.min(6, Math.floor(d))))
-        .slice(0, 7)
-    : [];
-  const restSet = new Set<number>();
-  for (const idx of preferredRest) {
-    if (restSet.size >= restNeeded) break;
-    restSet.add(idx);
-  }
-  if (restSet.size < restNeeded) {
-    for (const idx of DEFAULT_REST_ORDER) {
-      if (restSet.size >= restNeeded) break;
-      if (!restSet.has(idx)) restSet.add(idx);
-    }
-  }
   const primary = new Set(state.priorityMuscles?.primary || []);
   const secondary = new Set(state.priorityMuscles?.secondary || []);
-  const maintenance = new Set(state.priorityMuscles?.maintenance || []);
-
   let patternIdx = 0;
   const days: GuidedSetupScheduleDay[] = [];
   for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
@@ -209,6 +530,113 @@ export function suggestWeeklySplit(
   return days;
 }
 
+export function suggestWeeklySplit(
+  state: GuidedSetupState
+): GuidedSetupScheduleDay[] {
+  const trainingDays = clampTrainingDays(state.daysPerWeek);
+  const preferredRest = Array.isArray(state.preferredRestDays)
+    ? state.preferredRestDays
+        .map((d) => Math.max(0, Math.min(6, Math.floor(d))))
+        .slice(0, 7)
+    : [];
+  const restSet = new Set<number>();
+  const restNeeded = Math.max(0, 7 - trainingDays);
+  for (const idx of preferredRest) {
+    if (restSet.size >= restNeeded) break;
+    restSet.add(idx);
+  }
+  if (restSet.size < restNeeded) {
+    for (const idx of DEFAULT_REST_ORDER) {
+      if (restSet.size >= restNeeded) break;
+      if (!restSet.has(idx)) restSet.add(idx);
+    }
+  }
+
+  const schedule: GuidedSetupScheduleDay[] = [];
+  const muscleWeights = deriveMusclePriorityWeights(state);
+  const priorityLookup = buildPriorityLookup(state);
+  const volumeTargets = buildPriorityVolumeTargets(state, trainingDays) || {};
+  const hasPriorities = Array.from(muscleWeights.values()).some(
+    (value) => value > 0
+  );
+  if (!hasPriorities) {
+    return buildPatternSchedule(state, new Set(restSet));
+  }
+  const remainingVolume = new Map<MuscleGroup, number>();
+  Object.entries(volumeTargets).forEach(([muscle, value]) => {
+    remainingVolume.set(muscle as MuscleGroup, value ?? 0);
+  });
+  const initialTotals = Array.from(remainingVolume.entries()).reduce(
+    (acc, [muscle, value]) => {
+      const amount = value ?? 0;
+      acc.total += amount;
+      if (LOWER_BODY_MUSCLES.has(muscle)) acc.lower += amount;
+      return acc;
+    },
+    { total: 0, lower: 0 }
+  );
+  const initialLowerShare =
+    initialTotals.total > 0 ? initialTotals.lower / initialTotals.total : 0;
+  const targetLowerDays = Math.max(
+    1,
+    Math.round(initialLowerShare * trainingDays)
+  );
+  const usedCounts = new Map<DayLabel, number>();
+  const setsPerSession = Math.max(8, Math.min(24, state.setsPerSession || 12));
+  let scheduledTrainingDays = 0;
+
+  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+    if (restSet.has(dayIdx)) {
+      schedule.push({
+        id: `rest-${dayIdx}`,
+        label: `${DAY_NAMES[dayIdx]} – Recovery`,
+        type: "Rest",
+        focusMuscles: [],
+        note: "Planned recovery day",
+      });
+      continue;
+    }
+
+    const lowerUsedSoFar =
+      (usedCounts.get("Lower") || 0) + (usedCounts.get("Legs") || 0);
+    const slotsLeft = Math.max(1, trainingDays - scheduledTrainingDays);
+    const dayType = pickDayType(
+      remainingVolume,
+      muscleWeights,
+      usedCounts,
+      targetLowerDays,
+      slotsLeft,
+      lowerUsedSoFar
+    );
+    const focusMuscles = selectFocusMuscles(
+      dayType,
+      remainingVolume,
+      muscleWeights,
+      priorityLookup
+    );
+    if (focusMuscles.length) {
+      consumeVolumeForDay(
+        remainingVolume,
+        focusMuscles,
+        setsPerSession,
+        muscleWeights
+      );
+    }
+    usedCounts.set(dayType, (usedCounts.get(dayType) || 0) + 1);
+    scheduledTrainingDays += 1;
+
+    schedule.push({
+      id: `day-${dayIdx}`,
+      label: `${DAY_NAMES[dayIdx]} – ${dayType}`,
+      type: dayType,
+      focusMuscles,
+      note: buildScheduleNote(focusMuscles, priorityLookup),
+    });
+  }
+
+  return schedule;
+}
+
 function formatList(list: MuscleGroup[]): string {
   if (!list.length) return "—";
   if (list.length === 1) return list[0];
@@ -217,24 +645,31 @@ function formatList(list: MuscleGroup[]): string {
 }
 
 export function calculateVolumeTargets(
-  state: GuidedSetupState
+  state: GuidedSetupState,
+  schedule?: GuidedSetupScheduleDay[]
 ): Record<MuscleGroup, number> {
+  const trainingDays = schedule
+    ? schedule.filter((day) => day.type !== "Rest").length
+    : clampTrainingDays(state.daysPerWeek);
+  const priorityVolume = buildPriorityVolumeTargets(state, trainingDays);
+  if (priorityVolume) {
+    const record = createVolumeRecord(0);
+    Object.entries(priorityVolume).forEach(([muscle, value]) => {
+      record[muscle as MuscleGroup] = Number((value ?? 0).toFixed(1));
+    });
+    return record;
+  }
+
   const experience = state.experience || "intermediate";
   const goal = state.goalEmphasis || "balanced";
   const volumePref = state.volumePreference || "standard";
-  const primary = new Set(state.priorityMuscles?.primary || []);
-  const secondary = new Set(state.priorityMuscles?.secondary || []);
-  const maintenance = new Set(state.priorityMuscles?.maintenance || []);
-  const base: Record<MuscleGroup, number> = { ...BASE_VOLUME };
+  const base = createVolumeRecord(0);
   const mult =
     EXPERIENCE_MULTIPLIER[experience] *
     GOAL_EMPHASIS_MULTIPLIER[goal] *
     VOLUME_PREF_MULTIPLIER[volumePref];
-  (Object.keys(base) as MuscleGroup[]).forEach((muscle) => {
-    let value = base[muscle] * mult;
-    if (primary.has(muscle)) value *= PRIORITY_WEIGHTS.primary;
-    else if (secondary.has(muscle)) value *= PRIORITY_WEIGHTS.secondary;
-    else if (maintenance.has(muscle)) value *= PRIORITY_WEIGHTS.maintenance;
+  ALL_MUSCLE_GROUPS.forEach((muscle) => {
+    let value = BASE_VOLUME[muscle] * mult;
     base[muscle] = Number(value.toFixed(1));
   });
   return base;
@@ -311,7 +746,8 @@ interface MuscleTarget {
 export function buildTemplateDrafts(
   state: GuidedSetupState,
   schedule: GuidedSetupScheduleDay[],
-  exercises: Exercise[]
+  exercises: Exercise[],
+  volumeTargets: Record<MuscleGroup, number>
 ): GuidedTemplateDraft[] {
   const activeExercises = exercises.filter((ex) => ex && ex.active !== false);
   const exerciseById = new Map(activeExercises.map((ex) => [ex.id, ex]));
@@ -326,6 +762,11 @@ export function buildTemplateDrafts(
   const goal = state.goalEmphasis || "balanced";
   const repRange =
     goal === "strength" ? "4-6" : goal === "hypertrophy" ? "8-12" : "6-10";
+  const remainingVolume = new Map<MuscleGroup, number>();
+  Object.entries(volumeTargets).forEach(([muscle, value]) => {
+    remainingVolume.set(muscle as MuscleGroup, value ?? 0);
+  });
+  const priorityWeights = deriveMusclePriorityWeights(state);
 
   for (
     let scheduleIndex = 0;
@@ -339,7 +780,13 @@ export function buildTemplateDrafts(
       : DEFAULT_DAY_FOCUS[day.type] || [];
     if (!focus.length) continue;
 
-    const muscleTargets = allocateMuscleTargets(state, focus, setsPerSession);
+    const muscleTargets = allocateMuscleTargets(
+      state,
+      focus,
+      setsPerSession,
+      remainingVolume,
+      priorityWeights
+    );
     if (!muscleTargets.length) continue;
 
     const planEntries: GuidedTemplateDraft["plan"] = [];
@@ -449,69 +896,66 @@ function distributeSets(totalSets: number, exerciseCount: number): number[] {
 function allocateMuscleTargets(
   state: GuidedSetupState,
   focus: MuscleGroup[],
-  setsPerSession: number
+  setsPerSession: number,
+  remainingVolume: Map<MuscleGroup, number>,
+  priorityWeights: Map<MuscleGroup, number>
 ): MuscleTarget[] {
   if (!focus.length) return [];
-  const primary = new Set(state.priorityMuscles?.primary || []);
-  const secondary = new Set(state.priorityMuscles?.secondary || []);
-  const maintenance = new Set(state.priorityMuscles?.maintenance || []);
+  const uniqueFocus = uniqMuscles(focus);
+  const entries = uniqueFocus
+    .map((muscle) => {
+      const remaining = remainingVolume.get(muscle) ?? 0;
+      const priority = priorityWeights.get(muscle) ?? 0.3;
+      const weight = remaining > 0 ? remaining * 1.6 + priority : priority;
+      return { muscle, remaining, weight: weight > 0 ? weight : 0.2 };
+    })
+    .filter((entry) => entry.weight > 0);
+  if (!entries.length) return [];
 
-  const weightMap = new Map<MuscleGroup, number>();
-  for (const muscle of focus) {
-    let weight = 1;
-    if (primary.has(muscle)) weight += 1.2;
-    if (secondary.has(muscle)) weight += 0.6;
-    if (maintenance.has(muscle)) weight -= 0.2;
-    weightMap.set(muscle, Math.max(0.4, weight));
+  let totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!Number.isFinite(totalWeight) || totalWeight <= 0) {
+    totalWeight = entries.length;
   }
-  if (!weightMap.size) return [];
 
-  const totalWeight =
-    Array.from(weightMap.values()).reduce((sum, value) => sum + value, 0) || 1;
-  const targets: MuscleTarget[] = Array.from(weightMap.entries()).map(
-    ([muscle, weight]) => {
-      const scaled = (weight / totalWeight) * setsPerSession;
-      return {
-        muscle,
-        targetSets: Math.max(2, Math.round(scaled)),
-        weight,
-      };
-    }
-  );
+  const allocations = entries.map((entry) => {
+    const raw = (entry.weight / totalWeight) * setsPerSession;
+    return Math.max(1, Math.round(raw));
+  });
 
-  targets.sort((a, b) => b.targetSets - a.targetSets || b.weight - a.weight);
-  let total = targets.reduce((sum, item) => sum + item.targetSets, 0);
-
-  while (total > setsPerSession && targets.length) {
-    const last = targets[targets.length - 1];
-    if (last.targetSets > 2) {
-      last.targetSets -= 1;
+  let total = allocations.reduce((sum, value) => sum + value, 0);
+  let idx = allocations.length - 1;
+  while (total > setsPerSession && allocations.length) {
+    if (allocations[idx] > 1) {
+      allocations[idx] -= 1;
       total -= 1;
-    } else {
-      total -= last.targetSets;
-      targets.pop();
     }
+    idx = (idx - 1 + allocations.length) % allocations.length;
+    if (idx < 0) idx = allocations.length - 1;
   }
-
-  total = targets.reduce((sum, item) => sum + item.targetSets, 0);
-  let idx = 0;
-  while (total < setsPerSession && targets.length) {
-    const target = targets[idx % targets.length];
-    target.targetSets += 1;
+  idx = 0;
+  while (total < setsPerSession && allocations.length) {
+    allocations[idx % allocations.length] += 1;
     total += 1;
     idx += 1;
-    if (idx > targets.length * 4) break;
+    if (idx > allocations.length * 4) break;
   }
 
-  if (!targets.length && focus.length) {
-    targets.push({
-      muscle: focus[0],
-      targetSets: Math.max(4, Math.round(setsPerSession / 2)),
-      weight: 1,
-    });
-  }
+  const targets: MuscleTarget[] = allocations.map((targetSets, i) => {
+    const muscle = entries[i].muscle;
+    const available = remainingVolume.get(muscle) ?? 0;
+    const applied = Math.min(targetSets, Math.max(0, Math.round(available)));
+    const next = Math.max(0, Number((available - applied).toFixed(1)));
+    remainingVolume.set(muscle, next);
+    return {
+      muscle,
+      targetSets: targetSets,
+      weight: entries[i].weight,
+    };
+  });
 
-  return targets;
+  return targets.sort(
+    (a, b) => b.targetSets - a.targetSets || b.weight - a.weight
+  );
 }
 
 function pickExercises(
@@ -654,6 +1098,24 @@ function scoreExercise(
   if (hasSimple("unilateral")) score += 0.2;
   if (hasAny(["curl", "raise", "extension", "fly"])) score += 0.2;
 
+  const mainstream = POPULAR_EXERCISE_KEYWORDS.some((keyword) =>
+    name.includes(keyword)
+  );
+  if (mainstream) score += 1.1;
+
+  const niche = NICHE_EXERCISE_KEYWORDS.some((keyword) =>
+    name.includes(keyword)
+  );
+  const setsBudget = Math.max(8, Math.min(24, ctx.state.setsPerSession || 12));
+  if (
+    niche &&
+    ctx.state.equipment !== "minimal" &&
+    setsBudget <= 16 &&
+    !mainstream
+  ) {
+    score -= 1.4;
+  }
+
   if (isFallback) score -= 1.2;
 
   return score;
@@ -756,8 +1218,13 @@ export function buildGuidedSetupPlan(
   exercises: Exercise[]
 ): GuidedSetupPlanResult {
   const schedule = suggestWeeklySplit(state);
-  const volumeTargets = calculateVolumeTargets(state);
+  const volumeTargets = calculateVolumeTargets(state, schedule);
   const program = generateProgram(state, schedule);
-  const templates = buildTemplateDrafts(state, schedule, exercises);
+  const templates = buildTemplateDrafts(
+    state,
+    schedule,
+    exercises,
+    volumeTargets
+  );
   return { schedule, program, templates, volumeTargets };
 }
