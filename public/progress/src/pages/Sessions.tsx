@@ -239,18 +239,46 @@ const setHasRecordedWork = (set?: SetEntry | null) => {
   return Number.isFinite(completionMs) && completionMs > 0;
 };
 
+const toTimestamp = (value?: string | number | null): number => {
+  if (value == null) return 0;
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+    let parsed = Date.parse(trimmed);
+    if (Number.isFinite(parsed)) return parsed;
+    const compact = trimmed.replace(/[^0-9]/g, "");
+    if (compact.length === 8) {
+      const iso = `${compact.slice(0, 4)}-${compact.slice(
+        4,
+        6
+      )}-${compact.slice(6, 8)}T12:00:00Z`;
+      parsed = Date.parse(iso);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return 0;
+};
+
 const sessionRealActivityMs = (session?: Session | null) => {
   if (!session || session.deletedAt) return 0;
   let maxMs = 0;
+  let hasWork = false;
+  const consider = (value?: string | number | null) => {
+    const ms = toTimestamp(value);
+    if (ms > maxMs) maxMs = ms;
+  };
   if (Array.isArray(session.entries)) {
     for (const entry of session.entries) {
       if (!Array.isArray(entry.sets)) continue;
       for (const set of entry.sets) {
-        if (!setHasRecordedWork(set)) continue;
-        const setMs = set?.completedAt ? Date.parse(set.completedAt) : NaN;
-        if (Number.isFinite(setMs) && setMs > maxMs) {
-          maxMs = setMs;
+        if (!setHasActualWork(set)) continue;
+        hasWork = true;
+        if (setHasRecordedWork(set)) {
+          consider(set?.completedAt);
         }
+        const maybeUpdated = (set as any)?.updatedAt;
+        if (maybeUpdated) consider(maybeUpdated);
       }
     }
   }
@@ -258,15 +286,20 @@ const sessionRealActivityMs = (session?: Session | null) => {
     for (const log of Object.values(session.workLog)) {
       const count = log?.count ?? 0;
       if (count >= 2 || (log?.activeMs ?? 0) > 0) {
-        const lastMs = log?.last ? Date.parse(log.last) : NaN;
-        if (Number.isFinite(lastMs) && lastMs > maxMs) {
-          maxMs = lastMs;
-        }
-        const firstMs = log?.first ? Date.parse(log.first) : NaN;
-        if (Number.isFinite(firstMs) && firstMs > maxMs) {
-          maxMs = firstMs;
-        }
+        hasWork = true;
+        consider(log?.last);
+        consider(log?.first);
       }
+    }
+  }
+  if (hasWork) {
+    consider(session.loggedEndAt);
+    consider(session.loggedStartAt);
+    consider(session.updatedAt);
+    consider(session.createdAt);
+    consider(session.dateISO);
+    if (session.localDate) {
+      consider(`${session.localDate}T12:00:00Z`);
     }
   }
   return maxMs > 0 ? maxMs : 0;
@@ -1029,26 +1062,76 @@ export default function Sessions() {
       const byPhase = all.filter(
         (s) => (s.phaseNumber || s.phase || 1) === phase
       );
-      const weekActivity = new Map<number, number>();
+      type WeekActivityInfo = {
+        week: number;
+        activity: number;
+        calendar: number;
+        updated: number;
+      };
+      const weekActivity = new Map<number, WeekActivityInfo>();
+      const registerWeek = (sess: Session) => {
+        const wk = sess.weekNumber;
+        if (typeof wk !== "number" || Number.isNaN(wk)) return;
+        const activity = sessionRealActivityMs(sess);
+        const calendar =
+          toTimestamp(sess.loggedEndAt) ||
+          toTimestamp(sess.dateISO) ||
+          (sess.localDate ? toTimestamp(`${sess.localDate}T12:00:00Z`) : 0) ||
+          toTimestamp(sess.loggedStartAt) ||
+          toTimestamp(sess.updatedAt) ||
+          toTimestamp(sess.createdAt);
+        const updated = toTimestamp(sess.updatedAt) || calendar;
+        const next: WeekActivityInfo = {
+          week: wk,
+          activity,
+          calendar,
+          updated,
+        };
+        const prev = weekActivity.get(wk);
+        if (
+          !prev ||
+          activity > prev.activity ||
+          (activity === prev.activity && calendar > prev.calendar) ||
+          (activity === prev.activity &&
+            calendar === prev.calendar &&
+            updated > prev.updated)
+        ) {
+          weekActivity.set(wk, next);
+        }
+      };
       for (const s of byPhase) {
         if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number")
           continue;
-        const ms = sessionRealActivityMs(s);
-        const prev = weekActivity.get(s.weekNumber) ?? -Infinity;
-        if (ms > prev) weekActivity.set(s.weekNumber, ms);
+        registerWeek(s);
       }
       if (!weekActivity.size) {
         setAutoNavDone(true);
         return;
       }
-      let targetWeek = week;
-      let targetActivity = -Infinity;
-      for (const [wk, ms] of weekActivity.entries()) {
-        if (ms > targetActivity || (ms === targetActivity && wk > targetWeek)) {
-          targetWeek = wk;
-          targetActivity = ms;
+      const currentInfo = weekActivity.get(week) || null;
+      let best: WeekActivityInfo | null = currentInfo;
+      for (const info of weekActivity.values()) {
+        if (!best) {
+          best = info;
+          continue;
+        }
+        if (info.activity > best.activity) {
+          best = info;
+          continue;
+        }
+        if (info.activity === best.activity && info.calendar > best.calendar) {
+          best = info;
+          continue;
+        }
+        if (
+          info.activity === best.activity &&
+          info.calendar === best.calendar &&
+          info.week > best.week
+        ) {
+          best = info;
         }
       }
+      const targetWeek = best ? best.week : week;
       if (targetWeek !== week) {
         setWeek(targetWeek as any);
       }
