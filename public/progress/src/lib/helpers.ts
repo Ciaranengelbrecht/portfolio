@@ -51,7 +51,8 @@ export async function getSettings(): Promise<Settings> {
     return _settingsCache.value;
   }
   let base: Settings =
-    (await db.get<Settings>("settings", "app")) || ({
+    (await db.get<Settings>("settings", "app")) ||
+    ({
       unit: "kg",
       deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
       theme: "dark",
@@ -68,7 +69,8 @@ export async function getSettings(): Promise<Settings> {
   }
   // Backfill new fields if missing
   if (base.reducedMotion == null) (base as any).reducedMotion = false;
-  if ((base as any).restTimerTargetSeconds == null) (base as any).restTimerTargetSeconds = 90;
+  if ((base as any).restTimerTargetSeconds == null)
+    (base as any).restTimerTargetSeconds = 90;
   if (mutated) {
     await db.put("settings", { ...base, id: "app" } as any);
   }
@@ -108,7 +110,9 @@ export async function getDeloadPrescription(
     (async () => deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
     (async () => deps?.settings || (await getSettings()))(),
   ]);
-  const sets = await getLastWorkingSets(exerciseId, weekNumber, undefined, { sessions });
+  const sets = await getLastWorkingSets(exerciseId, weekNumber, undefined, {
+    sessions,
+  });
   const ex = exercises.find((e) => e.id === exerciseId);
   const specialW5 = weekNumber === 5;
   const loadPct =
@@ -129,9 +133,8 @@ export async function getDeloadPrescription(
   const targetWeight = Math.round(referenceWeight * loadPct);
   const rawSetsBase = ex?.defaults.sets ?? 2;
   const rawTargetSets = rawSetsBase * setPct;
-  const targetSets = rawTargetSets > 0
-    ? Math.max(1, Math.floor(rawTargetSets))
-    : 0;
+  const targetSets =
+    rawTargetSets > 0 ? Math.max(1, Math.floor(rawTargetSets)) : 0;
   return { targetWeight, targetSets, loadPct, setPct, baseWeight };
 }
 
@@ -155,7 +158,12 @@ export async function getDeloadPrescriptionsBulk(
       settings,
     });
   }
-  return out as Record<string, ReturnType<typeof getDeloadPrescription> extends Promise<infer R> ? R : never>;
+  return out as Record<
+    string,
+    ReturnType<typeof getDeloadPrescription> extends Promise<infer R>
+      ? R
+      : never
+  >;
 }
 
 export async function volumeByMuscleGroup(
@@ -167,7 +175,8 @@ export async function volumeByMuscleGroup(
     (async () => deps?.sessions || (await db.getAll<Session>("sessions")))(),
     (async () => deps?.exercises || (await db.getAll<Exercise>("exercises")))(),
   ]);
-  const phaseSet = opts?.phases && opts.phases.length ? new Set(opts.phases) : null;
+  const phaseSet =
+    opts?.phases && opts.phases.length ? new Set(opts.phases) : null;
   const filteredSessions = phaseSet
     ? sessions.filter((s) =>
         phaseSet.has((s.phaseNumber ?? s.phase ?? 1) as number)
@@ -181,34 +190,49 @@ export async function volumeByMuscleGroup(
       s.entries.forEach((e: SessionEntry) => {
         const ex = exMap.get(e.exerciseId);
         const mg = ex?.muscleGroup || "other";
-  const ton = e.sets.reduce((t, set) => t + ((set.weightKg ?? 0) * (set.reps ?? 0)), 0);
+        const ton = e.sets.reduce(
+          (t, set) => t + (set.weightKg ?? 0) * (set.reps ?? 0),
+          0
+        );
         acc[mg] = acc[mg] || { tonnage: 0, sets: 0 };
         acc[mg].tonnage += ton;
         acc[mg].sets += e.sets.length;
       });
     });
   // Derived overarching groups (non-destructive)
-  const sumGroups = (groups: string[]): { tonnage: number; sets: number } | null => {
-    let ton = 0, sets = 0, any = false;
+  const sumGroups = (
+    groups: string[]
+  ): { tonnage: number; sets: number } | null => {
+    let ton = 0,
+      sets = 0,
+      any = false;
     for (const g of groups) {
-      if (acc[g]) { ton += acc[g].tonnage; sets += acc[g].sets; any = true; }
+      if (acc[g]) {
+        ton += acc[g].tonnage;
+        sets += acc[g].sets;
+        any = true;
+      }
     }
     return any ? { tonnage: ton, sets } : null;
   };
-  const arms = sumGroups(['biceps','triceps','forearms']);
-  if (arms) acc['arms'] = arms;
-  const legs = sumGroups(['quads','hamstrings','calves']);
-  if (legs) acc['legs'] = legs;
+  const arms = sumGroups(["biceps", "triceps", "forearms"]);
+  if (arms) acc["arms"] = arms;
+  const legs = sumGroups(["quads", "hamstrings", "calves"]);
+  if (legs) acc["legs"] = legs;
   return acc;
 }
 
-export async function rollingPRs(exerciseId: string, deps?: { sessions?: Session[] }) {
+export async function rollingPRs(
+  exerciseId: string,
+  deps?: { sessions?: Session[] }
+) {
   const sessions = deps?.sessions || (await db.getAll<Session>("sessions"));
   const allSets = sessions.flatMap((s) =>
     s.entries.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets)
   );
   let best = 0;
-  for (const s of allSets) best = Math.max(best, (s.weightKg ?? 0) * (s.reps ?? 0));
+  for (const s of allSets)
+    best = Math.max(best, (s.weightKg ?? 0) * (s.reps ?? 0));
   return { estimated1RM: Math.round(best), bestTonnageSet: best };
 }
 
@@ -234,7 +258,9 @@ export async function getExerciseTimeSeries(
   const sessions = deps?.sessions || (await db.getAll<Session>("sessions"));
   const days = sessions
     .map((s) => ({
-      date: (s as any).localDate ? (s as any).localDate + 'T00:00:00' : s.dateISO,
+      date: (s as any).localDate
+        ? (s as any).localDate + "T00:00:00"
+        : s.dateISO,
       entry: s.entries.find((e) => e.exerciseId === exerciseId),
     }))
     .filter((x) => x.entry)
@@ -242,10 +268,15 @@ export async function getExerciseTimeSeries(
       const sets = (x.entry as SessionEntry).sets;
       const topWeight = sets.reduce((m, s) => Math.max(m, s.weightKg ?? 0), 0);
       const avgWeight = sets.length
-        ? Math.round(sets.reduce((a, b) => a + (b.weightKg ?? 0), 0) / sets.length)
+        ? Math.round(
+            sets.reduce((a, b) => a + (b.weightKg ?? 0), 0) / sets.length
+          )
         : 0;
       const repsTotal = sets.reduce((a, b) => a + (b.reps ?? 0), 0);
-      const volume = sets.reduce((a, b) => a + ((b.weightKg ?? 0) * (b.reps ?? 0)), 0);
+      const volume = sets.reduce(
+        (a, b) => a + (b.weightKg ?? 0) * (b.reps ?? 0),
+        0
+      );
       return {
         date: x.date.slice(0, 10),
         topWeight,
@@ -263,7 +294,9 @@ export async function getMeasurementTimeSeries(
   range: RangeKey,
   deps?: { measurements?: Measurement[] }
 ) {
-  const list = (deps?.measurements || (await db.getAll<Measurement>("measurements")))
+  const list = (
+    deps?.measurements || (await db.getAll<Measurement>("measurements"))
+  )
     .filter((m) => (m as any)[metric] != null)
     .map((m) => ({
       date: m.dateISO.slice(0, 10),

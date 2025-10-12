@@ -7,7 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { getSettings, setSettings } from "./lib/helpers";
-import { seedExercises } from './lib/seedExercises';
+import { seedExercises } from "./lib/seedExercises";
 import { initSupabaseSync } from "./lib/supabaseSync";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
@@ -29,7 +29,7 @@ import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SmartSuspenseFallback } from "./components/SmartSuspenseFallback";
-import { SnackProvider } from './state/snackbar';
+import { SnackProvider } from "./state/snackbar";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Analytics = lazy(() => import("./features/analytics/Analytics"));
@@ -46,8 +46,8 @@ import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
 import { migrateToV9_BlankZeros } from "./lib/migrations/v9_blank_zeros";
-import { warmPreload } from './lib/dataCache';
-import { computeAggregates } from './lib/aggregates';
+import { warmPreload } from "./lib/dataCache";
+import { computeAggregates } from "./lib/aggregates";
 
 function Shell() {
   const navigate = useNavigate();
@@ -75,12 +75,15 @@ function Shell() {
       console.log("[App] init: session?", !!s, "user:", s?.user?.id || null);
       if (s?.user?.email) setAuthEmail(s.user.email);
       setAuthChecked(true);
-  // Seed global exercise catalogue once per device (idempotent if already present)
-  seedExercises().catch(()=>{});
+      // Seed global exercise catalogue once per device (idempotent if already present)
+      seedExercises().catch(() => {});
       // Preload core datasets (stale-while-revalidate) for snappier first navigation
-  warmPreload(['sessions','exercises','measurements','templates','settings'], { swr: true });
-  // Kick off aggregate computation (non-blocking)
-  computeAggregates().catch(()=>{});
+      warmPreload(
+        ["sessions", "exercises", "measurements", "templates", "settings"],
+        { swr: true }
+      );
+      // Kick off aggregate computation (non-blocking)
+      computeAggregates().catch(() => {});
     })();
   }, []);
   useEffect(() => {
@@ -92,65 +95,98 @@ function Shell() {
       if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
       // ECG background settings
       if (s.ecg?.enabled) {
-        document.body.dataset.ecg = 'on';
-        const intensity = s.ecg.intensity || 'low';
-  const map: Record<string,{opacity:string; speed:string; strokeWidth:string; dash:string}> = { low:{opacity:'0.15',speed:'46s', strokeWidth:'1.6', dash:'5 7'}, med:{opacity:'0.25',speed:'34s', strokeWidth:'2', dash:'5 5'}, high:{opacity:'0.35',speed:'26s', strokeWidth:'2.4', dash:'4 4'} };
-  const cfg = map[intensity];
-  root.style.setProperty('--ecg-opacity', cfg.opacity);
-  root.style.setProperty('--ecg-speed', cfg.speed);
-  root.style.setProperty('--ecg-stroke-w', cfg.strokeWidth);
-  root.style.setProperty('--ecg-dash', cfg.dash);
-  if(s.ecg.speedMs){ root.style.setProperty('--ecg-custom-speed-ms', String(s.ecg.speedMs)); }
-  if(s.ecg.trailMs){ root.style.setProperty('--ecg-trail-ms', String(s.ecg.trailMs)); }
-  if(s.ecg.color){ root.style.setProperty('--ecg-custom-color', s.ecg.color); }
-      } else document.body.dataset.ecg = 'off';
+        document.body.dataset.ecg = "on";
+        const intensity = s.ecg.intensity || "low";
+        const map: Record<
+          string,
+          { opacity: string; speed: string; strokeWidth: string; dash: string }
+        > = {
+          low: {
+            opacity: "0.15",
+            speed: "46s",
+            strokeWidth: "1.6",
+            dash: "5 7",
+          },
+          med: { opacity: "0.25", speed: "34s", strokeWidth: "2", dash: "5 5" },
+          high: {
+            opacity: "0.35",
+            speed: "26s",
+            strokeWidth: "2.4",
+            dash: "4 4",
+          },
+        };
+        const cfg = map[intensity];
+        root.style.setProperty("--ecg-opacity", cfg.opacity);
+        root.style.setProperty("--ecg-speed", cfg.speed);
+        root.style.setProperty("--ecg-stroke-w", cfg.strokeWidth);
+        root.style.setProperty("--ecg-dash", cfg.dash);
+        if (s.ecg.speedMs) {
+          root.style.setProperty(
+            "--ecg-custom-speed-ms",
+            String(s.ecg.speedMs)
+          );
+        }
+        if (s.ecg.trailMs) {
+          root.style.setProperty("--ecg-trail-ms", String(s.ecg.trailMs));
+        }
+        if (s.ecg.color) {
+          root.style.setProperty("--ecg-custom-color", s.ecg.color);
+        }
+      } else document.body.dataset.ecg = "off";
       // Theme mode handling
       const applyThemeMode = () => {
-        const mode = (s.ui?.themeMode as 'dark' | 'light' | 'system' | undefined) || 'dark';
-        const preferSystem = mode === 'system';
-        let effective: 'dark' | 'light' = 'dark';
+        const mode =
+          (s.ui?.themeMode as "dark" | "light" | "system" | undefined) ||
+          "dark";
+        const preferSystem = mode === "system";
+        let effective: "dark" | "light" = "dark";
         if (preferSystem) {
           try {
-            const mq = window.matchMedia('(prefers-color-scheme: light)');
-            effective = mq.matches ? 'light' : 'dark';
+            const mq = window.matchMedia("(prefers-color-scheme: light)");
+            effective = mq.matches ? "light" : "dark";
           } catch {
-            effective = 'dark';
+            effective = "dark";
           }
         } else {
           effective = mode;
         }
         document.body.dataset.theme = effective;
         try {
-          document.documentElement.setAttribute('data-theme', effective);
+          document.documentElement.setAttribute("data-theme", effective);
         } catch {}
       };
-      if(!s.ui?.instantThemeTransition){
-        document.body.classList.add('theme-animate');
-        setTimeout(()=> document.body.classList.remove('theme-animate'), 600);
+      if (!s.ui?.instantThemeTransition) {
+        document.body.classList.add("theme-animate");
+        setTimeout(() => document.body.classList.remove("theme-animate"), 600);
       }
       applyThemeMode();
-      if (s.ui?.themeMode === 'system') {
+      if (s.ui?.themeMode === "system") {
         try {
-          const mq = window.matchMedia('(prefers-color-scheme: light)');
+          const mq = window.matchMedia("(prefers-color-scheme: light)");
           const listener = () => applyThemeMode();
-          mq.addEventListener('change', listener);
-          setTimeout(() => mq.removeEventListener('change', listener), 30000);
+          mq.addEventListener("change", listener);
+          setTimeout(() => mq.removeEventListener("change", listener), 30000);
         } catch {}
       }
       // Compact mode
-      if (s.ui?.compactMode) document.body.dataset.density = 'compact'; else delete document.body.dataset.density;
+      if (s.ui?.compactMode) document.body.dataset.density = "compact";
+      else delete document.body.dataset.density;
     })();
   }, []);
   // Initialize Supabase sync (pull, push queue, realtime)
   useEffect(() => {
     try {
       // If user previously disabled realtime via legacy flag, auto re-enable now per updated requirement
-      if (localStorage.getItem('disableRealtime') === '1') {
-        localStorage.removeItem('disableRealtime');
-        console.log('[Realtime] legacy disable flag cleared; realtime re-enabled');
+      if (localStorage.getItem("disableRealtime") === "1") {
+        localStorage.removeItem("disableRealtime");
+        console.log(
+          "[Realtime] legacy disable flag cleared; realtime re-enabled"
+        );
       }
       if ((window as any).__DISABLE_REALTIME) {
-        console.log('[Realtime] hard-disabled via global window.__DISABLE_REALTIME');
+        console.log(
+          "[Realtime] hard-disabled via global window.__DISABLE_REALTIME"
+        );
         return;
       }
     } catch {}
@@ -166,9 +202,18 @@ function Shell() {
           await migrateToV6();
           localStorage.setItem("mig_v6", "1");
         }
-  if (localStorage.getItem("mig_v7") !== "1") { await migrateToV7(); localStorage.setItem("mig_v7", "1"); }
-  if (localStorage.getItem("mig_v8_localDate") !== "1") { await migrateToV8_LocalDate(); localStorage.setItem("mig_v8_localDate", "1"); }
-  if (localStorage.getItem("mig_v9_blankZeros") !== "1") { await migrateToV9_BlankZeros(); localStorage.setItem("mig_v9_blankZeros", "1"); }
+        if (localStorage.getItem("mig_v7") !== "1") {
+          await migrateToV7();
+          localStorage.setItem("mig_v7", "1");
+        }
+        if (localStorage.getItem("mig_v8_localDate") !== "1") {
+          await migrateToV8_LocalDate();
+          localStorage.setItem("mig_v8_localDate", "1");
+        }
+        if (localStorage.getItem("mig_v9_blankZeros") !== "1") {
+          await migrateToV9_BlankZeros();
+          localStorage.setItem("mig_v9_blankZeros", "1");
+        }
       } catch (e) {
         console.warn("[App] migration runner error", e);
       }
@@ -322,7 +367,9 @@ function Shell() {
           s.dashboardPrefs?.openToLast !== false &&
           s.dashboardPrefs?.lastLocation
         ) {
-          try { sessionStorage.setItem('lastLocationIntent', '1'); } catch {}
+          try {
+            sessionStorage.setItem("lastLocationIntent", "1");
+          } catch {}
           navigate("/sessions");
         } else if (start === "sessions") navigate("/sessions");
         else if (start === "measurements") navigate("/measurements");
@@ -346,64 +393,98 @@ function Shell() {
 
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
-  const [drawerOpen,setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   return (
     <SnackProvider>
-      <div className="min-h-screen flex flex-col relative pb-12 md:pb-0" id="app-shell">
-      {!authRoute && <BackgroundFX />}
-      {/* ECG background (behind everything); toggled via body data attribute & settings */}
-      {!authRoute && <ECGBackground />}
-      {!authRoute && (
-        <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur bg-bg/70 border-b border-white/5">
-          <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="md:hidden flex items-center gap-1">
-                <button className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10" aria-label="Open navigation" onClick={()=> setDrawerOpen(true)}>☰</button>
-                {/* Quick scroll jump (Sessions only) */}
-                {locationRef.pathname === '/sessions' && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
-                      aria-label="Jump to top"
-                      title="Top"
-                      onClick={()=> {
-                        try {
-                          const el = document.getElementById('sessions-top-anchor');
-                          if (el) el.scrollIntoView({ block: 'start', behavior: 'auto' });
-                          // Nudge to absolute top to avoid any residual wiggle
-                          window.scrollTo({ top: 0, behavior: 'auto' });
-                        } catch { window.scrollTo(0,0); }
-                      }}
-                    >↑</button>
-                    <button
-                      className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
-                      aria-label="Jump to bottom"
-                      title="Bottom"
-                      onClick={()=> {
-                        try {
-                          const el = document.getElementById('sessions-bottom-anchor');
-                          if (el) el.scrollIntoView({ block: 'end', behavior: 'auto' });
-                          const doc = document.documentElement;
-                          const max = Math.max(0, (doc.scrollHeight || 0) - window.innerHeight);
-                          window.scrollTo({ top: max, behavior: 'auto' });
-                        } catch { window.scrollTo(0, 1e9); }
-                      }}
-                    >↓</button>
-                  </div>
-                )}
+      <div
+        className="min-h-screen flex flex-col relative pb-12 md:pb-0"
+        id="app-shell"
+      >
+        {!authRoute && <BackgroundFX />}
+        {/* ECG background (behind everything); toggled via body data attribute & settings */}
+        {!authRoute && <ECGBackground />}
+        {!authRoute && (
+          <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur bg-bg/70 border-b border-white/5">
+            <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="md:hidden flex items-center gap-1">
+                  <button
+                    className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10"
+                    aria-label="Open navigation"
+                    onClick={() => setDrawerOpen(true)}
+                  >
+                    ☰
+                  </button>
+                  {/* Quick scroll jump (Sessions only) */}
+                  {locationRef.pathname === "/sessions" && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
+                        aria-label="Jump to top"
+                        title="Top"
+                        onClick={() => {
+                          try {
+                            const el = document.getElementById(
+                              "sessions-top-anchor"
+                            );
+                            if (el)
+                              el.scrollIntoView({
+                                block: "start",
+                                behavior: "auto",
+                              });
+                            // Nudge to absolute top to avoid any residual wiggle
+                            window.scrollTo({ top: 0, behavior: "auto" });
+                          } catch {
+                            window.scrollTo(0, 0);
+                          }
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
+                        aria-label="Jump to bottom"
+                        title="Bottom"
+                        onClick={() => {
+                          try {
+                            const el = document.getElementById(
+                              "sessions-bottom-anchor"
+                            );
+                            if (el)
+                              el.scrollIntoView({
+                                block: "end",
+                                behavior: "auto",
+                              });
+                            const doc = document.documentElement;
+                            const max = Math.max(
+                              0,
+                              (doc.scrollHeight || 0) - window.innerHeight
+                            );
+                            window.scrollTo({ top: max, behavior: "auto" });
+                          } catch {
+                            window.scrollTo(0, 1e9);
+                          }
+                        }}
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <h1 className="hidden md:block text-base sm:text-lg font-semibold shrink-0">
+                  LiftLog
+                </h1>
+                <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1">
+                  <Tab to="/" label="Dashboard" />
+                  <Tab to="/sessions" label="Sessions" />
+                  <Tab to="/measurements" label="Measurements" />
+                  <Tab to="/settings/program" label="Program" />
+                  <Tab to="/templates" label="Templates" />
+                  <Tab to="/store" label="Store" />
+                  <Tab to="/settings" label="Settings" />
+                </nav>
               </div>
-              <h1 className="hidden md:block text-base sm:text-lg font-semibold shrink-0">LiftLog</h1>
-              <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1">
-                <Tab to="/" label="Dashboard" />
-                <Tab to="/sessions" label="Sessions" />
-                <Tab to="/measurements" label="Measurements" />
-                <Tab to="/settings/program" label="Program" />
-                <Tab to="/templates" label="Templates" />
-                <Tab to="/store" label="Store" />
-                <Tab to="/settings" label="Settings" />
-              </nav>
-            </div>
-            <div className="flex items-center gap-2 ml-auto shrink-0">
+              <div className="flex items-center gap-2 ml-auto shrink-0">
                 {!authChecked ? (
                   <span className="text-xs text-gray-400">…</span>
                 ) : authEmail ? null : (
@@ -414,72 +495,74 @@ function Shell() {
                     Sign in
                   </button>
                 )}
+              </div>
+            </div>
+          </header>
+        )}
+        {/* Spacer to account for fixed header height across all pages (non-auth) */}
+        {!authRoute && (
+          <div style={{ height: "var(--app-header-h)" }} aria-hidden="true" />
+        )}
+        {!authRoute && (
+          <AuthModal
+            open={authOpen}
+            onClose={() => setAuthOpen(false)}
+            onSignedIn={() => {
+              setAuthOpen(false);
+              setToast("Signed in");
+              setBigFlash("Signed in successfully");
+            }}
+          />
+        )}
+        {!authRoute && (
+          <BigFlash
+            open={!!bigFlash}
+            message={bigFlash || ""}
+            onClose={() => setBigFlash(null)}
+          />
+        )}
+        {!authRoute && toast && (
+          <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
+            <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
+              {toast}
+              <button
+                className="ml-3 text-xs underline"
+                onClick={() => setToast(null)}
+              >
+                Dismiss
+              </button>
             </div>
           </div>
-        </header>
-      )}
-  {/* Spacer to account for fixed header height across all pages (non-auth) */}
-  {!authRoute && <div style={{ height: 'var(--app-header-h)' }} aria-hidden="true" />}
-  {!authRoute && (
-        <AuthModal
-          open={authOpen}
-          onClose={() => setAuthOpen(false)}
-          onSignedIn={() => {
-            setAuthOpen(false);
-            setToast("Signed in");
-            setBigFlash("Signed in successfully");
-          }}
-        />
-      )}
-      {!authRoute && (
-        <BigFlash
-          open={!!bigFlash}
-          message={bigFlash || ""}
-          onClose={() => setBigFlash(null)}
-        />
-      )}
-      {!authRoute && toast && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
-          <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
-            {toast}
-            <button
-              className="ml-3 text-xs underline"
-              onClick={() => setToast(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-    <main className="flex-1 w-full px-0 py-0">
-        <Suspense fallback={<SmartSuspenseFallback />}>
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/auth" element={<IntroAuthPage />} />
-              <Route
-                path="/"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/analytics"
-                element={
-                  <RequireAuth>
-                    <Analytics />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/sessions"
-                element={
-                  <RequireAuth>
-                    <Sessions />
-                  </RequireAuth>
-                }
-              />
+        )}
+        <main className="flex-1 w-full px-0 py-0">
+          <Suspense fallback={<SmartSuspenseFallback />}>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/auth" element={<IntroAuthPage />} />
+                <Route
+                  path="/"
+                  element={
+                    <RequireAuth>
+                      <Dashboard />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/analytics"
+                  element={
+                    <RequireAuth>
+                      <Analytics />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/sessions"
+                  element={
+                    <RequireAuth>
+                      <Sessions />
+                    </RequireAuth>
+                  }
+                />
                 <Route
                   path="/recovery"
                   element={
@@ -488,52 +571,68 @@ function Shell() {
                     </RequireAuth>
                   }
                 />
-              <Route
-                path="/measurements"
-                element={
-                  <RequireAuth>
-                    <Measurements />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/templates"
-                element={
-                  <RequireAuth>
-                    <Templates />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <RequireAuth>
-                    <Settings />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/settings/program"
-                element={
-                  <RequireAuth>
-                    <ProgramSettings />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/store"
-                element={
-                  <RequireAuth>
-                    <Store />
-                  </RequireAuth>
-                }
-              />
-            </Routes>
-          </ErrorBoundary>
-        </Suspense>
-      </main>
-      {!authRoute && <MobileTabs />}
-      <NavDrawer open={drawerOpen} onClose={()=> setDrawerOpen(false)} authEmail={authEmail} onSignOut={async()=>{ if(signingOut) return; setSigningOut(true); try { await supabase.auth.signOut({scope:'global'} as any); } finally { clearAuthStorage(); setAuthEmail(null); setSigningOut(false); setDrawerOpen(false); } }} />
+                <Route
+                  path="/measurements"
+                  element={
+                    <RequireAuth>
+                      <Measurements />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/templates"
+                  element={
+                    <RequireAuth>
+                      <Templates />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <RequireAuth>
+                      <Settings />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/settings/program"
+                  element={
+                    <RequireAuth>
+                      <ProgramSettings />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/store"
+                  element={
+                    <RequireAuth>
+                      <Store />
+                    </RequireAuth>
+                  }
+                />
+              </Routes>
+            </ErrorBoundary>
+          </Suspense>
+        </main>
+        {!authRoute && <MobileTabs />}
+        <NavDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          authEmail={authEmail}
+          onSignOut={async () => {
+            if (signingOut) return;
+            setSigningOut(true);
+            try {
+              await supabase.auth.signOut({ scope: "global" } as any);
+            } finally {
+              clearAuthStorage();
+              setAuthEmail(null);
+              setSigningOut(false);
+              setDrawerOpen(false);
+            }
+          }}
+        />
       </div>
     </SnackProvider>
   );
