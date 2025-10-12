@@ -248,9 +248,10 @@ export function generateProgram(
   const weekLengthDays = Math.max(5, schedule.length);
   const now = new Date().toISOString();
   const experience = state.experience || "intermediate";
-  const mesoWeeks = experience === "beginner" ? 8 : experience === "advanced" ? 12 : 9;
+  const mesoWeeks =
+    experience === "beginner" ? 8 : experience === "advanced" ? 12 : 9;
   const deload =
-    experience === "advanced" || (state.volumePreference === "higher")
+    experience === "advanced" || state.volumePreference === "higher"
       ? { mode: "interval" as const, everyNWeeks: 6 as const }
       : { mode: "last-week" as const };
   const primaryMuscles = state.priorityMuscles?.primary || [];
@@ -307,16 +308,23 @@ export function buildTemplateDrafts(
 ): GuidedTemplateDraft[] {
   const activeExercises = exercises.filter((ex) => ex && ex.active !== false);
   const exerciseById = new Map(activeExercises.map((ex) => [ex.id, ex]));
-  const ctx: TemplateBuildContext = { state, exercises: activeExercises, exerciseById };
+  const ctx: TemplateBuildContext = {
+    state,
+    exercises: activeExercises,
+    exerciseById,
+  };
   const drafts: GuidedTemplateDraft[] = [];
   const used = new Set<string>();
   const setsPerSession = Math.max(8, Math.min(24, state.setsPerSession || 12));
   const goal = state.goalEmphasis || "balanced";
-  const repRange = goal === "strength" ? "4-6" : goal === "hypertrophy" ? "8-12" : "6-10";
+  const repRange =
+    goal === "strength" ? "4-6" : goal === "hypertrophy" ? "8-12" : "6-10";
 
   for (const day of schedule) {
     if (day.type === "Rest") continue;
-    const focus = day.focusMuscles.length ? day.focusMuscles : DEFAULT_DAY_FOCUS[day.type] || [];
+    const focus = day.focusMuscles.length
+      ? day.focusMuscles
+      : DEFAULT_DAY_FOCUS[day.type] || [];
     if (!focus.length) continue;
 
     const muscleTargets = allocateMuscleTargets(state, focus, setsPerSession);
@@ -328,9 +336,18 @@ export function buildTemplateDrafts(
 
     for (const target of muscleTargets) {
       if (!target.targetSets || target.targetSets <= 0) continue;
-      const desiredExercises = determineExerciseCount(target.targetSets, target.muscle);
+      const desiredExercises = determineExerciseCount(
+        target.targetSets,
+        target.muscle
+      );
       if (desiredExercises <= 0) continue;
-      const picks = pickExercises(ctx, day, target.muscle, used, desiredExercises);
+      const picks = pickExercises(
+        ctx,
+        day,
+        target.muscle,
+        used,
+        desiredExercises
+      );
       if (!picks.length) continue;
 
       const setsDistribution = distributeSets(target.targetSets, picks.length);
@@ -339,7 +356,9 @@ export function buildTemplateDrafts(
         exerciseIds.push(exercise.id);
         planEntries.push({
           exerciseId: exercise.id,
-          plannedSets: setsDistribution[idx] ?? Math.max(2, Math.round(target.targetSets / picks.length)),
+          plannedSets:
+            setsDistribution[idx] ??
+            Math.max(2, Math.round(target.targetSets / picks.length)),
           repRange,
         });
         highlights.push({
@@ -368,11 +387,16 @@ export function buildTemplateDrafts(
   return drafts;
 }
 
-function determineExerciseCount(targetSets: number, muscle: MuscleGroup): number {
+function determineExerciseCount(
+  targetSets: number,
+  muscle: MuscleGroup
+): number {
   if (targetSets <= 0 || Number.isNaN(targetSets)) return 0;
   const maxByVolume = Math.max(1, Math.floor(targetSets / 2));
   const baseCap = targetSets >= 10 ? 3 : targetSets >= 6 ? 2 : 1;
-  const muscleCap = ["core", "calves", "forearms"].includes(muscle) ? Math.min(baseCap, 1) : baseCap;
+  const muscleCap = ["core", "calves", "forearms"].includes(muscle)
+    ? Math.min(baseCap, 1)
+    : baseCap;
   return Math.max(1, Math.min(maxByVolume, muscleCap));
 }
 
@@ -394,7 +418,9 @@ function distributeSets(totalSets: number, exerciseCount: number): number[] {
 
   idx = 0;
   while (allocated > totalSets) {
-    const targetIdx = (exerciseCount - 1 - (idx % exerciseCount) + exerciseCount) % exerciseCount;
+    const targetIdx =
+      (exerciseCount - 1 - (idx % exerciseCount) + exerciseCount) %
+      exerciseCount;
     if (allocation[targetIdx] > minPerExercise) {
       allocation[targetIdx] -= 1;
       allocated -= 1;
@@ -426,15 +452,18 @@ function allocateMuscleTargets(
   }
   if (!weightMap.size) return [];
 
-  const totalWeight = Array.from(weightMap.values()).reduce((sum, value) => sum + value, 0) || 1;
-  const targets: MuscleTarget[] = Array.from(weightMap.entries()).map(([muscle, weight]) => {
-    const scaled = (weight / totalWeight) * setsPerSession;
-    return {
-      muscle,
-      targetSets: Math.max(2, Math.round(scaled)),
-      weight,
-    };
-  });
+  const totalWeight =
+    Array.from(weightMap.values()).reduce((sum, value) => sum + value, 0) || 1;
+  const targets: MuscleTarget[] = Array.from(weightMap.entries()).map(
+    ([muscle, weight]) => {
+      const scaled = (weight / totalWeight) * setsPerSession;
+      return {
+        muscle,
+        targetSets: Math.max(2, Math.round(scaled)),
+        weight,
+      };
+    }
+  );
 
   targets.sort((a, b) => b.targetSets - a.targetSets || b.weight - a.weight);
   let total = targets.reduce((sum, item) => sum + item.targetSets, 0);
@@ -480,10 +509,18 @@ function pickExercises(
 ): Exercise[] {
   if (limit <= 0) return [];
   const { exercises } = ctx;
-  const candidates = exercises.filter((ex) => ex.muscleGroup === muscle || (ex.secondaryMuscles || []).includes(muscle));
-  const primaryPool = candidates.filter((ex) => ex.muscleGroup === muscle && !used.has(ex.id));
+  const candidates = exercises.filter(
+    (ex) =>
+      ex.muscleGroup === muscle || (ex.secondaryMuscles || []).includes(muscle)
+  );
+  const primaryPool = candidates.filter(
+    (ex) => ex.muscleGroup === muscle && !used.has(ex.id)
+  );
   const secondaryPool = candidates.filter(
-    (ex) => ex.muscleGroup !== muscle && (ex.secondaryMuscles || []).includes(muscle) && !used.has(ex.id)
+    (ex) =>
+      ex.muscleGroup !== muscle &&
+      (ex.secondaryMuscles || []).includes(muscle) &&
+      !used.has(ex.id)
   );
 
   const selection: Exercise[] = [];
@@ -511,7 +548,9 @@ function pickExercises(
   }
 
   if (selection.length < limit) {
-    const remaining = candidates.filter((ex) => !used.has(ex.id) && !taken.has(ex.id));
+    const remaining = candidates.filter(
+      (ex) => !used.has(ex.id) && !taken.has(ex.id)
+    );
     takeFromPool(remaining, true);
   }
 
@@ -561,8 +600,12 @@ interface NormalisedTags {
 }
 
 function normaliseTags(exercise: Exercise): NormalisedTags {
-  const all = new Set<string>((exercise.tags || []).map((tag) => tag.toLowerCase()));
-  const simple = new Set<string>(Array.from(all).filter((tag) => !tag.includes(":")));
+  const all = new Set<string>(
+    (exercise.tags || []).map((tag) => tag.toLowerCase())
+  );
+  const simple = new Set<string>(
+    Array.from(all).filter((tag) => !tag.includes(":"))
+  );
   return { all, simple };
 }
 
@@ -577,7 +620,8 @@ function scoreExercise(
   const tags = normaliseTags(exercise);
   const name = exercise.name.toLowerCase();
   const hasSimple = (value: string) => tags.simple.has(value);
-  const hasAny = (values: string[]) => values.some((value) => tags.simple.has(value));
+  const hasAny = (values: string[]) =>
+    values.some((value) => tags.simple.has(value));
 
   let score = 0;
 
@@ -612,10 +656,12 @@ function equipmentCompatibilityScore(
   let score = 0;
   if (prefs.preferred.some((tag) => tags.has(tag))) score += 2.5;
   if (prefs.allowed.some((tag) => tags.has(tag))) score += 1;
-  if (prefs.avoid.some((tag) => tags.has(tag))) score -= eq === "minimal" ? 4 : 2;
+  if (prefs.avoid.some((tag) => tags.has(tag)))
+    score -= eq === "minimal" ? 4 : 2;
 
   if (!tags.size) {
-    if (eq !== "commercial-gym" && /machine/.test(name)) score -= eq === "minimal" ? 4 : 1.5;
+    if (eq !== "commercial-gym" && /machine/.test(name))
+      score -= eq === "minimal" ? 4 : 1.5;
     if (eq === "minimal" && /barbell|smith/.test(name)) score -= 2.5;
     if (eq !== "commercial-gym" && /cable/.test(name)) score -= 1.5;
   }
@@ -631,11 +677,13 @@ function goalAlignmentScore(
   let score = 0;
   if (value === "strength") {
     if (tags.has("compound")) score += 2.5;
-    if (["press", "squat", "hinge", "pull"].some((tag) => tags.has(tag))) score += 1;
+    if (["press", "squat", "hinge", "pull"].some((tag) => tags.has(tag)))
+      score += 1;
     if (tags.has("isolation")) score -= 1.4;
   } else if (value === "hypertrophy") {
     if (tags.has("isolation")) score += 1.6;
-    if (["fly", "raise", "curl", "extension"].some((tag) => tags.has(tag))) score += 0.8;
+    if (["fly", "raise", "curl", "extension"].some((tag) => tags.has(tag)))
+      score += 0.8;
     if (tags.has("compound")) score += 0.7;
   } else {
     if (tags.has("compound")) score += 1.1;
@@ -652,7 +700,8 @@ function experienceAlignmentScore(
   const level = experience || "intermediate";
   let score = 0;
   if (level === "beginner") {
-    if (["machine", "bodyweight", "dumbbell"].some((tag) => tags.has(tag))) score += 0.8;
+    if (["machine", "bodyweight", "dumbbell"].some((tag) => tags.has(tag)))
+      score += 0.8;
     if (tags.has("power") || /clean|snatch|jerk|complex/.test(name)) score -= 2;
   } else if (level === "advanced") {
     if (tags.has("barbell")) score += 0.8;

@@ -15,7 +15,10 @@ import {
   TrainingGoalEmphasis,
   VolumePreferenceLevel,
 } from "../../lib/types";
-import { buildGuidedSetupPlan, GuidedSetupPlanResult } from "../../lib/guidedSetup";
+import {
+  buildGuidedSetupPlan,
+  GuidedSetupPlanResult,
+} from "../../lib/guidedSetup";
 import { useSnack } from "../../state/snackbar";
 import { archiveCurrentProgram, saveProfileProgram } from "../../lib/profile";
 import { useProgram } from "../../state/program";
@@ -55,7 +58,11 @@ const DAY_OPTIONS = [
   { idx: 6, label: "Sun" },
 ];
 
-const EXPERIENCE_OPTIONS: { value: TrainingExperienceLevel; label: string; desc: string }[] = [
+const EXPERIENCE_OPTIONS: {
+  value: TrainingExperienceLevel;
+  label: string;
+  desc: string;
+}[] = [
   {
     value: "beginner",
     label: "Beginner",
@@ -283,11 +290,15 @@ export default function GuidedSetupWizard({
     setState((prev) => ({ ...prev, ...patch }));
   };
 
-  const updatePriority = (key: "primary" | "secondary" | "maintenance", value: MuscleGroup[]) => {
+  const updatePriority = (
+    key: "primary" | "secondary" | "maintenance",
+    value: MuscleGroup[]
+  ) => {
     setState((prev) => ({
       ...prev,
       priorityMuscles: {
-        primary: key === "primary" ? value : prev.priorityMuscles?.primary || [],
+        primary:
+          key === "primary" ? value : prev.priorityMuscles?.primary || [],
         secondary:
           key === "secondary" ? value : prev.priorityMuscles?.secondary || [],
         maintenance:
@@ -302,7 +313,9 @@ export default function GuidedSetupWizard({
     const current = new Set(state.preferredRestDays || []);
     if (current.has(idx)) current.delete(idx);
     else current.add(idx);
-    updateState({ preferredRestDays: Array.from(current).sort((a, b) => a - b) });
+    updateState({
+      preferredRestDays: Array.from(current).sort((a, b) => a - b),
+    });
   };
 
   const handleFinish = async () => {
@@ -468,7 +481,10 @@ interface StepContentProps {
   plan: GuidedSetupPlanResult | null;
   exercises: Exercise[];
   onStateChange: (patch: Partial<GuidedSetupState>) => void;
-  onPriorityChange: (key: "primary" | "secondary" | "maintenance", value: MuscleGroup[]) => void;
+  onPriorityChange: (
+    key: "primary" | "secondary" | "maintenance",
+    value: MuscleGroup[]
+  ) => void;
   onToggleRestDay: (idx: number) => void;
 }
 
@@ -485,9 +501,7 @@ function StepContent({
     case 0:
       return <WelcomeStep exercises={exercises.length} />;
     case 1:
-      return (
-        <BackgroundStep state={state} onStateChange={onStateChange} />
-      );
+      return <BackgroundStep state={state} onStateChange={onStateChange} />;
     case 2:
       return (
         <ScheduleStep
@@ -497,9 +511,7 @@ function StepContent({
         />
       );
     case 3:
-      return (
-        <FocusStep state={state} onPriorityChange={onPriorityChange} />
-      );
+      return <FocusStep state={state} onPriorityChange={onPriorityChange} />;
     case 4:
       return <VolumeStep state={state} onChange={onStateChange} />;
     case 5:
@@ -525,13 +537,15 @@ function WelcomeStep({ exercises }: { exercises: number }) {
           <li>Distribute training days to match your availability.</li>
           <li>Emphasise the muscle groups you want to grow fastest.</li>
           <li>
-            Seed your Templates with smart exercise suggestions ({exercises} catalogued).
+            Seed your Templates with smart exercise suggestions ({exercises}{" "}
+            catalogued).
           </li>
           <li>Save the program to immediately populate future sessions.</li>
         </ul>
       </div>
       <p className="text-xs text-white/40">
-        Tip: you can leave and come back at any time – your answers will be saved.
+        Tip: you can leave and come back at any time – your answers will be
+        saved.
       </p>
     </div>
   );
@@ -638,7 +652,8 @@ function ScheduleStep({
           </div>
         </div>
         <p className="text-xs text-white/40">
-          The guide fills the remaining days as recovery to keep your week balanced.
+          The guide fills the remaining days as recovery to keep your week
+          balanced.
         </p>
       </Section>
       <Section title="Preferred rest days">
@@ -662,7 +677,8 @@ function ScheduleStep({
           })}
         </div>
         <p className="text-xs text-white/40">
-          Pick the days you prefer to keep free. We’ll honour as many as possible based on your chosen schedule.
+          Pick the days you prefer to keep free. We’ll honour as many as
+          possible based on your chosen schedule.
         </p>
       </Section>
     </div>
@@ -674,9 +690,15 @@ function FocusStep({
   onPriorityChange,
 }: {
   state: GuidedSetupState;
-  onPriorityChange: (key: "primary" | "secondary" | "maintenance", value: MuscleGroup[]) => void;
+  onPriorityChange: (
+    key: "primary" | "secondary" | "maintenance",
+    value: MuscleGroup[]
+  ) => void;
 }) {
-  const toggle = (key: "primary" | "secondary" | "maintenance", value: MuscleGroup) => {
+  const toggle = (
+    key: "primary" | "secondary" | "maintenance",
+    value: MuscleGroup
+  ) => {
     const current = new Set(state.priorityMuscles?.[key] || []);
     if (current.has(value)) current.delete(value);
     else current.add(value);
@@ -758,7 +780,9 @@ function VolumeStep({
             max={20}
             step={1}
             value={state.setsPerSession ?? 12}
-            onChange={(e) => onChange({ setsPerSession: Number(e.target.value) })}
+            onChange={(e) =>
+              onChange({ setsPerSession: Number(e.target.value) })
+            }
             className="w-full sm:w-64"
           />
           <div className="rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 text-sm text-white/80">
@@ -771,7 +795,8 @@ function VolumeStep({
           </div>
         </div>
         <p className="text-xs text-white/40">
-          We’ll balance compound and accessory work to stay close to this target.
+          We’ll balance compound and accessory work to stay close to this
+          target.
         </p>
       </Section>
       <Section title="Preferred workload">
@@ -833,9 +858,7 @@ function ReviewStep({
               <div className="text-sm font-semibold text-white">
                 {day.label}
               </div>
-              <div className="text-xs text-emerald-300/80">
-                {day.type}
-              </div>
+              <div className="text-xs text-emerald-300/80">{day.type}</div>
               {day.note && (
                 <div className="mt-2 text-xs text-white/60">{day.note}</div>
               )}
@@ -865,7 +888,8 @@ function ReviewStep({
                 )}
                 <ul className="mt-3 space-y-1 text-xs text-white/65">
                   {tpl.plan.map((p: GuidedTemplateDraft["plan"][number]) => {
-                    const exerciseName = exerciseMap.get(p.exerciseId) || "Exercise";
+                    const exerciseName =
+                      exerciseMap.get(p.exerciseId) || "Exercise";
                     const highlightRole = highlightMap.get(p.exerciseId);
                     return (
                       <li
@@ -967,7 +991,9 @@ function GuidanceCard({
         Guidance
       </div>
       <h4 className="mt-1 text-sm font-semibold text-white">{title}</h4>
-      {description && <p className="mt-2 text-xs text-white/65">{description}</p>}
+      {description && (
+        <p className="mt-2 text-xs text-white/65">{description}</p>
+      )}
       {bullets && bullets.length > 0 && (
         <ul className="mt-3 list-disc space-y-2 pl-5">
           {bullets.map((item) => (

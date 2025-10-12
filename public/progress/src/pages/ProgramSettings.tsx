@@ -49,29 +49,63 @@ export default function ProgramSettings() {
   const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({}); // logged muscle weighted sets (phase total)
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
   const [showAllocator, setShowAllocator] = useState(false);
-  const [weeklySetTargets, setWeeklySetTargets] = useState<Record<string, number>>({ chest:10, back:12, legs:12, shoulders:8, arms:6, core:6 });
-  const [allocatorData, setAllocatorData] = useState<{current: Record<string, number>; diff: Record<string, number>; suggestions: { day: number; muscle: string; add: number }[]}>({ current:{}, diff:{}, suggestions:[] });
+  const [weeklySetTargets, setWeeklySetTargets] = useState<
+    Record<string, number>
+  >({ chest: 10, back: 12, legs: 12, shoulders: 8, arms: 6, core: 6 });
+  const [allocatorData, setAllocatorData] = useState<{
+    current: Record<string, number>;
+    diff: Record<string, number>;
+    suggestions: { day: number; muscle: string; add: number }[];
+  }>({ current: {}, diff: {}, suggestions: [] });
   const [showDiffConfirm, setShowDiffConfirm] = useState(false);
   const [diffItems, setDiffItems] = useState<string[]>([]);
-  const [projectedMuscleVolume, setProjectedMuscleVolume] = useState<Record<string, number>>({});
-  const [projectedPerDay, setProjectedPerDay] = useState<Record<number, Record<string, number>>>({});
+  const [projectedMuscleVolume, setProjectedMuscleVolume] = useState<
+    Record<string, number>
+  >({});
+  const [projectedPerDay, setProjectedPerDay] = useState<
+    Record<number, Record<string, number>>
+  >({});
   const [showGuidedSetup, setShowGuidedSetup] = useState(false);
 
   // Logged set volume (weighted) for current phase (primary +1, secondary +0.5)
-  useEffect(()=>{ (async()=>{
-    if(!program) return;
-    const phase = (program as any).currentPhase || 1;
-    const { perWeek, totals, weeklyTotals } = await computeLoggedSetVolume(phase);
-    const weeks = Array.from({length: program.mesoWeeks}, (_,i)=> weeklyTotals[i+1]||0);
-    setVolumeByWeek(weeks);
-    setMuscleVolume(totals);
-  })() }, [program?.id, program?.mesoWeeks]);
+  useEffect(() => {
+    (async () => {
+      if (!program) return;
+      const phase = (program as any).currentPhase || 1;
+      const { perWeek, totals, weeklyTotals } = await computeLoggedSetVolume(
+        phase
+      );
+      const weeks = Array.from(
+        { length: program.mesoWeeks },
+        (_, i) => weeklyTotals[i + 1] || 0
+      );
+      setVolumeByWeek(weeks);
+      setMuscleVolume(totals);
+    })();
+  }, [program?.id, program?.mesoWeeks]);
 
   // Load volume targets from settings
-  useEffect(()=>{ (async()=>{ const s = await getSettings(); if(s.volumeTargets){ setWeeklySetTargets(s.volumeTargets); } })(); }, []);
+  useEffect(() => {
+    (async () => {
+      const s = await getSettings();
+      if (s.volumeTargets) {
+        setWeeklySetTargets(s.volumeTargets);
+      }
+    })();
+  }, []);
 
   // Persist target edits back into settings (debounced)
-  useEffect(()=>{ const h = setTimeout(async()=> { const s = await getSettings(); await db.put('settings',{ ...(s||{}), id:'app', volumeTargets: weeklySetTargets }); }, 600); return ()=> clearTimeout(h); }, [weeklySetTargets]);
+  useEffect(() => {
+    const h = setTimeout(async () => {
+      const s = await getSettings();
+      await db.put("settings", {
+        ...(s || {}),
+        id: "app",
+        volumeTargets: weeklySetTargets,
+      });
+    }, 600);
+    return () => clearTimeout(h);
+  }, [weeklySetTargets]);
 
   useEffect(() => {
     if (program) setWorking(program);
@@ -180,35 +214,54 @@ export default function ProgramSettings() {
   };
   const archiveAndSwitch = async () => {
     // compute diff vs existing program first; require user confirmation
-    if(program){
-      const diffs:string[] = [];
-      if(program.weekLengthDays !== working.weekLengthDays){
-        diffs.push(`Week length: ${program.weekLengthDays} → ${working.weekLengthDays}`);
+    if (program) {
+      const diffs: string[] = [];
+      if (program.weekLengthDays !== working.weekLengthDays) {
+        diffs.push(
+          `Week length: ${program.weekLengthDays} → ${working.weekLengthDays}`
+        );
       }
       const oldMode = program.deload.mode;
       const newMode = working.deload.mode;
-      if(oldMode !== newMode){
+      if (oldMode !== newMode) {
         diffs.push(`Deload mode: ${oldMode} → ${newMode}`);
-      } else if(oldMode==='interval' && newMode==='interval' && (program.deload as any).everyNWeeks !== (working.deload as any).everyNWeeks){
-        diffs.push(`Deload interval: ${(program.deload as any).everyNWeeks} → ${(working.deload as any).everyNWeeks}`);
+      } else if (
+        oldMode === "interval" &&
+        newMode === "interval" &&
+        (program.deload as any).everyNWeeks !==
+          (working.deload as any).everyNWeeks
+      ) {
+        diffs.push(
+          `Deload interval: ${(program.deload as any).everyNWeeks} → ${
+            (working.deload as any).everyNWeeks
+          }`
+        );
       }
       // day labels / order changes
-  const oldDays = program.weeklySplit.map((d:WeeklySplitDay)=> d.customLabel || d.type).join('|');
-  const newDays = working.weeklySplit.map((d:WeeklySplitDay)=> d.customLabel || d.type).join('|');
-      if(oldDays !== newDays){
-        diffs.push('Day order / labels changed');
+      const oldDays = program.weeklySplit
+        .map((d: WeeklySplitDay) => d.customLabel || d.type)
+        .join("|");
+      const newDays = working.weeklySplit
+        .map((d: WeeklySplitDay) => d.customLabel || d.type)
+        .join("|");
+      if (oldDays !== newDays) {
+        diffs.push("Day order / labels changed");
       }
       // template attachments changes
-      const tmplChanges:string[] = [];
-      working.weeklySplit.forEach((d,i)=>{
+      const tmplChanges: string[] = [];
+      working.weeklySplit.forEach((d, i) => {
         const prev = program.weeklySplit[i];
-        if(!prev) return; // length difference handled above
-        if(prev.templateId !== d.templateId) {
-          tmplChanges.push(`Day ${i+1} template: ${prev.templateId||'–'} → ${d.templateId||'–'}`);
+        if (!prev) return; // length difference handled above
+        if (prev.templateId !== d.templateId) {
+          tmplChanges.push(
+            `Day ${i + 1} template: ${prev.templateId || "–"} → ${
+              d.templateId || "–"
+            }`
+          );
         }
       });
-      if(tmplChanges.length) diffs.push(...tmplChanges);
-      if(diffs.length && !showDiffConfirm){
+      if (tmplChanges.length) diffs.push(...tmplChanges);
+      if (diffs.length && !showDiffConfirm) {
         setDiffItems(diffs);
         setShowDiffConfirm(true);
         return; // wait for confirmation
@@ -247,33 +300,54 @@ export default function ProgramSettings() {
 
   // Apply current (working) program's mapped templates to sessions with no logged data (keeps history intact)
   const applyProgramToFutureSessions = async () => {
-    const confirmMsg = "Apply the current program templates to all sessions in the current phase that have no logged sets? Logged sessions will not be changed.";
+    const confirmMsg =
+      "Apply the current program templates to all sessions in the current phase that have no logged sets? Logged sessions will not be changed.";
     if (!window.confirm(confirmMsg)) return;
     try {
-      const [allSessions, settings, allExercises, allTemplates] = await Promise.all([
-        db.getAll<Session>("sessions"),
-        getSettings(),
-        db.getAll<Exercise>("exercises"),
-        db.getAll("templates" as any) as Promise<Template[]>,
-      ]);
+      const [allSessions, settings, allExercises, allTemplates] =
+        await Promise.all([
+          db.getAll<Session>("sessions"),
+          getSettings(),
+          db.getAll<Exercise>("exercises"),
+          db.getAll("templates" as any) as Promise<Template[]>,
+        ]);
       const targetPhase = (settings as any)?.currentPhase || 1;
       const exMapAll = new Map(allExercises.map((e) => [e.id, e] as const));
       const tplMap = new Map(allTemplates.map((t) => [t.id, t] as const));
-      const hasWork = (s: Session) => s.entries?.some((e) => e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0));
-  const buildRows = (exId: string) => Math.max(0, Math.min(6, ((settings as any).defaultSetRows ?? exMapAll.get(exId)?.defaults?.sets ?? 3)));
+      const hasWork = (s: Session) =>
+        s.entries?.some((e) =>
+          e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
+        );
+      const buildRows = (exId: string) =>
+        Math.max(
+          0,
+          Math.min(
+            6,
+            (settings as any).defaultSetRows ??
+              exMapAll.get(exId)?.defaults?.sets ??
+              3
+          )
+        );
       let updatedCount = 0;
       for (const s of allSessions) {
-        const p = (s.phaseNumber || (s as any).phase || 1);
+        const p = s.phaseNumber || (s as any).phase || 1;
         if (p !== targetPhase) continue;
         if (hasWork(s)) continue; // never touch sessions with data
-        const parts = (s.id || '').split('-');
+        const parts = (s.id || "").split("-");
         const dayIdx = Number(parts[2]);
-        if (isNaN(dayIdx) || dayIdx < 0 || dayIdx >= working.weeklySplit.length) continue;
+        if (isNaN(dayIdx) || dayIdx < 0 || dayIdx >= working.weeklySplit.length)
+          continue;
         const meta = working.weeklySplit[dayIdx];
         const tplId = meta?.templateId;
         if (!tplId) {
           if (s.entries.length) {
-            const updated: Session = { ...s, entries: [], templateId: undefined, autoImportedTemplateId: undefined, updatedAt: new Date().toISOString() } as any;
+            const updated: Session = {
+              ...s,
+              entries: [],
+              templateId: undefined,
+              autoImportedTemplateId: undefined,
+              updatedAt: new Date().toISOString(),
+            } as any;
             await db.put("sessions", updated);
             updatedCount++;
           }
@@ -281,94 +355,146 @@ export default function ProgramSettings() {
         }
         const tpl = tplMap.get(tplId);
         if (!tpl) continue;
-        const planById = new Map<string, any>(((tpl as any).plan || []).map((p: any) => [p.exerciseId, p]));
+        const planById = new Map<string, any>(
+          ((tpl as any).plan || []).map((p: any) => [p.exerciseId, p])
+        );
         const newEntries = (tpl.exerciseIds || []).map((exId: string) => {
           const rows = buildRows(exId);
           const plan = planById.get(exId);
           return {
             id: nanoid(),
             exerciseId: exId,
-            targetRepRange: plan?.repRange || (exMapAll.get(exId) as any)?.defaults?.targetRepRange,
-            sets: Array.from({ length: rows }, (_, i) => ({ setNumber: i + 1, weightKg: 0, reps: 0 })),
+            targetRepRange:
+              plan?.repRange ||
+              (exMapAll.get(exId) as any)?.defaults?.targetRepRange,
+            sets: Array.from({ length: rows }, (_, i) => ({
+              setNumber: i + 1,
+              weightKg: 0,
+              reps: 0,
+            })),
           };
         });
-        const updated: Session = { ...s, entries: newEntries, templateId: tplId, autoImportedTemplateId: tplId, updatedAt: new Date().toISOString() } as any;
+        const updated: Session = {
+          ...s,
+          entries: newEntries,
+          templateId: tplId,
+          autoImportedTemplateId: tplId,
+          updatedAt: new Date().toISOString(),
+        } as any;
         await db.put("sessions", updated);
         updatedCount++;
       }
-      setToast(updatedCount ? `Applied to ${updatedCount} session${updatedCount>1?'s':''}` : 'No eligible sessions to update');
-      try { window.dispatchEvent(new CustomEvent('sb-change', { detail: { table: 'sessions' } })); } catch {}
+      setToast(
+        updatedCount
+          ? `Applied to ${updatedCount} session${updatedCount > 1 ? "s" : ""}`
+          : "No eligible sessions to update"
+      );
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "sessions" } })
+        );
+      } catch {}
     } catch (e) {
-      console.warn('applyProgramToFutureSessions failed', e);
-      setToast('Failed to apply program');
+      console.warn("applyProgramToFutureSessions failed", e);
+      setToast("Failed to apply program");
     }
   };
 
   // Allocation logic effect
-  useEffect(()=>{ if(!showAllocator) return; (async()=>{
-    const exercises = await db.getAll<Exercise>('exercises');
-    const exMap = new Map(exercises.map(e=> [e.id, e]));
-    // compute current planned sets per muscle using templates mapped in working.weeklySplit
-    const templateMap = new Map(templates.map(t=> [t.id, t]));
-    const current: Record<string, number> = {};
-    const perDayMuscle: Record<number, Record<string, number>> = {};
-  const SECONDARY_FACTOR = 0.5;
-  working.weeklySplit.forEach((day,i)=>{
-      const t = day.templateId ? templateMap.get(day.templateId): null;
-      const mv: Record<string, number> = {};
-      if(t){
-  t.exerciseIds.forEach(eid=>{ const ex = exMap.get(eid); if(!ex) return; const sets = ex.defaults.sets || 0; const m = ex.muscleGroup || 'other'; current[m] = (current[m]||0) + sets; mv[m]=(mv[m]||0)+sets; if(ex.secondaryMuscles){ ex.secondaryMuscles.forEach(sm=> { current[sm] = (current[sm]||0) + sets*SECONDARY_FACTOR; mv[sm] = (mv[sm]||0) + sets*SECONDARY_FACTOR; }); } });
-      }
-      perDayMuscle[i]=mv;
-    });
-    const diff: Record<string, number> = {};
-    Object.entries(weeklySetTargets).forEach(([m,target])=> { diff[m] = target - (current[m]||0); });
-    // suggestions: allocate remaining diff across days lacking that muscle
-    const suggestions: { day:number; muscle:string; add:number }[] = [];
-    Object.entries(diff).forEach(([muscle, remain])=>{
-      if(remain <= 0) return;
-      // days sorted by existing volume ascending for that muscle
-      const sortedDays = Object.entries(perDayMuscle).sort((a,b)=> (a[1][muscle]||0) - (b[1][muscle]||0));
-      let left = remain;
-      for(const [dIndexStr,_mv] of sortedDays){
-        const dIndex = Number(dIndexStr);
-        if(left<=0) break;
-        const add = Math.min( Math.max(1, Math.ceil(remain / sortedDays.length)), left );
-        suggestions.push({ day:dIndex, muscle, add });
-        left -= add;
-      }
-    });
-    setAllocatorData({ current, diff, suggestions });
-  })() }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
+  useEffect(() => {
+    if (!showAllocator) return;
+    (async () => {
+      const exercises = await db.getAll<Exercise>("exercises");
+      const exMap = new Map(exercises.map((e) => [e.id, e]));
+      // compute current planned sets per muscle using templates mapped in working.weeklySplit
+      const templateMap = new Map(templates.map((t) => [t.id, t]));
+      const current: Record<string, number> = {};
+      const perDayMuscle: Record<number, Record<string, number>> = {};
+      const SECONDARY_FACTOR = 0.5;
+      working.weeklySplit.forEach((day, i) => {
+        const t = day.templateId ? templateMap.get(day.templateId) : null;
+        const mv: Record<string, number> = {};
+        if (t) {
+          t.exerciseIds.forEach((eid) => {
+            const ex = exMap.get(eid);
+            if (!ex) return;
+            const sets = ex.defaults.sets || 0;
+            const m = ex.muscleGroup || "other";
+            current[m] = (current[m] || 0) + sets;
+            mv[m] = (mv[m] || 0) + sets;
+            if (ex.secondaryMuscles) {
+              ex.secondaryMuscles.forEach((sm) => {
+                current[sm] = (current[sm] || 0) + sets * SECONDARY_FACTOR;
+                mv[sm] = (mv[sm] || 0) + sets * SECONDARY_FACTOR;
+              });
+            }
+          });
+        }
+        perDayMuscle[i] = mv;
+      });
+      const diff: Record<string, number> = {};
+      Object.entries(weeklySetTargets).forEach(([m, target]) => {
+        diff[m] = target - (current[m] || 0);
+      });
+      // suggestions: allocate remaining diff across days lacking that muscle
+      const suggestions: { day: number; muscle: string; add: number }[] = [];
+      Object.entries(diff).forEach(([muscle, remain]) => {
+        if (remain <= 0) return;
+        // days sorted by existing volume ascending for that muscle
+        const sortedDays = Object.entries(perDayMuscle).sort(
+          (a, b) => (a[1][muscle] || 0) - (b[1][muscle] || 0)
+        );
+        let left = remain;
+        for (const [dIndexStr, _mv] of sortedDays) {
+          const dIndex = Number(dIndexStr);
+          if (left <= 0) break;
+          const add = Math.min(
+            Math.max(1, Math.ceil(remain / sortedDays.length)),
+            left
+          );
+          suggestions.push({ day: dIndex, muscle, add });
+          left -= add;
+        }
+      });
+      setAllocatorData({ current, diff, suggestions });
+    })();
+  }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
 
   // Live projected weekly muscle volume from current working split + templates (defaults + secondary weighting)
-  useEffect(()=>{ (async()=> {
-    const exercises = await db.getAll<Exercise>('exercises');
-    const exMap = new Map(exercises.map(e=> [e.id, e] as const));
-    const tplMap = new Map(templates.map(t=> [t.id, t] as const));
-    const SECONDARY_FACTOR = 0.5;
-    const muscleTotals: Record<string, number> = {};
-    const perDay: Record<number, Record<string, number>> = {};
-    working.weeklySplit.forEach((day, di)=> {
-      const tpl = day.templateId ? tplMap.get(day.templateId) : undefined;
-      const mv: Record<string, number> = {};
-      if(tpl){
-        tpl.exerciseIds.forEach(eid=> {
-          const ex = exMap.get(eid); if(!ex) return;
-          const sets = ex.defaults.sets || 0;
-          const mg = ex.muscleGroup || 'other';
-          muscleTotals[mg] = (muscleTotals[mg]||0) + sets;
-          mv[mg] = (mv[mg]||0) + sets;
-          if(ex.secondaryMuscles){
-            ex.secondaryMuscles.forEach(sm=> { muscleTotals[sm] = (muscleTotals[sm]||0) + sets*SECONDARY_FACTOR; mv[sm] = (mv[sm]||0) + sets*SECONDARY_FACTOR; });
-          }
-        });
-      }
-      perDay[di]=mv;
-    });
-    setProjectedMuscleVolume(muscleTotals);
-    setProjectedPerDay(perDay);
-  })() }, [working.weeklySplit, templates]);
+  useEffect(() => {
+    (async () => {
+      const exercises = await db.getAll<Exercise>("exercises");
+      const exMap = new Map(exercises.map((e) => [e.id, e] as const));
+      const tplMap = new Map(templates.map((t) => [t.id, t] as const));
+      const SECONDARY_FACTOR = 0.5;
+      const muscleTotals: Record<string, number> = {};
+      const perDay: Record<number, Record<string, number>> = {};
+      working.weeklySplit.forEach((day, di) => {
+        const tpl = day.templateId ? tplMap.get(day.templateId) : undefined;
+        const mv: Record<string, number> = {};
+        if (tpl) {
+          tpl.exerciseIds.forEach((eid) => {
+            const ex = exMap.get(eid);
+            if (!ex) return;
+            const sets = ex.defaults.sets || 0;
+            const mg = ex.muscleGroup || "other";
+            muscleTotals[mg] = (muscleTotals[mg] || 0) + sets;
+            mv[mg] = (mv[mg] || 0) + sets;
+            if (ex.secondaryMuscles) {
+              ex.secondaryMuscles.forEach((sm) => {
+                muscleTotals[sm] =
+                  (muscleTotals[sm] || 0) + sets * SECONDARY_FACTOR;
+                mv[sm] = (mv[sm] || 0) + sets * SECONDARY_FACTOR;
+              });
+            }
+          });
+        }
+        perDay[di] = mv;
+      });
+      setProjectedMuscleVolume(muscleTotals);
+      setProjectedPerDay(perDay);
+    })();
+  }, [working.weeklySplit, templates]);
   return (
     <div className="space-y-6">
       <GuidedSetupWizard
@@ -380,9 +506,12 @@ export default function ProgramSettings() {
       {toast && <div className="text-xs text-emerald-400">{toast}</div>}
       <div className="bg-card rounded-2xl p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <div className="text-sm font-medium text-white">Need a personalised starting point?</div>
+          <div className="text-sm font-medium text-white">
+            Need a personalised starting point?
+          </div>
           <p className="text-xs text-gray-400">
-            Answer a few questions and we’ll build a split, volume targets, and starter templates for you.
+            Answer a few questions and we’ll build a split, volume targets, and
+            starter templates for you.
           </p>
         </div>
         <button
@@ -395,60 +524,135 @@ export default function ProgramSettings() {
       <div className="glass-card rounded-2xl p-4 space-y-4">
         {/* Mesocycle timeline */}
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">Mesocycle Timeline (Logged Weighted Sets)</div>
+          <div className="text-xs uppercase tracking-wide text-gray-400">
+            Mesocycle Timeline (Logged Weighted Sets)
+          </div>
           <div className="flex items-end gap-1 h-24">
-            {volumeByWeek.map((v,i)=>{ const max=Math.max(1,...volumeByWeek); const pct=Math.round((v/max)*100); return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-slate-700/40 rounded relative h-full flex items-end">
-                  <div className="w-full bg-gradient-to-t from-indigo-600/70 to-indigo-400/70 rounded transition-all" style={{height:`${pct}%`}} />
+            {volumeByWeek.map((v, i) => {
+              const max = Math.max(1, ...volumeByWeek);
+              const pct = Math.round((v / max) * 100);
+              return (
+                <div
+                  key={i}
+                  className="flex-1 flex flex-col items-center gap-1"
+                >
+                  <div className="w-full bg-slate-700/40 rounded relative h-full flex items-end">
+                    <div
+                      className="w-full bg-gradient-to-t from-indigo-600/70 to-indigo-400/70 rounded transition-all"
+                      style={{ height: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="text-[9px] text-gray-500">W{i + 1}</div>
                 </div>
-                <div className="text-[9px] text-gray-500">W{i+1}</div>
-              </div>
-            )})}
+              );
+            })}
           </div>
         </div>
         {/* Muscle group heatmap */}
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">Muscle Logged Volume (Weighted Sets)</div>
+          <div className="text-xs uppercase tracking-wide text-gray-400">
+            Muscle Logged Volume (Weighted Sets)
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(muscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=>{ const max=Math.max(1,...Object.values(muscleVolume)); const pct=(v/max)*100; return (
-              <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-gray-400">
-                  <span className="capitalize inline-flex items-center gap-1">
-                    <img src={getMuscleIconPath(m)} alt={m} className="w-3.5 h-3.5 opacity-80" loading="lazy" />
-                    {m}
-                  </span>
-                  <span className="tabular-nums">{Math.round(v)}</span>
-                </div>
-                <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
-                  <div className="h-full bg-emerald-500" style={{width:`${pct}%`}} />
-                </div>
-              </div>
-            )})}
+            {Object.entries(muscleVolume)
+              .sort((a, b) => b[1] - a[1])
+              .map(([m, v]) => {
+                const max = Math.max(1, ...Object.values(muscleVolume));
+                const pct = (v / max) * 100;
+                return (
+                  <div
+                    key={m}
+                    className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-[10px] text-gray-400">
+                      <span className="capitalize inline-flex items-center gap-1">
+                        <img
+                          src={getMuscleIconPath(m)}
+                          alt={m}
+                          className="w-3.5 h-3.5 opacity-80"
+                          loading="lazy"
+                        />
+                        {m}
+                      </span>
+                      <span className="tabular-nums">{Math.round(v)}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             {!Object.keys(muscleVolume).length && (
-              <div className="col-span-full text-[11px] text-gray-500">No logged volume yet this phase.</div>
+              <div className="col-span-full text-[11px] text-gray-500">
+                No logged volume yet this phase.
+              </div>
             )}
           </div>
         </div>
         {/* Projected weekly volume (planned) */}
         <div className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400 flex items-center gap-2">Projected Weekly Volume <span className="text-[10px] text-gray-500 normal-case">(based on current templates & defaults)</span></div>
+          <div className="text-xs uppercase tracking-wide text-gray-400 flex items-center gap-2">
+            Projected Weekly Volume{" "}
+            <span className="text-[10px] text-gray-500 normal-case">
+              (based on current templates & defaults)
+            </span>
+          </div>
           {Object.keys(projectedMuscleVolume).length ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(projectedMuscleVolume).sort((a,b)=> b[1]-a[1]).map(([m,v])=> { const max=Math.max(1,...Object.values(projectedMuscleVolume)); const pct=(v/max)*100; const target = weeklySetTargets[m]; const diff = target!=null? (v - target) : null; return (
-                <div key={m} className="bg-white/5 rounded-lg px-2 py-2 space-y-1" title={diff!=null?`Target ${target}, Diff ${diff>0?'+':''}${Math.round(diff)}`:undefined}>
-                  <div className="flex items-center justify-between text-[10px] text-gray-400">
-                    <span className="capitalize">{m}</span>
-                    <span className="tabular-nums flex items-center gap-1">{Math.round(v)}{diff!=null && <span className={diff>0? 'text-emerald-400':'text-amber-400'}>{diff>0? '▲':'▼'}</span>}</span>
-                  </div>
-                  <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
-                    <div className="h-full bg-indigo-500" style={{width:`${pct}%`}} />
-                  </div>
-                </div>
-              ); })}
+              {Object.entries(projectedMuscleVolume)
+                .sort((a, b) => b[1] - a[1])
+                .map(([m, v]) => {
+                  const max = Math.max(
+                    1,
+                    ...Object.values(projectedMuscleVolume)
+                  );
+                  const pct = (v / max) * 100;
+                  const target = weeklySetTargets[m];
+                  const diff = target != null ? v - target : null;
+                  return (
+                    <div
+                      key={m}
+                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                      title={
+                        diff != null
+                          ? `Target ${target}, Diff ${
+                              diff > 0 ? "+" : ""
+                            }${Math.round(diff)}`
+                          : undefined
+                      }
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-gray-400">
+                        <span className="capitalize">{m}</span>
+                        <span className="tabular-nums flex items-center gap-1">
+                          {Math.round(v)}
+                          {diff != null && (
+                            <span
+                              className={
+                                diff > 0 ? "text-emerald-400" : "text-amber-400"
+                              }
+                            >
+                              {diff > 0 ? "▲" : "▼"}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           ) : (
-            <div className="text-[11px] text-gray-500">No templates linked to compute projection.</div>
+            <div className="text-[11px] text-gray-500">
+              No templates linked to compute projection.
+            </div>
           )}
         </div>
         <div className="flex flex-wrap gap-4">
@@ -625,9 +829,12 @@ export default function ProgramSettings() {
                   }
                   className="w-full rounded-lg bg-white/10 px-2 py-1 text-[10px]"
                   onMouseEnter={() => {
-                    if(d.templateId){ const t=templates.find(t=> t.id===d.templateId); if(t) setPreviewTemplate(t); }
+                    if (d.templateId) {
+                      const t = templates.find((t) => t.id === d.templateId);
+                      if (t) setPreviewTemplate(t);
+                    }
                   }}
-                  onMouseLeave={()=> setPreviewTemplate(null)}
+                  onMouseLeave={() => setPreviewTemplate(null)}
                 >
                   <option value="">No template</option>
                   {templates.map((t) => (
@@ -676,38 +883,80 @@ export default function ProgramSettings() {
         )}
         <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
           <span>Planned Volume Allocator (beta)</span>
-          <button className="btn-outline px-2 py-1 rounded-lg" onClick={()=> setShowAllocator(v=>!v)}>{showAllocator? 'Hide':'Open'}</button>
+          <button
+            className="btn-outline px-2 py-1 rounded-lg"
+            onClick={() => setShowAllocator((v) => !v)}
+          >
+            {showAllocator ? "Hide" : "Open"}
+          </button>
         </div>
         {showAllocator && (
           <div className="rounded-xl bg-white/5 border border-white/10 p-3 space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {Object.entries(weeklySetTargets).map(([m,val])=> (
+              {Object.entries(weeklySetTargets).map(([m, val]) => (
                 <label key={m} className="space-y-1">
                   <span className="text-[10px] uppercase tracking-wide text-gray-500 flex items-center justify-between">
                     <span>{m}</span>
-                    <span className="opacity-60">{allocatorData.current[m]||0}</span>
+                    <span className="opacity-60">
+                      {allocatorData.current[m] || 0}
+                    </span>
                   </span>
-                  <input type="number" min={0} max={40} value={val} onChange={e=> setWeeklySetTargets(ts=> ({...ts, [m]: Number(e.target.value)}))} className="w-full rounded bg-white/10 px-2 py-1 text-xs" />
-                  <div className={`text-[10px] ${ (allocatorData.diff[m]||0) > 0 ? 'text-amber-400':'text-emerald-400'}`}>Δ {(allocatorData.diff[m]||0)}</div>
+                  <input
+                    type="number"
+                    min={0}
+                    max={40}
+                    value={val}
+                    onChange={(e) =>
+                      setWeeklySetTargets((ts) => ({
+                        ...ts,
+                        [m]: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full rounded bg-white/10 px-2 py-1 text-xs"
+                  />
+                  <div
+                    className={`text-[10px] ${
+                      (allocatorData.diff[m] || 0) > 0
+                        ? "text-amber-400"
+                        : "text-emerald-400"
+                    }`}
+                  >
+                    Δ {allocatorData.diff[m] || 0}
+                  </div>
                 </label>
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">Suggestions</div>
+              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                Suggestions
+              </div>
               {allocatorData.suggestions.length ? (
                 <ul className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                  {allocatorData.suggestions.map((s,i)=> (
-                    <li key={i} className="text-[11px] bg-white/5 rounded px-2 py-1 flex justify-between">
-                      <span>Day {s.day+1}: add {s.add} {s.muscle} set{s.add>1?'s':''}</span>
-                      <span className="opacity-60">need {(allocatorData.diff[s.muscle]||0)}</span>
+                  {allocatorData.suggestions.map((s, i) => (
+                    <li
+                      key={i}
+                      className="text-[11px] bg-white/5 rounded px-2 py-1 flex justify-between"
+                    >
+                      <span>
+                        Day {s.day + 1}: add {s.add} {s.muscle} set
+                        {s.add > 1 ? "s" : ""}
+                      </span>
+                      <span className="opacity-60">
+                        need {allocatorData.diff[s.muscle] || 0}
+                      </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <div className="text-[11px] text-gray-500">Targets satisfied.</div>
+                <div className="text-[11px] text-gray-500">
+                  Targets satisfied.
+                </div>
               )}
             </div>
-            <div className="text-[10px] text-gray-500">(Allocator suggests additional sets for under-target muscles. Apply manually by editing templates.)</div>
+            <div className="text-[10px] text-gray-500">
+              (Allocator suggests additional sets for under-target muscles.
+              Apply manually by editing templates.)
+            </div>
           </div>
         )}
         <div className="flex flex-wrap items-center gap-3">
@@ -740,10 +989,21 @@ export default function ProgramSettings() {
       </div>
       {/* Templates quick access */}
       <div className="glass-card rounded-2xl p-4 space-y-3">
-        <div className="text-xs uppercase tracking-wide text-gray-400">Templates</div>
-        <p className="text-[11px] text-gray-400 leading-relaxed">Build reusable exercise groupings and import them straight into sessions. Keep core lifts consistent while experimenting with accessory variations.</p>
+        <div className="text-xs uppercase tracking-wide text-gray-400">
+          Templates
+        </div>
+        <p className="text-[11px] text-gray-400 leading-relaxed">
+          Build reusable exercise groupings and import them straight into
+          sessions. Keep core lifts consistent while experimenting with
+          accessory variations.
+        </p>
         <div>
-          <a href="#/templates" className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-black font-medium shadow transition-colors">Manage Templates →</a>
+          <a
+            href="#/templates"
+            className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-black font-medium shadow transition-colors"
+          >
+            Manage Templates →
+          </a>
         </div>
       </div>
       {history.length > 0 && (
@@ -779,34 +1039,67 @@ export default function ProgramSettings() {
         </div>
       )}
       {previewTemplate && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in" onMouseLeave={()=> setPreviewTemplate(null)}>
+        <div
+          className="fixed bottom-4 right-4 z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in"
+          onMouseLeave={() => setPreviewTemplate(null)}
+        >
           <div className="flex items-center justify-between text-xs">
             <span className="font-medium">{previewTemplate.name}</span>
-            <button className="text-[10px] px-2 py-0.5 rounded bg-slate-700" onClick={()=> setPreviewTemplate(null)}>Close</button>
+            <button
+              className="text-[10px] px-2 py-0.5 rounded bg-slate-700"
+              onClick={() => setPreviewTemplate(null)}
+            >
+              Close
+            </button>
           </div>
           <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 text-[11px]">
-            {previewTemplate.exerciseIds.map(id=> (
-              <li key={id} className="bg-white/5 rounded px-2 py-1 flex items-center justify-between">
-                <span>{id.slice(0,6)}</span>
+            {previewTemplate.exerciseIds.map((id) => (
+              <li
+                key={id}
+                className="bg-white/5 rounded px-2 py-1 flex items-center justify-between"
+              >
+                <span>{id.slice(0, 6)}</span>
                 <span className="opacity-60">set×?</span>
               </li>
             ))}
           </ul>
-          <div className="text-[10px] text-gray-500">(Template preview placeholder; replace id slices with exercise names & planned sets)</div>
+          <div className="text-[10px] text-gray-500">
+            (Template preview placeholder; replace id slices with exercise names
+            & planned sets)
+          </div>
         </div>
       )}
       {showDiffConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)] p-4 w-full max-w-md space-y-3 fade-in">
             <div className="text-sm font-medium">Confirm Archive & Switch</div>
-            <div className="text-[11px] text-gray-400">Review changes before archiving current program:</div>
+            <div className="text-[11px] text-gray-400">
+              Review changes before archiving current program:
+            </div>
             <ul className="text-[11px] list-disc pl-4 space-y-1 max-h-40 overflow-y-auto pr-1">
-              {diffItems.map((d,i)=> <li key={i}>{d}</li>)}
+              {diffItems.map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
             </ul>
             <div className="flex gap-2 justify-end text-xs">
-              <button className="btn-outline px-3 py-1 rounded-lg" onClick={()=> { setShowDiffConfirm(false); setDiffItems([]); }}>Cancel</button>
-              <button className="btn-primary px-3 py-1 rounded-lg" onClick={()=> { setShowDiffConfirm(false); // run archive again will skip diff modal
-                setTimeout(()=> archiveAndSwitch(), 0); }}>Confirm</button>
+              <button
+                className="btn-outline px-3 py-1 rounded-lg"
+                onClick={() => {
+                  setShowDiffConfirm(false);
+                  setDiffItems([]);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary px-3 py-1 rounded-lg"
+                onClick={() => {
+                  setShowDiffConfirm(false); // run archive again will skip diff modal
+                  setTimeout(() => archiveAndSwitch(), 0);
+                }}
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>

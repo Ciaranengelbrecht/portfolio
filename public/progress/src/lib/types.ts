@@ -270,10 +270,7 @@ export interface Template {
 
 export type TrainingExperienceLevel = "beginner" | "intermediate" | "advanced";
 
-export type EquipmentAccessLevel =
-  | "commercial-gym"
-  | "home-gym"
-  | "minimal";
+export type EquipmentAccessLevel = "commercial-gym" | "home-gym" | "minimal";
 
 export type TrainingGoalEmphasis = "hypertrophy" | "strength" | "balanced";
 

@@ -11,7 +11,7 @@ const makeExercise = (
   name: string,
   muscleGroup: Exercise["muscleGroup"],
   tags: string[],
-  secondaryMuscles: Exercise["secondaryMuscles"] = [],
+  secondaryMuscles: Exercise["secondaryMuscles"] = []
 ): Exercise => ({
   id,
   name,
@@ -24,43 +24,48 @@ const makeExercise = (
 
 describe("guided setup heuristics", () => {
   const exercises: Exercise[] = [
-    makeExercise("pushup", "Push-up (Standard)", "chest", [
-      "bodyweight",
-      "press",
-      "compound",
-      "vertical",
-      "mg:chest",
-    ], ["triceps", "shoulders"]),
-    makeExercise("bandfly", "Band Chest Fly", "chest", [
-      "band",
-      "fly",
-      "isolation",
-      "mg:chest",
-    ], ["shoulders"]),
-    makeExercise("machinepress", "Machine Chest Press", "chest", [
-      "machine",
-      "press",
-      "compound",
-      "mg:chest",
-    ], ["triceps", "shoulders"]),
-    makeExercise("dips", "Bench Dip", "triceps", [
-      "bodyweight",
-      "press",
-      "compound",
-      "mg:triceps",
-    ], ["chest"]),
-    makeExercise("row", "Seated Cable Row", "back", [
-      "cable",
-      "pull",
-      "compound",
-      "mg:back",
-    ], ["biceps"]),
-    makeExercise("squat", "Bodyweight Squat", "quads", [
-      "bodyweight",
+    makeExercise(
+      "pushup",
+      "Push-up (Standard)",
+      "chest",
+      ["bodyweight", "press", "compound", "vertical", "mg:chest"],
+      ["triceps", "shoulders"]
+    ),
+    makeExercise(
+      "bandfly",
+      "Band Chest Fly",
+      "chest",
+      ["band", "fly", "isolation", "mg:chest"],
+      ["shoulders"]
+    ),
+    makeExercise(
+      "machinepress",
+      "Machine Chest Press",
+      "chest",
+      ["machine", "press", "compound", "mg:chest"],
+      ["triceps", "shoulders"]
+    ),
+    makeExercise(
+      "dips",
+      "Bench Dip",
+      "triceps",
+      ["bodyweight", "press", "compound", "mg:triceps"],
+      ["chest"]
+    ),
+    makeExercise(
+      "row",
+      "Seated Cable Row",
+      "back",
+      ["cable", "pull", "compound", "mg:back"],
+      ["biceps"]
+    ),
+    makeExercise(
       "squat",
-      "compound",
-      "mg:quads",
-    ], ["glutes", "hamstrings"]),
+      "Bodyweight Squat",
+      "quads",
+      ["bodyweight", "squat", "compound", "mg:quads"],
+      ["glutes", "hamstrings"]
+    ),
   ];
 
   it("prefers equipment-compatible anchor exercises for minimal setups", () => {
@@ -80,17 +85,27 @@ describe("guided setup heuristics", () => {
     };
 
     const plan = buildGuidedSetupPlan(state, exercises);
-    const chestTemplate = plan.templates.find((tpl) => tpl.focusMuscles.includes("chest"));
-    expect(chestTemplate, "expected a chest-focused template to be generated").toBeDefined();
-    const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]));
-    const planNames = chestTemplate!.plan.map((entry) => exerciseById.get(entry.exerciseId)?.name);
-
-    expect(planNames, "machine chest press should not appear for minimal setup").not.toContain(
-      "Machine Chest Press",
+    const chestTemplate = plan.templates.find((tpl) =>
+      tpl.focusMuscles.includes("chest")
     );
+    expect(
+      chestTemplate,
+      "expected a chest-focused template to be generated"
+    ).toBeDefined();
+    const exerciseById = new Map(exercises.map((ex) => [ex.id, ex]));
+    const planNames = chestTemplate!.plan.map(
+      (entry) => exerciseById.get(entry.exerciseId)?.name
+    );
+
+    expect(
+      planNames,
+      "machine chest press should not appear for minimal setup"
+    ).not.toContain("Machine Chest Press");
     const anchorExerciseId = chestTemplate!.plan[0]?.exerciseId;
     expect(anchorExerciseId).toBeDefined();
-    expect(exerciseById.get(anchorExerciseId!)?.name).toBe("Push-up (Standard)");
+    expect(exerciseById.get(anchorExerciseId!)?.name).toBe(
+      "Push-up (Standard)"
+    );
   });
 
   it("honours preferred rest days in schedule generation", () => {
