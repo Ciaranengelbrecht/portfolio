@@ -158,6 +158,48 @@ type SessionAnalytics = {
   }>;
 };
 
+type WipeScope = "day" | "week" | "phase";
+
+type WipeCounts = {
+  weekSessions: number;
+  weekEntries: number;
+  weekSets: number;
+  phaseSessions: number;
+  phaseEntries: number;
+  phaseSets: number;
+};
+
+const pluralize = (count: number, singular: string) =>
+  `${count} ${singular}${count === 1 ? "" : "s"}`;
+
+const getSessionPhaseNumber = (session: Session): number | null => {
+  const { phaseNumber, phase } = session;
+  const direct =
+    phaseNumber != null
+      ? Number(phaseNumber)
+      : phase != null
+      ? Number(phase)
+      : null;
+  if (direct != null && Number.isFinite(direct)) return direct;
+  const [phasePart] = (session.id || "").split("-");
+  const fallback = Number(phasePart);
+  return Number.isFinite(fallback) ? fallback : null;
+};
+
+const getSessionWeekNumber = (session: Session): number | null => {
+  const direct = Number(session.weekNumber);
+  if (Number.isFinite(direct)) return direct;
+  const [, weekPart] = (session.id || "").split("-");
+  const fallback = Number(weekPart);
+  return Number.isFinite(fallback) ? fallback : null;
+};
+
+const getSessionDayIndex = (session: Session): number | null => {
+  const [, , dayPart] = (session.id || "").split("-");
+  const fallback = Number(dayPart);
+  return Number.isFinite(fallback) ? fallback : null;
+};
+
 type ExerciseHistoryRow = {
   exerciseId: string;
   sessionId: string;
@@ -405,6 +447,12 @@ export default function Sessions() {
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [wipeSheetOpen, setWipeSheetOpen] = useState(false);
+  const [wipeBusy, setWipeBusy] = useState(false);
+  const [wipeCounts, setWipeCounts] = useState<WipeCounts | null>(null);
+  const [wipeScope, setWipeScope] = useState<WipeScope>("day");
+  const [wipeConfirmValue, setWipeConfirmValue] = useState("");
+  const [wipeError, setWipeError] = useState<string | null>(null);
   const toolbarRef = useRef<HTMLElement | null>(null);
   // Ephemeral weight input strings (to allow user to type trailing '.')
   const weightInputEditing = useRef<Record<string, string>>({});
@@ -422,8 +470,85 @@ export default function Sessions() {
     setCollapsedEntries((prev) => ({ ...prev, [id]: !prev[id] }));
   // Cache of day labels to avoid flicker before program loads
   const [labelsCache, setLabelsCache] = useState<string[] | null>(null);
+  const parsedDay = typeof day === "number" ? day : Number(day);
+  const dayIndexNumber =
+    Number.isFinite(parsedDay) && parsedDay >= 0 ? Math.floor(parsedDay) : 0;
+  const parsedWeek = Number(week);
+  const weekNumber =
+    Number.isFinite(parsedWeek) && parsedWeek > 0 ? Math.floor(parsedWeek) : 1;
+  const parsedPhase = Number(phase);
+  const phaseNumber =
+    Number.isFinite(parsedPhase) && parsedPhase > 0
+      ? Math.floor(parsedPhase)
+      : 1;
+  const rawDayLabel =
+    labelsCache?.[dayIndexNumber] ??
+    DAYS[dayIndexNumber] ??
+    `Day ${dayIndexNumber + 1}`;
+  const dayTitle = /^day\s*\d+/i.test(rawDayLabel)
+    ? rawDayLabel
+    : `Day ${dayIndexNumber + 1} – ${rawDayLabel}`;
+  const weekLabel = `Week ${weekNumber}`;
+  const phaseLabel = `Phase ${phaseNumber}`;
   // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
   const pickedLatestRef = useRef(false);
+  useEffect(() => {
+    if (!wipeSheetOpen) return;
+    let cancelled = false;
+    setWipeCounts(null);
+    (async () => {
+      try {
+        const all = await db.getAll<Session>("sessions");
+        const counts: WipeCounts = {
+          weekSessions: 0,
+          weekEntries: 0,
+          weekSets: 0,
+          phaseSessions: 0,
+          phaseEntries: 0,
+          phaseSets: 0,
+        };
+        const programId = session?.programId ?? null;
+        for (const candidate of all) {
+          if (
+            programId &&
+            candidate.programId &&
+            candidate.programId !== programId
+          ) {
+            continue;
+          }
+          const candidatePhase = getSessionPhaseNumber(candidate);
+          if (candidatePhase == null || candidatePhase !== phaseNumber) {
+            continue;
+          }
+          const entryCount = candidate.entries?.length ?? 0;
+          const setCount = candidate.entries?.reduce(
+            (sum, entry) => sum + (entry.sets?.length ?? 0),
+            0
+          );
+          counts.phaseSessions += 1;
+          counts.phaseEntries += entryCount;
+          counts.phaseSets += setCount;
+          const candidateWeek = getSessionWeekNumber(candidate);
+          if (candidateWeek != null && candidateWeek === weekNumber) {
+            counts.weekSessions += 1;
+            counts.weekEntries += entryCount;
+            counts.weekSets += setCount;
+          }
+        }
+        if (!cancelled) {
+          setWipeCounts(counts);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[Sessions] Failed to compute wipe impact", err);
+          setWipeCounts(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [wipeSheetOpen, phaseNumber, weekNumber, session?.programId, session?.id]);
   // Persist collapsed state per-session (mobile UX enhancement)
   useEffect(() => {
     setCollapsedInitialized(false);
@@ -477,6 +602,15 @@ export default function Sessions() {
       return changed ? next : prev;
     });
   }, [session?.entries?.length]);
+  useEffect(() => {
+    if (!wipeSheetOpen) {
+      setWipeConfirmValue("");
+      setWipeError(null);
+      return;
+    }
+    setWipeConfirmValue("");
+    setWipeError(null);
+  }, [wipeSheetOpen, wipeScope]);
   useEffect(() => {
     if (!session?.id) return;
     if (focusMode) return;
@@ -2088,6 +2222,235 @@ export default function Sessions() {
     program?.deload,
   ]);
 
+  const confirmationTokens = useMemo(
+    () => ({
+      day: `${dayTitle} (${weekLabel}, ${phaseLabel})`,
+      week: `${weekLabel} (${phaseLabel})`,
+      phase: phaseLabel,
+    }),
+    [dayTitle, weekLabel, phaseLabel]
+  );
+
+  const wipeScopeLabels = useMemo(
+    () => ({
+      day: dayTitle,
+      week: weekLabel,
+      phase: phaseLabel,
+    }),
+    [dayTitle, weekLabel, phaseLabel]
+  );
+
+  const dayEntryCount = session?.entries?.length ?? 0;
+  const daySetCount =
+    session?.entries?.reduce(
+      (sum, entry) => sum + (entry.sets?.length ?? 0),
+      0
+    ) ?? 0;
+
+  const selectedStats = useMemo(() => {
+    if (wipeScope === "day") {
+      return {
+        title: dayTitle,
+        lines: [
+          pluralize(dayEntryCount, "exercise"),
+          pluralize(daySetCount, "set"),
+        ],
+      };
+    }
+    if (!wipeCounts) return null;
+    if (wipeScope === "week") {
+      return {
+        title: weekLabel,
+        lines: [
+          pluralize(wipeCounts.weekSessions, "session"),
+          pluralize(wipeCounts.weekEntries, "exercise"),
+          pluralize(wipeCounts.weekSets, "set"),
+        ],
+      };
+    }
+    return {
+      title: phaseLabel,
+      lines: [
+        pluralize(wipeCounts.phaseSessions, "session"),
+        pluralize(wipeCounts.phaseEntries, "exercise"),
+        pluralize(wipeCounts.phaseSets, "set"),
+      ],
+    };
+  }, [
+    wipeScope,
+    wipeCounts,
+    dayTitle,
+    weekLabel,
+    phaseLabel,
+    dayEntryCount,
+    daySetCount,
+  ]);
+
+  const confirmationPhrase = confirmationTokens[wipeScope];
+  const confirmationMatches = wipeConfirmValue.trim() === confirmationPhrase;
+
+  const wipeButtonLabels: Record<WipeScope, string> = {
+    day: "Erase session",
+    week: "Erase week",
+    phase: "Erase phase",
+  };
+
+  const wipeOptions = useMemo<OptionSheetOption[]>(() => {
+    const weekSummary = wipeCounts
+      ? `${pluralize(wipeCounts.weekSessions, "session")} • ${pluralize(
+          wipeCounts.weekEntries,
+          "exercise"
+        )} • ${pluralize(wipeCounts.weekSets, "set")}`
+      : "Calculating…";
+    const phaseSummary = wipeCounts
+      ? `${pluralize(wipeCounts.phaseSessions, "session")} • ${pluralize(
+          wipeCounts.phaseEntries,
+          "exercise"
+        )} • ${pluralize(wipeCounts.phaseSets, "set")}`
+      : "Calculating…";
+    return [
+      {
+        id: "day",
+        label: "Erase this session",
+        description: session
+          ? `${pluralize(dayEntryCount, "exercise")} • ${pluralize(
+              daySetCount,
+              "set"
+            )}`
+          : "No session loaded",
+        hint: dayTitle,
+        selected: wipeScope === "day",
+        trailing: wipeScope === "day" ? "Selected" : undefined,
+        disabled: !session || wipeBusy,
+        onSelect: () => {
+          if (wipeBusy) return;
+          setWipeScope("day");
+        },
+      },
+      {
+        id: "week",
+        label: "Erase this week",
+        description: weekSummary,
+        hint: weekLabel,
+        selected: wipeScope === "week",
+        trailing: wipeScope === "week" ? "Selected" : undefined,
+        disabled: wipeBusy || !wipeCounts,
+        onSelect: () => {
+          if (wipeBusy || !wipeCounts) return;
+          setWipeScope("week");
+        },
+      },
+      {
+        id: "phase",
+        label: "Erase this phase",
+        description: phaseSummary,
+        hint: phaseLabel,
+        selected: wipeScope === "phase",
+        trailing: wipeScope === "phase" ? "Selected" : undefined,
+        disabled: wipeBusy || !wipeCounts,
+        onSelect: () => {
+          if (wipeBusy || !wipeCounts) return;
+          setWipeScope("phase");
+        },
+      },
+    ];
+  }, [
+    session,
+    wipeCounts,
+    wipeScope,
+    wipeBusy,
+    dayEntryCount,
+    daySetCount,
+    dayTitle,
+    weekLabel,
+    phaseLabel,
+    setWipeScope,
+  ]);
+
+  const wipeHighlight = useMemo(() => {
+    return (
+      <form
+        className="space-y-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/80"
+        onSubmit={(e) => {
+          e.preventDefault();
+          executeWipe();
+        }}
+      >
+        <div className="space-y-1">
+          <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
+            Scope summary
+          </p>
+          {selectedStats ? (
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-white">
+                {selectedStats.title}
+              </p>
+              <ul className="space-y-0.5 text-xs text-white/65">
+                {selectedStats.lines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-white/55">Gathering stats…</p>
+          )}
+        </div>
+        <div className="space-y-2 text-xs text-white/70">
+          <p>
+            This will permanently remove logged sets for{" "}
+            <span className="font-semibold text-white">
+              {wipeScopeLabels[wipeScope]}
+            </span>
+            . Type{" "}
+            <code className="rounded bg-slate-900/60 px-2 py-0.5 text-[11px] text-white/80">
+              {confirmationPhrase}
+            </code>{" "}
+            to confirm.
+          </p>
+          <input
+            className="w-full rounded-xl border border-white/15 bg-slate-900/60 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:border-emerald-400/60 focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+            value={wipeConfirmValue}
+            onChange={(e) => {
+              setWipeConfirmValue(e.target.value);
+              if (wipeError) setWipeError(null);
+            }}
+            placeholder={confirmationPhrase}
+            disabled={wipeBusy}
+            spellCheck={false}
+            inputMode="text"
+          />
+          {wipeError ? (
+            <p className="text-xs text-rose-300">{wipeError}</p>
+          ) : null}
+        </div>
+        <button
+          type="submit"
+          disabled={!confirmationMatches || wipeBusy}
+          className={`w-full rounded-xl border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-rose-400/40 ${
+            !confirmationMatches || wipeBusy
+              ? "cursor-not-allowed border-white/10 bg-white/5 text-white/40"
+              : "border-rose-400/40 bg-rose-500/20 text-rose-100 hover:bg-rose-500/30"
+          }`}
+        >
+          {wipeBusy ? "Erasing…" : wipeButtonLabels[wipeScope]}
+        </button>
+      </form>
+    );
+  }, [
+    confirmationMatches,
+    confirmationPhrase,
+    executeWipe,
+    selectedStats,
+    wipeButtonLabels,
+    wipeBusy,
+    wipeConfirmValue,
+    wipeError,
+    wipeScope,
+    wipeScopeLabels,
+    setWipeConfirmValue,
+    setWipeError,
+  ]);
+
   const deloadWeeks = useMemo(
     () => (program ? computeDeloadWeeks(program) : new Set<number>()),
     [program]
@@ -2350,6 +2713,131 @@ export default function Sessions() {
       window.removeEventListener("beforeunload", onBefore);
     };
   }, []);
+
+  const clearSessionRecord = (target: Session, timestamp: string): Session => {
+    const sanitized: Session = {
+      ...target,
+      entries: [],
+      updatedAt: timestamp,
+      deletedAt: null,
+    };
+    delete (sanitized as any).loggedStartAt;
+    delete (sanitized as any).loggedEndAt;
+    delete (sanitized as any).workLog;
+    return sanitized;
+  };
+
+  const gatherWipeTargets = async (scope: WipeScope): Promise<Session[]> => {
+    if (!session) return [];
+    if (scope === "day") {
+      if (latestSessionRef.current) return [latestSessionRef.current];
+      return [session];
+    }
+    const all = await db.getAll<Session>("sessions");
+    const programId = session.programId ?? null;
+    const targetPhase = getSessionPhaseNumber(session) ?? phaseNumber ?? null;
+    const targetWeek = getSessionWeekNumber(session) ?? weekNumber ?? null;
+    return all.filter((candidate) => {
+      const candidatePhase = getSessionPhaseNumber(candidate);
+      if (candidatePhase == null || targetPhase == null) return false;
+      if (candidatePhase !== targetPhase) return false;
+      if (programId && candidate.programId && candidate.programId !== programId)
+        return false;
+      if (scope === "week") {
+        const candidateWeek = getSessionWeekNumber(candidate);
+        if (candidateWeek == null || targetWeek == null) return false;
+        return candidateWeek === targetWeek;
+      }
+      return true;
+    });
+  };
+
+  const executeWipe = async () => {
+    if (!session) return;
+    const expected = confirmationTokens[wipeScope];
+    if (wipeConfirmValue.trim() !== expected) {
+      setWipeError("Type the exact confirmation phrase to continue.");
+      return;
+    }
+    if (wipeScope !== "day" && !wipeCounts) {
+      setWipeError(
+        "Still calculating how much will be erased. Try again in a moment."
+      );
+      return;
+    }
+    if (wipeBusy) return;
+    setWipeBusy(true);
+    setWipeError(null);
+    try {
+      if (pendingRef.current) {
+        window.clearTimeout(pendingRef.current);
+        pendingRef.current = null;
+      }
+      await flushSession();
+      const targets = await gatherWipeTargets(wipeScope);
+      if (!targets.length) {
+        push({ message: "Nothing to erase." });
+        setWipeSheetOpen(false);
+        setWipeConfirmValue("");
+        setWipeBusy(false);
+        setWipeCounts(null);
+        return;
+      }
+      const timestamp = new Date().toISOString();
+      let totalExercises = 0;
+      let totalSets = 0;
+      const uniqueTargets = new Map<string, Session>();
+      for (const target of targets) {
+        uniqueTargets.set(target.id, target);
+      }
+      for (const [id, target] of uniqueTargets) {
+        totalExercises += target.entries?.length ?? 0;
+        totalSets += (target.entries || []).reduce(
+          (sum, entry) => sum + (entry.sets?.length ?? 0),
+          0
+        );
+        const cleared = clearSessionRecord(target, timestamp);
+        await db.put("sessions", cleared);
+        uniqueTargets.set(id, cleared);
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "sessions" } })
+        );
+      } catch {}
+      await getAllCached<Session>("sessions", { force: true });
+      const updatedCurrent = uniqueTargets.get(session.id);
+      if (updatedCurrent) {
+        setSession(updatedCurrent);
+        await recomputePrevWeekSets(updatedCurrent);
+      } else {
+        await recomputePrevWeekSets(session);
+      }
+      setPrevBestLoading(true);
+      const allSessions = await db.getAll<Session>("sessions");
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      setPrevBestLoading(false);
+      setWipeSheetOpen(false);
+      setWipeConfirmValue("");
+      setWipeCounts(null);
+      try {
+        (navigator as any).vibrate?.(18);
+      } catch {}
+      const sessionCount = uniqueTargets.size;
+      push({
+        message: `Erased ${pluralize(totalSets, "set")} across ${pluralize(
+          totalExercises,
+          "exercise"
+        )} in ${pluralize(sessionCount, "session")}`,
+      });
+    } catch (err) {
+      console.error("[Sessions] Failed to erase sessions", err);
+      setWipeError("Unable to erase right now. Please try again.");
+    } finally {
+      setWipeBusy(false);
+    }
+  };
+
   const updateEntry = (entry: SessionEntry) => {
     if (!session) return;
     const prevSession = session;
@@ -3547,6 +4035,19 @@ export default function Sessions() {
                       title="Copy previous session"
                     >
                       Copy Last
+                    </button>
+                    <button
+                      className="tool-btn !px-3 !py-1.5 !border-rose-400/40 !text-rose-100 hover:!bg-rose-500/20"
+                      onClick={() => {
+                        if (wipeBusy) return;
+                        setWipeScope("day");
+                        setWipeConfirmValue("");
+                        setWipeError(null);
+                        setWipeSheetOpen(true);
+                      }}
+                      title="Erase logged data for this session, week, or phase"
+                    >
+                      Erase Data
                     </button>
                   </>
                 )}
@@ -5574,6 +6075,19 @@ export default function Sessions() {
           ) : undefined
         }
         maxListHeight={520}
+      />
+
+      <OptionSheet
+        open={wipeSheetOpen}
+        title="Erase logged training"
+        description="Choose the scope to wipe and confirm the phrase to proceed."
+        onClose={() => {
+          if (wipeBusy) return;
+          setWipeSheetOpen(false);
+        }}
+        options={wipeOptions}
+        highlight={wipeHighlight}
+        initialFocus="list"
       />
 
       <div>
