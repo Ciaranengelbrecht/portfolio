@@ -903,33 +903,47 @@ export default function Sessions() {
         setAutoNavDone(true);
         return;
       }
-      // Filter by current phase (legacy sessions may store phase or phaseNumber)
       const byPhase = all.filter(
         (s) => (s.phaseNumber || s.phase || 1) === phase
       );
-      // Determine weeks with real data (any set with weight>0 or reps>0)
-      const weekHasData = new Map<number, boolean>();
+      const activityMs = (s: Session) => {
+        const t = (v?: string) => (v ? new Date(v).getTime() || 0 : 0);
+        return Math.max(
+          t(s.loggedEndAt),
+          t(s.loggedStartAt),
+          t(s.updatedAt),
+          t(s.createdAt),
+          t(s.dateISO)
+        );
+      };
+      const weekActivity = new Map<number, number>();
       for (const s of byPhase) {
         const real = s.entries.some((e) =>
           e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
         );
-        if (real) {
-          weekHasData.set(s.weekNumber, true);
-        }
+        if (!real || typeof s.weekNumber !== "number") continue;
+        const ms = activityMs(s);
+        const prev = weekActivity.get(s.weekNumber) ?? -Infinity;
+        if (ms > prev) weekActivity.set(s.weekNumber, ms);
       }
-      if (weekHasData.size === 0) {
-        // stay on current (default 1)
+      if (!weekActivity.size) {
         setAutoNavDone(true);
         return;
       }
-      // Highest week in this phase with data
-      const targetWeek = [...weekHasData.keys()].sort((a, b) => a - b).pop()!;
+      let targetWeek = week;
+      let targetActivity = -Infinity;
+      for (const [wk, ms] of weekActivity.entries()) {
+        if (ms > targetActivity || (ms === targetActivity && wk > targetWeek)) {
+          targetWeek = wk;
+          targetActivity = ms;
+        }
+      }
       if (targetWeek !== week) {
-        setWeek(targetWeek);
+        setWeek(targetWeek as any);
       }
       setAutoNavDone(true);
     })();
-  }, [phase, autoNavDone]);
+  }, [phase, autoNavDone, week]);
 
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
   useEffect(() => {
