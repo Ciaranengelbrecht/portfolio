@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useRef,
+  useCallback,
+  type MouseEvent,
+} from "react";
 import { db } from "../lib/db";
 import { getAllCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
@@ -3834,6 +3841,21 @@ export default function Sessions() {
             const nameTextClass = isCollapsed
               ? "whitespace-normal break-words pr-1"
               : "truncate max-w-[56vw] sm:max-w-none";
+            const handleCardSurfaceClick = (
+              event: MouseEvent<HTMLDivElement>
+            ) => {
+              if (event.defaultPrevented) return;
+              const target = event.target as HTMLElement | null;
+              if (!target) return;
+              if (
+                target.closest(
+                  'button, input, select, textarea, label, a, [data-history-trigger="true"], [data-prevent-card-toggle="true"], [contenteditable="true"]'
+                )
+              ) {
+                return;
+              }
+              toggleEntryCollapsed(entry.id);
+            };
             return (
               <div
                 key={entry.id}
@@ -3898,26 +3920,14 @@ export default function Sessions() {
                     passive: true,
                   });
                 }}
+                onClick={handleCardSurfaceClick}
               >
                 {/* Glow layers */}
                 <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
                   <div className="absolute inset-px rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_25%_20%,rgba(0,185,255,0.18),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(77,91,255,0.15),transparent_60%)]" />
                   <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand-500/15 via-electric-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <div
-                  className="relative z-10"
-                  onClick={(e) => {
-                    const target = e.target as HTMLElement | null;
-                    if (
-                      target &&
-                      target.closest('[data-history-trigger="true"]')
-                    )
-                      return;
-                    if (e.defaultPrevented) return;
-                    toggleEntryCollapsed(entry.id);
-                  }}
-                  role="group"
-                >
+                <div className="relative z-10" role="group">
                   <div
                     className="flex items-start justify-between gap-2 cursor-pointer select-none"
                     aria-expanded={!isCollapsed}
@@ -3940,6 +3950,7 @@ export default function Sessions() {
                     <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0">
                       <span
                         className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle"
+                        data-prevent-card-toggle="true"
                         title="Drag to reorder"
                         aria-label="Drag to reorder"
                       >
@@ -4233,6 +4244,7 @@ export default function Sessions() {
                         ease: [0.32, 0.72, 0.33, 1],
                       }}
                       style={{ overflow: "hidden" }}
+                      data-prevent-card-toggle="true"
                     >
                       {/* Sets - mobile friendly list */}
                       <div
