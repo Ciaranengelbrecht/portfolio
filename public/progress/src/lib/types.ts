@@ -297,6 +297,10 @@ export interface GuidedTemplateDraft {
   name: string;
   exerciseIds: string[];
   focusMuscles: MuscleGroup[];
+  /** Link back to the scheduled day this draft represents */
+  scheduleDayId?: string;
+  /** Zero-based index within the 7-day schedule */
+  scheduleIndex?: number;
   plan: {
     exerciseId: string;
     plannedSets: number;

@@ -9,10 +9,14 @@ import {
   GuidedSetupState,
   GuidedTemplateDraft,
   MuscleGroup,
+  Session,
+  SessionEntry,
+  SetEntry,
   Settings,
   Template,
   TrainingExperienceLevel,
   TrainingGoalEmphasis,
+  UserProgram,
   VolumePreferenceLevel,
 } from "../../lib/types";
 import {
@@ -319,7 +323,7 @@ export default function GuidedSetupWizard({
   };
 
   const handleFinish = async () => {
-    if (!planPreview || !settings) return;
+    if (!settings) return;
     setSaving(true);
     try {
       const now = new Date().toISOString();
@@ -328,11 +332,41 @@ export default function GuidedSetupWizard({
       await Promise.all(
         templatesToSave.map((template) => db.put("templates", template))
       );
-      const result = await archiveCurrentProgram(plan.program);
-      if (!result) {
-        await saveProfileProgram(plan.program);
-      }
-      setProgram(plan.program);
+      const schedule = plan.schedule;
+      const templateByScheduleId = new Map<string, GuidedTemplateDraft>();
+      const templateByIndex = new Map<number, GuidedTemplateDraft>();
+      plan.templates.forEach((draft) => {
+        if (draft.scheduleDayId) {
+          templateByScheduleId.set(draft.scheduleDayId, draft);
+        }
+        if (typeof draft.scheduleIndex === "number") {
+          templateByIndex.set(draft.scheduleIndex, draft);
+        }
+      });
+      const weeklySplitWithTemplates = plan.program.weeklySplit.map(
+        (day, idx) => {
+          const scheduleDay = schedule[idx];
+          if (!scheduleDay) return { ...day };
+          const draft =
+            (scheduleDay.id && templateByScheduleId.get(scheduleDay.id)) ||
+            templateByIndex.get(idx);
+          return {
+            ...day,
+            customLabel: scheduleDay.label || day.customLabel,
+            templateId:
+              scheduleDay.type !== "Rest" && draft ? draft.id : undefined,
+          };
+        }
+      );
+      const programToSave: UserProgram = {
+        ...plan.program,
+        weekLengthDays: schedule.length,
+        weeklySplit: weeklySplitWithTemplates,
+        updatedAt: now,
+      };
+      const trainingDayCount = weeklySplitWithTemplates.filter(
+        (d) => d.type !== "Rest"
+      ).length;
       const nextSettings: Settings = {
         ...settings,
         volumeTargets: {
@@ -341,6 +375,7 @@ export default function GuidedSetupWizard({
         },
         progress: {
           ...(settings.progress || {}),
+          weeklyTargetDays: trainingDayCount,
           guidedSetup: {
             completed: true,
             lastCompletedStep: STEP_TITLES.length - 1,
@@ -349,6 +384,18 @@ export default function GuidedSetupWizard({
           },
         },
       };
+      await populateGuidedSessions({
+        program: programToSave,
+        schedule,
+        templates: templatesToSave,
+        exercises,
+        settings: nextSettings,
+      });
+      const result = await archiveCurrentProgram(programToSave);
+      if (!result) {
+        await saveProfileProgram(programToSave);
+      }
+      setProgram(programToSave);
       await setSettings(nextSettings);
       setSettingsState(nextSettings);
       push({
@@ -974,6 +1021,134 @@ async function prepareTemplates(
       },
     })),
   }));
+}
+
+function sessionHasMeaningfulWork(session?: Session | null): boolean {
+  if (!session || !Array.isArray(session.entries)) return false;
+  return session.entries.some((entry) =>
+    Array.isArray(entry.sets)
+      ? entry.sets.some((set) => {
+          const weight = Number(set?.weightKg ?? 0);
+          const reps = Number(set?.reps ?? 0);
+          const rpe = Number(set?.rpe ?? 0);
+          return weight > 0 || reps > 0 || rpe > 0;
+        })
+      : false
+  );
+}
+
+async function populateGuidedSessions({
+  program,
+  schedule,
+  templates,
+  exercises,
+  settings,
+}: {
+  program: UserProgram;
+  schedule: GuidedSetupScheduleDay[];
+  templates: Template[];
+  exercises: Exercise[];
+  settings: Settings | null;
+}) {
+  try {
+    const templateMap = new Map(templates.map((tpl) => [tpl.id, tpl]));
+    const exerciseMap = new Map(exercises.map((ex) => [ex.id, ex]));
+    const scheduleByIndex = new Map(schedule.map((day, idx) => [idx, day]));
+    const today = new Date();
+    const localDate = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const dateISO = midnight.toISOString();
+
+    for (let idx = 0; idx < program.weeklySplit.length; idx++) {
+      const dayMeta = program.weeklySplit[idx];
+      if (!dayMeta || dayMeta.type === "Rest" || !dayMeta.templateId) continue;
+      const template = templateMap.get(dayMeta.templateId);
+      if (!template) continue;
+      const sessionId = `1-1-${idx}`;
+      const existing = await db.get<Session>("sessions", sessionId);
+      if (existing && sessionHasMeaningfulWork(existing)) continue;
+
+      const planMap = new Map(
+        (template.plan || []).map((p) => [p.exerciseId, p])
+      );
+      const rawOrder = template.exerciseIds?.length
+        ? template.exerciseIds
+        : (template.plan || []).map((p) => p.exerciseId);
+      const orderedExerciseIds = Array.from(new Set(rawOrder));
+
+      const entries: SessionEntry[] = orderedExerciseIds
+        .map((exerciseId) => {
+          const exercise = exerciseMap.get(exerciseId);
+          const plan = planMap.get(exerciseId);
+          const fallbackSets =
+            settings?.defaultSetRows ?? exercise?.defaults?.sets ?? 3;
+          const desiredSets = plan?.plannedSets ?? fallbackSets;
+          const setCount = Math.max(
+            1,
+            Math.min(6, Math.round(Number(desiredSets) || 0))
+          );
+          if (!setCount || Number.isNaN(setCount)) return null;
+          const sets: SetEntry[] = Array.from({ length: setCount }, (_, i) => ({
+            setNumber: i + 1,
+            weightKg: 0,
+            reps: 0,
+          }));
+          if (!sets.length) return null;
+          const entry: SessionEntry = {
+            id: nanoid(),
+            exerciseId,
+            sets,
+          };
+          if (plan?.repRange) {
+            entry.targetRepRange = plan.repRange;
+          }
+          return entry;
+        })
+        .filter(Boolean) as SessionEntry[];
+      if (!entries.length) continue;
+
+      const scheduleDay = scheduleByIndex.get(idx);
+      const dayLabel =
+        dayMeta.customLabel || scheduleDay?.label || dayMeta.type || `Day ${idx + 1}`;
+      const nowISO = new Date().toISOString();
+
+      if (existing) {
+        const updated: Session = {
+          ...existing,
+          entries,
+          templateId: template.id,
+          autoImportedTemplateId: template.id,
+          dayName: dayLabel,
+          programId: program.id,
+          updatedAt: nowISO,
+        };
+        await db.put("sessions", updated);
+        continue;
+      }
+
+      const newSession: Session = {
+        id: sessionId,
+        dateISO,
+        localDate,
+        weekNumber: 1,
+        phase: 1,
+        phaseNumber: 1,
+        templateId: template.id,
+        autoImportedTemplateId: template.id,
+        dayName: dayLabel,
+        programId: program.id,
+        entries,
+        createdAt: nowISO,
+        updatedAt: nowISO,
+      };
+      await db.put("sessions", newSession);
+    }
+  } catch (err) {
+    console.warn("[guided-setup] session population skipped", err);
+  }
 }
 
 function GuidanceCard({

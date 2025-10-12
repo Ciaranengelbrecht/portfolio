@@ -261,14 +261,21 @@ export function generateProgram(
     trainingDays[0]?.type || "Program",
   ];
   const weeklySplit = schedule.map((day) => {
-    if (day.type === "Rest") return { type: "Rest" as DayLabel };
+    if (day.type === "Rest") {
+      return {
+        type: "Rest" as DayLabel,
+        customLabel: day.label || `${day.type}`,
+      };
+    }
     if (day.type === "Custom") {
       return {
         type: "Custom" as DayLabel,
         customLabel: day.label,
       };
     }
-    const customLabel = day.note
+    const customLabel = day.label
+      ? day.label
+      : day.note
       ? `${day.type} – ${day.note.replace(/\s+•.*/, "")}`
       : undefined;
     return {
@@ -320,7 +327,8 @@ export function buildTemplateDrafts(
   const repRange =
     goal === "strength" ? "4-6" : goal === "hypertrophy" ? "8-12" : "6-10";
 
-  for (const day of schedule) {
+  for (let scheduleIndex = 0; scheduleIndex < schedule.length; scheduleIndex++) {
+    const day = schedule[scheduleIndex];
     if (day.type === "Rest") continue;
     const focus = day.focusMuscles.length
       ? day.focusMuscles
@@ -379,6 +387,8 @@ export function buildTemplateDrafts(
       name: day.label.replace(/ – .*/, ""),
       exerciseIds: uniqueExerciseIds,
       focusMuscles: focus,
+      scheduleDayId: day.id,
+      scheduleIndex,
       plan: planEntries,
       note,
       highlights,
