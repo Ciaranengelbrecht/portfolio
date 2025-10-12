@@ -85,13 +85,7 @@ const formatChartTooltipLabel = (value: string | number) => {
   return LONG_DATE_FORMATTER.format(date);
 };
 
-const OVERLAY_COLORS = [
-  "#3b82f6",
-  "#ef4444",
-  "#22c55e",
-  "#f59e0b",
-  "#a855f7",
-];
+const OVERLAY_COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#a855f7"];
 
 const buildTickValues = (points: Array<{ date: string }>) => {
   if (!points || points.length === 0) return [] as string[];
@@ -718,19 +712,19 @@ export default function Measurements() {
   }, [overlaySeries, primaryKey, weightSeries]);
 
   const chartSeries = primarySeries.length ? primarySeries : weightSeries;
-  const xTickValues = useMemo(() => buildTickValues(chartSeries), [chartSeries]);
+  const xTickValues = useMemo(
+    () => buildTickValues(chartSeries),
+    [chartSeries]
+  );
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const pointerActiveRef = useRef(false);
-  const [scrub, setScrub] = useState<
-    | {
-        date: string;
-        label: string;
-        payload: any[];
-        cursorX: number;
-      }
-    | null
-  >(null);
+  const [scrub, setScrub] = useState<{
+    date: string;
+    label: string;
+    payload: any[];
+    cursorX: number;
+  } | null>(null);
 
   const computePayloadForDate = useCallback(
     (dateISO: string, basePoint: { value: number }) => {
@@ -1552,7 +1546,8 @@ export default function Measurements() {
                     {overlayKeys.map((k, i) => {
                       const sObj = overlaySeries[k as string];
                       const lineData = smoothing ? sObj?.avg : sObj?.raw;
-                      const strokeColor = OVERLAY_COLORS[i % OVERLAY_COLORS.length];
+                      const strokeColor =
+                        OVERLAY_COLORS[i % OVERLAY_COLORS.length];
                       if (!lineData) return null;
                       return (
                         <RC.Line
@@ -1598,7 +1593,9 @@ export default function Measurements() {
                         const sObj = overlaySeries[k as string];
                         if (!sObj) return null;
                         const dataset = smoothing ? sObj.avg : sObj.raw;
-                        const entry = dataset?.find((p: any) => p.date === scrub.date);
+                        const entry = dataset?.find(
+                          (p: any) => p.date === scrub.date
+                        );
                         if (!entry) return null;
                         const value = smoothing ? entry.avg : entry.value;
                         if (value == null) return null;
@@ -1619,7 +1616,9 @@ export default function Measurements() {
                 <div
                   ref={overlayRef}
                   className={`absolute inset-0 z-10 ${
-                    chartSeries.length ? "cursor-crosshair" : "pointer-events-none"
+                    chartSeries.length
+                      ? "cursor-crosshair"
+                      : "pointer-events-none"
                   }`}
                   style={{ touchAction: chartSeries.length ? "pan-y" : "auto" }}
                   onPointerDown={handlePointerDown}
@@ -2114,8 +2113,12 @@ function ChartCard({
   const sortedData = useMemo(() => {
     return [...data]
       .map((point) => {
-        const ts = point.ts ?? new Date(point.date ?? point.dateISO ?? 0).getTime();
-        const iso = point.date ?? point.dateISO ?? new Date(ts || Date.now()).toISOString();
+        const ts =
+          point.ts ?? new Date(point.date ?? point.dateISO ?? 0).getTime();
+        const iso =
+          point.date ??
+          point.dateISO ??
+          new Date(ts || Date.now()).toISOString();
         return {
           ...point,
           date: iso,
@@ -2129,15 +2132,12 @@ function ChartCard({
 
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const pointerActiveRef = useRef(false);
-  const [scrub, setScrub] = useState<
-    | {
-        index: number;
-        date: string;
-        payload: any[];
-        cursorX: number;
-      }
-    | null
-  >(null);
+  const [scrub, setScrub] = useState<{
+    index: number;
+    date: string;
+    payload: any[];
+    cursorX: number;
+  } | null>(null);
 
   const updateScrubFromClientX = useCallback(
     (clientX: number) => {
@@ -2248,7 +2248,9 @@ function ChartCard({
                   position={scrub ? { x: scrub.cursorX, y: 24 } : undefined}
                   wrapperStyle={{ outline: "none", borderRadius: 12 }}
                   cursor={false}
-                  content={<UnifiedTooltip labelFormatter={formatChartTooltipLabel} />}
+                  content={
+                    <UnifiedTooltip labelFormatter={formatChartTooltipLabel} />
+                  }
                 />
                 {scrub && (
                   <RC.ReferenceLine
