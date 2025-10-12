@@ -8,6 +8,7 @@ import BigFlash from "../components/BigFlash";
 import { db } from "../lib/db";
 import { triggerExportDownload, importFromRawJson } from "../lib/exportImport";
 import { Settings } from "../lib/types";
+import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
 import {
   defaultSettings,
   defaultExercises,
@@ -39,6 +40,7 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
+  const [showGuidedSetup, setShowGuidedSetup] = useState(false);
   const hslToHex = (hsl: string): string => {
     try {
       const m = hsl.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
@@ -399,6 +401,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
+      <GuidedSetupWizard
+        open={showGuidedSetup}
+        onClose={() => setShowGuidedSetup(false)}
+        onComplete={() => setToast("Guided setup ready! Adjust templates anytime under Program settings.")}
+      />
       <Toast
         open={!!toast}
         message={toast || ""}
@@ -410,6 +417,20 @@ export default function SettingsPage() {
         onClose={() => setBigFlash(null)}
       />
       <div className="bg-card rounded-2xl p-4 shadow-soft space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-white">Jump-start your training plan</div>
+            <p className="text-xs text-white/70">
+              Launch the guided setup to craft a personalised split, volume targets, and starter templates in minutes.
+            </p>
+          </div>
+          <button
+            className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+            onClick={() => setShowGuidedSetup(true)}
+          >
+            Launch guided setup
+          </button>
+        </div>
         <div>
           <div className="font-medium mb-1">Rest Timer</div>
           <div className="text-xs text-muted mb-2">
