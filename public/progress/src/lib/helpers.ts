@@ -59,18 +59,14 @@ export async function getSettings(): Promise<Settings> {
     } as any);
   let mutated = false;
   if (!base.ui) {
-    (base as any).ui = { themeMode: "light" };
+    (base as any).ui = { themeMode: "system" };
     mutated = true;
   }
   if (!base.theme) {
-    base = { ...base, theme: "light" };
+    base = { ...base, theme: "dark" };
     mutated = true;
   }
-  const mode = base.ui?.themeMode;
-  if (mode == null || mode === "system") {
-    base = { ...base, ui: { ...(base.ui || {}), themeMode: "light" } };
-    mutated = true;
-  }
+  // Respect user's themeMode; default is 'system' now
   // Backfill new fields if missing
   if (base.reducedMotion == null) (base as any).reducedMotion = false;
   if ((base as any).restTimerTargetSeconds == null) (base as any).restTimerTargetSeconds = 90;
