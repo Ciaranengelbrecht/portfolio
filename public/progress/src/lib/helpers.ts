@@ -39,7 +39,13 @@ export async function getLastWorkingSets(
     prev = older[0];
   }
   const entry = prev?.entries.find((e) => e.exerciseId === exerciseId);
-  return entry?.sets || [];
+  if (!entry?.sets) return [];
+  return entry.sets.map((set, idx) => ({
+    setNumber: idx + 1,
+    weightKg: set.weightKg ?? null,
+    reps: set.reps ?? null,
+    rpe: set.rpe,
+  }));
 }
 
 // Lightweight in-memory cache for settings to avoid repeated IndexedDB reads within a short interval

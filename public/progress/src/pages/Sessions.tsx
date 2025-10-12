@@ -226,12 +226,53 @@ const setHasActualWork = (set?: SetEntry | null) => {
   return weight > 0 || reps > 0;
 };
 
+const setHasRecordedWork = (set?: SetEntry | null) => {
+  if (!setHasActualWork(set)) return false;
+  const completionMs = set?.completedAt ? Date.parse(set.completedAt) : NaN;
+  return Number.isFinite(completionMs) && completionMs > 0;
+};
+
+const sessionRealActivityMs = (session?: Session | null) => {
+  if (!session || session.deletedAt) return 0;
+  let maxMs = 0;
+  if (Array.isArray(session.entries)) {
+    for (const entry of session.entries) {
+      if (!Array.isArray(entry.sets)) continue;
+      for (const set of entry.sets) {
+        if (!setHasRecordedWork(set)) continue;
+        const setMs = set?.completedAt ? Date.parse(set.completedAt) : NaN;
+        if (Number.isFinite(setMs) && setMs > maxMs) {
+          maxMs = setMs;
+        }
+      }
+    }
+  }
+  if (session.workLog) {
+    for (const log of Object.values(session.workLog)) {
+      const count = log?.count ?? 0;
+      if (count >= 2 || (log?.activeMs ?? 0) > 0) {
+        const lastMs = log?.last ? Date.parse(log.last) : NaN;
+        if (Number.isFinite(lastMs) && lastMs > maxMs) {
+          maxMs = lastMs;
+        }
+        const firstMs = log?.first ? Date.parse(log.first) : NaN;
+        if (Number.isFinite(firstMs) && firstMs > maxMs) {
+          maxMs = firstMs;
+        }
+      }
+    }
+  }
+  return maxMs > 0 ? maxMs : 0;
+};
+
 const sessionHasRealWork = (session?: Session | null) => {
   if (!session || session.deletedAt) return false;
-  if (!Array.isArray(session.entries)) return false;
-  return session.entries.some(
-    (entry) => Array.isArray(entry.sets) && entry.sets.some(setHasActualWork)
-  );
+  if (!Array.isArray(session.entries) || session.entries.length === 0)
+    return false;
+  if (!session.entries.some((entry) => entry.sets?.some(setHasActualWork))) {
+    return false;
+  }
+  return sessionRealActivityMs(session) > 0;
 };
 export default function Sessions() {
   const { program } = useProgram();
@@ -838,26 +879,17 @@ export default function Sessions() {
           );
           return /^\d{8}$/.test(d) ? Number(d) : 0;
         };
-        const activityMs = (s: Session) => {
-          const t = (v?: string) => (v ? new Date(v).getTime() || 0 : 0);
-          return Math.max(
-            t(s.loggedEndAt),
-            t(s.loggedStartAt),
-            t(s.updatedAt),
-            t(s.createdAt),
-            t(s.dateISO)
-          );
-        };
         const withData = all.filter(sessionHasRealWork);
         if (!withData.length) {
           lastRealSessionAppliedRef.current = true;
           return;
         }
         withData.sort((a, b) => {
+          const realA = sessionRealActivityMs(a);
+          const realB = sessionRealActivityMs(b);
+          if (realA !== realB) return realB - realA;
           const dv = dayVal(b) - dayVal(a);
           if (dv !== 0) return dv;
-          const av = activityMs(b) - activityMs(a);
-          if (av !== 0) return av;
           if ((b.weekNumber || 0) !== (a.weekNumber || 0))
             return (b.weekNumber || 0) - (a.weekNumber || 0);
           const ad = Number(a.id.split("-")[2] || 0);
@@ -888,7 +920,7 @@ export default function Sessions() {
                 loggedEndAt: s.loggedEndAt,
                 updatedAt: s.updatedAt,
                 createdAt: s.createdAt,
-                activity: activityMs(s),
+                realActivityMs: sessionRealActivityMs(s),
               })
             );
             console.log("Chosen:", chosen.id);
@@ -944,21 +976,11 @@ export default function Sessions() {
       const byPhase = all.filter(
         (s) => (s.phaseNumber || s.phase || 1) === phase
       );
-      const activityMs = (s: Session) => {
-        const t = (v?: string) => (v ? new Date(v).getTime() || 0 : 0);
-        return Math.max(
-          t(s.loggedEndAt),
-          t(s.loggedStartAt),
-          t(s.updatedAt),
-          t(s.createdAt),
-          t(s.dateISO)
-        );
-      };
       const weekActivity = new Map<number, number>();
       for (const s of byPhase) {
         if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number")
           continue;
-        const ms = activityMs(s);
+        const ms = sessionRealActivityMs(s);
         const prev = weekActivity.get(s.weekNumber) ?? -Infinity;
         if (ms > prev) weekActivity.set(s.weekNumber, ms);
       }
@@ -1305,7 +1327,12 @@ export default function Sessions() {
   const duplicateLastSet = (entry: SessionEntry) => {
     const last = [...entry.sets].pop();
     if (!last) return;
-    const clone: SetEntry = { ...last, setNumber: entry.sets.length + 1 };
+    const { completedAt: _completed, addedAt: _added, ...rest } = last;
+    const clone: SetEntry = {
+      ...rest,
+      setNumber: entry.sets.length + 1,
+      addedAt: new Date().toISOString(),
+    };
     updateEntry({ ...entry, sets: [...entry.sets, clone] });
   };
 
@@ -2039,27 +2066,33 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
-    // Update per-day work log
-    try {
-      const d = new Date();
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(d.getDate()).padStart(2, "0")}`;
-      const log = { ...(updated.workLog || {}) } as NonNullable<
-        Session["workLog"]
-      >;
-      const prev = log[key];
-      if (!prev)
-        log[key] = {
-          first: updated.updatedAt!,
-          last: updated.updatedAt!,
-          count: 1,
-        };
-      else
-        log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
-      (updated as any).workLog = log;
-    } catch {}
+    if (hasWorkNow) {
+      // Update per-day work log only when we have recorded work
+      try {
+        const d = new Date();
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+        const log = { ...(updated.workLog || {}) } as NonNullable<
+          Session["workLog"]
+        >;
+        const prev = log[key];
+        if (!prev)
+          log[key] = {
+            first: updated.updatedAt!,
+            last: updated.updatedAt!,
+            count: 1,
+          };
+        else
+          log[key] = {
+            ...prev,
+            last: updated.updatedAt!,
+            count: prev.count + 1,
+          };
+        (updated as any).workLog = log;
+      } catch {}
+    }
     lastLocalEditRef.current = Date.now();
     setSession(updated);
     latestSessionRef.current = updated;
@@ -2216,27 +2249,33 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
-    // Update per-day work log
-    try {
-      const d = new Date();
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(d.getDate()).padStart(2, "0")}`;
-      const log = { ...(updated.workLog || {}) } as NonNullable<
-        Session["workLog"]
-      >;
-      const prev = log[key];
-      if (!prev)
-        log[key] = {
-          first: updated.updatedAt!,
-          last: updated.updatedAt!,
-          count: 1,
-        };
-      else
-        log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
-      (updated as any).workLog = log;
-    } catch {}
+    if (hasWorkNow) {
+      // Update per-day work log
+      try {
+        const d = new Date();
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+        const log = { ...(updated.workLog || {}) } as NonNullable<
+          Session["workLog"]
+        >;
+        const prev = log[key];
+        if (!prev)
+          log[key] = {
+            first: updated.updatedAt!,
+            last: updated.updatedAt!,
+            count: 1,
+          };
+        else
+          log[key] = {
+            ...prev,
+            last: updated.updatedAt!,
+            count: prev.count + 1,
+          };
+        (updated as any).workLog = log;
+      } catch {}
+    }
     lastLocalEditRef.current = Date.now();
     setSession(updated);
     latestSessionRef.current = updated;
@@ -2340,19 +2379,21 @@ export default function Sessions() {
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
       );
     } catch {}
-    const s = await getSettings();
-    await setSettings({
-      ...s,
-      dashboardPrefs: {
-        ...(s.dashboardPrefs || {}),
-        lastLocation: {
-          phaseNumber: phase,
-          weekNumber: week,
-          dayId: day,
-          sessionId: updated.id,
+    if (hasWorkNow) {
+      const s = await getSettings();
+      await setSettings({
+        ...s,
+        dashboardPrefs: {
+          ...(s.dashboardPrefs || {}),
+          lastLocation: {
+            phaseNumber: phase,
+            weekNumber: week,
+            dayId: day,
+            sessionId: updated.id,
+          },
         },
-      },
-    });
+      });
+    }
   };
 
   const createCustomExercise = async (name: string) => {
