@@ -6,10 +6,10 @@
   "display": "standalone",
   "themeColor": "#F5F7FA",
   "themeColorDark": "#F5F7FA",
-  "navigationColor": "#F5F7FA",
-  "navigationColorDark": "#F5F7FA",
-  "navigationDividerColor": "#D7DEE6",
-  "navigationDividerColorDark": "#D7DEE6",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
   "backgroundColor": "#F5F7FA",
   "enableNotifications": true,
   "startUrl": "/progress/dist/index.html",
@@ -19,8 +19,8 @@
     "path": "/Users/CiaranIMCC/Desktop/portfolio/public/progress/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "6",
-  "appVersionCode": 6,
+  "appVersionName": "7",
+  "appVersionCode": 7,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://ciaranengelbrecht.com/progress/manifest.webmanifest",
@@ -49,5 +49,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "6"
+  "appVersion": "7"
 }
