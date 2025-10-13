@@ -499,6 +499,13 @@ export default function Sessions() {
     (async () => {
       try {
         const all = await db.getAll<Session>("sessions");
+        const unique = new Map<string, Session>();
+        for (const item of all) {
+          if (item?.id) unique.set(item.id, item);
+        }
+        if (session?.id) {
+          unique.set(session.id, session);
+        }
         const counts: WipeCounts = {
           weekSessions: 0,
           weekEntries: 0,
@@ -508,7 +515,14 @@ export default function Sessions() {
           phaseSets: 0,
         };
         const programId = session?.programId ?? null;
-        for (const candidate of all) {
+        const targetPhase = session
+          ? getSessionPhaseNumber(session) ?? phaseNumber
+          : phaseNumber;
+        const targetWeek = session
+          ? getSessionWeekNumber(session) ?? weekNumber
+          : weekNumber;
+        for (const candidate of unique.values()) {
+          if (candidate?.deletedAt) continue;
           if (
             programId &&
             candidate.programId &&
@@ -517,7 +531,10 @@ export default function Sessions() {
             continue;
           }
           const candidatePhase = getSessionPhaseNumber(candidate);
-          if (candidatePhase == null || candidatePhase !== phaseNumber) {
+          if (candidatePhase == null || targetPhase == null) {
+            continue;
+          }
+          if (candidatePhase !== targetPhase) {
             continue;
           }
           const entryCount = candidate.entries?.length ?? 0;
@@ -529,7 +546,11 @@ export default function Sessions() {
           counts.phaseEntries += entryCount;
           counts.phaseSets += setCount;
           const candidateWeek = getSessionWeekNumber(candidate);
-          if (candidateWeek != null && candidateWeek === weekNumber) {
+          if (
+            candidateWeek != null &&
+            targetWeek != null &&
+            candidateWeek === targetWeek
+          ) {
             counts.weekSessions += 1;
             counts.weekEntries += entryCount;
             counts.weekSets += setCount;
@@ -3968,18 +3989,18 @@ export default function Sessions() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
               >
-                <button
-                  type="button"
-                  data-testid="erase-session-tools-secondary"
-                  className="tool-btn !border-rose-400/60 !bg-rose-500/15 !px-3 !py-1.5 !font-semibold !text-rose-100 !shadow-[0_0_10px_rgba(244,63,94,0.28)] hover:!bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={!canOpenWipe}
-                  onClick={openEraseSheet}
-                  title={eraseButtonTitle}
-                >
-                  Erase Data
-                </button>
                 {session && (
                   <>
+                    <button
+                      type="button"
+                      data-testid="erase-session-tools"
+                      className="tool-btn !border-rose-400/60 !bg-rose-500/15 !px-3 !py-1.5 !font-semibold !text-rose-100 !shadow-[0_0_10px_rgba(244,63,94,0.28)] hover:!bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={!canOpenWipe}
+                      onClick={openEraseSheet}
+                      title={eraseButtonTitle}
+                    >
+                      Erase Data
+                    </button>
                     <button
                       type="button"
                       className="tool-btn !px-3 !py-1.5"
@@ -4012,21 +4033,6 @@ export default function Sessions() {
                       }
                     >
                       Save
-                    </button>
-                    <button
-                      type="button"
-                      data-testid="erase-session-tools"
-                      className="tool-btn !px-3 !py-1.5 !border-rose-400/60 !text-rose-100 !shadow-[0_0_12px_rgba(244,63,94,0.35)] hover:!bg-rose-500/20"
-                      onClick={() => {
-                        if (wipeBusy) return;
-                        setWipeScope("day");
-                        setWipeConfirmValue("");
-                        setWipeError(null);
-                        setWipeSheetOpen(true);
-                      }}
-                      title="Erase logged data for this session, week, or phase"
-                    >
-                      Erase Data
                     </button>
                     <button
                       type="button"
