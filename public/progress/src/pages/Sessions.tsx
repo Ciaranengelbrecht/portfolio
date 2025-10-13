@@ -3651,6 +3651,14 @@ export default function Sessions() {
     return isoLike;
   };
 
+  const openEraseSheet = () => {
+    if (!session || wipeBusy) return;
+    setWipeScope("day");
+    setWipeConfirmValue("");
+    setWipeError(null);
+    setWipeSheetOpen(true);
+  };
+
   const sessionDuration = (() => {
     // Prefer robust day-scoped duration if available
     const log = session?.workLog;
@@ -3700,6 +3708,10 @@ export default function Sessions() {
     () => (session ? computeSessionPacing(session) : null),
     [session?.id, session?.entries.length]
   );
+  const canOpenWipe = Boolean(session) && !wipeBusy;
+  const eraseButtonTitle = session
+    ? "Erase logged data for this session, week, or phase"
+    : "Load a session to erase data";
   const hasMomentumPanel =
     !initialLoading && session != null && analytics != null;
   const formatMs = (ms: number) => {
@@ -3944,24 +3956,16 @@ export default function Sessions() {
                 ▾
               </span>
             </button>
-            {session && (
-              <button
-                type="button"
-                data-testid="erase-session-tools-primary"
-                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3 py-1.5 font-semibold text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.35)] transition hover:bg-rose-500/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={wipeBusy}
-                onClick={() => {
-                  if (wipeBusy || !session) return;
-                  setWipeScope("day");
-                  setWipeConfirmValue("");
-                  setWipeError(null);
-                  setWipeSheetOpen(true);
-                }}
-                title="Erase logged data for this session, week, or phase"
-              >
-                Erase Data
-              </button>
-            )}
+            <button
+              type="button"
+              data-testid="erase-session-tools-primary"
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3 py-1.5 font-semibold text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.35)] transition hover:bg-rose-500/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!canOpenWipe}
+              onClick={openEraseSheet}
+              title={eraseButtonTitle}
+            >
+              Erase Data
+            </button>
           </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
@@ -3974,6 +3978,16 @@ export default function Sessions() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
               >
+                <button
+                  type="button"
+                  data-testid="erase-session-tools-secondary"
+                  className="tool-btn !border-rose-400/60 !bg-rose-500/15 !px-3 !py-1.5 !font-semibold !text-rose-100 !shadow-[0_0_10px_rgba(244,63,94,0.28)] hover:!bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!canOpenWipe}
+                  onClick={openEraseSheet}
+                  title={eraseButtonTitle}
+                >
+                  Erase Data
+                </button>
                 {session && (
                   <>
                     <button
