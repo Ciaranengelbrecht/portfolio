@@ -33,19 +33,9 @@ export async function sbUpsert(
   data: any
 ) {
   const sk = storageKey(owner, id);
-  // Prefer composite conflict target if available, fallback to legacy 'id'
-  let { error } = await supabase
+  const { error } = await supabase
     .from(table)
-    .upsert({ id: sk, owner, data }, { onConflict: "id,owner" as any });
-  if (
-    error &&
-    String(error.message || "").includes("no unique or exclusion constraint")
-  ) {
-    const res = await supabase
-      .from(table)
-      .upsert({ id: sk, owner, data }, { onConflict: "id" });
-    error = res.error as any;
-  }
+    .upsert({ id: sk, owner, data }, { onConflict: "id" });
   if (error) throw error;
   // Cleanup legacy plain-id row to prevent duplicates. Some self-hosted setups
   // may still have rows without an owner column or with stricter RLS rules;
