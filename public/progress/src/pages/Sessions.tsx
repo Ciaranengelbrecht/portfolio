@@ -3956,16 +3956,6 @@ export default function Sessions() {
                 ▾
               </span>
             </button>
-            <button
-              type="button"
-              data-testid="erase-session-tools-primary"
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3 py-1.5 font-semibold text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.35)] transition hover:bg-rose-500/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!canOpenWipe}
-              onClick={openEraseSheet}
-              title={eraseButtonTitle}
-            >
-              Erase Data
-            </button>
           </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
@@ -6130,22 +6120,8 @@ export default function Sessions() {
         initialFocus="list"
       />
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/80">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3 py-1.5 font-semibold text-rose-100 shadow-[0_0_10px_rgba(244,63,94,0.28)] transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={!canOpenWipe}
-          onClick={openEraseSheet}
-          title={eraseButtonTitle}
-          data-testid="erase-session-tools-footer"
-        >
-          Erase Data
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 font-medium text-white/80 transition hover:border-white/25 hover:bg-white/15 hover:text-white"
-          onClick={() => undoLast()}
-        >
+      <div>
+        <button className="text-xs underline" onClick={() => undoLast()}>
           Undo last action
         </button>
       </div>
