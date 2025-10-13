@@ -3944,6 +3944,24 @@ export default function Sessions() {
                 ▾
               </span>
             </button>
+            {session && (
+              <button
+                type="button"
+                data-testid="erase-session-tools-primary"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-400/60 bg-rose-500/15 px-3 py-1.5 font-semibold text-rose-100 shadow-[0_0_12px_rgba(244,63,94,0.35)] transition hover:bg-rose-500/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={wipeBusy}
+                onClick={() => {
+                  if (wipeBusy || !session) return;
+                  setWipeScope("day");
+                  setWipeConfirmValue("");
+                  setWipeError(null);
+                  setWipeSheetOpen(true);
+                }}
+                title="Erase logged data for this session, week, or phase"
+              >
+                Erase Data
+              </button>
+            )}
           </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
