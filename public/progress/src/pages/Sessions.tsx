@@ -7,7 +7,7 @@ import {
   type MouseEvent,
 } from "react";
 import { db } from "../lib/db";
-import { getAllCached } from "../lib/dataCache";
+import { getAllCached, invalidate } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
 import { requestRealtime } from "../lib/supabaseSync";
 import {
@@ -52,7 +52,7 @@ import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
 
 const KG_TO_LB = 2.2046226218;
 
-function TopMuscleAndContents({
+  await persistSession(updated);
   session,
   exMap,
   exNameCache,
@@ -198,6 +198,46 @@ const getSessionDayIndex = (session: Session): number | null => {
   const [, , dayPart] = (session.id || "").split("-");
   const fallback = Number(dayPart);
   return Number.isFinite(fallback) ? fallback : null;
+};
+
+const MAX_CACHE_ENTRIES = 24;
+const SESSION_TTL_IDLE_MS = 45_000;
+const SESSION_TTL_EDITING_MS = 12_000;
+
+const computeSessionCacheTtl = (editingFieldCount: number) =>
+  editingFieldCount > 0 ? SESSION_TTL_EDITING_MS : SESSION_TTL_IDLE_MS;
+
+const trimCache = (cache: Map<string, any>) => {
+  if (cache.size <= MAX_CACHE_ENTRIES) return;
+  const iterator = cache.keys().next();
+  if (!iterator.done) cache.delete(iterator.value);
+};
+
+const sessionSignature = (sessions: Session[]) =>
+  sessions
+    .map((s) =>
+      [
+        s.id,
+        s.updatedAt || "",
+        s.entries?.length ?? 0,
+        s.loggedEndAt || "",
+      ].join(":")
+    )
+    .join("|");
+
+const exerciseSignature = (exercises: Exercise[]) =>
+  exercises
+    .map((e) => [e.id, (e as any)?.updatedAt || "", e.name || ""].join(":"))
+    .join("|");
+
+const stableHash = (value: any): string => {
+  if (value === null || value === undefined) return "null";
+  if (typeof value !== "object") return String(value);
+  if (Array.isArray(value)) return `[${value.map(stableHash).join(",")}]`;
+  const entries = Object.keys(value)
+    .sort()
+    .map((key) => `${key}:${stableHash(value[key])}`);
+  return `{${entries.join(",")}}`;
 };
 
 type ExerciseHistoryRow = {
@@ -391,6 +431,15 @@ export default function Sessions() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const historyLoadTokenRef = useRef(0);
+  const editingFieldsRef = useRef<Set<string>>(new Set()); // Track focused weight/reps inputs to adapt cache TTL
+  const currentSessionsTtl = useCallback(
+    () => computeSessionCacheTtl(editingFieldsRef.current.size),
+    []
+  );
+  const persistSession = useCallback(async (value: Session) => {
+    await db.put("sessions", value);
+    invalidate("sessions");
+  }, []);
   // Switch Exercise modal state
   const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(
     null
@@ -410,6 +459,46 @@ export default function Sessions() {
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
   const [prevBestLoading, setPrevBestLoading] = useState<boolean>(true);
+  const prevBestCacheRef = useRef(
+    new Map<
+      string,
+      {
+        signature: string;
+        map: {
+          [id: string]: { week: number; set: SetEntry };
+        } | null;
+      }
+    >()
+  );
+  const getPrevBestCached = useCallback(
+    (
+      sessionsList: Session[],
+      phaseNum: number,
+      weekNum: number,
+      dayId: number,
+      templateId: string | null | undefined
+    ) => {
+      const key = `${phaseNum}|${weekNum}|${dayId}|${templateId || "none"}`;
+      const signature = sessionSignature(sessionsList);
+      const cached = prevBestCacheRef.current.get(key);
+      if (cached && cached.signature === signature) {
+        return cached.map;
+      }
+      const computed = buildPrevBestMap(
+        sessionsList,
+        weekNum,
+        phaseNum,
+        dayId
+      );
+      prevBestCacheRef.current.set(key, {
+        signature,
+        map: computed,
+      });
+      trimCache(prevBestCacheRef.current);
+      return computed;
+    },
+    []
+  );
   // Previous week per-exercise set data (same day) for quick reference
   const [prevWeekSets, setPrevWeekSets] = useState<
     Record<string, { weightKg: number | null; reps: number | null }[]>
@@ -422,6 +511,33 @@ export default function Sessions() {
   const [deloadPrescriptions, setDeloadPrescriptions] = useState<
     Record<string, DeloadInfo>
   >({});
+  const deloadCacheRef = useRef(
+    new Map<
+      string,
+      {
+        signature: string;
+        map: Record<string, DeloadInfo>;
+      }
+    >()
+  );
+  const getDeloadCached = useCallback(
+    (
+      cacheKey: string,
+      signature: string,
+      producer: () => Promise<Record<string, DeloadInfo>>
+    ) => {
+      const cached = deloadCacheRef.current.get(cacheKey);
+      if (cached && cached.signature === signature) {
+        return { hit: true as const, map: cached.map };
+      }
+      return producer().then((map) => {
+        deloadCacheRef.current.set(cacheKey, { signature, map });
+        trimCache(deloadCacheRef.current);
+        return { hit: false as const, map };
+      });
+    },
+    []
+  );
   const [deloadLoading, setDeloadLoading] = useState(false);
   const [deloadError, setDeloadError] = useState(false);
   const [autoNavDone, setAutoNavDone] = useState(false);
@@ -574,7 +690,7 @@ export default function Sessions() {
   // Persist collapsed state per-session (mobile UX enhancement)
   useEffect(() => {
     setCollapsedInitialized(false);
-  }, [session?.id]);
+  }, [session?.id, currentSessionsTtl]);
   useEffect(() => {
     if (!session?.id) return;
     if (collapsedInitialized) return;
@@ -724,7 +840,7 @@ export default function Sessions() {
     const rect = target.getBoundingClientRect();
     const destination = rect.top + window.scrollY - extraOffset;
     window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
-  }, []);
+  }, [currentSessionsTtl]);
 
   const activateFocus = useCallback(
     (entryId: string) => {
@@ -1019,7 +1135,10 @@ export default function Sessions() {
       try {
         const [allExercises, allSessions] = await Promise.all([
           getAllCached<Exercise>("exercises", { swr: true }),
-          getAllCached<Session>("sessions", { swr: true }),
+          getAllCached<Session>("sessions", {
+            swr: true,
+            ttlMs: currentSessionsTtl(),
+          }),
         ]);
         const exerciseIds = session.entries.map((e) => e.exerciseId);
         const filteredExercises = allExercises.filter((e) =>
@@ -1049,6 +1168,7 @@ export default function Sessions() {
     program?.id,
     program?.mesoWeeks,
     program?.deload,
+    currentSessionsTtl,
   ]);
 
   // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
@@ -1108,7 +1228,7 @@ export default function Sessions() {
           for (const s of all) {
             if (s.loggedEndAt && s.loggedStartAt) {
               try {
-                await db.put("sessions", s);
+                await persistSession(s);
               } catch {}
             }
           }
@@ -1652,7 +1772,7 @@ export default function Sessions() {
           if (old) {
             s = { ...old, id, phase };
             await db.delete("sessions", oldId);
-            await db.put("sessions", s);
+            await persistSession(s);
           }
         }
         if (!s) {
@@ -1694,7 +1814,7 @@ export default function Sessions() {
             createdAt: nowISO,
             updatedAt: nowISO,
           } as Session;
-          await db.put("sessions", s);
+          await persistSession(s);
           // If there is a templateId, auto-import it
           if (templateMeta?.templateId) {
             try {
@@ -1732,7 +1852,7 @@ export default function Sessions() {
                   entries: newEntries,
                   autoImportedTemplateId: templateMeta.templateId,
                 };
-                await db.put("sessions", s);
+                await persistSession(s);
               }
             } catch (e) {
               console.warn("[Sessions] auto-import template failed", e);
@@ -1803,7 +1923,7 @@ export default function Sessions() {
         // Try to save it in the background
         setTimeout(async () => {
           try {
-            await db.put("sessions", fallbackSession);
+            await persistSession(fallbackSession);
           } catch (putErr) {
             console.warn("[Sessions] failed to save fallback session", putErr);
           }
@@ -1852,7 +1972,7 @@ export default function Sessions() {
     (updated as any).updatedAt = now;
     changed = true;
     if (changed) {
-      await db.put("sessions", updated);
+      await persistSession(updated);
     }
     (updated as any).updatedAt = new Date().toISOString();
     lastLocalEditRef.current = Date.now();
@@ -1992,10 +2112,21 @@ export default function Sessions() {
         setExercises(e);
         // Preload sessions for prev best map (day-aware for better matching)
         setPrevBestLoading(true);
-        const allSessions = await getAllCached<Session>("sessions");
-        setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+        const [allSessions, st] = await Promise.all([
+          getAllCached<Session>("sessions", {
+            ttlMs: currentSessionsTtl(),
+          }),
+          getSettings(),
+        ]);
+        const map = getPrevBestCached(
+          allSessions,
+          phase,
+          week,
+          day,
+          session?.templateId
+        );
+        setPrevBestMap(map);
         setPrevBestLoading(false);
-        const st = await getSettings();
         setSettingsState(st as any);
         setInitialLoading(false);
         // Lazy subscribe to only needed tables
@@ -2090,8 +2221,18 @@ export default function Sessions() {
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
           setPrevBestLoading(true);
-          getAllCached<Session>("sessions", { force: true }).then((all) => {
-            setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+          getAllCached<Session>("sessions", {
+            force: true,
+            ttlMs: currentSessionsTtl(),
+          }).then((all) => {
+            const map = getPrevBestCached(
+              all,
+              phase,
+              week,
+              day,
+              s?.templateId
+            );
+                setPrevBestMap(map);
             setPrevBestLoading(false);
           });
           recomputePrevWeekSets(s);
@@ -2111,7 +2252,14 @@ export default function Sessions() {
           try {
             setPrevBestLoading(true);
             const all = await db.getAll<Session>("sessions");
-            setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+            const map = getPrevBestCached(
+              all,
+              phase,
+              week,
+              day,
+              session?.templateId
+            );
+            setPrevBestMap(map);
             setPrevBestLoading(false);
           } catch {}
           await recomputePrevWeekSets(session);
@@ -2136,7 +2284,14 @@ export default function Sessions() {
       setPrevBestLoading(true);
       try {
         const allSessions = await db.getAll<Session>("sessions");
-        setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+        const map = getPrevBestCached(
+          allSessions,
+          phase,
+          week,
+          day,
+          session?.templateId
+        );
+        setPrevBestMap(map);
       } catch (err) {
         console.error("[Sessions] Error loading prev best map:", err);
         setPrevBestMap(null); // Fallback to empty map
@@ -2462,7 +2617,7 @@ export default function Sessions() {
           0
         );
         const cleared = clearSessionRecord(target, timestamp);
-        await db.put("sessions", cleared);
+        await persistSession(cleared);
         uniqueTargets.set(id, cleared);
       }
       try {
@@ -2470,7 +2625,10 @@ export default function Sessions() {
           new CustomEvent("sb-change", { detail: { table: "sessions" } })
         );
       } catch {}
-      await getAllCached<Session>("sessions", { force: true });
+      await getAllCached<Session>("sessions", {
+        force: true,
+        ttlMs: currentSessionsTtl(),
+      });
       const updatedCurrent = uniqueTargets.get(session.id);
       if (updatedCurrent) {
         setSession(updatedCurrent);
@@ -2480,7 +2638,15 @@ export default function Sessions() {
       }
       setPrevBestLoading(true);
       const allSessions = await db.getAll<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      const templateForCache = updatedCurrent?.templateId ?? session?.templateId;
+      const map = getPrevBestCached(
+        allSessions,
+        phase,
+        week,
+        day,
+        templateForCache
+      );
+      setPrevBestMap(map);
       setPrevBestLoading(false);
       setWipeSheetOpen(false);
       setWipeConfirmValue("");
@@ -2605,7 +2771,7 @@ export default function Sessions() {
     (async () => {
       if (session && program && !session.programId) {
         const updated = { ...session, programId: program.id };
-        await db.put("sessions", updated);
+        await persistSession(updated);
         setSession(updated);
       }
     })();
@@ -2629,21 +2795,38 @@ export default function Sessions() {
           new Set(session.entries.map((entry) => entry.exerciseId))
         );
         const [sessionsData, exercisesData, settingsData] = await Promise.all([
-          getAllCached<Session>("sessions", { swr: true }),
+          getAllCached<Session>("sessions", {
+            swr: true,
+            ttlMs: currentSessionsTtl(),
+          }),
           exercises.length
             ? Promise.resolve(exercises)
             : getAllCached<Exercise>("exercises", { swr: true }),
           settingsState ? Promise.resolve(settingsState) : getSettings(),
         ]);
-        const map = await getDeloadPrescriptionsBulk(
-          exerciseIds,
-          week,
-          { deloadWeeks },
-          {
-            sessions: sessionsData,
-            exercises: exercisesData,
+        const sortedIds = [...exerciseIds].sort();
+        const cacheKey = `${session?.templateId || "none"}|${week}|${sortedIds.join(",")}`;
+        const signature = [
+          sessionSignature(sessionsData),
+          exerciseSignature(exercisesData),
+          stableHash({
+            deloadWeeks: Array.from(deloadWeeks.values()).sort(
+              (a, b) => a - b
+            ),
             settings: settingsData,
-          }
+          }),
+        ].join("#");
+        const { map } = await getDeloadCached(cacheKey, signature, () =>
+          getDeloadPrescriptionsBulk(
+            exerciseIds,
+            week,
+            { deloadWeeks },
+            {
+              sessions: sessionsData,
+              exercises: exercisesData,
+              settings: settingsData,
+            }
+          )
         );
         if (!cancelled) {
           setDeloadPrescriptions(map as Record<string, DeloadInfo>);
@@ -2673,6 +2856,7 @@ export default function Sessions() {
     exercises,
     settingsState,
     deloadWeeks,
+    currentSessionsTtl,
   ]);
 
   const addSet = (entry: SessionEntry) => {
@@ -2761,7 +2945,7 @@ export default function Sessions() {
       actionLabel: "Undo",
       onAction: async () => {
         if (prev) {
-          await db.put("sessions", prev);
+          await persistSession(prev);
           setSession(prev);
         }
       },
@@ -2779,7 +2963,6 @@ export default function Sessions() {
   // Debounced write buffer for session updates to avoid lag while typing
   const pendingRef = useRef<number | null>(null);
   const latestSessionRef = useRef<Session | null>(null);
-  const editingFieldsRef = useRef<Set<string>>(new Set()); // Track focused weight/reps inputs to avoid realtime overwrite
   const lastLocalEditRef = useRef<number>(0); // Timestamp of most recent local mutation
   useEffect(() => {
     latestSessionRef.current = session || null;
@@ -2787,7 +2970,7 @@ export default function Sessions() {
   const flushSession = async () => {
     const sToWrite = latestSessionRef.current;
     if (!sToWrite) return;
-    await db.put("sessions", sToWrite);
+    await persistSession(sToWrite);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -2801,8 +2984,19 @@ export default function Sessions() {
         if (remoteTs > lastLocalEditRef.current) {
           setSession(fresh);
           setPrevBestLoading(true);
-          const all = await getAllCached<Session>("sessions", { force: true });
-          setPrevBestMap(buildPrevBestMap(all, week, phase, day));
+          const all = await getAllCached<Session>("sessions", {
+            force: true,
+            ttlMs: currentSessionsTtl(),
+          });
+          const templateForCache = fresh?.templateId ?? sToWrite?.templateId;
+          const map = getPrevBestCached(
+            all,
+            phase,
+            week,
+            day,
+            templateForCache
+          );
+          setPrevBestMap(map);
           setPrevBestLoading(false);
         }
       }
@@ -2959,10 +3153,10 @@ export default function Sessions() {
       entries: session.entries.filter((e) => e.id !== entryId),
     };
     setSession(updated);
-    await db.put("sessions", updated);
+    await persistSession(updated);
     const undo = async () => {
       setSession(prev);
-      await db.put("sessions", prev);
+      await persistSession(prev);
     };
     setLastAction({ undo });
     push({ message: "Exercise removed", actionLabel: "Undo", onAction: undo });
@@ -3022,7 +3216,7 @@ export default function Sessions() {
     } catch {}
     lastLocalEditRef.current = Date.now();
     setSession(updated);
-    await db.put("sessions", updated);
+  await persistSession(updated);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -3487,6 +3681,7 @@ export default function Sessions() {
         try {
           const allSessions = await getAllCached<Session>("sessions", {
             swr: true,
+            ttlMs: currentSessionsTtl(),
           });
           const rows: ExerciseHistoryRow[] = [];
           for (const s of allSessions) {
@@ -3560,7 +3755,7 @@ export default function Sessions() {
         }
       })();
     },
-    [exMap, exNameCache]
+    [exMap, exNameCache, currentSessionsTtl]
   );
 
   const closeExerciseHistory = useCallback(() => {
@@ -3582,7 +3777,7 @@ export default function Sessions() {
     arr.splice(to, 0, moved);
     const updated = { ...session, entries: arr };
     setSession(updated);
-    await db.put("sessions", updated);
+    await persistSession(updated);
   };
 
   // Manually stamp the session with today's local date (overrides previous date)
@@ -3605,7 +3800,7 @@ export default function Sessions() {
       localDate: localDayStr,
     };
     setSession(updated);
-    await db.put("sessions", updated);
+    await persistSession(updated);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -3618,7 +3813,7 @@ export default function Sessions() {
       message: `Session dated ${displayDate(localDayStr)}`,
       actionLabel: "Undo",
       onAction: async () => {
-        await db.put("sessions", prev);
+        await persistSession(prev);
         setSession(prev);
       },
     });
@@ -3644,7 +3839,7 @@ export default function Sessions() {
       localDate: dateEditValue,
     };
     setSession(updated);
-    await db.put("sessions", updated);
+    await persistSession(updated);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
@@ -3655,7 +3850,7 @@ export default function Sessions() {
       message: `Date set to ${dateEditValue}`,
       actionLabel: "Undo",
       onAction: async () => {
-        await db.put("sessions", prev);
+        await persistSession(prev);
         setSession(prev);
         try {
           window.dispatchEvent(
@@ -4082,7 +4277,7 @@ export default function Sessions() {
                             })),
                           };
                           setSession(copy);
-                          await db.put("sessions", copy);
+                          await persistSession(copy);
                         }
                       }}
                       title="Copy previous session"
@@ -4374,7 +4569,7 @@ export default function Sessions() {
                   })),
                 };
                 setSession(copy);
-                await db.put("sessions", copy);
+                await persistSession(copy);
               }
             }}
           >

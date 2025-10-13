@@ -10,7 +10,7 @@ const TTL_CONFIG: Record<StoreKey, number> = {
   exercises: 60000,   // 60s (mostly static)
   templates: 60000,   // 60s (mostly static)
   settings: 60000,    // 60s (rarely changes)
-  sessions: 10000,    // 10s (frequently updated)
+  sessions: 45000,    // 45s default; overridden dynamically when editing
   measurements: 20000 // 20s (moderately updated)
 };
 
@@ -18,8 +18,9 @@ const PERSIST_PREFIX = 'pp_cache_';
 const SCHEMA_VERSION = 1; // bump when underlying data shape changes
 const SCHEMA_KEY = 'pp_cache_schema_version';
 
-function fresh(entry: CacheEntry, store: StoreKey){ 
-  return (Date.now() - entry.ts) < (TTL_CONFIG[store] || 10000); 
+function fresh(entry: CacheEntry, store: StoreKey, ttlOverride?: number){ 
+  const ttl = ttlOverride ?? TTL_CONFIG[store] ?? 10000;
+  return Date.now() - entry.ts < ttl; 
 }
 
 // Load persisted cache (session scoped for safety; switch to localStorage if you want longer retention)
@@ -46,17 +47,21 @@ function emit(store: StoreKey, type: 'cache-set'|'cache-refresh'){
   if(typeof window!== 'undefined') window.dispatchEvent(new CustomEvent(type,{ detail:{ store } }));
 }
 
-export async function getAllCached<T=any>(store: StoreKey, opts?: { force?: boolean; swr?: boolean }): Promise<T[]> {
+type CacheOpts = { force?: boolean; swr?: boolean; ttlMs?: number };
+
+export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Promise<T[]> {
   const force = opts?.force;
   const swr = opts?.swr;
+  const ttlMs = opts?.ttlMs;
   const existing = cache.get(store);
-  if(!force && existing && fresh(existing, store)) return existing.data as T[];
-  if(swr && existing && !fresh(existing, store)){
+  const isFresh = existing ? fresh(existing, store, ttlMs) : false;
+  if(!force && existing && isFresh) return existing.data as T[];
+  if(swr && existing && !isFresh){
     // return stale and refresh in background
     refresh(store);
     return existing.data as T[];
   }
-  if(swr && existing && !force){
+  if(swr && existing && !force && isFresh){
     // staleWhileRevalidate with not expired yet simply return
     return existing.data as T[];
   }
