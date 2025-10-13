@@ -492,6 +492,7 @@ export default function Sessions() {
   const phaseLabel = `Phase ${phaseNumber}`;
   // Track if we have already auto-picked a latest session to avoid settings lastLocation race overriding it
   const pickedLatestRef = useRef(false);
+  const skipAutoNavRef = useRef(false);
   useEffect(() => {
     if (!wipeSheetOpen) return;
     let cancelled = false;
@@ -589,8 +590,6 @@ export default function Sessions() {
     } catch {}
     if (!initial) {
       initial = {};
-    } else {
-      initial = { ...initial };
     }
     if (Array.isArray(session?.entries)) {
       for (const entry of session.entries) {
@@ -935,6 +934,7 @@ export default function Sessions() {
             }
             setWeek(last.weekNumber as any);
             setDay(last.dayId);
+            skipAutoNavRef.current = true;
           }
           if (debugSessions.current && !last) {
             try {
@@ -1208,7 +1208,11 @@ export default function Sessions() {
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
   useEffect(() => {
     (async () => {
-      if (autoNavDone) return;
+      if (autoNavDone || !initialRouteReady) return;
+      if (skipAutoNavRef.current) {
+        setAutoNavDone(true);
+        return;
+      }
       const all = await db.getAll<Session>("sessions");
       if (!all.length) {
         setAutoNavDone(true);
@@ -1292,7 +1296,7 @@ export default function Sessions() {
       }
       setAutoNavDone(true);
     })();
-  }, [phase, autoNavDone, week]);
+  }, [phase, autoNavDone, week, initialRouteReady]);
 
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
   useEffect(() => {
