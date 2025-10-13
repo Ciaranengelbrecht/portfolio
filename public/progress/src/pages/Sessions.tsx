@@ -2367,6 +2367,117 @@ export default function Sessions() {
     setWipeScope,
   ]);
 
+  const gatherWipeTargets = async (scope: WipeScope): Promise<Session[]> => {
+    if (!session) return [];
+    if (scope === "day") {
+      if (latestSessionRef.current) return [latestSessionRef.current];
+      return [session];
+    }
+    const all = await db.getAll<Session>("sessions");
+    const programId = session.programId ?? null;
+    const targetPhase = getSessionPhaseNumber(session) ?? phaseNumber ?? null;
+    const targetWeek = getSessionWeekNumber(session) ?? weekNumber ?? null;
+    return all.filter((candidate) => {
+      const candidatePhase = getSessionPhaseNumber(candidate);
+      if (candidatePhase == null || targetPhase == null) return false;
+      if (candidatePhase !== targetPhase) return false;
+      if (programId && candidate.programId && candidate.programId !== programId)
+        return false;
+      if (scope === "week") {
+        const candidateWeek = getSessionWeekNumber(candidate);
+        if (candidateWeek == null || targetWeek == null) return false;
+        return candidateWeek === targetWeek;
+      }
+      return true;
+    });
+  };
+
+  const executeWipe = async () => {
+    if (!session) return;
+    const expected = confirmationTokens[wipeScope];
+    if (wipeConfirmValue.trim() !== expected) {
+      setWipeError("Type the exact confirmation phrase to continue.");
+      return;
+    }
+    if (wipeScope !== "day" && !wipeCounts) {
+      setWipeError(
+        "Still calculating how much will be erased. Try again in a moment."
+      );
+      return;
+    }
+    if (wipeBusy) return;
+    setWipeBusy(true);
+    setWipeError(null);
+    try {
+      if (pendingRef.current) {
+        window.clearTimeout(pendingRef.current);
+        pendingRef.current = null;
+      }
+      await flushSession();
+      const targets = await gatherWipeTargets(wipeScope);
+      if (!targets.length) {
+        push({ message: "Nothing to erase." });
+        setWipeSheetOpen(false);
+        setWipeConfirmValue("");
+        setWipeBusy(false);
+        setWipeCounts(null);
+        return;
+      }
+      const timestamp = new Date().toISOString();
+      let totalExercises = 0;
+      let totalSets = 0;
+      const uniqueTargets = new Map<string, Session>();
+      for (const target of targets) {
+        uniqueTargets.set(target.id, target);
+      }
+      for (const [id, target] of uniqueTargets) {
+        totalExercises += target.entries?.length ?? 0;
+        totalSets += (target.entries || []).reduce(
+          (sum, entry) => sum + (entry.sets?.length ?? 0),
+          0
+        );
+        const cleared = clearSessionRecord(target, timestamp);
+        await db.put("sessions", cleared);
+        uniqueTargets.set(id, cleared);
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "sessions" } })
+        );
+      } catch {}
+      await getAllCached<Session>("sessions", { force: true });
+      const updatedCurrent = uniqueTargets.get(session.id);
+      if (updatedCurrent) {
+        setSession(updatedCurrent);
+        await recomputePrevWeekSets(updatedCurrent);
+      } else {
+        await recomputePrevWeekSets(session);
+      }
+      setPrevBestLoading(true);
+      const allSessions = await db.getAll<Session>("sessions");
+      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
+      setPrevBestLoading(false);
+      setWipeSheetOpen(false);
+      setWipeConfirmValue("");
+      setWipeCounts(null);
+      try {
+        (navigator as any).vibrate?.(18);
+      } catch {}
+      const sessionCount = uniqueTargets.size;
+      push({
+        message: `Erased ${pluralize(totalSets, "set")} across ${pluralize(
+          totalExercises,
+          "exercise"
+        )} in ${pluralize(sessionCount, "session")}`,
+      });
+    } catch (err) {
+      console.error("[Sessions] Failed to erase sessions", err);
+      setWipeError("Unable to erase right now. Please try again.");
+    } finally {
+      setWipeBusy(false);
+    }
+  };
+
   const wipeHighlight = useMemo(() => {
     return (
       <form
@@ -2725,117 +2836,6 @@ export default function Sessions() {
     delete (sanitized as any).loggedEndAt;
     delete (sanitized as any).workLog;
     return sanitized;
-  };
-
-  const gatherWipeTargets = async (scope: WipeScope): Promise<Session[]> => {
-    if (!session) return [];
-    if (scope === "day") {
-      if (latestSessionRef.current) return [latestSessionRef.current];
-      return [session];
-    }
-    const all = await db.getAll<Session>("sessions");
-    const programId = session.programId ?? null;
-    const targetPhase = getSessionPhaseNumber(session) ?? phaseNumber ?? null;
-    const targetWeek = getSessionWeekNumber(session) ?? weekNumber ?? null;
-    return all.filter((candidate) => {
-      const candidatePhase = getSessionPhaseNumber(candidate);
-      if (candidatePhase == null || targetPhase == null) return false;
-      if (candidatePhase !== targetPhase) return false;
-      if (programId && candidate.programId && candidate.programId !== programId)
-        return false;
-      if (scope === "week") {
-        const candidateWeek = getSessionWeekNumber(candidate);
-        if (candidateWeek == null || targetWeek == null) return false;
-        return candidateWeek === targetWeek;
-      }
-      return true;
-    });
-  };
-
-  const executeWipe = async () => {
-    if (!session) return;
-    const expected = confirmationTokens[wipeScope];
-    if (wipeConfirmValue.trim() !== expected) {
-      setWipeError("Type the exact confirmation phrase to continue.");
-      return;
-    }
-    if (wipeScope !== "day" && !wipeCounts) {
-      setWipeError(
-        "Still calculating how much will be erased. Try again in a moment."
-      );
-      return;
-    }
-    if (wipeBusy) return;
-    setWipeBusy(true);
-    setWipeError(null);
-    try {
-      if (pendingRef.current) {
-        window.clearTimeout(pendingRef.current);
-        pendingRef.current = null;
-      }
-      await flushSession();
-      const targets = await gatherWipeTargets(wipeScope);
-      if (!targets.length) {
-        push({ message: "Nothing to erase." });
-        setWipeSheetOpen(false);
-        setWipeConfirmValue("");
-        setWipeBusy(false);
-        setWipeCounts(null);
-        return;
-      }
-      const timestamp = new Date().toISOString();
-      let totalExercises = 0;
-      let totalSets = 0;
-      const uniqueTargets = new Map<string, Session>();
-      for (const target of targets) {
-        uniqueTargets.set(target.id, target);
-      }
-      for (const [id, target] of uniqueTargets) {
-        totalExercises += target.entries?.length ?? 0;
-        totalSets += (target.entries || []).reduce(
-          (sum, entry) => sum + (entry.sets?.length ?? 0),
-          0
-        );
-        const cleared = clearSessionRecord(target, timestamp);
-        await db.put("sessions", cleared);
-        uniqueTargets.set(id, cleared);
-      }
-      try {
-        window.dispatchEvent(
-          new CustomEvent("sb-change", { detail: { table: "sessions" } })
-        );
-      } catch {}
-      await getAllCached<Session>("sessions", { force: true });
-      const updatedCurrent = uniqueTargets.get(session.id);
-      if (updatedCurrent) {
-        setSession(updatedCurrent);
-        await recomputePrevWeekSets(updatedCurrent);
-      } else {
-        await recomputePrevWeekSets(session);
-      }
-      setPrevBestLoading(true);
-      const allSessions = await db.getAll<Session>("sessions");
-      setPrevBestMap(buildPrevBestMap(allSessions, week, phase, day));
-      setPrevBestLoading(false);
-      setWipeSheetOpen(false);
-      setWipeConfirmValue("");
-      setWipeCounts(null);
-      try {
-        (navigator as any).vibrate?.(18);
-      } catch {}
-      const sessionCount = uniqueTargets.size;
-      push({
-        message: `Erased ${pluralize(totalSets, "set")} across ${pluralize(
-          totalExercises,
-          "exercise"
-        )} in ${pluralize(sessionCount, "session")}`,
-      });
-    } catch (err) {
-      console.error("[Sessions] Failed to erase sessions", err);
-      setWipeError("Unable to erase right now. Please try again.");
-    } finally {
-      setWipeBusy(false);
-    }
   };
 
   const updateEntry = (entry: SessionEntry) => {
