@@ -52,7 +52,7 @@ import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
 
 const KG_TO_LB = 2.2046226218;
 
-  await persistSession(updated);
+function TopMuscleAndContents({
   session,
   exMap,
   exNameCache,
