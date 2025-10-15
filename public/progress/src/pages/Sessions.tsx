@@ -4902,16 +4902,17 @@ export default function Sessions() {
                         <div className="flex sm:hidden items-center gap-1 text-[10px] ml-auto shrink-0">
                           <button
                             disabled={entryIdx === 0}
-                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded bg-slate-700 transition-colors disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
+                            aria-label="Move exercise up"
                           >
-                            Up
+                            <span aria-hidden="true">↑</span>
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded bg-slate-700 transition-colors disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
@@ -4921,13 +4922,14 @@ export default function Sessions() {
                                 )
                               )
                             }
+                            aria-label="Move exercise down"
                           >
-                            Down
+                            <span aria-hidden="true">↓</span>
                           </button>
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1 relative min-w-[118px]">
+                    <div className="shrink-0 flex flex-col items-end gap-1 relative min-w-[100px]">
                       {isDeloadWeek && (
                         <div className="w-full flex justify-end mt-1">
                           <span data-shape="deload">
@@ -4942,26 +4944,8 @@ export default function Sessions() {
                       )}
                       <div className="flex items-center gap-1 justify-end w-full">
                         <button
-                          aria-label={
-                            isFocusTarget
-                              ? "Exit focus mode"
-                              : "Focus on this exercise"
-                          }
-                          className={`text-[11px] rounded-xl px-2 py-1 transition-colors duration-150 ${
-                            isFocusTarget
-                              ? "bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600 text-slate-950 shadow-[0_10px_24px_-14px_rgba(16,185,129,0.6)]"
-                              : "bg-slate-800 text-slate-200 hover:bg-slate-700"
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            activateFocus(entry.id);
-                          }}
-                        >
-                          {isFocusTarget ? "Focused" : "Focus"}
-                        </button>
-                        <button
                           aria-label="Switch exercise"
-                          className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-800 text-[13px] text-slate-200 transition-colors hover:bg-slate-700"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSwitchTarget({ entryId: entry.id });
@@ -4969,30 +4953,34 @@ export default function Sessions() {
                           }}
                           title="Switch to a different exercise for this muscle group"
                         >
-                          ⇄
+                          <span aria-hidden="true">⇄</span>
+                          <span className="sr-only">Switch exercise</span>
                         </button>
                         <button
                           aria-label="Remove exercise"
-                          className="text-[11px] bg-slate-800 rounded-xl px-2 py-1"
+                          className="flex h-8 w-8 items-center justify-center rounded-xl border border-rose-500/25 bg-rose-500/15 text-[14px] text-rose-100 transition-colors hover:bg-rose-500/25"
                           onClick={() => removeEntry(entry.id)}
+                          title="Remove exercise"
                         >
-                          Remove
+                          <span aria-hidden="true">✕</span>
+                          <span className="sr-only">Remove exercise</span>
                         </button>
                       </div>
                       {isCollapsed && (
                         <div className="flex sm:hidden items-center gap-1 text-[10px] w-full justify-end">
                           <button
                             disabled={entryIdx === 0}
-                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded bg-slate-700 transition-colors disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
+                            aria-label="Move exercise up"
                           >
-                            Up
+                            <span aria-hidden="true">↑</span>
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="px-2 py-1 rounded bg-slate-700 disabled:opacity-40"
+                            className="flex h-7 w-7 items-center justify-center rounded bg-slate-700 transition-colors disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
@@ -5002,8 +4990,9 @@ export default function Sessions() {
                                 )
                               )
                             }
+                            aria-label="Move exercise down"
                           >
-                            Down
+                            <span aria-hidden="true">↓</span>
                           </button>
                         </div>
                       )}
@@ -5199,28 +5188,31 @@ export default function Sessions() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <button
-                                  className="btn-touch-secondary"
+                                  className="btn-touch-secondary flex h-8 w-8 items-center justify-center"
                                   disabled={idx === 0}
                                   onClick={() =>
                                     reorderSet(entry, idx, idx - 1)
                                   }
+                                  aria-label="Move set up"
                                 >
-                                  Up
+                                  <span aria-hidden="true">↑</span>
                                 </button>
                                 <button
-                                  className="btn-touch-secondary"
+                                  className="btn-touch-secondary flex h-8 w-8 items-center justify-center"
                                   disabled={idx === entry.sets.length - 1}
                                   onClick={() =>
                                     reorderSet(entry, idx, idx + 1)
                                   }
+                                  aria-label="Move set down"
                                 >
-                                  Down
+                                  <span aria-hidden="true">↓</span>
                                 </button>
                                 <button
-                                  className="btn-touch-danger"
+                                  className="btn-touch-danger flex h-8 w-8 items-center justify-center"
                                   onClick={() => deleteSet(entry, idx)}
+                                  aria-label="Delete set"
                                 >
-                                  Del
+                                  <span aria-hidden="true">✕</span>
                                 </button>
                               </div>
                             </div>

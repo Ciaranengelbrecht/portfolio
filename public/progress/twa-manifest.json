@@ -25,6 +25,7 @@
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://ciaranengelbrecht.com/progress/manifest.webmanifest",
   "fallbackType": "customtabs",
+  "provider": "com.android.chrome",
   "features": {
     "playBilling": {
       "enabled": true
