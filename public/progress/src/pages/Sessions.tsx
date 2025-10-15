@@ -484,12 +484,7 @@ export default function Sessions() {
       if (cached && cached.signature === signature) {
         return cached.map;
       }
-      const computed = buildPrevBestMap(
-        sessionsList,
-        weekNum,
-        phaseNum,
-        dayId
-      );
+      const computed = buildPrevBestMap(sessionsList, weekNum, phaseNum, dayId);
       prevBestCacheRef.current.set(key, {
         signature,
         map: computed,
@@ -823,24 +818,27 @@ export default function Sessions() {
     focusPrevCollapsedRef.current = null;
   }, [session]);
 
-  const scrollToExercise = useCallback((entryId: string) => {
-    if (typeof window === "undefined") return;
-    const target = document.getElementById(`exercise-${entryId}`);
-    if (!target) return;
-    let headerOffset = 0;
-    try {
-      const raw = getComputedStyle(document.documentElement)
-        .getPropertyValue("--app-header-h")
-        .trim();
-      const numeric = parseFloat(raw);
-      if (!Number.isNaN(numeric)) headerOffset = numeric;
-    } catch {}
-    const controlHeight = toolbarRef.current?.offsetHeight ?? 0;
-    const extraOffset = headerOffset + controlHeight + 16;
-    const rect = target.getBoundingClientRect();
-    const destination = rect.top + window.scrollY - extraOffset;
-    window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
-  }, [currentSessionsTtl]);
+  const scrollToExercise = useCallback(
+    (entryId: string) => {
+      if (typeof window === "undefined") return;
+      const target = document.getElementById(`exercise-${entryId}`);
+      if (!target) return;
+      let headerOffset = 0;
+      try {
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue("--app-header-h")
+          .trim();
+        const numeric = parseFloat(raw);
+        if (!Number.isNaN(numeric)) headerOffset = numeric;
+      } catch {}
+      const controlHeight = toolbarRef.current?.offsetHeight ?? 0;
+      const extraOffset = headerOffset + controlHeight + 16;
+      const rect = target.getBoundingClientRect();
+      const destination = rect.top + window.scrollY - extraOffset;
+      window.scrollTo({ top: Math.max(0, destination), behavior: "smooth" });
+    },
+    [currentSessionsTtl]
+  );
 
   const activateFocus = useCallback(
     (entryId: string) => {
@@ -2225,14 +2223,8 @@ export default function Sessions() {
             force: true,
             ttlMs: currentSessionsTtl(),
           }).then((all) => {
-            const map = getPrevBestCached(
-              all,
-              phase,
-              week,
-              day,
-              s?.templateId
-            );
-                setPrevBestMap(map);
+            const map = getPrevBestCached(all, phase, week, day, s?.templateId);
+            setPrevBestMap(map);
             setPrevBestLoading(false);
           });
           recomputePrevWeekSets(s);
@@ -2638,7 +2630,8 @@ export default function Sessions() {
       }
       setPrevBestLoading(true);
       const allSessions = await db.getAll<Session>("sessions");
-      const templateForCache = updatedCurrent?.templateId ?? session?.templateId;
+      const templateForCache =
+        updatedCurrent?.templateId ?? session?.templateId;
       const map = getPrevBestCached(
         allSessions,
         phase,
@@ -2805,14 +2798,14 @@ export default function Sessions() {
           settingsState ? Promise.resolve(settingsState) : getSettings(),
         ]);
         const sortedIds = [...exerciseIds].sort();
-        const cacheKey = `${session?.templateId || "none"}|${week}|${sortedIds.join(",")}`;
+        const cacheKey = `${
+          session?.templateId || "none"
+        }|${week}|${sortedIds.join(",")}`;
         const signature = [
           sessionSignature(sessionsData),
           exerciseSignature(exercisesData),
           stableHash({
-            deloadWeeks: Array.from(deloadWeeks.values()).sort(
-              (a, b) => a - b
-            ),
+            deloadWeeks: Array.from(deloadWeeks.values()).sort((a, b) => a - b),
             settings: settingsData,
           }),
         ].join("#");
@@ -3216,7 +3209,7 @@ export default function Sessions() {
     } catch {}
     lastLocalEditRef.current = Date.now();
     setSession(updated);
-  await persistSession(updated);
+    await persistSession(updated);
     try {
       window.dispatchEvent(
         new CustomEvent("sb-change", { detail: { table: "sessions" } })
