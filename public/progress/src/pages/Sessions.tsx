@@ -4696,12 +4696,14 @@ export default function Sessions() {
             const handleCardSurfaceClick = (
               event: MouseEvent<HTMLDivElement>
             ) => {
-              if (event.defaultPrevented) return;
+              if (event.defaultPrevented || event.button !== 0) return;
               const target = event.target as HTMLElement | null;
               if (!target) return;
+              const selection = window.getSelection?.();
+              if (selection && !selection.isCollapsed) return;
               if (
                 target.closest(
-                  'button, input, select, textarea, label, a, [data-history-trigger="true"], [data-prevent-card-toggle="true"], [contenteditable="true"]'
+                  'button, input, select, textarea, label, a, summary, details, [data-history-trigger="true"], [data-card-interactive="true"], [contenteditable="true"]'
                 )
               ) {
                 return;
@@ -4802,7 +4804,7 @@ export default function Sessions() {
                     <div className="font-medium flex items-center gap-2 flex-nowrap min-w-0">
                       <span
                         className="hidden sm:inline-block cursor-grab select-none opacity-40 group-hover:opacity-100 drag-handle"
-                        data-prevent-card-toggle="true"
+                        data-card-interactive="true"
                         title="Drag to reorder"
                         aria-label="Drag to reorder"
                       >
@@ -5085,7 +5087,6 @@ export default function Sessions() {
                         ease: [0.32, 0.72, 0.33, 1],
                       }}
                       style={{ overflow: "hidden" }}
-                      data-prevent-card-toggle="true"
                     >
                       {/* Sets - mobile friendly list */}
                       <div
