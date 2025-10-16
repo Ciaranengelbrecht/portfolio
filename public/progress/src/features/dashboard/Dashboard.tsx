@@ -173,10 +173,7 @@ async function buildMuscleDetailData({
       return detail;
     };
 
-    const ensureSessionDetail = (
-      detail: MuscleDetail,
-      session: Session
-    ) => {
+    const ensureSessionDetail = (detail: MuscleDetail, session: Session) => {
       let existing = detail.sessions.find((s) => s.sessionId === session.id);
       if (existing) return existing;
       const dateKey =
@@ -498,8 +495,7 @@ export default function Dashboard() {
       detailSessionCount: detail?.sessions.length ?? 0,
       detailTotalSets: detail?.totalSets ?? 0,
       summarySets: summary?.sets ?? 0,
-      aggregatedMembers:
-        NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null,
+      aggregatedMembers: NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null,
     });
     if (!detail && !summary) {
       console.warn("[Dashboard] Active muscle missing detail and summary", {
@@ -527,7 +523,8 @@ export default function Dashboard() {
   const modalIconKey =
     activeMuscleDetail?.key ||
     activeMuscleSummary?.key ||
-    modalMuscleKey || "other";
+    modalMuscleKey ||
+    "other";
   const modalTotalSets =
     activeMuscleDetail?.totalSets ?? activeMuscleSummary?.sets ?? 0;
   const modalTotalTonnage =
@@ -682,9 +679,7 @@ export default function Dashboard() {
     const sessions = Array.isArray(sessionsState)
       ? (sessionsState as Session[])
       : [];
-    const exercises = Array.isArray(exercisesState)
-      ? exercisesState
-      : [];
+    const exercises = Array.isArray(exercisesState) ? exercisesState : [];
     const currentWeek = Number.isFinite(week) ? week : null;
     const currentPhase = Number.isFinite(phase) ? phase : null;
     if (!sessions.length || !exercises.length || currentWeek == null) {
@@ -985,696 +980,700 @@ export default function Dashboard() {
   return (
     <>
       <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
-          <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="pointer-events-none absolute -right-12 -bottom-16 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-6">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.38em] text-white/60">
-                Lifetime
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                Training Ledger
-              </h2>
-            </div>
-            {lifetimeHasData ? (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                {lifetimeMetricBlocks.map((item) => (
-                  <div key={item.key} className="space-y-2">
-                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
-                      {item.label}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-semibold text-white/90">
-                        {item.value}
-                      </span>
-                      {item.caption && (
-                        <span className="text-xs uppercase tracking-[0.32em] text-white/50">
-                          {item.caption}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
+            <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -right-12 -bottom-16 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
+            <div className="relative z-10 flex flex-col gap-6">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.38em] text-white/60">
+                  Lifetime
+                </p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                  Training Ledger
+                </h2>
               </div>
-            ) : (
-              <p className="text-sm text-white/70">
-                Log your first session to unlock lifetime insights.
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/85 p-6 text-slate-100 shadow-[0_25px_70px_-50px_rgba(59,130,246,0.55)]">
-          <div className="pointer-events-none absolute -right-16 top-8 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="relative z-10 flex flex-col gap-5">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.38em] text-emerald-200/70">
-                Current Focus
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-white/90">
-                {weeklyTitle}
-              </h2>
-            </div>
-            {weeklyHasData ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {weeklyMetricBlocks.map((item) => (
-                  <div
-                    key={item.key}
-                    className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
-                  >
-                    <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">
-                      {item.label}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-semibold text-white">
-                        {item.value}
+              {lifetimeHasData ? (
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                  {lifetimeMetricBlocks.map((item) => (
+                    <div key={item.key} className="space-y-2">
+                      <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+                        {item.label}
                       </span>
-                      {item.caption && (
-                        <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
-                          {item.caption}
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-semibold text-white/90">
+                          {item.value}
                         </span>
-                      )}
+                        {item.caption && (
+                          <span className="text-xs uppercase tracking-[0.32em] text-white/50">
+                            {item.caption}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-300/80">
-                No tracked sessions for this week yet. Log a workout to see
-                trends instantly.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2 text-label">
-        <SectionToggle label="Training" flag="trainingChart" />
-        <SectionToggle label="Body" flag="bodyChart" />
-        <SectionToggle label="Week Volume" flag="weekVolume" />
-        <SectionToggle label="Phase Totals" flag="phaseTotals" />
-        <SectionToggle label="Compliance" flag="compliance" />
-        <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
-        <SectionToggle label="Session Volume" flag="sessionVolumeTrend" />
-      </div>
-      <AnimatePresence initial={false}>
-        {!hidden?.trainingChart && (
-          <motion.div
-            key="training"
-            className="space-y-2"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <div className="text-subtitle">Training</div>
-            {loading ? (
-              <div className="h-60 rounded-xl bg-white/5 animate-pulse" />
-            ) : (
-              <ChartPanel kind="exercise" />
-            )}
-          </motion.div>
-        )}
-        {!hidden?.bodyChart && (
-          <motion.div
-            key="body"
-            className="space-y-2"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <div className="text-subtitle">Body</div>
-            {loading ? (
-              <div className="h-60 rounded-xl bg-white/5 animate-pulse" />
-            ) : (
-              <ChartPanel kind="measurement" />
-            )}
-          </motion.div>
-        )}
-        {!hidden?.weekVolume && (
-          <motion.div
-            key="weekVol"
-            className="space-y-3"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <div className="text-title">
-              Week {week} Logged Volume{" "}
-              <span className="text-body-sm text-slate-400 ml-1 align-middle">
-                (Weighted Sets)
-              </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-white/70">
+                  Log your first session to unlock lifetime insights.
+                </p>
+              )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(muscleWeek)
-                .sort((a, b) => b[1] - a[1])
-                .map(([m, v]) => {
-                  const tgt = targets[m] || 0;
-                  const pct = tgt ? Math.min(100, (v / tgt) * 100) : 100;
-                  const status = tgt
-                    ? v >= tgt
-                      ? "bg-emerald-500"
-                      : "bg-amber-500"
-                    : "bg-emerald-500";
-                  const prev = (perWeek[week - 1] && perWeek[week - 1][m]) || 0;
-                  const delta = v - prev;
-                  const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "–";
-                  const deltaClass =
-                    delta > 0
-                      ? "text-emerald-400"
-                      : delta < 0
-                      ? "text-red-400"
-                      : "text-gray-400";
-                  const normalizedKey = normalizeMuscleKey(m);
-                  const detailExists = Boolean(
-                    muscleDetailMap[normalizedKey]
-                  );
-                  const summaryExists = Boolean(
-                    muscleVolumeSummary[normalizedKey]
-                  );
-                  const handleClick = () => {
-                    console.log("[Dashboard] Week card clicked", {
-                      muscle: m,
-                      normalizedKey,
-                      sets: v,
-                      prevSets: prev,
-                      detailExists,
-                      summaryExists,
-                    });
-                    openMuscleDetail(m);
-                  };
-                  return (
-                    <motion.div
-                      key={m}
-                      role="button"
-                      tabIndex={0}
-                      onClick={handleClick}
-                      onKeyDown={(evt) => {
-                        if (evt.key === "Enter" || evt.key === " ") {
-                          evt.preventDefault();
-                          handleClick();
-                        }
-                      }}
-                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      transition={{ duration: 0.25 }}
-                      title={`Prev Week: ${prev.toFixed(1)} | Delta: ${
-                        delta >= 0 ? "+" : ""
-                      }${delta.toFixed(1)}`}
+          </div>
+          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/85 p-6 text-slate-100 shadow-[0_25px_70px_-50px_rgba(59,130,246,0.55)]">
+            <div className="pointer-events-none absolute -right-16 top-8 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
+            <div className="relative z-10 flex flex-col gap-5">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.38em] text-emerald-200/70">
+                  Current Focus
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-white/90">
+                  {weeklyTitle}
+                </h2>
+              </div>
+              {weeklyHasData ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {weeklyMetricBlocks.map((item) => (
+                    <div
+                      key={item.key}
+                      className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
                     >
-                      <div className="flex items-center justify-between text-[10px] text-gray-400">
-                        <span className="capitalize flex items-center gap-1">
-                          {m}
-                          <span
-                            className={`inline-flex items-center gap-0.5 ${deltaClass} font-medium`}
-                          >
-                            <span className="leading-none">{arrow}</span>
-                            <span className="tabular-nums">
-                              {delta === 0
-                                ? "0.0"
-                                : `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`}
+                      <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">
+                        {item.label}
+                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl font-semibold text-white">
+                          {item.value}
+                        </span>
+                        {item.caption && (
+                          <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                            {item.caption}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-300/80">
+                  No tracked sessions for this week yet. Log a workout to see
+                  trends instantly.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-label">
+          <SectionToggle label="Training" flag="trainingChart" />
+          <SectionToggle label="Body" flag="bodyChart" />
+          <SectionToggle label="Week Volume" flag="weekVolume" />
+          <SectionToggle label="Phase Totals" flag="phaseTotals" />
+          <SectionToggle label="Compliance" flag="compliance" />
+          <SectionToggle label="Weekly Bar" flag="weeklyMuscleBar" />
+          <SectionToggle label="Session Volume" flag="sessionVolumeTrend" />
+        </div>
+        <AnimatePresence initial={false}>
+          {!hidden?.trainingChart && (
+            <motion.div
+              key="training"
+              className="space-y-2"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="text-subtitle">Training</div>
+              {loading ? (
+                <div className="h-60 rounded-xl bg-white/5 animate-pulse" />
+              ) : (
+                <ChartPanel kind="exercise" />
+              )}
+            </motion.div>
+          )}
+          {!hidden?.bodyChart && (
+            <motion.div
+              key="body"
+              className="space-y-2"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="text-subtitle">Body</div>
+              {loading ? (
+                <div className="h-60 rounded-xl bg-white/5 animate-pulse" />
+              ) : (
+                <ChartPanel kind="measurement" />
+              )}
+            </motion.div>
+          )}
+          {!hidden?.weekVolume && (
+            <motion.div
+              key="weekVol"
+              className="space-y-3"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="text-title">
+                Week {week} Logged Volume{" "}
+                <span className="text-body-sm text-slate-400 ml-1 align-middle">
+                  (Weighted Sets)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.entries(muscleWeek)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([m, v]) => {
+                    const tgt = targets[m] || 0;
+                    const pct = tgt ? Math.min(100, (v / tgt) * 100) : 100;
+                    const status = tgt
+                      ? v >= tgt
+                        ? "bg-emerald-500"
+                        : "bg-amber-500"
+                      : "bg-emerald-500";
+                    const prev =
+                      (perWeek[week - 1] && perWeek[week - 1][m]) || 0;
+                    const delta = v - prev;
+                    const arrow = delta > 0 ? "▲" : delta < 0 ? "▼" : "–";
+                    const deltaClass =
+                      delta > 0
+                        ? "text-emerald-400"
+                        : delta < 0
+                        ? "text-red-400"
+                        : "text-gray-400";
+                    const normalizedKey = normalizeMuscleKey(m);
+                    const detailExists = Boolean(
+                      muscleDetailMap[normalizedKey]
+                    );
+                    const summaryExists = Boolean(
+                      muscleVolumeSummary[normalizedKey]
+                    );
+                    const handleClick = () => {
+                      console.log("[Dashboard] Week card clicked", {
+                        muscle: m,
+                        normalizedKey,
+                        sets: v,
+                        prevSets: prev,
+                        detailExists,
+                        summaryExists,
+                      });
+                      openMuscleDetail(m);
+                    };
+                    return (
+                      <motion.div
+                        key={m}
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleClick}
+                        onKeyDown={(evt) => {
+                          if (evt.key === "Enter" || evt.key === " ") {
+                            evt.preventDefault();
+                            handleClick();
+                          }
+                        }}
+                        className="bg-white/5 rounded-lg px-2 py-2 space-y-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.25 }}
+                        title={`Prev Week: ${prev.toFixed(1)} | Delta: ${
+                          delta >= 0 ? "+" : ""
+                        }${delta.toFixed(1)}`}
+                      >
+                        <div className="flex items-center justify-between text-[10px] text-gray-400">
+                          <span className="capitalize flex items-center gap-1">
+                            {m}
+                            <span
+                              className={`inline-flex items-center gap-0.5 ${deltaClass} font-medium`}
+                            >
+                              <span className="leading-none">{arrow}</span>
+                              <span className="tabular-nums">
+                                {delta === 0
+                                  ? "0.0"
+                                  : `${delta > 0 ? "+" : ""}${delta.toFixed(
+                                      1
+                                    )}`}
+                              </span>
                             </span>
                           </span>
-                        </span>
-                        <span className="tabular-nums">
-                          {v.toFixed(1)}
-                          {tgt ? `/${tgt}` : ""}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
-                        <motion.div
-                          className={`h-full ${status}`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 150,
-                            damping: 26,
-                          }}
-                        />
-                        {tgt ? (
-                          <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">
-                            {Math.round(pct)}%
+                          <span className="tabular-nums">
+                            {v.toFixed(1)}
+                            {tgt ? `/${tgt}` : ""}
                           </span>
-                        ) : null}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              {!Object.keys(muscleWeek).length && (
-                <div className="col-span-full text-[11px] text-gray-500">
-                  No logged sets yet.
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-        {!hidden?.phaseTotals && (
-          <motion.div
-            key="phaseTotals"
-            className="space-y-3"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <div className="text-title">
-              Phase Totals{" "}
-              <span className="text-body-sm text-slate-400 ml-1 align-middle">
-                (Weighted Sets)
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(muscleTotals)
-                .sort((a, b) => b[1] - a[1])
-                .map(([m, v]) => {
-                  const max = Math.max(1, ...Object.values(muscleTotals));
-                  const pct = (v / max) * 100;
-                  return (
-                    <motion.div
-                      key={m}
-                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 4 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      <div className="flex items-center justify-between text-[10px] text-gray-400">
-                        <span className="capitalize">{m}</span>
-                        <span className="tabular-nums">{v.toFixed(1)}</span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
-                        <motion.div
-                          className="h-full bg-indigo-500"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 150,
-                            damping: 26,
-                          }}
-                        />
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              {!Object.keys(muscleTotals).length && (
-                <div className="col-span-full text-[11px] text-gray-500">
-                  No logged sets yet.
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-        {!hidden?.weeklyMuscleBar && (
-          <motion.div
-            key="weeklyBar"
-            className="space-y-3"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <WeeklyMuscleBar />
-          </motion.div>
-        )}
-        {!hidden?.sessionVolumeTrend && (
-          <motion.div
-            key="sessionVolTrend"
-            className="space-y-3"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <GlassCard>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                <div className="font-medium text-sm">
-                  Session Tonnage Trend{" "}
-                  <span className="text-xs text-slate-400 ml-1">
-                    (per selected day across weeks)
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                  <label className="flex items-center gap-1">
-                    Day
-                    <select
-                      className="bg-slate-700 rounded px-1 py-0.5"
-                      value={selectedDay}
-                      onChange={(e) => {
-                        setSelectedDay(Number(e.target.value));
-                      }}
-                    >
-                      {dayLabels.map((lbl, idx) => (
-                        <option key={idx} value={idx}>
-                          {lbl}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-1">
-                    Highlight
-                    <select
-                      className="bg-slate-700 rounded px-1 py-0.5"
-                      value={highlightWeek ?? ""}
-                      onChange={(e) =>
+                        </div>
+                        <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden relative">
+                          <motion.div
+                            className={`h-full ${status}`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 150,
+                              damping: 26,
+                            }}
+                          />
+                          {tgt ? (
+                            <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">
+                              {Math.round(pct)}%
+                            </span>
+                          ) : null}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                {!Object.keys(muscleWeek).length && (
+                  <div className="col-span-full text-[11px] text-gray-500">
+                    No logged sets yet.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+          {!hidden?.phaseTotals && (
+            <motion.div
+              key="phaseTotals"
+              className="space-y-3"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="text-title">
+                Phase Totals{" "}
+                <span className="text-body-sm text-slate-400 ml-1 align-middle">
+                  (Weighted Sets)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.entries(muscleTotals)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([m, v]) => {
+                    const max = Math.max(1, ...Object.values(muscleTotals));
+                    const pct = (v / max) * 100;
+                    return (
+                      <motion.div
+                        key={m}
+                        className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        <div className="flex items-center justify-between text-[10px] text-gray-400">
+                          <span className="capitalize">{m}</span>
+                          <span className="tabular-nums">{v.toFixed(1)}</span>
+                        </div>
+                        <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
+                          <motion.div
+                            className="h-full bg-indigo-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 150,
+                              damping: 26,
+                            }}
+                          />
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                {!Object.keys(muscleTotals).length && (
+                  <div className="col-span-full text-[11px] text-gray-500">
+                    No logged sets yet.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+          {!hidden?.weeklyMuscleBar && (
+            <motion.div
+              key="weeklyBar"
+              className="space-y-3"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <WeeklyMuscleBar />
+            </motion.div>
+          )}
+          {!hidden?.sessionVolumeTrend && (
+            <motion.div
+              key="sessionVolTrend"
+              className="space-y-3"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <GlassCard>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                  <div className="font-medium text-sm">
+                    Session Tonnage Trend{" "}
+                    <span className="text-xs text-slate-400 ml-1">
+                      (per selected day across weeks)
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                    <label className="flex items-center gap-1">
+                      Day
+                      <select
+                        className="bg-slate-700 rounded px-1 py-0.5"
+                        value={selectedDay}
+                        onChange={(e) => {
+                          setSelectedDay(Number(e.target.value));
+                        }}
+                      >
+                        {dayLabels.map((lbl, idx) => (
+                          <option key={idx} value={idx}>
+                            {lbl}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1">
+                      Highlight
+                      <select
+                        className="bg-slate-700 rounded px-1 py-0.5"
+                        value={highlightWeek ?? ""}
+                        onChange={(e) =>
+                          setHighlightWeek(
+                            e.target.value ? Number(e.target.value) : null
+                          )
+                        }
+                      >
+                        <option value="">None</option>
+                        {Object.keys(dayVolumes).map((w) => (
+                          <option key={w} value={w}>
+                            W{w}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      onClick={() =>
                         setHighlightWeek(
-                          e.target.value ? Number(e.target.value) : null
+                          Object.keys(dayVolumes)
+                            .map(Number)
+                            .sort((a, b) => a - b)
+                            .pop() || null
                         )
                       }
+                      className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600"
                     >
-                      <option value="">None</option>
-                      {Object.keys(dayVolumes).map((w) => (
-                        <option key={w} value={w}>
-                          W{w}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    onClick={() =>
-                      setHighlightWeek(
-                        Object.keys(dayVolumes)
-                          .map(Number)
-                          .sort((a, b) => a - b)
-                          .pop() || null
-                      )
-                    }
-                    className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600"
-                  >
-                    Last
-                  </button>
-                </div>
-              </div>
-              {(() => {
-                const weeks = Object.keys(dayVolumes)
-                  .map(Number)
-                  .sort((a, b) => a - b);
-                const rows = weeks.map((w) => ({
-                  week: w,
-                  vol: dayVolumes[w]?.[selectedDay] || 0,
-                }));
-                const vols = rows.map((r) => r.vol).filter((v) => v > 0);
-                const avg = vols.length
-                  ? vols.reduce((a, b) => a + b, 0) / vols.length
-                  : 0;
-                const best = vols.length ? Math.max(...vols) : 0;
-                const last = rows.length ? rows[rows.length - 1].vol : 0;
-                const prev = rows.length > 1 ? rows[rows.length - 2].vol : 0;
-                const delta = prev ? ((last - prev) / prev) * 100 : 0;
-                let slope = 0;
-                if (rows.length > 1) {
-                  const n = rows.length;
-                  const sx = rows.reduce((a, r) => a + r.week, 0);
-                  const sy = rows.reduce((a, r) => a + r.vol, 0);
-                  const sxx = rows.reduce((a, r) => a + r.week * r.week, 0);
-                  const sxy = rows.reduce((a, r) => a + r.week * r.vol, 0);
-                  const denom = n * sxx - sx * sx || 1;
-                  slope = (n * sxy - sx * sy) / denom;
-                }
-                const avgLine = avg; // constant reference line
-                const Chart = RC?.BarChart;
-                const Bar = RC?.Bar;
-                const XAxis = RC?.XAxis;
-                const YAxis = RC?.YAxis;
-                const Tooltip = RC?.Tooltip;
-                const ResponsiveContainer = RC?.ResponsiveContainer;
-                const ReferenceLine = RC?.ReferenceLine;
-                const CartesianGrid = RC?.CartesianGrid;
-                return (
-                  <div>
-                    <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 mb-2">
-                      <div>
-                        Avg{" "}
-                        <span className="text-slate-200 font-medium tabular-nums">
-                          {avg.toFixed(0)}
-                        </span>
-                      </div>
-                      <div>
-                        Best{" "}
-                        <span className="text-slate-200 font-medium tabular-nums">
-                          {best.toFixed(0)}
-                        </span>
-                      </div>
-                      <div>
-                        Last{" "}
-                        <span className="text-slate-200 font-medium tabular-nums">
-                          {last.toFixed(0)}
-                        </span>
-                      </div>
-                      <div>
-                        ΔPrev{" "}
-                        <span
-                          className={`font-medium tabular-nums ${
-                            delta > 0
-                              ? "text-emerald-400"
-                              : delta < 0
-                              ? "text-red-400"
-                              : "text-slate-300"
-                          }`}
-                        >
-                          {prev
-                            ? (delta > 0 ? "+" : "") + delta.toFixed(1) + "%"
-                            : "–"}
-                        </span>
-                      </div>
-                      <div>
-                        Slope{" "}
-                        <span
-                          className={`font-medium tabular-nums ${
-                            slope > 0
-                              ? "text-emerald-400"
-                              : slope < 0
-                              ? "text-red-400"
-                              : "text-slate-300"
-                          }`}
-                        >
-                          {slope.toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-56">
-                      {RC && rows.length ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <Chart
-                            data={rows}
-                            margin={{ left: 4, right: 4, top: 10, bottom: 4 }}
-                            barSize={32}
-                          >
-                            <CartesianGrid
-                              stroke="rgba(255,255,255,0.08)"
-                              vertical={false}
-                            />
-                            <XAxis
-                              dataKey="week"
-                              tick={{ fill: "#94a3b8", fontSize: 10 }}
-                              tickFormatter={(v: number) => "W" + v}
-                              axisLine={false}
-                              tickLine={false}
-                            />
-                            <YAxis
-                              tick={{ fill: "#94a3b8", fontSize: 10 }}
-                              width={40}
-                              axisLine={false}
-                              tickLine={false}
-                              tickFormatter={(v: number) =>
-                                v >= 1000
-                                  ? (v / 1000).toFixed(1) + "k"
-                                  : v.toFixed(0)
-                              }
-                            />
-                            <Tooltip
-                              cursor={{ fill: "rgba(255,255,255,0.06)" }}
-                              content={({ active, payload, label }: any) => {
-                                if (!active || !payload?.length) return null;
-                                const r = payload[0].payload as any;
-                                const prevIdx =
-                                  rows.findIndex((x) => x.week === r.week) - 1;
-                                const prevVol =
-                                  prevIdx >= 0 ? rows[prevIdx].vol : 0;
-                                const dPct = prevVol
-                                  ? ((r.vol - prevVol) / prevVol) * 100
-                                  : 0;
-                                return (
-                                  <div className="text-[11px] bg-slate-800/90 backdrop-blur-md border border-white/10 rounded-md px-2 py-1 space-y-0.5">
-                                    <div className="font-medium text-slate-200">
-                                      Week {r.week}
-                                    </div>
-                                    <div className="tabular-nums">
-                                      Tonnage:{" "}
-                                      <span className="text-slate-100 font-semibold">
-                                        {r.vol.toFixed(0)}
-                                      </span>
-                                    </div>
-                                    <div className="tabular-nums">
-                                      ΔPrev:{" "}
-                                      <span
-                                        className={
-                                          dPct > 0
-                                            ? "text-emerald-400"
-                                            : dPct < 0
-                                            ? "text-red-400"
-                                            : "text-slate-300"
-                                        }
-                                      >
-                                        {prevVol
-                                          ? (dPct > 0 ? "+" : "") +
-                                            dPct.toFixed(1) +
-                                            "%"
-                                          : "–"}
-                                      </span>
-                                    </div>
-                                    <div className="tabular-nums">
-                                      vs Avg:{" "}
-                                      <span
-                                        className={
-                                          r.vol >= avg
-                                            ? "text-emerald-400"
-                                            : "text-amber-400"
-                                        }
-                                      >
-                                        {avg
-                                          ? (
-                                              ((r.vol - avg) / avg) *
-                                              100
-                                            ).toFixed(1) + "%"
-                                          : "–"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              }}
-                            />
-                            <ReferenceLine
-                              y={avgLine}
-                              stroke="#10b981"
-                              strokeDasharray="3 3"
-                              ifOverflow="extendDomain"
-                            />
-                            <Bar
-                              dataKey="vol"
-                              radius={[4, 4, 0, 0]}
-                              fill="#6366f1"
-                            >
-                              {rows.map((entry, i) => {
-                                const hl = highlightWeek === entry.week;
-                                return (
-                                  <RC.Cell
-                                    key={entry.week}
-                                    fill={
-                                      hl
-                                        ? "url(#gradHighlight)"
-                                        : entry.vol === best
-                                        ? "#10b981"
-                                        : "#6366f1"
-                                    }
-                                  />
-                                );
-                              })}
-                            </Bar>
-                            <defs>
-                              <linearGradient
-                                id="gradHighlight"
-                                x1="0"
-                                x2="0"
-                                y1="0"
-                                y2="1"
-                              >
-                                <stop offset="0%" stopColor="#059669" />
-                                <stop offset="100%" stopColor="#065f46" />
-                              </linearGradient>
-                            </defs>
-                          </Chart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-[11px] text-gray-500">
-                          {rows.length ? "Loading chart..." : "No data."}
-                        </div>
-                      )}
-                    </div>
+                      Last
+                    </button>
                   </div>
-                );
-              })()}
-            </GlassCard>
-          </motion.div>
-        )}
-        {!hidden?.compliance && (
-          <motion.div
-            key="compliance"
-            className="bg-card rounded-2xl p-5 shadow-soft space-y-4"
-            variants={maybeDisable(fadeSlideUp)}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <div className="text-title">Phase Weekly Compliance</div>
-            <div className="text-body-sm text-gray-400">
-              Color shows adherence vs target (green &gt;=100%, amber 70-99%,
-              red &lt;70%).
-            </div>
-            <div className="space-y-2">
-              {Object.keys(targets)
-                .filter((m) => targets[m] > 0)
-                .sort()
-                .map((m) => {
-                  const rows = Object.entries(perWeek).sort(
-                    (a, b) => Number(a[0]) - Number(b[0])
-                  );
+                </div>
+                {(() => {
+                  const weeks = Object.keys(dayVolumes)
+                    .map(Number)
+                    .sort((a, b) => a - b);
+                  const rows = weeks.map((w) => ({
+                    week: w,
+                    vol: dayVolumes[w]?.[selectedDay] || 0,
+                  }));
+                  const vols = rows.map((r) => r.vol).filter((v) => v > 0);
+                  const avg = vols.length
+                    ? vols.reduce((a, b) => a + b, 0) / vols.length
+                    : 0;
+                  const best = vols.length ? Math.max(...vols) : 0;
+                  const last = rows.length ? rows[rows.length - 1].vol : 0;
+                  const prev = rows.length > 1 ? rows[rows.length - 2].vol : 0;
+                  const delta = prev ? ((last - prev) / prev) * 100 : 0;
+                  let slope = 0;
+                  if (rows.length > 1) {
+                    const n = rows.length;
+                    const sx = rows.reduce((a, r) => a + r.week, 0);
+                    const sy = rows.reduce((a, r) => a + r.vol, 0);
+                    const sxx = rows.reduce((a, r) => a + r.week * r.week, 0);
+                    const sxy = rows.reduce((a, r) => a + r.week * r.vol, 0);
+                    const denom = n * sxx - sx * sx || 1;
+                    slope = (n * sxy - sx * sy) / denom;
+                  }
+                  const avgLine = avg; // constant reference line
+                  const Chart = RC?.BarChart;
+                  const Bar = RC?.Bar;
+                  const XAxis = RC?.XAxis;
+                  const YAxis = RC?.YAxis;
+                  const Tooltip = RC?.Tooltip;
+                  const ResponsiveContainer = RC?.ResponsiveContainer;
+                  const ReferenceLine = RC?.ReferenceLine;
+                  const CartesianGrid = RC?.CartesianGrid;
                   return (
-                    <div key={m} className="space-y-1">
-                      <div className="text-label text-gray-500 flex justify-between">
-                        <span>{m}</span>
-                        <span className="tabular-nums">{targets[m]}</span>
+                    <div>
+                      <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 mb-2">
+                        <div>
+                          Avg{" "}
+                          <span className="text-slate-200 font-medium tabular-nums">
+                            {avg.toFixed(0)}
+                          </span>
+                        </div>
+                        <div>
+                          Best{" "}
+                          <span className="text-slate-200 font-medium tabular-nums">
+                            {best.toFixed(0)}
+                          </span>
+                        </div>
+                        <div>
+                          Last{" "}
+                          <span className="text-slate-200 font-medium tabular-nums">
+                            {last.toFixed(0)}
+                          </span>
+                        </div>
+                        <div>
+                          ΔPrev{" "}
+                          <span
+                            className={`font-medium tabular-nums ${
+                              delta > 0
+                                ? "text-emerald-400"
+                                : delta < 0
+                                ? "text-red-400"
+                                : "text-slate-300"
+                            }`}
+                          >
+                            {prev
+                              ? (delta > 0 ? "+" : "") + delta.toFixed(1) + "%"
+                              : "–"}
+                          </span>
+                        </div>
+                        <div>
+                          Slope{" "}
+                          <span
+                            className={`font-medium tabular-nums ${
+                              slope > 0
+                                ? "text-emerald-400"
+                                : slope < 0
+                                ? "text-red-400"
+                                : "text-slate-300"
+                            }`}
+                          >
+                            {slope.toFixed(1)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {rows.map(([wk, rec]) => {
-                          const v = rec[m] || 0;
-                          const tgt = targets[m];
-                          const ratio = tgt ? v / tgt : 1;
-                          const color =
-                            ratio >= 1
-                              ? "bg-emerald-600"
-                              : ratio >= 0.7
-                              ? "bg-amber-500"
-                              : "bg-red-600";
-                          return (
-                            <div key={wk} className="flex-1">
-                              <div className="h-8 rounded-md relative overflow-hidden bg-slate-700/40">
-                                <motion.div
-                                  className={`${color} absolute bottom-0 left-0 w-full`}
-                                  initial={{ height: 0 }}
-                                  animate={{
-                                    height: `${Math.min(100, ratio * 100)}%`,
-                                  }}
-                                  transition={{
-                                    type: "spring",
-                                    stiffness: 150,
-                                    damping: 26,
-                                  }}
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center text-[9px] text-white/80 font-medium">
-                                  {v.toFixed(1)}
+                      <div className="h-56">
+                        {RC && rows.length ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <Chart
+                              data={rows}
+                              margin={{ left: 4, right: 4, top: 10, bottom: 4 }}
+                              barSize={32}
+                            >
+                              <CartesianGrid
+                                stroke="rgba(255,255,255,0.08)"
+                                vertical={false}
+                              />
+                              <XAxis
+                                dataKey="week"
+                                tick={{ fill: "#94a3b8", fontSize: 10 }}
+                                tickFormatter={(v: number) => "W" + v}
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <YAxis
+                                tick={{ fill: "#94a3b8", fontSize: 10 }}
+                                width={40}
+                                axisLine={false}
+                                tickLine={false}
+                                tickFormatter={(v: number) =>
+                                  v >= 1000
+                                    ? (v / 1000).toFixed(1) + "k"
+                                    : v.toFixed(0)
+                                }
+                              />
+                              <Tooltip
+                                cursor={{ fill: "rgba(255,255,255,0.06)" }}
+                                content={({ active, payload, label }: any) => {
+                                  if (!active || !payload?.length) return null;
+                                  const r = payload[0].payload as any;
+                                  const prevIdx =
+                                    rows.findIndex((x) => x.week === r.week) -
+                                    1;
+                                  const prevVol =
+                                    prevIdx >= 0 ? rows[prevIdx].vol : 0;
+                                  const dPct = prevVol
+                                    ? ((r.vol - prevVol) / prevVol) * 100
+                                    : 0;
+                                  return (
+                                    <div className="text-[11px] bg-slate-800/90 backdrop-blur-md border border-white/10 rounded-md px-2 py-1 space-y-0.5">
+                                      <div className="font-medium text-slate-200">
+                                        Week {r.week}
+                                      </div>
+                                      <div className="tabular-nums">
+                                        Tonnage:{" "}
+                                        <span className="text-slate-100 font-semibold">
+                                          {r.vol.toFixed(0)}
+                                        </span>
+                                      </div>
+                                      <div className="tabular-nums">
+                                        ΔPrev:{" "}
+                                        <span
+                                          className={
+                                            dPct > 0
+                                              ? "text-emerald-400"
+                                              : dPct < 0
+                                              ? "text-red-400"
+                                              : "text-slate-300"
+                                          }
+                                        >
+                                          {prevVol
+                                            ? (dPct > 0 ? "+" : "") +
+                                              dPct.toFixed(1) +
+                                              "%"
+                                            : "–"}
+                                        </span>
+                                      </div>
+                                      <div className="tabular-nums">
+                                        vs Avg:{" "}
+                                        <span
+                                          className={
+                                            r.vol >= avg
+                                              ? "text-emerald-400"
+                                              : "text-amber-400"
+                                          }
+                                        >
+                                          {avg
+                                            ? (
+                                                ((r.vol - avg) / avg) *
+                                                100
+                                              ).toFixed(1) + "%"
+                                            : "–"}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                }}
+                              />
+                              <ReferenceLine
+                                y={avgLine}
+                                stroke="#10b981"
+                                strokeDasharray="3 3"
+                                ifOverflow="extendDomain"
+                              />
+                              <Bar
+                                dataKey="vol"
+                                radius={[4, 4, 0, 0]}
+                                fill="#6366f1"
+                              >
+                                {rows.map((entry, i) => {
+                                  const hl = highlightWeek === entry.week;
+                                  return (
+                                    <RC.Cell
+                                      key={entry.week}
+                                      fill={
+                                        hl
+                                          ? "url(#gradHighlight)"
+                                          : entry.vol === best
+                                          ? "#10b981"
+                                          : "#6366f1"
+                                      }
+                                    />
+                                  );
+                                })}
+                              </Bar>
+                              <defs>
+                                <linearGradient
+                                  id="gradHighlight"
+                                  x1="0"
+                                  x2="0"
+                                  y1="0"
+                                  y2="1"
+                                >
+                                  <stop offset="0%" stopColor="#059669" />
+                                  <stop offset="100%" stopColor="#065f46" />
+                                </linearGradient>
+                              </defs>
+                            </Chart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-[11px] text-gray-500">
+                            {rows.length ? "Loading chart..." : "No data."}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </GlassCard>
+            </motion.div>
+          )}
+          {!hidden?.compliance && (
+            <motion.div
+              key="compliance"
+              className="bg-card rounded-2xl p-5 shadow-soft space-y-4"
+              variants={maybeDisable(fadeSlideUp)}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div className="text-title">Phase Weekly Compliance</div>
+              <div className="text-body-sm text-gray-400">
+                Color shows adherence vs target (green &gt;=100%, amber 70-99%,
+                red &lt;70%).
+              </div>
+              <div className="space-y-2">
+                {Object.keys(targets)
+                  .filter((m) => targets[m] > 0)
+                  .sort()
+                  .map((m) => {
+                    const rows = Object.entries(perWeek).sort(
+                      (a, b) => Number(a[0]) - Number(b[0])
+                    );
+                    return (
+                      <div key={m} className="space-y-1">
+                        <div className="text-label text-gray-500 flex justify-between">
+                          <span>{m}</span>
+                          <span className="tabular-nums">{targets[m]}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          {rows.map(([wk, rec]) => {
+                            const v = rec[m] || 0;
+                            const tgt = targets[m];
+                            const ratio = tgt ? v / tgt : 1;
+                            const color =
+                              ratio >= 1
+                                ? "bg-emerald-600"
+                                : ratio >= 0.7
+                                ? "bg-amber-500"
+                                : "bg-red-600";
+                            return (
+                              <div key={wk} className="flex-1">
+                                <div className="h-8 rounded-md relative overflow-hidden bg-slate-700/40">
+                                  <motion.div
+                                    className={`${color} absolute bottom-0 left-0 w-full`}
+                                    initial={{ height: 0 }}
+                                    animate={{
+                                      height: `${Math.min(100, ratio * 100)}%`,
+                                    }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 150,
+                                      damping: 26,
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 flex items-center justify-center text-[9px] text-white/80 font-medium">
+                                    {v.toFixed(1)}
+                                  </div>
+                                </div>
+                                <div className="text-center text-[8px] mt-0.5 text-gray-500">
+                                  W{wk}
                                 </div>
                               </div>
-                              <div className="text-center text-[8px] mt-0.5 text-gray-500">
-                                W{wk}
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                    );
+                  })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       {modalMuscleKey && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
           <div
@@ -1725,9 +1724,7 @@ export default function Dashboard() {
                         {modalHasDetail
                           ? modalSessionCount > 0
                             ? `${modalSessionCount} ${
-                                modalSessionCount === 1
-                                  ? "session"
-                                  : "sessions"
+                                modalSessionCount === 1 ? "session" : "sessions"
                               } logged in week ${week}`
                             : `No sessions logged in week ${week}`
                           : modalTotalSets > 0
@@ -1736,7 +1733,7 @@ export default function Dashboard() {
                       </p>
                       {activeMuscleMembers && (
                         <p className="text-[11px] text-slate-400">
-                          Includes {" "}
+                          Includes{" "}
                           {activeMuscleMembers
                             .map((member) => humanizeMuscleName(member))
                             .join(", ")}
@@ -1792,7 +1789,9 @@ export default function Dashboard() {
                           <span>{session.label}</span>
                           <span className="tabular-nums text-white/70">
                             {session.totalSets} sets ·{" "}
-                            {(session.totalTonnage * tonnageUnitMultiplier).toFixed(1)}{" "}
+                            {(
+                              session.totalTonnage * tonnageUnitMultiplier
+                            ).toFixed(1)}{" "}
                             {tonnageUnit}
                           </span>
                         </div>
@@ -1807,7 +1806,9 @@ export default function Dashboard() {
                               </span>
                               <span className="tabular-nums text-slate-300">
                                 {exercise.sets} sets ·{" "}
-                                {(exercise.tonnage * tonnageUnitMultiplier).toFixed(1)}{" "}
+                                {(
+                                  exercise.tonnage * tonnageUnitMultiplier
+                                ).toFixed(1)}{" "}
                                 {tonnageUnit}
                               </span>
                             </div>
