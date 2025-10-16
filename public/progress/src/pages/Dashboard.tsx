@@ -214,12 +214,15 @@ export default function Dashboard() {
     [activeMuscle, muscleDetailMap]
   );
 
+  const activeMuscleSummary = useMemo(
+    () => (activeMuscle ? volume[activeMuscle] || null : null),
+    [activeMuscle, volume]
+  );
+
   const activeMuscleMembers = useMemo(
     () =>
-      activeMuscleDetail
-        ? AGGREGATED_MUSCLE_GROUPS[activeMuscleDetail.group] || null
-        : null,
-    [activeMuscleDetail]
+      activeMuscle ? AGGREGATED_MUSCLE_GROUPS[activeMuscle] || null : null,
+    [activeMuscle]
   );
 
   const openMuscleDetail = useCallback((group: string) => {
@@ -232,19 +235,13 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (activeMuscle && !muscleDetailMap[activeMuscle]) {
-      closeMuscleDetail();
-    }
-  }, [activeMuscle, muscleDetailMap, closeMuscleDetail]);
-
-  useEffect(() => {
-    if (!activeMuscleDetail) return;
+    if (!activeMuscle) return;
     const onKeyDown = (evt: KeyboardEvent) => {
       if (evt.key === "Escape") closeMuscleDetail();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeMuscleDetail, closeMuscleDetail]);
+  }, [activeMuscle, closeMuscleDetail]);
 
   const phaseFilterOptions = useMemo(() => {
     const sorted = [...availablePhases].sort((a, b) => b - a);
@@ -951,6 +948,24 @@ export default function Dashboard() {
   const formatDetailTonnage = (value: number) =>
     formatCompact(value * tonnageDisplayMultiplier);
 
+  const modalMuscleKey = activeMuscle;
+  const modalDetail = activeMuscleDetail;
+  const modalSummary = activeMuscleSummary;
+  const modalSessions = modalDetail?.sessions ?? [];
+  const modalSessionCount = modalSessions.length;
+  const modalTotalSets = modalDetail?.totalSets ?? modalSummary?.sets ?? 0;
+  const modalTotalTonnage =
+    modalDetail?.totalTonnage ?? modalSummary?.tonnage ?? 0;
+  const modalAvgSets =
+    modalSessionCount > 0
+      ? (modalTotalSets / modalSessionCount).toFixed(1)
+      : "0.0";
+  const modalGroupLabel = modalMuscleKey
+    ? humanizeMuscleName(modalDetail?.group ?? modalMuscleKey)
+    : "";
+  const modalIconKey = modalDetail?.group ?? modalMuscleKey ?? "";
+  const modalHasDetail = Boolean(modalDetail);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
@@ -1569,7 +1584,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {activeMuscleDetail && (
+      {modalMuscleKey && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
           <div
             className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
@@ -1602,8 +1617,8 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
                       <img
-                        src={getMuscleIconPath(activeMuscleDetail.group)}
-                        alt={activeMuscleDetail.group}
+                        src={getMuscleIconPath(modalIconKey || "other")}
+                        alt={modalGroupLabel || modalIconKey || "muscle"}
                         className="h-7 w-7"
                         loading="lazy"
                       />
@@ -1613,16 +1628,18 @@ export default function Dashboard() {
                         Focus
                       </div>
                       <h2 className="text-2xl font-semibold capitalize">
-                        {activeMuscleDetail.group}
+                        {modalGroupLabel || modalIconKey}
                       </h2>
                       <p className="text-[11px] text-slate-300">
-                        {activeMuscleDetail.sessions.length > 0
-                          ? `${activeMuscleDetail.sessions.length} ${
-                              activeMuscleDetail.sessions.length === 1
-                                ? "session"
-                                : "sessions"
-                            } logged in week ${week}`
-                          : `No sessions logged in week ${week}`}
+                        {modalHasDetail
+                          ? modalSessionCount > 0
+                            ? `${modalSessionCount} ${
+                                modalSessionCount === 1 ? "session" : "sessions"
+                              } logged in week ${week}`
+                            : `No sessions logged in week ${week}`
+                          : modalTotalSets > 0
+                          ? `${modalTotalSets} sets logged in week ${week}`
+                          : `No sets logged in week ${week}`}
                       </p>
                       {activeMuscleMembers && (
                         <p className="text-[11px] text-slate-400">
@@ -1645,7 +1662,7 @@ export default function Dashboard() {
                       Total Sets
                     </div>
                     <div className="text-lg font-semibold tabular-nums text-white">
-                      {activeMuscleDetail.totalSets}
+                      {modalTotalSets}
                     </div>
                   </div>
                   <div className="rounded-2xl bg-white/5 px-3 py-2">
@@ -1653,8 +1670,7 @@ export default function Dashboard() {
                       Volume
                     </div>
                     <div className="text-lg font-semibold tabular-nums text-white">
-                      {formatDetailTonnage(activeMuscleDetail.totalTonnage)}{" "}
-                      {tonnageUnit}
+                      {formatDetailTonnage(modalTotalTonnage)} {tonnageUnit}
                     </div>
                   </div>
                   <div className="rounded-2xl bg-white/5 px-3 py-2">
@@ -1662,71 +1678,72 @@ export default function Dashboard() {
                       Avg Sets / Session
                     </div>
                     <div className="text-lg font-semibold tabular-nums text-white">
-                      {activeMuscleDetail.sessions.length
-                        ? (
-                            activeMuscleDetail.totalSets /
-                            activeMuscleDetail.sessions.length
-                          ).toFixed(1)
-                        : "0.0"}
+                      {modalAvgSets}
                     </div>
                   </div>
                 </div>
 
                 <div className="max-h-[50vh] overflow-y-auto pr-1">
-                  {activeMuscleDetail.sessions.length > 0 ? (
-                    <div className="space-y-3">
-                      {activeMuscleDetail.sessions.map((session) => (
-                        <div
-                          key={session.sessionId}
-                          className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-4"
-                        >
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <div className="text-sm font-semibold text-white">
-                                {session.label}
-                              </div>
-                              <div className="text-[11px] text-slate-400 tabular-nums">
-                                {session.totalSets} sets •{" "}
-                                {formatDetailTonnage(session.totalTonnage)}{" "}
-                                {tonnageUnit}
-                              </div>
-                            </div>
-                            <div className="text-[11px] text-slate-400">
-                              {session.exercises.length}{" "}
-                              {session.exercises.length === 1
-                                ? "lift"
-                                : "lifts"}
-                            </div>
-                          </div>
-                          {session.exercises.length > 0 && (
-                            <div className="mt-3 space-y-2 text-xs text-slate-200">
-                              {session.exercises.map((exercise, idx) => (
-                                <div
-                                  key={`${session.sessionId}-${exercise.exerciseId}-${idx}`}
-                                  className="flex items-center justify-between gap-3"
-                                >
-                                  <span
-                                    className="truncate capitalize"
-                                    title={exercise.name}
-                                  >
-                                    {exercise.name}
-                                  </span>
-                                  <span className="tabular-nums text-slate-300">
-                                    {exercise.sets} sets •{" "}
-                                    {formatDetailTonnage(exercise.tonnage)}{" "}
-                                    {tonnageUnit}
-                                  </span>
+                  {modalHasDetail ? (
+                    modalSessionCount > 0 ? (
+                      <div className="space-y-3">
+                        {modalSessions.map((session) => (
+                          <div
+                            key={session.sessionId}
+                            className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-4"
+                          >
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="text-sm font-semibold text-white">
+                                  {session.label}
                                 </div>
-                              ))}
+                                <div className="text-[11px] text-slate-400 tabular-nums">
+                                  {session.totalSets} sets •{" "}
+                                  {formatDetailTonnage(session.totalTonnage)}{" "}
+                                  {tonnageUnit}
+                                </div>
+                              </div>
+                              <div className="text-[11px] text-slate-400">
+                                {session.exercises.length}{" "}
+                                {session.exercises.length === 1
+                                  ? "lift"
+                                  : "lifts"}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                            {session.exercises.length > 0 && (
+                              <div className="mt-3 space-y-2 text-xs text-slate-200">
+                                {session.exercises.map((exercise, idx) => (
+                                  <div
+                                    key={`${session.sessionId}-${exercise.exerciseId}-${idx}`}
+                                    className="flex items-center justify-between gap-3"
+                                  >
+                                    <span
+                                      className="truncate capitalize"
+                                      title={exercise.name}
+                                    >
+                                      {exercise.name}
+                                    </span>
+                                    <span className="tabular-nums text-slate-300">
+                                      {exercise.sets} sets •{" "}
+                                      {formatDetailTonnage(exercise.tonnage)}{" "}
+                                      {tonnageUnit}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-6 text-sm text-slate-200">
+                        No sets recorded for this muscle in week {week}. Log a
+                        workout to populate this view.
+                      </div>
+                    )
                   ) : (
                     <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-6 text-sm text-slate-200">
-                      No sets recorded for this muscle in week {week}. Log a
-                      workout to populate this view.
+                      Gathering detailed breakdown… check back in a moment.
                     </div>
                   )}
                 </div>
