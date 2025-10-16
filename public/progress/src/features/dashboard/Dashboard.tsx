@@ -1,7 +1,7 @@
 import ChartPanel from "../../components/ChartPanel";
 import GlassCard from "../../components/GlassCard";
 import ProgressBars from "../../components/ProgressBars";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeSlideUp, maybeDisable } from "../../lib/motion";
 import { db } from "../../lib/db";
@@ -10,12 +10,14 @@ import {
   getDashboardPrefs,
   getSettings,
   setDashboardPrefs,
+  volumeByMuscleGroup,
 } from "../../lib/helpers";
 import { getAllCached } from "../../lib/dataCache";
-import { Session, Settings, UserProgram } from "../../lib/types";
+import { Exercise, Session, Settings, UserProgram } from "../../lib/types";
 import { getProfileProgram } from "../../lib/profile";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { useAggregates } from "../../lib/useAggregates";
+import { getMuscleIconPath } from "../../lib/muscles";
 
 type HiddenKey =
   | "trainingChart"
@@ -61,6 +63,284 @@ function formatCount(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0";
   if (value >= 1000) return formatCompact(value);
   return Math.round(value).toLocaleString();
+}
+
+type MuscleDetailExercise = {
+  exerciseId: string;
+  name: string;
+  sets: number;
+  tonnage: number;
+  muscle: string;
+};
+
+type MuscleDetailSession = {
+  sessionId: string;
+  label: string;
+  dateISO: string;
+  totalSets: number;
+  totalTonnage: number;
+  exercises: MuscleDetailExercise[];
+};
+
+type MuscleDetail = {
+  key: string;
+  label: string;
+  totalSets: number;
+  totalTonnage: number;
+  sessions: MuscleDetailSession[];
+};
+
+type MuscleVolumeStat = {
+  key: string;
+  label: string;
+  tonnage: number;
+  sets: number;
+};
+
+function humanizeMuscleName(value: string): string {
+  return value
+    .split(/[-_\s]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeMuscleKey(value: string | null | undefined): string {
+  const normalized = (value ?? "other")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || "other";
+}
+
+const RAW_AGGREGATED_MUSCLE_GROUPS: Record<string, string[]> = {
+  arms: ["biceps", "triceps", "forearms"],
+  legs: ["quads", "hamstrings", "calves"],
+};
+
+const NORMALIZED_AGGREGATED_GROUPS: Record<string, string[]> =
+  Object.fromEntries(
+    Object.entries(RAW_AGGREGATED_MUSCLE_GROUPS).map(([group, members]) => [
+      normalizeMuscleKey(group),
+      members.map((m) => normalizeMuscleKey(m)),
+    ])
+  );
+
+async function buildMuscleDetailData({
+  sessions,
+  exercises,
+  weekNumber,
+  phaseNumber,
+  formatter,
+}: {
+  sessions: Session[];
+  exercises: Exercise[];
+  weekNumber: number | null;
+  phaseNumber: number | null;
+  formatter: Intl.DateTimeFormat;
+}): Promise<{
+  detailMap: Record<string, MuscleDetail>;
+  summaryMap: Record<string, MuscleVolumeStat>;
+}> {
+  const detailAccumulator: Record<string, MuscleDetail> = {};
+  const exMap = new Map(exercises.map((e) => [e.id, e]));
+
+  if (weekNumber != null) {
+    const filteredSessions = sessions.filter((session) => {
+      const phase = (session.phaseNumber ?? session.phase ?? 1) as number;
+      if (phaseNumber != null && phase !== phaseNumber) return false;
+      return session.weekNumber === weekNumber;
+    });
+
+    const ensureDetail = (rawGroupKey: string, labelHint?: string) => {
+      const key = normalizeMuscleKey(rawGroupKey);
+      let detail = detailAccumulator[key];
+      if (!detail) {
+        detail = {
+          key,
+          label: humanizeMuscleName(labelHint || rawGroupKey),
+          totalSets: 0,
+          totalTonnage: 0,
+          sessions: [],
+        };
+        detailAccumulator[key] = detail;
+      } else if (labelHint) {
+        const hintLabel = humanizeMuscleName(labelHint);
+        if (detail.label !== hintLabel) detail.label = hintLabel;
+      }
+      return detail;
+    };
+
+    const ensureSessionDetail = (
+      detail: MuscleDetail,
+      session: Session
+    ) => {
+      let existing = detail.sessions.find((s) => s.sessionId === session.id);
+      if (existing) return existing;
+      const dateKey =
+        session.localDate || session.dateISO.slice(0, 10) || session.id;
+      let formattedDate = dateKey;
+      if (dateKey) {
+        try {
+          formattedDate = formatter.format(new Date(`${dateKey}T00:00:00Z`));
+        } catch {
+          formattedDate = dateKey;
+        }
+      }
+      const label = session.dayName
+        ? `${session.dayName}${formattedDate ? ` • ${formattedDate}` : ""}`
+        : formattedDate || "Session";
+      const created: MuscleDetailSession = {
+        sessionId: session.id,
+        label,
+        dateISO: dateKey,
+        totalSets: 0,
+        totalTonnage: 0,
+        exercises: [],
+      };
+      detail.sessions.push(created);
+      return created;
+    };
+
+    filteredSessions.forEach((session) => {
+      session.entries.forEach((entry) => {
+        const ex = exMap.get(entry.exerciseId);
+        const baseGroup = ex?.muscleGroup || "other";
+        const muscleKey = normalizeMuscleKey(baseGroup);
+        const validSets = entry.sets.length;
+        if (!validSets) return;
+        const tonnage = entry.sets.reduce(
+          (sum, set) =>
+            sum + Math.max(0, set.weightKg || 0) * Math.max(0, set.reps || 0),
+          0
+        );
+        const detail = ensureDetail(baseGroup, ex?.muscleGroup || baseGroup);
+        detail.totalSets += validSets;
+        detail.totalTonnage += tonnage;
+        const sessionDetail = ensureSessionDetail(detail, session);
+        sessionDetail.totalSets += validSets;
+        sessionDetail.totalTonnage += tonnage;
+        sessionDetail.exercises.push({
+          exerciseId: entry.exerciseId,
+          name: ex?.name || entry.exerciseId,
+          sets: validSets,
+          tonnage,
+          muscle: muscleKey,
+        });
+      });
+    });
+
+    Object.values(detailAccumulator).forEach((detail) => {
+      detail.sessions = detail.sessions
+        .map((session) => ({
+          ...session,
+          exercises: session.exercises
+            .slice()
+            .sort(
+              (a, b) =>
+                b.sets - a.sets ||
+                b.tonnage - a.tonnage ||
+                a.name.localeCompare(b.name)
+            ),
+        }))
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    });
+
+    for (const [aggKey, partKeys] of Object.entries(
+      NORMALIZED_AGGREGATED_GROUPS
+    )) {
+      const relevant = partKeys.filter((key) => detailAccumulator[key]);
+      if (!relevant.length) continue;
+      const sessionsMap = new Map<string, MuscleDetailSession>();
+      let totalSets = 0;
+      let totalTonnage = 0;
+      relevant.forEach((key) => {
+        const source = detailAccumulator[key]!;
+        totalSets += source.totalSets;
+        totalTonnage += source.totalTonnage;
+        source.sessions.forEach((session) => {
+          let combined = sessionsMap.get(session.sessionId);
+          if (!combined) {
+            combined = {
+              sessionId: session.sessionId,
+              label: session.label,
+              dateISO: session.dateISO,
+              totalSets: 0,
+              totalTonnage: 0,
+              exercises: [],
+            };
+            sessionsMap.set(session.sessionId, combined);
+          }
+          combined.totalSets += session.totalSets;
+          combined.totalTonnage += session.totalTonnage;
+          combined.exercises.push(
+            ...session.exercises.map((exercise) => ({ ...exercise }))
+          );
+        });
+      });
+      if (!sessionsMap.size) continue;
+      const combinedSessions = Array.from(sessionsMap.values())
+        .map((session) => ({
+          ...session,
+          exercises: session.exercises
+            .slice()
+            .sort(
+              (a, b) =>
+                b.sets - a.sets ||
+                b.tonnage - a.tonnage ||
+                a.name.localeCompare(b.name)
+            ),
+        }))
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+      detailAccumulator[aggKey] = {
+        key: aggKey,
+        label: humanizeMuscleName(aggKey),
+        totalSets,
+        totalTonnage,
+        sessions: combinedSessions,
+      };
+    }
+  }
+
+  const summaryMap: Record<string, MuscleVolumeStat> = {};
+  if (weekNumber != null) {
+    const rawSummary = await volumeByMuscleGroup(
+      weekNumber,
+      { sessions, exercises },
+      { phases: phaseNumber != null ? [phaseNumber] : undefined }
+    );
+    for (const [rawKey, summary] of Object.entries(rawSummary)) {
+      const key = normalizeMuscleKey(rawKey);
+      const existing = summaryMap[key];
+      if (!existing) {
+        summaryMap[key] = {
+          key,
+          label: humanizeMuscleName(rawKey),
+          tonnage: summary?.tonnage ?? 0,
+          sets: summary?.sets ?? 0,
+        };
+      } else {
+        existing.tonnage += summary?.tonnage ?? 0;
+        existing.sets += summary?.sets ?? 0;
+      }
+    }
+  }
+
+  Object.values(summaryMap).forEach((entry) => {
+    if (!detailAccumulator[entry.key]) {
+      detailAccumulator[entry.key] = {
+        key: entry.key,
+        label: entry.label,
+        totalSets: entry.sets,
+        totalTonnage: entry.tonnage,
+        sessions: [],
+      };
+    }
+  });
+
+  return { detailMap: detailAccumulator, summaryMap };
 }
 
 function computeSessionDurationMs(session: Session): number {
@@ -110,6 +390,7 @@ export default function Dashboard() {
     { muscle: string; value: number }[]
   >([]);
   const [sessionsState, setSessionsState] = useState<any[]>([]);
+  const [exercisesState, setExercisesState] = useState<Exercise[]>([]);
   const [selectedDay, setSelectedDay] = useState<number>(0);
   const [highlightWeek, setHighlightWeek] = useState<number | null>(null);
   const [dayVolumes, setDayVolumes] = useState<
@@ -135,7 +416,125 @@ export default function Dashboard() {
     weekNumber: null as number | null,
     phaseNumber: null as number | null,
   });
+  const [muscleDetailMap, setMuscleDetailMap] = useState<
+    Record<string, MuscleDetail>
+  >({});
+  const [muscleVolumeSummary, setMuscleVolumeSummary] = useState<
+    Record<string, MuscleVolumeStat>
+  >({});
+  const [activeMuscle, setActiveMuscle] = useState<string | null>(null);
   const { data: aggs } = useAggregates();
+  const tonnageUnitMultiplier = tonnageUnit === "lb" ? 2.2046226218 : 1;
+  const sessionDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      }),
+    []
+  );
+
+  const activeMuscleDetail = useMemo(
+    () => (activeMuscle ? muscleDetailMap[activeMuscle] || null : null),
+    [activeMuscle, muscleDetailMap]
+  );
+
+  const activeMuscleSummary = useMemo(
+    () => (activeMuscle ? muscleVolumeSummary[activeMuscle] || null : null),
+    [activeMuscle, muscleVolumeSummary]
+  );
+
+  const activeMuscleMembers = useMemo(() => {
+    if (!activeMuscle) return null;
+    return NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null;
+  }, [activeMuscle]);
+
+  const openMuscleDetail = useCallback(
+    (group: string) => {
+      if (!group) {
+        console.warn("[Dashboard] openMuscleDetail received falsy group", {
+          group,
+        });
+        return;
+      }
+      const normalized = normalizeMuscleKey(group);
+      const detailExists = Boolean(muscleDetailMap[normalized]);
+      const summaryExists = Boolean(muscleVolumeSummary[normalized]);
+      console.log("[Dashboard] openMuscleDetail invoked", {
+        source: "dashboard-feature",
+        group,
+        normalized,
+        detailExists,
+        summaryExists,
+        aggregatedMembers: NORMALIZED_AGGREGATED_GROUPS[normalized] || null,
+        availableDetailKeys: detailExists
+          ? undefined
+          : Object.keys(muscleDetailMap),
+        availableSummaryKeys: summaryExists
+          ? undefined
+          : Object.keys(muscleVolumeSummary),
+      });
+      setActiveMuscle(normalized);
+    },
+    [muscleDetailMap, muscleVolumeSummary]
+  );
+
+  const closeMuscleDetail = useCallback(() => {
+    setActiveMuscle(null);
+  }, []);
+
+  useEffect(() => {
+    if (!activeMuscle) {
+      console.log("[Dashboard] Active muscle cleared");
+      return;
+    }
+    const detail = muscleDetailMap[activeMuscle];
+    const summary = muscleVolumeSummary[activeMuscle];
+    console.log("[Dashboard] Active muscle set", {
+      activeMuscle,
+      detailExists: Boolean(detail),
+      summaryExists: Boolean(summary),
+      detailSessionCount: detail?.sessions.length ?? 0,
+      detailTotalSets: detail?.totalSets ?? 0,
+      summarySets: summary?.sets ?? 0,
+      aggregatedMembers:
+        NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null,
+    });
+    if (!detail && !summary) {
+      console.warn("[Dashboard] Active muscle missing detail and summary", {
+        activeMuscle,
+        availableDetailKeys: Object.keys(muscleDetailMap),
+        availableSummaryKeys: Object.keys(muscleVolumeSummary),
+      });
+    }
+  }, [activeMuscle, muscleDetailMap, muscleVolumeSummary]);
+
+  useEffect(() => {
+    if (!activeMuscle) return undefined;
+    const onKeyDown = (evt: KeyboardEvent) => {
+      if (evt.key === "Escape") closeMuscleDetail();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeMuscle, closeMuscleDetail]);
+
+  const modalMuscleKey = activeMuscle;
+  const modalGroupLabel =
+    activeMuscleDetail?.label ||
+    activeMuscleSummary?.label ||
+    (activeMuscle ? humanizeMuscleName(activeMuscle) : "");
+  const modalIconKey =
+    activeMuscleDetail?.key ||
+    activeMuscleSummary?.key ||
+    modalMuscleKey || "other";
+  const modalTotalSets =
+    activeMuscleDetail?.totalSets ?? activeMuscleSummary?.sets ?? 0;
+  const modalTotalTonnage =
+    activeMuscleDetail?.totalTonnage ?? activeMuscleSummary?.tonnage ?? 0;
+  const modalSessions = activeMuscleDetail?.sessions ?? [];
+  const modalSessionCount = modalSessions.length;
+  const modalHasDetail = modalSessionCount > 0;
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
@@ -164,6 +563,7 @@ export default function Dashboard() {
         getAllCached("exercises"),
       ]);
       setSessionsState(sessions as any[]);
+      setExercisesState(exercises as Exercise[]);
       const { perWeek, totals } = await computeLoggedSetVolume(phaseNum, {
         sessions,
         exercises,
@@ -233,6 +633,8 @@ export default function Dashboard() {
             getAllCached("exercises", { force: true }),
           ]);
           setSessionsState(sessions as any[]);
+          setExercisesState(exercises as Exercise[]);
+          setExercisesState(exercises as Exercise[]);
           const { perWeek, totals } = await computeLoggedSetVolume(phase, {
             sessions,
             exercises,
@@ -275,6 +677,44 @@ export default function Dashboard() {
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
   }, [phase, week]);
+  useEffect(() => {
+    let cancelled = false;
+    const sessions = Array.isArray(sessionsState)
+      ? (sessionsState as Session[])
+      : [];
+    const exercises = Array.isArray(exercisesState)
+      ? exercisesState
+      : [];
+    const currentWeek = Number.isFinite(week) ? week : null;
+    const currentPhase = Number.isFinite(phase) ? phase : null;
+    if (!sessions.length || !exercises.length || currentWeek == null) {
+      setMuscleDetailMap({});
+      setMuscleVolumeSummary({});
+      return;
+    }
+    (async () => {
+      try {
+        const { detailMap, summaryMap } = await buildMuscleDetailData({
+          sessions,
+          exercises,
+          weekNumber: currentWeek,
+          phaseNumber: currentPhase,
+          formatter: sessionDateFormatter,
+        });
+        if (cancelled) return;
+        setMuscleDetailMap(detailMap);
+        setMuscleVolumeSummary(summaryMap);
+      } catch (error) {
+        if (cancelled) return;
+        console.warn("[Dashboard] Failed to build muscle detail", error);
+        setMuscleDetailMap({});
+        setMuscleVolumeSummary({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionsState, exercisesState, week, phase, sessionDateFormatter]);
   // derive day labels whenever program changes
   useEffect(() => {
     if (program?.weeklySplit) {
@@ -501,8 +941,26 @@ export default function Dashboard() {
         {weeklyBar.map((r) => {
           const max = Math.max(1, ...weeklyBar.map((x) => x.value));
           const h = (r.value / max) * 100;
+          const normalizedKey = normalizeMuscleKey(r.muscle);
+          const detailExists = Boolean(muscleDetailMap[normalizedKey]);
+          const summaryExists = Boolean(muscleVolumeSummary[normalizedKey]);
+          const handleClick = () => {
+            console.log("[Dashboard] Weekly bar clicked", {
+              muscle: r.muscle,
+              normalizedKey,
+              value: r.value,
+              detailExists,
+              summaryExists,
+            });
+            openMuscleDetail(r.muscle);
+          };
           return (
-            <div key={r.muscle} className="flex flex-col items-center w-10">
+            <button
+              key={r.muscle}
+              type="button"
+              onClick={handleClick}
+              className="flex flex-col items-center w-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
               <div
                 className="w-full bg-slate-700/50 rounded-t-md relative"
                 style={{ height: `${h}%` }}
@@ -514,7 +972,7 @@ export default function Dashboard() {
               <div className="text-[9px] mt-1 capitalize truncate w-full text-center">
                 {r.muscle}
               </div>
-            </div>
+            </button>
           );
         })}
         {!weeklyBar.length && (
@@ -525,7 +983,8 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
           <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -688,10 +1147,37 @@ export default function Dashboard() {
                       : delta < 0
                       ? "text-red-400"
                       : "text-gray-400";
+                  const normalizedKey = normalizeMuscleKey(m);
+                  const detailExists = Boolean(
+                    muscleDetailMap[normalizedKey]
+                  );
+                  const summaryExists = Boolean(
+                    muscleVolumeSummary[normalizedKey]
+                  );
+                  const handleClick = () => {
+                    console.log("[Dashboard] Week card clicked", {
+                      muscle: m,
+                      normalizedKey,
+                      sets: v,
+                      prevSets: prev,
+                      detailExists,
+                      summaryExists,
+                    });
+                    openMuscleDetail(m);
+                  };
                   return (
                     <motion.div
                       key={m}
-                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                      role="button"
+                      tabIndex={0}
+                      onClick={handleClick}
+                      onKeyDown={(evt) => {
+                        if (evt.key === "Enter" || evt.key === " ") {
+                          evt.preventDefault();
+                          handleClick();
+                        }
+                      }}
+                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 4 }}
@@ -1189,5 +1675,158 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
     </div>
+      {modalMuscleKey && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={closeMuscleDetail}
+          />
+          <div className="relative z-10 w-full max-w-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)] max-h-[85vh]">
+              <button
+                type="button"
+                onClick={closeMuscleDetail}
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-slate-100 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                aria-label="Close muscle breakdown"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                >
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <div className="p-5 sm:p-6 space-y-5 text-slate-100">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                      <img
+                        src={getMuscleIconPath(modalIconKey || "other")}
+                        alt={modalGroupLabel || modalIconKey || "muscle"}
+                        className="h-7 w-7"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm uppercase tracking-widest text-white/40">
+                        Focus
+                      </div>
+                      <h2 className="text-2xl font-semibold capitalize">
+                        {modalGroupLabel || modalIconKey}
+                      </h2>
+                      <p className="text-[11px] text-slate-300">
+                        {modalHasDetail
+                          ? modalSessionCount > 0
+                            ? `${modalSessionCount} ${
+                                modalSessionCount === 1
+                                  ? "session"
+                                  : "sessions"
+                              } logged in week ${week}`
+                            : `No sessions logged in week ${week}`
+                          : modalTotalSets > 0
+                          ? `${modalTotalSets} sets logged in week ${week}`
+                          : `No sets logged in week ${week}`}
+                      </p>
+                      {activeMuscleMembers && (
+                        <p className="text-[11px] text-slate-400">
+                          Includes {" "}
+                          {activeMuscleMembers
+                            .map((member) => humanizeMuscleName(member))
+                            .join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="hidden text-right text-xs text-slate-400 sm:block">
+                    Click outside or press Esc to close
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Total Sets
+                    </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {modalTotalSets}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Total Volume
+                    </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {(modalTotalTonnage * tonnageUnitMultiplier).toFixed(1)}
+                      <span className="text-[11px] uppercase text-white/60 ml-1">
+                        {tonnageUnit}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Avg Sets / Session
+                    </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {modalSessionCount
+                        ? (modalTotalSets / modalSessionCount).toFixed(1)
+                        : "0.0"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 max-h-[45vh] overflow-y-auto pr-1">
+                  {modalHasDetail ? (
+                    modalSessions.map((session) => (
+                      <div
+                        key={session.sessionId}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 space-y-2"
+                      >
+                        <div className="flex items-center justify-between text-[11px] text-slate-300">
+                          <span>{session.label}</span>
+                          <span className="tabular-nums text-white/70">
+                            {session.totalSets} sets ·{" "}
+                            {(session.totalTonnage * tonnageUnitMultiplier).toFixed(1)}{" "}
+                            {tonnageUnit}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {session.exercises.map((exercise) => (
+                            <div
+                              key={exercise.exerciseId}
+                              className="flex items-center justify-between text-[11px] text-slate-200/90"
+                            >
+                              <span className="truncate max-w-[60%]">
+                                {exercise.name}
+                              </span>
+                              <span className="tabular-nums text-slate-300">
+                                {exercise.sets} sets ·{" "}
+                                {(exercise.tonnage * tonnageUnitMultiplier).toFixed(1)}{" "}
+                                {tonnageUnit}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-[12px] text-slate-300">
+                      No detailed session data available for this muscle in the
+                      selected week.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
