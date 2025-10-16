@@ -69,16 +69,50 @@ type MuscleDetailSession = {
 };
 
 type MuscleDetail = {
-  group: string;
+  key: string;
+  label: string;
   totalSets: number;
   totalTonnage: number;
   sessions: MuscleDetailSession[];
 };
 
-const AGGREGATED_MUSCLE_GROUPS: Record<string, MuscleGroup[]> = {
+type MuscleVolumeStat = {
+  key: string;
+  label: string;
+  tonnage: number;
+  sets: number;
+};
+
+function humanizeMuscleName(value: string): string {
+  return value
+    .split(/[-_\s]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeMuscleKey(value: string | null | undefined): string {
+  const normalized = (value ?? "other")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || "other";
+}
+
+const RAW_AGGREGATED_MUSCLE_GROUPS: Record<string, MuscleGroup[]> = {
   arms: ["biceps", "triceps", "forearms"],
   legs: ["quads", "hamstrings", "calves"],
 };
+
+const NORMALIZED_AGGREGATED_GROUPS: Record<string, string[]> =
+  Object.fromEntries(
+    Object.entries(RAW_AGGREGATED_MUSCLE_GROUPS).map(([group, members]) => [
+      normalizeMuscleKey(group),
+      members.map((m) => normalizeMuscleKey(m)),
+    ])
+  );
 
 function computeSessionDurationMs(session: Session): number | null {
   const log = session.workLog;
@@ -130,19 +164,9 @@ function formatCompact(value: number): string {
   return formatted.replace(/\.0([A-Za-z])/, "$1").replace(/\.0$/, "");
 }
 
-function humanizeMuscleName(value: string): string {
-  return value
-    .split(/[-_\s]/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 export default function Dashboard() {
   const [week, setWeek] = useState(1);
-  const [volume, setVolume] = useState<
-    Record<string, { tonnage: number; sets: number }>
-  >({});
+  const [volume, setVolume] = useState<Record<string, MuscleVolumeStat>>({});
   const [weights, setWeights] = useState<{ date: string; weight: number }[]>(
     []
   );
@@ -219,15 +243,14 @@ export default function Dashboard() {
     [activeMuscle, volume]
   );
 
-  const activeMuscleMembers = useMemo(
-    () =>
-      activeMuscle ? AGGREGATED_MUSCLE_GROUPS[activeMuscle] || null : null,
-    [activeMuscle]
-  );
+  const activeMuscleMembers = useMemo(() => {
+    if (!activeMuscle) return null;
+    return NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null;
+  }, [activeMuscle]);
 
   const openMuscleDetail = useCallback((group: string) => {
     if (!group) return;
-    setActiveMuscle(group);
+    setActiveMuscle(normalizeMuscleKey(group));
   }, []);
 
   const closeMuscleDetail = useCallback(() => {
@@ -362,6 +385,23 @@ export default function Dashboard() {
           { phases: effectivePhases }
         );
 
+        const normalizedVolume: Record<string, MuscleVolumeStat> = {};
+        for (const [rawKey, summary] of Object.entries(volumeResult)) {
+          const key = normalizeMuscleKey(rawKey);
+          if (!normalizedVolume[key]) {
+            normalizedVolume[key] = {
+              key,
+              label: humanizeMuscleName(rawKey),
+              tonnage: 0,
+              sets: 0,
+            };
+          }
+          if (summary) {
+            normalizedVolume[key].tonnage += summary.tonnage ?? 0;
+            normalizedVolume[key].sets += summary.sets ?? 0;
+          }
+        }
+
         const phaseFilterSet =
           effectivePhases.length && phaseNumbers.length
             ? new Set(effectivePhases)
@@ -376,16 +416,23 @@ export default function Dashboard() {
 
         const detailAccumulator: Record<string, MuscleDetail> = {};
 
-        const ensureDetail = (groupKey: string) => {
-          let detail = detailAccumulator[groupKey];
+        const ensureDetail = (rawGroupKey: string, labelHint?: string) => {
+          const key = normalizeMuscleKey(rawGroupKey);
+          let detail = detailAccumulator[key];
           if (!detail) {
             detail = {
-              group: groupKey,
+              key,
+              label: humanizeMuscleName(labelHint || rawGroupKey),
               totalSets: 0,
               totalTonnage: 0,
               sessions: [],
             };
-            detailAccumulator[groupKey] = detail;
+            detailAccumulator[key] = detail;
+          } else if (labelHint) {
+            const hintLabel = humanizeMuscleName(labelHint);
+            if (detail.label !== hintLabel) {
+              detail.label = hintLabel;
+            }
           }
           return detail;
         };
@@ -429,6 +476,7 @@ export default function Dashboard() {
           session.entries.forEach((entry) => {
             const ex = exMap.get(entry.exerciseId);
             const baseGroup = ex?.muscleGroup || "other";
+            const muscleKey = normalizeMuscleKey(baseGroup);
             const setsCount = entry.sets.length;
             if (!setsCount) return;
             const tonnageValue = entry.sets.reduce(
@@ -437,7 +485,7 @@ export default function Dashboard() {
                 Math.max(0, set.weightKg || 0) * Math.max(0, set.reps || 0),
               0
             );
-            const detail = ensureDetail(baseGroup);
+            const detail = ensureDetail(baseGroup, ex?.muscleGroup);
             detail.totalSets += setsCount;
             detail.totalTonnage += tonnageValue;
             const sessionDetail = ensureSessionDetail(detail, session);
@@ -448,7 +496,7 @@ export default function Dashboard() {
               name: ex?.name || entry.exerciseId,
               sets: setsCount,
               tonnage: tonnageValue,
-              muscle: baseGroup,
+              muscle: muscleKey,
             });
           });
         });
@@ -469,16 +517,16 @@ export default function Dashboard() {
             .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
         });
 
-        for (const [aggKey, parts] of Object.entries(
-          AGGREGATED_MUSCLE_GROUPS
+        for (const [aggKey, partKeys] of Object.entries(
+          NORMALIZED_AGGREGATED_GROUPS
         )) {
-          const relevant = parts.filter((p) => detailAccumulator[p]);
+          const relevant = partKeys.filter((p: string) => detailAccumulator[p]);
           if (!relevant.length) continue;
           const sessionsMap = new Map<string, MuscleDetailSession>();
           let totalSets = 0;
           let totalTonnage = 0;
-          relevant.forEach((part) => {
-            const sourceDetail = detailAccumulator[part]!;
+          relevant.forEach((partKey: string) => {
+            const sourceDetail = detailAccumulator[partKey]!;
             totalSets += sourceDetail.totalSets;
             totalTonnage += sourceDetail.totalTonnage;
             sourceDetail.sessions.forEach((session) => {
@@ -516,26 +564,27 @@ export default function Dashboard() {
             }))
             .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
           detailAccumulator[aggKey] = {
-            group: aggKey,
+            key: aggKey,
+            label: humanizeMuscleName(aggKey),
             totalSets,
             totalTonnage,
             sessions: combinedSessions,
           };
         }
 
-        Object.keys(volumeResult).forEach((groupKey) => {
-          if (detailAccumulator[groupKey]) return;
-          const summary = volumeResult[groupKey];
-          detailAccumulator[groupKey] = {
-            group: groupKey,
-            totalSets: summary?.sets ?? 0,
-            totalTonnage: summary?.tonnage ?? 0,
+        Object.values(normalizedVolume).forEach((entry) => {
+          if (detailAccumulator[entry.key]) return;
+          detailAccumulator[entry.key] = {
+            key: entry.key,
+            label: entry.label,
+            totalSets: entry.sets,
+            totalTonnage: entry.tonnage,
             sessions: [],
           };
         });
 
         if (!isMountedRef.current) return;
-        setVolume(volumeResult);
+        setVolume(normalizedVolume);
         setMuscleDetailMap(detailAccumulator);
 
         const weightSeries = measurements
@@ -801,11 +850,14 @@ export default function Dashboard() {
 
   const volData = useMemo(
     () =>
-      Object.entries(volume).map(([k, v]) => ({
-        group: k,
-        tonnage: v.tonnage,
-        sets: v.sets,
-      })),
+      Object.values(volume)
+        .map((stat) => ({
+          key: stat.key,
+          group: stat.label,
+          tonnage: stat.tonnage,
+          sets: stat.sets,
+        }))
+        .sort((a, b) => b.sets - a.sets || a.group.localeCompare(b.group)),
     [volume]
   );
 
@@ -960,10 +1012,11 @@ export default function Dashboard() {
     modalSessionCount > 0
       ? (modalTotalSets / modalSessionCount).toFixed(1)
       : "0.0";
-  const modalGroupLabel = modalMuscleKey
-    ? humanizeMuscleName(modalDetail?.group ?? modalMuscleKey)
-    : "";
-  const modalIconKey = modalDetail?.group ?? modalMuscleKey ?? "";
+  const modalGroupLabel =
+    modalDetail?.label ??
+    modalSummary?.label ??
+    (modalMuscleKey ? humanizeMuscleName(modalMuscleKey) : "");
+  const modalIconKey = modalDetail?.key ?? modalMuscleKey ?? "";
   const modalHasDetail = Boolean(modalDetail);
 
   return (
@@ -1159,12 +1212,12 @@ export default function Dashboard() {
           <h3 className="font-medium mb-2">Weekly Volume by Muscle Group</h3>
           <div className="flex flex-wrap gap-2 mb-3 text-[11px]">
             {volData.map((v) => {
-              const isActive = activeMuscle === v.group;
+              const isActive = activeMuscle === v.key;
               return (
                 <button
                   type="button"
-                  key={v.group}
-                  onClick={() => openMuscleDetail(v.group)}
+                  key={v.key}
+                  onClick={() => openMuscleDetail(v.key)}
                   aria-pressed={isActive}
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200/50 ${
                     isActive
@@ -1174,7 +1227,7 @@ export default function Dashboard() {
                   title={`View ${v.group} details`}
                 >
                   <img
-                    src={getMuscleIconPath(v.group)}
+                    src={getMuscleIconPath(v.key)}
                     alt={v.group}
                     className="w-4 h-4 opacity-80"
                     loading="lazy"
@@ -1219,8 +1272,8 @@ export default function Dashboard() {
                     name="Tonnage"
                     cursor="pointer"
                     onClick={(entry: any) => {
-                      const group = entry?.payload?.group;
-                      if (group) openMuscleDetail(group);
+                      const key = entry?.payload?.key;
+                      if (typeof key === "string") openMuscleDetail(key);
                     }}
                   />
                   <RC.Bar
@@ -1229,8 +1282,8 @@ export default function Dashboard() {
                     name="Sets"
                     cursor="pointer"
                     onClick={(entry: any) => {
-                      const group = entry?.payload?.group;
-                      if (group) openMuscleDetail(group);
+                      const key = entry?.payload?.key;
+                      if (typeof key === "string") openMuscleDetail(key);
                     }}
                   />
                 </RC.BarChart>
@@ -1645,7 +1698,7 @@ export default function Dashboard() {
                         <p className="text-[11px] text-slate-400">
                           Includes{" "}
                           {activeMuscleMembers
-                            .map((m) => humanizeMuscleName(m))
+                            .map((member: string) => humanizeMuscleName(member))
                             .join(", ")}
                         </p>
                       )}
