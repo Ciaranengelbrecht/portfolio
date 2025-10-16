@@ -248,14 +248,62 @@ export default function Dashboard() {
     return NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null;
   }, [activeMuscle]);
 
-  const openMuscleDetail = useCallback((group: string) => {
-    if (!group) return;
-    setActiveMuscle(normalizeMuscleKey(group));
-  }, []);
+  const openMuscleDetail = useCallback(
+    (group: string) => {
+      if (!group) {
+        console.warn("[Dashboard] openMuscleDetail received falsy group", {
+          group,
+        });
+        return;
+      }
+      const normalized = normalizeMuscleKey(group);
+      const detailExists = Boolean(muscleDetailMap[normalized]);
+      const summaryExists = Boolean(volume[normalized]);
+      console.log("[Dashboard] openMuscleDetail invoked", {
+        source: "openMuscleDetail",
+        group,
+        normalized,
+        detailExists,
+        summaryExists,
+        aggregatedMembers: NORMALIZED_AGGREGATED_GROUPS[normalized] || null,
+        availableDetailKeys: detailExists
+          ? undefined
+          : Object.keys(muscleDetailMap),
+        availableVolumeKeys: summaryExists ? undefined : Object.keys(volume),
+      });
+      setActiveMuscle(normalized);
+    },
+    [muscleDetailMap, volume]
+  );
 
   const closeMuscleDetail = useCallback(() => {
     setActiveMuscle(null);
   }, []);
+
+  useEffect(() => {
+    if (!activeMuscle) {
+      console.log("[Dashboard] Active muscle cleared");
+      return;
+    }
+    const detail = muscleDetailMap[activeMuscle];
+    const summary = volume[activeMuscle];
+    console.log("[Dashboard] Active muscle set", {
+      activeMuscle,
+      detailExists: Boolean(detail),
+      summaryExists: Boolean(summary),
+      detailSessionCount: detail?.sessions.length ?? 0,
+      detailTotalSets: detail?.totalSets ?? 0,
+      summarySets: summary?.sets ?? 0,
+      aggregatedMembers: NORMALIZED_AGGREGATED_GROUPS[activeMuscle] || null,
+    });
+    if (!detail && !summary) {
+      console.warn("[Dashboard] Active muscle missing detail and summary", {
+        activeMuscle,
+        availableDetailKeys: Object.keys(muscleDetailMap),
+        availableVolumeKeys: Object.keys(volume),
+      });
+    }
+  }, [activeMuscle, muscleDetailMap, volume]);
 
   useEffect(() => {
     if (!activeMuscle) return;
@@ -1217,7 +1265,17 @@ export default function Dashboard() {
                 <button
                   type="button"
                   key={v.key}
-                  onClick={() => openMuscleDetail(v.key)}
+                  onClick={() => {
+                    console.log("[Dashboard] Muscle chip clicked", {
+                      key: v.key,
+                      label: v.group,
+                      sets: v.sets,
+                      tonnage: v.tonnage,
+                      detailExists: Boolean(muscleDetailMap[v.key]),
+                      summaryExists: Boolean(volume[v.key]),
+                    });
+                    openMuscleDetail(v.key);
+                  }}
                   aria-pressed={isActive}
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200/50 ${
                     isActive
@@ -1273,7 +1331,23 @@ export default function Dashboard() {
                     cursor="pointer"
                     onClick={(entry: any) => {
                       const key = entry?.payload?.key;
-                      if (typeof key === "string") openMuscleDetail(key);
+                      console.log("[Dashboard] Volume bar clicked", {
+                        source: "tonnage",
+                        rawKey: key,
+                        normalizedKey:
+                          typeof key === "string"
+                            ? normalizeMuscleKey(key)
+                            : null,
+                        payloadKeys: Object.keys(entry?.payload || {}),
+                      });
+                      if (typeof key === "string") {
+                        openMuscleDetail(key);
+                      } else {
+                        console.warn(
+                          "[Dashboard] Bar click payload missing string key",
+                          entry
+                        );
+                      }
                     }}
                   />
                   <RC.Bar
@@ -1283,7 +1357,23 @@ export default function Dashboard() {
                     cursor="pointer"
                     onClick={(entry: any) => {
                       const key = entry?.payload?.key;
-                      if (typeof key === "string") openMuscleDetail(key);
+                      console.log("[Dashboard] Volume bar clicked", {
+                        source: "sets",
+                        rawKey: key,
+                        normalizedKey:
+                          typeof key === "string"
+                            ? normalizeMuscleKey(key)
+                            : null,
+                        payloadKeys: Object.keys(entry?.payload || {}),
+                      });
+                      if (typeof key === "string") {
+                        openMuscleDetail(key);
+                      } else {
+                        console.warn(
+                          "[Dashboard] Bar click payload missing string key",
+                          entry
+                        );
+                      }
                     }}
                   />
                 </RC.BarChart>
