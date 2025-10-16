@@ -401,7 +401,8 @@ export default function Dashboard() {
             (s) => s.sessionId === session.id
           );
           if (existing) return existing;
-          const dateKey = session.localDate || session.dateISO.slice(0, 10) || "";
+          const dateKey =
+            session.localDate || session.dateISO.slice(0, 10) || "";
           let formattedDate = dateKey;
           if (dateKey) {
             try {
@@ -435,7 +436,8 @@ export default function Dashboard() {
             if (!setsCount) return;
             const tonnageValue = entry.sets.reduce(
               (sum, set) =>
-                sum + (Math.max(0, set.weightKg || 0) * Math.max(0, set.reps || 0)),
+                sum +
+                Math.max(0, set.weightKg || 0) * Math.max(0, set.reps || 0),
               0
             );
             const detail = ensureDetail(baseGroup);
@@ -462,13 +464,17 @@ export default function Dashboard() {
                 .slice()
                 .sort(
                   (a, b) =>
-                    b.sets - a.sets || b.tonnage - a.tonnage || a.name.localeCompare(b.name)
+                    b.sets - a.sets ||
+                    b.tonnage - a.tonnage ||
+                    a.name.localeCompare(b.name)
                 ),
             }))
             .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
         });
 
-        for (const [aggKey, parts] of Object.entries(AGGREGATED_MUSCLE_GROUPS)) {
+        for (const [aggKey, parts] of Object.entries(
+          AGGREGATED_MUSCLE_GROUPS
+        )) {
           const relevant = parts.filter((p) => detailAccumulator[p]);
           if (!relevant.length) continue;
           const sessionsMap = new Map<string, MuscleDetailSession>();
@@ -506,7 +512,9 @@ export default function Dashboard() {
                 .slice()
                 .sort(
                   (a, b) =>
-                    b.sets - a.sets || b.tonnage - a.tonnage || a.name.localeCompare(b.name)
+                    b.sets - a.sets ||
+                    b.tonnage - a.tonnage ||
+                    a.name.localeCompare(b.name)
                 ),
             }))
             .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -939,8 +947,7 @@ export default function Dashboard() {
     return `Week ${weeklyStats.weekNumber}`;
   }, [weeklyStats.phaseNumber, weeklyStats.weekNumber]);
 
-  const tonnageDisplayMultiplier =
-    tonnageUnit === "lb" ? 2.2046226218 : 1;
+  const tonnageDisplayMultiplier = tonnageUnit === "lb" ? 2.2046226218 : 1;
   const formatDetailTonnage = (value: number) =>
     formatCompact(value * tonnageDisplayMultiplier);
 
@@ -1562,156 +1569,172 @@ export default function Dashboard() {
         </div>
       </div>
 
-        {activeMuscleDetail && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
-            <div
-              className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
-              onClick={closeMuscleDetail}
-            />
-            <div className="relative z-10 w-full max-w-2xl">
-              <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)] max-h-[85vh]">
-                <button
-                  type="button"
-                  onClick={closeMuscleDetail}
-                  className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-slate-100 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                  aria-label="Close muscle breakdown"
+      {activeMuscleDetail && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={closeMuscleDetail}
+          />
+          <div className="relative z-10 w-full max-w-2xl">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)] max-h-[85vh]">
+              <button
+                type="button"
+                onClick={closeMuscleDetail}
+                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-slate-100 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                aria-label="Close muscle breakdown"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      d="M6 6l12 12M18 6L6 18"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-                <div className="p-5 sm:p-6 space-y-5 text-slate-100">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-                        <img
-                          src={getMuscleIconPath(activeMuscleDetail.group)}
-                          alt={activeMuscleDetail.group}
-                          className="h-7 w-7"
-                          loading="lazy"
-                        />
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+              <div className="p-5 sm:p-6 space-y-5 text-slate-100">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                      <img
+                        src={getMuscleIconPath(activeMuscleDetail.group)}
+                        alt={activeMuscleDetail.group}
+                        className="h-7 w-7"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-sm uppercase tracking-widest text-white/40">
+                        Focus
                       </div>
-                      <div className="space-y-1">
-                        <div className="text-sm uppercase tracking-widest text-white/40">
-                          Focus
-                        </div>
-                        <h2 className="text-2xl font-semibold capitalize">
-                          {activeMuscleDetail.group}
-                        </h2>
-                        <p className="text-[11px] text-slate-300">
-                          {activeMuscleDetail.sessions.length > 0
-                            ? `${activeMuscleDetail.sessions.length} ${
-                                activeMuscleDetail.sessions.length === 1
-                                  ? "session"
-                                  : "sessions"
-                              } logged in week ${week}`
-                            : `No sessions logged in week ${week}`}
+                      <h2 className="text-2xl font-semibold capitalize">
+                        {activeMuscleDetail.group}
+                      </h2>
+                      <p className="text-[11px] text-slate-300">
+                        {activeMuscleDetail.sessions.length > 0
+                          ? `${activeMuscleDetail.sessions.length} ${
+                              activeMuscleDetail.sessions.length === 1
+                                ? "session"
+                                : "sessions"
+                            } logged in week ${week}`
+                          : `No sessions logged in week ${week}`}
+                      </p>
+                      {activeMuscleMembers && (
+                        <p className="text-[11px] text-slate-400">
+                          Includes{" "}
+                          {activeMuscleMembers
+                            .map((m) => humanizeMuscleName(m))
+                            .join(", ")}
                         </p>
-                        {activeMuscleMembers && (
-                          <p className="text-[11px] text-slate-400">
-                            Includes {activeMuscleMembers
-                              .map((m) => humanizeMuscleName(m))
-                              .join(", ")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="hidden text-right text-xs text-slate-400 sm:block">
-                      Click outside or press Esc to close
+                      )}
                     </div>
                   </div>
+                  <div className="hidden text-right text-xs text-slate-400 sm:block">
+                    Click outside or press Esc to close
+                  </div>
+                </div>
 
-                  <div className="grid gap-3 sm:grid-cols-3 text-sm">
-                    <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
-                        Total Sets
-                      </div>
-                      <div className="text-lg font-semibold tabular-nums text-white">
-                        {activeMuscleDetail.totalSets}
-                      </div>
+                <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Total Sets
                     </div>
-                    <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
-                        Volume
-                      </div>
-                      <div className="text-lg font-semibold tabular-nums text-white">
-                        {formatDetailTonnage(activeMuscleDetail.totalTonnage)} {tonnageUnit}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
-                        Avg Sets / Session
-                      </div>
-                      <div className="text-lg font-semibold tabular-nums text-white">
-                        {activeMuscleDetail.sessions.length
-                          ? (activeMuscleDetail.totalSets / activeMuscleDetail.sessions.length).toFixed(1)
-                          : "0.0"}
-                      </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {activeMuscleDetail.totalSets}
                     </div>
                   </div>
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Volume
+                    </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {formatDetailTonnage(activeMuscleDetail.totalTonnage)}{" "}
+                      {tonnageUnit}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 px-3 py-2">
+                    <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      Avg Sets / Session
+                    </div>
+                    <div className="text-lg font-semibold tabular-nums text-white">
+                      {activeMuscleDetail.sessions.length
+                        ? (
+                            activeMuscleDetail.totalSets /
+                            activeMuscleDetail.sessions.length
+                          ).toFixed(1)
+                        : "0.0"}
+                    </div>
+                  </div>
+                </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto pr-1">
-                    {activeMuscleDetail.sessions.length > 0 ? (
-                      <div className="space-y-3">
-                        {activeMuscleDetail.sessions.map((session) => (
-                          <div
-                            key={session.sessionId}
-                            className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-4"
-                          >
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                              <div>
-                                <div className="text-sm font-semibold text-white">
-                                  {session.label}
-                                </div>
-                                <div className="text-[11px] text-slate-400 tabular-nums">
-                                  {session.totalSets} sets • {formatDetailTonnage(session.totalTonnage)} {tonnageUnit}
-                                </div>
+                <div className="max-h-[50vh] overflow-y-auto pr-1">
+                  {activeMuscleDetail.sessions.length > 0 ? (
+                    <div className="space-y-3">
+                      {activeMuscleDetail.sessions.map((session) => (
+                        <div
+                          key={session.sessionId}
+                          className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 sm:p-4"
+                        >
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <div className="text-sm font-semibold text-white">
+                                {session.label}
                               </div>
-                              <div className="text-[11px] text-slate-400">
-                                {session.exercises.length} {session.exercises.length === 1 ? "lift" : "lifts"}
+                              <div className="text-[11px] text-slate-400 tabular-nums">
+                                {session.totalSets} sets •{" "}
+                                {formatDetailTonnage(session.totalTonnage)}{" "}
+                                {tonnageUnit}
                               </div>
                             </div>
-                            {session.exercises.length > 0 && (
-                              <div className="mt-3 space-y-2 text-xs text-slate-200">
-                                {session.exercises.map((exercise, idx) => (
-                                  <div
-                                    key={`${session.sessionId}-${exercise.exerciseId}-${idx}`}
-                                    className="flex items-center justify-between gap-3"
-                                  >
-                                    <span className="truncate capitalize" title={exercise.name}>
-                                      {exercise.name}
-                                    </span>
-                                    <span className="tabular-nums text-slate-300">
-                                      {exercise.sets} sets • {formatDetailTonnage(exercise.tonnage)} {tonnageUnit}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+                            <div className="text-[11px] text-slate-400">
+                              {session.exercises.length}{" "}
+                              {session.exercises.length === 1
+                                ? "lift"
+                                : "lifts"}
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-6 text-sm text-slate-200">
-                        No sets recorded for this muscle in week {week}. Log a workout to populate this view.
-                      </div>
-                    )}
-                  </div>
+                          {session.exercises.length > 0 && (
+                            <div className="mt-3 space-y-2 text-xs text-slate-200">
+                              {session.exercises.map((exercise, idx) => (
+                                <div
+                                  key={`${session.sessionId}-${exercise.exerciseId}-${idx}`}
+                                  className="flex items-center justify-between gap-3"
+                                >
+                                  <span
+                                    className="truncate capitalize"
+                                    title={exercise.name}
+                                  >
+                                    {exercise.name}
+                                  </span>
+                                  <span className="tabular-nums text-slate-300">
+                                    {exercise.sets} sets •{" "}
+                                    {formatDetailTonnage(exercise.tonnage)}{" "}
+                                    {tonnageUnit}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-white/5 bg-white/5 px-4 py-6 text-sm text-slate-200">
+                      No sets recorded for this muscle in week {week}. Log a
+                      workout to populate this view.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
