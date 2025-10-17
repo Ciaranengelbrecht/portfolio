@@ -3996,25 +3996,20 @@ export default function Sessions() {
                 Week & phase
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <select
-                  className="rounded-lg border border-white/10 bg-slate-900/80 px-3 py-1.5 text-sm text-slate-100 shadow-inner"
-                  value={week}
-                  onChange={(e) => {
-                    setWeek(Number(e.target.value));
+                <WeekSelector
+                  value={Number(week) || 1}
+                  totalWeeks={
+                    program && Number.isFinite(program.mesoWeeks)
+                      ? Math.max(1, Number(program.mesoWeeks) || 1)
+                      : 9
+                  }
+                  deloadWeeks={deloadWeeks}
+                  onChange={(selectedWeek) => {
+                    setWeek(selectedWeek as any);
                     setAutoNavDone(true);
                     setAllowEmptyPhase(true);
                   }}
-                >
-                  {(program
-                    ? Array.from({ length: program.mesoWeeks }, (_, i) => i + 1)
-                    : Array.from({ length: 9 }, (_, i) => i + 1)
-                  ).map((w) => (
-                    <option key={w} value={w}>
-                      Week {w}
-                      {program && deloadWeeks.has(w) ? " (Deload)" : ""}
-                    </option>
-                  ))}
-                </select>
+                />
                 <PhaseStepper
                   variant="compact"
                   value={phase}
@@ -6342,6 +6337,151 @@ export default function Sessions() {
         aria-hidden="true"
         style={{ position: "relative", height: 0 }}
       />
+    </div>
+  );
+}
+
+// Adaptive Week Selector Component
+function WeekSelector({
+  value,
+  totalWeeks,
+  deloadWeeks,
+  onChange,
+}: {
+  value: number;
+  totalWeeks: number;
+  deloadWeeks?: Iterable<number> | null;
+  onChange: (week: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const liveRef = useRef<HTMLDivElement | null>(null);
+
+  const weekNumbers = useMemo(() => {
+    const count = Math.max(1, Number.isFinite(totalWeeks) ? totalWeeks : 1);
+    return Array.from({ length: count }, (_, idx) => idx + 1);
+  }, [totalWeeks]);
+
+  useEffect(() => {
+    if (!weekNumbers.length) return;
+    const first = weekNumbers[0];
+    const last = weekNumbers[weekNumbers.length - 1];
+    const clamped = Math.min(Math.max(value || first, first), last);
+    if (clamped !== value) {
+      onChange(clamped);
+    }
+  }, [weekNumbers, value, onChange]);
+
+  useEffect(() => {
+    if (!open) return;
+    try {
+      navigator.vibrate?.(12);
+    } catch {}
+  }, [open]);
+
+  const deloadArray = useMemo(() => {
+    if (!deloadWeeks) return [] as number[];
+    return Array.from(deloadWeeks).filter((w) => Number.isFinite(w));
+  }, [deloadWeeks]);
+
+  const deloadSet = useMemo(() => new Set(deloadArray), [deloadArray]);
+
+  const announceSelection = useCallback((label: string) => {
+    if (liveRef.current) {
+      liveRef.current.textContent = `Selected ${label}`;
+    }
+  }, []);
+
+  const handleSelect = useCallback(
+    (weekNumber: number) => {
+      const label = deloadSet.has(weekNumber)
+        ? `Week ${weekNumber} (Deload)`
+        : `Week ${weekNumber}`;
+      onChange(weekNumber);
+      setOpen(false);
+      announceSelection(label);
+      try {
+        (navigator as any).vibrate?.(10);
+      } catch {}
+    },
+    [announceSelection, deloadSet, onChange]
+  );
+
+  const weekOptions = useMemo<OptionSheetOption[]>(() => {
+    return weekNumbers.map((num) => {
+      const isDeload = deloadSet.has(num);
+      return {
+        id: String(num),
+        label: `Week ${num}`,
+        description: isDeload ? "Deload week" : `Training week ${num}`,
+        selected: num === value,
+        trailing: isDeload ? "Deload" : undefined,
+        onSelect: () => handleSelect(num),
+      } satisfies OptionSheetOption;
+    });
+  }, [weekNumbers, deloadSet, value, handleSelect]);
+
+  const selectedLabel = useMemo(() => {
+    if (!weekNumbers.length) return "No weeks";
+    const base = `Week ${value}`;
+    return deloadSet.has(value) ? `${base} • Deload` : base;
+  }, [weekNumbers.length, value, deloadSet]);
+
+  const onTriggerKey = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
+      e.preventDefault();
+      setOpen(true);
+    }
+  };
+
+  const deloadSummary = useMemo(() => {
+    if (!deloadArray.length) return null;
+    const sorted = [...deloadArray].sort((a, b) => a - b);
+    return `Deload: W${sorted.join(" · W")}`;
+  }, [deloadArray]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        onKeyDown={onTriggerKey}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex w-full sm:w-auto max-w-full items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-800/70 px-3 py-2 text-sm text-white/90 transition hover:border-white/20 hover:bg-slate-700/70 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+        title={selectedLabel}
+      >
+        <span className="truncate max-w-[70vw] sm:max-w-[180px]">
+          {selectedLabel}
+        </span>
+        <span className="opacity-70 text-[10px]" aria-hidden="true">
+          ▼
+        </span>
+      </button>
+      <OptionSheet
+        open={open}
+        title="Choose training week"
+        description="Switching weeks loads the matching session data."
+        onClose={() => setOpen(false)}
+        initialFocus="list"
+        options={weekOptions}
+        emptyState={
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+            No weeks available.
+          </div>
+        }
+        footer={
+          weekNumbers.length ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60">
+              {weekNumbers.length} week{weekNumbers.length === 1 ? "" : "s"}
+              {deloadSummary ? ` • ${deloadSummary}` : ""}
+            </div>
+          ) : undefined
+        }
+        maxListHeight={420}
+      />
+      <div ref={liveRef} className="sr-only" aria-live="polite" />
     </div>
   );
 }
