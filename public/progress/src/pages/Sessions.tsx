@@ -1593,8 +1593,15 @@ export default function Sessions() {
   ]);
   // Restart (or start) rest timer in a single tap; always resets elapsed to 0 and runs
   const restartRestTimer = (entryId: string) => {
-    setRestTimers(() => ({
-      [entryId]: { start: Date.now(), elapsed: 0, running: true },
+    setRestTimers((prev) => ({
+      ...prev,
+      [entryId]: {
+        start: Date.now(),
+        elapsed: 0,
+        running: true,
+        finished: false,
+        alerted: false,
+      },
     }));
     if (settingsState?.haptics !== false) {
       try {
@@ -1645,6 +1652,8 @@ export default function Sessions() {
         ? "animate-[timerPulse_1800ms_ease-in-out_infinite]"
         : "";
 
+    const shouldAnimateStroke = t.running && !reached && progressRatio > 0;
+
     if (reached && !t.alerted && flash) {
       try {
         document.body.classList.add("rest-screen-flash");
@@ -1678,15 +1687,16 @@ export default function Sessions() {
             stroke="currentColor"
             strokeWidth="4"
             strokeLinecap="round"
-            className={`transition-[stroke-dashoffset,stroke,filter] duration-400 ease-linear ${
-              reached ? "text-rose-400" : "text-emerald-400"
-            }`}
+            className={`${reached ? "text-rose-400" : "text-emerald-400"}`}
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
             style={{
               filter: reached
                 ? "drop-shadow(0 0 6px rgba(244, 63, 94, 0.55))"
                 : "drop-shadow(0 0 5px rgba(16, 185, 129, 0.45))",
+              transition: shouldAnimateStroke
+                ? "stroke-dashoffset 220ms linear, stroke 220ms linear, filter 220ms linear"
+                : "none",
             }}
           />
         </svg>
