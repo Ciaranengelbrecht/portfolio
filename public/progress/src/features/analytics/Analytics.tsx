@@ -53,10 +53,11 @@ function computeSessionDurationMs(session: Session): number {
         first: new Date(item.first || 0).getTime(),
         last: new Date(item.last || 0).getTime(),
       }))
-      .filter((item) =>
-        !Number.isNaN(item.first) &&
-        !Number.isNaN(item.last) &&
-        item.last >= item.first
+      .filter(
+        (item) =>
+          !Number.isNaN(item.first) &&
+          !Number.isNaN(item.last) &&
+          item.last >= item.first
       )
       .sort((a, b) => b.last - a.last);
     const top = entries[0];
@@ -186,10 +187,7 @@ function buildAnalytics(
   }
 
   const exMap = new Map(exercises.map((e) => [e.id, e]));
-  const weeklyMap = new Map<
-    string,
-    WeeklyAggregate & { order: number }
-  >();
+  const weeklyMap = new Map<string, WeeklyAggregate & { order: number }>();
   const sessionSummaries: SessionSummary[] = [];
   const muscleMap = new Map<
     string,
@@ -218,7 +216,10 @@ function buildAnalytics(
     let sessionTopWeightKg = 0;
     let sessionTopExerciseName: string | undefined;
     let sessionTopExerciseVolume = -Infinity;
-    const sessionMuscle = new Map<string, { sets: number; tonnageKg: number }>();
+    const sessionMuscle = new Map<
+      string,
+      { sets: number; tonnageKg: number }
+    >();
 
     for (const entry of session.entries || []) {
       const ex = exMap.get(entry.exerciseId);
@@ -229,7 +230,11 @@ function buildAnalytics(
       let entryVolumeKg = 0;
       let entryTopWeightKg = 0;
       let totalReps = 0;
-      const setDetails: { weightKg: number; reps: number; rpe: number | null }[] = [];
+      const setDetails: {
+        weightKg: number;
+        reps: number;
+        rpe: number | null;
+      }[] = [];
 
       for (const set of entry.sets || []) {
         const reps = Math.max(0, set?.reps ?? 0);
@@ -254,7 +259,10 @@ function buildAnalytics(
         sessionTopExerciseName = ex.name;
       }
 
-      const muscles = [ex.muscleGroup || "other", ...(ex.secondaryMuscles || [])];
+      const muscles = [
+        ex.muscleGroup || "other",
+        ...(ex.secondaryMuscles || []),
+      ];
       const multipliers = [
         1,
         ...(ex.secondaryMuscles || []).map(() => SECONDARY_FACTOR),
@@ -265,29 +273,28 @@ function buildAnalytics(
         if (!muscle) return;
         const setMultiplier = multipliers[idx];
         const tonnageMultiplier = setMultiplier;
-        const overall =
-          muscleMap.get(muscle) ??
-          {
-            sets: 0,
-            tonnageKg: 0,
-            sessions: new Set<string>(),
-            weekBuckets: new Map<string, { sets: number; tonnageKg: number }>(),
-          };
+        const overall = muscleMap.get(muscle) ?? {
+          sets: 0,
+          tonnageKg: 0,
+          sessions: new Set<string>(),
+          weekBuckets: new Map<string, { sets: number; tonnageKg: number }>(),
+        };
         overall.sets += realizedSets * setMultiplier;
         overall.tonnageKg += entryVolumeKg * tonnageMultiplier;
         overall.sessions.add(session.id);
-        const bucket =
-          overall.weekBuckets.get(weekKey) ?? {
-            sets: 0,
-            tonnageKg: 0,
-          };
+        const bucket = overall.weekBuckets.get(weekKey) ?? {
+          sets: 0,
+          tonnageKg: 0,
+        };
         bucket.sets += realizedSets * setMultiplier;
         bucket.tonnageKg += entryVolumeKg * tonnageMultiplier;
         overall.weekBuckets.set(weekKey, bucket);
         muscleMap.set(muscle, overall);
 
-        const perSession =
-          sessionMuscle.get(muscle) ?? { sets: 0, tonnageKg: 0 };
+        const perSession = sessionMuscle.get(muscle) ?? {
+          sets: 0,
+          tonnageKg: 0,
+        };
         perSession.sets += realizedSets * setMultiplier;
         perSession.tonnageKg += entryVolumeKg * tonnageMultiplier;
         sessionMuscle.set(muscle, perSession);
@@ -457,10 +464,26 @@ function buildAnalytics(
 type ModeKey = "overview" | "sessions" | "muscles" | "exercises";
 
 const MODES: { key: ModeKey; label: string; icon: string }[] = [
-  { key: "overview", label: "Overview", icon: "M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9Zm9-6.5a1 1 0 0 0-1 1v4.09l-3.27 1.87a1 1 0 1 0 1 1.73l3.77-2.16A1 1 0 0 0 13 10V6.5a1 1 0 0 0-1-1Z" },
-  { key: "sessions", label: "Sessions", icon: "M5 4h14v4H5V4Zm0 6h14v4H5v-4Zm0 6h14v4H5v-4Z" },
-  { key: "muscles", label: "Muscles", icon: "M12 2 4 6v12l8 4 8-4V6l-8-4Zm0 2.3 5.5 3V8L12 11 6.5 8v-.7L12 4.3ZM6.5 10.2 11 13v6.2l-4.5-2.4v-6.6Zm6.5 8V13l4.5-2.8v6.6L13 18.2Z" },
-  { key: "exercises", label: "Exercises", icon: "M4 4h16v4H4V4Zm0 6h10v4H4v-4Zm0 6h16v4H4v-4Z" },
+  {
+    key: "overview",
+    label: "Overview",
+    icon: "M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9Zm9-6.5a1 1 0 0 0-1 1v4.09l-3.27 1.87a1 1 0 1 0 1 1.73l3.77-2.16A1 1 0 0 0 13 10V6.5a1 1 0 0 0-1-1Z",
+  },
+  {
+    key: "sessions",
+    label: "Sessions",
+    icon: "M5 4h14v4H5V4Zm0 6h14v4H5v-4Zm0 6h14v4H5v-4Z",
+  },
+  {
+    key: "muscles",
+    label: "Muscles",
+    icon: "M12 2 4 6v12l8 4 8-4V6l-8-4Zm0 2.3 5.5 3V8L12 11 6.5 8v-.7L12 4.3ZM6.5 10.2 11 13v6.2l-4.5-2.4v-6.6Zm6.5 8V13l4.5-2.8v6.6L13 18.2Z",
+  },
+  {
+    key: "exercises",
+    label: "Exercises",
+    icon: "M4 4h16v4H4V4Zm0 6h10v4H4v-4Zm0 6h16v4H4v-4Z",
+  },
 ];
 
 export default function Analytics() {
@@ -492,8 +515,8 @@ export default function Analytics() {
           ]);
         if (cancelled) return;
         setSessions((sessionsRaw as Session[]) || []);
-        const sortedExercises = ((exercisesRaw as Exercise[]) || []).sort((a, b) =>
-          a.name.localeCompare(b.name)
+        const sortedExercises = ((exercisesRaw as Exercise[]) || []).sort(
+          (a, b) => a.name.localeCompare(b.name)
         );
         setExercises(sortedExercises);
         setMeasurements((measurementsRaw as Measurement[]) || []);
@@ -533,12 +556,19 @@ export default function Analytics() {
 
   const exerciseOptions = useMemo(() => {
     if (!selectedExerciseId) return filteredExercises;
-    if (filteredExercises.some((exercise) => exercise.id === selectedExerciseId)) {
+    if (
+      filteredExercises.some((exercise) => exercise.id === selectedExerciseId)
+    ) {
       return filteredExercises;
     }
-    const selected = exercises.find((exercise) => exercise.id === selectedExerciseId);
+    const selected = exercises.find(
+      (exercise) => exercise.id === selectedExerciseId
+    );
     if (!selected) return filteredExercises;
-    return [selected, ...filteredExercises.filter((exercise) => exercise.id !== selected.id)];
+    return [
+      selected,
+      ...filteredExercises.filter((exercise) => exercise.id !== selected.id),
+    ];
   }, [filteredExercises, exercises, selectedExerciseId]);
 
   useEffect(() => {
@@ -583,8 +613,7 @@ export default function Analytics() {
     return measurements
       .filter((m) => Number.isFinite(m.weightKg))
       .sort(
-        (a, b) =>
-          parseISO(a.dateISO).getTime() - parseISO(b.dateISO).getTime()
+        (a, b) => parseISO(a.dateISO).getTime() - parseISO(b.dateISO).getTime()
       )
       .map((m) => ({
         date: format(parseISO(m.dateISO), "MMM d"),
@@ -695,20 +724,74 @@ export default function Analytics() {
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
-                <RC.ComposedChart data={weeklySeries} margin={{ left: 8, right: 16, top: 10, bottom: 0 }}>
-                  <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
-                  <RC.XAxis dataKey="label" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} interval={0} tickFormatter={(label: string) => label.replace("Phase", "P").replace("Week", "W")} />
-                  <RC.YAxis yAxisId="left" stroke="rgba(94,234,212,0.7)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatCompact(value)} />
-                  <RC.YAxis yAxisId="right" orientation="right" stroke="rgba(139,92,246,0.6)" tick={{ fontSize: 12 }} />
-                  <RC.Tooltip formatter={(value: number, name: string) => {
-                    if (name === "sessions" || name === "sets") {
-                      return [formatCount(value as number), name];
+                <RC.ComposedChart
+                  data={weeklySeries}
+                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                >
+                  <RC.CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.2)"
+                  />
+                  <RC.XAxis
+                    dataKey="label"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                    tickFormatter={(label: string) =>
+                      label.replace("Phase", "P").replace("Week", "W")
                     }
-                    return [`${formatCompact(value as number)} ${tonnageUnit}`, name];
-                  }} />
-                  <RC.Area yAxisId="left" type="monotone" dataKey="volume" stroke="rgba(45,212,191,0.9)" fill="rgba(20,184,166,0.25)" strokeWidth={2.2} name={`Volume (${tonnageUnit})`} />
-                  <RC.Line yAxisId="right" type="monotone" dataKey="sessions" stroke="rgba(139,92,246,0.85)" strokeWidth={2.2} dot={{ r: 3 }} name="Sessions" />
-                  <RC.Line yAxisId="right" type="monotone" dataKey="sets" stroke="rgba(96,165,250,0.85)" strokeDasharray="5 4" strokeWidth={2} dot={false} name="Sets" />
+                  />
+                  <RC.YAxis
+                    yAxisId="left"
+                    stroke="rgba(94,234,212,0.7)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => formatCompact(value)}
+                  />
+                  <RC.YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="rgba(139,92,246,0.6)"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <RC.Tooltip
+                    formatter={(value: number, name: string) => {
+                      if (name === "sessions" || name === "sets") {
+                        return [formatCount(value as number), name];
+                      }
+                      return [
+                        `${formatCompact(value as number)} ${tonnageUnit}`,
+                        name,
+                      ];
+                    }}
+                  />
+                  <RC.Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="rgba(45,212,191,0.9)"
+                    fill="rgba(20,184,166,0.25)"
+                    strokeWidth={2.2}
+                    name={`Volume (${tonnageUnit})`}
+                  />
+                  <RC.Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="sessions"
+                    stroke="rgba(139,92,246,0.85)"
+                    strokeWidth={2.2}
+                    dot={{ r: 3 }}
+                    name="Sessions"
+                  />
+                  <RC.Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="sets"
+                    stroke="rgba(96,165,250,0.85)"
+                    strokeDasharray="5 4"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Sets"
+                  />
                 </RC.ComposedChart>
               </RC.ResponsiveContainer>
             )}
@@ -731,18 +814,50 @@ export default function Analytics() {
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
-                <RC.AreaChart data={weightSeries} margin={{ left: 0, right: 0, top: 10, bottom: 0 }}>
+                <RC.AreaChart
+                  data={weightSeries}
+                  margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
+                >
                   <RC.Defs>
                     <linearGradient id="bwGradient" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="5%" stopColor="rgba(59,130,246,0.7)" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="rgba(59,130,246,0.1)" stopOpacity={0.1} />
+                      <stop
+                        offset="5%"
+                        stopColor="rgba(59,130,246,0.7)"
+                        stopOpacity={0.8}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="rgba(59,130,246,0.1)"
+                        stopOpacity={0.1}
+                      />
                     </linearGradient>
                   </RC.Defs>
-                  <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-                  <RC.XAxis dataKey="date" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} />
-                  <RC.YAxis stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => value.toFixed(1)} />
-                  <RC.Tooltip formatter={(value: number) => `${value.toFixed(1)} ${weightUnit}`} />
-                  <RC.Area type="monotone" dataKey="value" stroke="rgba(59,130,246,0.9)" fill="url(#bwGradient)" strokeWidth={2.2} />
+                  <RC.CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.15)"
+                  />
+                  <RC.XAxis
+                    dataKey="date"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <RC.YAxis
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => value.toFixed(1)}
+                  />
+                  <RC.Tooltip
+                    formatter={(value: number) =>
+                      `${value.toFixed(1)} ${weightUnit}`
+                    }
+                  />
+                  <RC.Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="rgba(59,130,246,0.9)"
+                    fill="url(#bwGradient)"
+                    strokeWidth={2.2}
+                  />
                 </RC.AreaChart>
               </RC.ResponsiveContainer>
             )}
@@ -756,19 +871,43 @@ export default function Analytics() {
             <p className="text-[11px] uppercase tracking-[0.3em] text-white/60">
               Personal Records
             </p>
-            <h3 className="text-lg font-semibold text-white">Weekly highlights</h3>
+            <h3 className="text-lg font-semibold text-white">
+              Weekly highlights
+            </h3>
           </div>
         </div>
         <div className="h-56">
           {!RC && chartSkeleton}
           {RC && (
             <RC.ResponsiveContainer>
-              <RC.BarChart data={prSeries} margin={{ left: 8, right: 8, top: 10, bottom: 0 }}>
-                <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-                <RC.XAxis dataKey="label" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} interval={0} tickFormatter={(label: string) => label.replace("Phase", "P").replace("Week", "W")} />
-                <RC.YAxis stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} allowDecimals={false} />
+              <RC.BarChart
+                data={prSeries}
+                margin={{ left: 8, right: 8, top: 10, bottom: 0 }}
+              >
+                <RC.CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(148,163,184,0.15)"
+                />
+                <RC.XAxis
+                  dataKey="label"
+                  stroke="rgba(226,232,240,0.65)"
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                  tickFormatter={(label: string) =>
+                    label.replace("Phase", "P").replace("Week", "W")
+                  }
+                />
+                <RC.YAxis
+                  stroke="rgba(226,232,240,0.65)"
+                  tick={{ fontSize: 12 }}
+                  allowDecimals={false}
+                />
                 <RC.Tooltip />
-                <RC.Bar dataKey="prs" fill="rgba(16,185,129,0.8)" radius={[6, 6, 0, 0]} />
+                <RC.Bar
+                  dataKey="prs"
+                  fill="rgba(16,185,129,0.8)"
+                  radius={[6, 6, 0, 0]}
+                />
               </RC.BarChart>
             </RC.ResponsiveContainer>
           )}
@@ -808,18 +947,49 @@ export default function Analytics() {
                     }))}
                   margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
                 >
-                  <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-                  <RC.XAxis dataKey="date" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} />
-                  <RC.YAxis stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatCompact(value)} />
+                  <RC.CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.15)"
+                  />
+                  <RC.XAxis
+                    dataKey="date"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <RC.YAxis
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => formatCompact(value)}
+                  />
                   <RC.Tooltip
                     formatter={(value: number, name: string) => {
-                      if (name === "sets") return [formatCount(value as number), "Sets"];
-                      if (name === "topWeight") return [`${(value as number).toFixed(1)} ${weightUnit}`, "Top weight"];
-                      return [`${formatCompact(value as number)} ${tonnageUnit}`, "Volume"];
+                      if (name === "sets")
+                        return [formatCount(value as number), "Sets"];
+                      if (name === "topWeight")
+                        return [
+                          `${(value as number).toFixed(1)} ${weightUnit}`,
+                          "Top weight",
+                        ];
+                      return [
+                        `${formatCompact(value as number)} ${tonnageUnit}`,
+                        "Volume",
+                      ];
                     }}
                   />
-                  <RC.Area type="monotone" dataKey="volume" stroke="rgba(239,68,68,0.85)" fill="rgba(239,68,68,0.18)" strokeWidth={2.4} />
-                  <RC.Line type="monotone" dataKey="topWeight" stroke="rgba(59,130,246,0.85)" strokeWidth={2.2} dot={{ r: 2 }} />
+                  <RC.Area
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="rgba(239,68,68,0.85)"
+                    fill="rgba(239,68,68,0.18)"
+                    strokeWidth={2.4}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="topWeight"
+                    stroke="rgba(59,130,246,0.85)"
+                    strokeWidth={2.2}
+                    dot={{ r: 2 }}
+                  />
                 </RC.AreaChart>
               </RC.ResponsiveContainer>
             )}
@@ -888,7 +1058,10 @@ export default function Analytics() {
                 </div>
                 {session.topExerciseName && (
                   <p className="mt-2 text-xs text-white/60">
-                    Focus: <span className="text-white/80">{session.topExerciseName}</span>
+                    Focus:{" "}
+                    <span className="text-white/80">
+                      {session.topExerciseName}
+                    </span>
                   </p>
                 )}
                 {session.muscleBreakdown.length > 0 && (
@@ -980,7 +1153,10 @@ export default function Analytics() {
                   layout="vertical"
                   margin={{ left: 16, right: 16, top: 10, bottom: 0 }}
                 >
-                  <RC.CartesianGrid horizontal={false} stroke="rgba(148,163,184,0.12)" />
+                  <RC.CartesianGrid
+                    horizontal={false}
+                    stroke="rgba(148,163,184,0.12)"
+                  />
                   <RC.XAxis type="number" hide domain={[0, "dataMax"]} />
                   <RC.YAxis
                     type="category"
@@ -991,11 +1167,16 @@ export default function Analytics() {
                   />
                   <RC.Tooltip
                     formatter={(value: number, name: string) => {
-                      if (name === "sets") return [formatCount(value as number), "Sets"];
+                      if (name === "sets")
+                        return [formatCount(value as number), "Sets"];
                       return [`${value}%`, "Share"];
                     }}
                   />
-                  <RC.Bar dataKey="sets" fill="rgba(34,197,94,0.8)" radius={[0, 6, 6, 0]} />
+                  <RC.Bar
+                    dataKey="sets"
+                    fill="rgba(34,197,94,0.8)"
+                    radius={[0, 6, 6, 0]}
+                  />
                 </RC.BarChart>
               </RC.ResponsiveContainer>
             )}
@@ -1009,13 +1190,14 @@ export default function Analytics() {
                 Focus timeline
               </p>
               <h3 className="text-lg font-semibold text-white">
-                {selectedMuscleData ? selectedMuscleData.muscle : "Select a muscle"}
+                {selectedMuscleData
+                  ? selectedMuscleData.muscle
+                  : "Select a muscle"}
               </h3>
             </div>
             {selectedMuscleData && (
               <span className="text-xs text-white/50">
-                {formatCount(Math.round(selectedMuscleData.sets))} sets •
-                {" "}
+                {formatCount(Math.round(selectedMuscleData.sets))} sets •{" "}
                 {formatVolumeValue(selectedMuscleData.tonnageKg)}
               </span>
             )}
@@ -1024,18 +1206,46 @@ export default function Analytics() {
             {!RC && chartSkeleton}
             {RC && selectedMuscleData && selectedMuscleData.timeline.length ? (
               <RC.ResponsiveContainer>
-                <RC.AreaChart data={selectedMuscleData.timeline} margin={{ left: 8, right: 16, top: 10, bottom: 0 }}>
-                  <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-                  <RC.XAxis dataKey="label" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} />
-                  <RC.YAxis stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatCount(value)} />
+                <RC.AreaChart
+                  data={selectedMuscleData.timeline}
+                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                >
+                  <RC.CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.15)"
+                  />
+                  <RC.XAxis
+                    dataKey="label"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <RC.YAxis
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => formatCount(value)}
+                  />
                   <RC.Tooltip
                     formatter={(value: number, name: string) => {
-                      if (name === "sets") return [formatCount(value as number), "Sets"];
+                      if (name === "sets")
+                        return [formatCount(value as number), "Sets"];
                       return [formatVolumeValue(value as number), "Volume"];
                     }}
                   />
-                  <RC.Area type="monotone" dataKey="sets" stroke="rgba(236,72,153,0.85)" fill="rgba(236,72,153,0.25)" strokeWidth={2.4} />
-                  <RC.Line type="monotone" dataKey="tonnageKg" stroke="rgba(244,114,182,0.9)" strokeWidth={2.2} dot={{ r: 2 }} name="Volume" />
+                  <RC.Area
+                    type="monotone"
+                    dataKey="sets"
+                    stroke="rgba(236,72,153,0.85)"
+                    fill="rgba(236,72,153,0.25)"
+                    strokeWidth={2.4}
+                  />
+                  <RC.Line
+                    type="monotone"
+                    dataKey="tonnageKg"
+                    stroke="rgba(244,114,182,0.9)"
+                    strokeWidth={2.2}
+                    dot={{ r: 2 }}
+                    name="Volume"
+                  />
                 </RC.AreaChart>
               </RC.ResponsiveContainer>
             ) : (
@@ -1169,21 +1379,71 @@ export default function Analytics() {
                   }))}
                   margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
                 >
-                  <RC.CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
-                  <RC.XAxis dataKey="date" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} />
-                  <RC.YAxis yAxisId="left" stroke="rgba(226,232,240,0.65)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => formatCompact(value)} />
-                  <RC.YAxis yAxisId="right" orientation="right" stroke="rgba(59,130,246,0.7)" tick={{ fontSize: 12 }} tickFormatter={(value: number) => value.toFixed(0)} />
+                  <RC.CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(148,163,184,0.15)"
+                  />
+                  <RC.XAxis
+                    dataKey="date"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                  />
+                  <RC.YAxis
+                    yAxisId="left"
+                    stroke="rgba(226,232,240,0.65)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => formatCompact(value)}
+                  />
+                  <RC.YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="rgba(59,130,246,0.7)"
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value: number) => value.toFixed(0)}
+                  />
                   <RC.Tooltip
                     formatter={(value: number, name: string) => {
-                      if (name === "sets") return [formatCount(value as number), "Sets"];
+                      if (name === "sets")
+                        return [formatCount(value as number), "Sets"];
                       if (name === "topWeight" || name === "avgWeight")
-                        return [`${(value as number).toFixed(1)} ${weightUnit}`, name === "topWeight" ? "Top" : "Avg"];
-                      return [`${formatCompact(value as number)} ${tonnageUnit}`, "Volume"];
+                        return [
+                          `${(value as number).toFixed(1)} ${weightUnit}`,
+                          name === "topWeight" ? "Top" : "Avg",
+                        ];
+                      return [
+                        `${formatCompact(value as number)} ${tonnageUnit}`,
+                        "Volume",
+                      ];
                     }}
                   />
-                  <RC.Area yAxisId="left" type="monotone" dataKey="volume" stroke="rgba(248,113,113,0.9)" fill="rgba(248,113,113,0.2)" strokeWidth={2.4} name={`Volume (${tonnageUnit})`} />
-                  <RC.Line yAxisId="right" type="monotone" dataKey="topWeight" stroke="rgba(59,130,246,0.9)" strokeWidth={2.4} dot={{ r: 2 }} name={`Top (${weightUnit})`} />
-                  <RC.Line yAxisId="right" type="monotone" dataKey="avgWeight" stroke="rgba(96,165,250,0.8)" strokeDasharray="5 4" strokeWidth={2} dot={false} name={`Avg (${weightUnit})`} />
+                  <RC.Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="rgba(248,113,113,0.9)"
+                    fill="rgba(248,113,113,0.2)"
+                    strokeWidth={2.4}
+                    name={`Volume (${tonnageUnit})`}
+                  />
+                  <RC.Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="topWeight"
+                    stroke="rgba(59,130,246,0.9)"
+                    strokeWidth={2.4}
+                    dot={{ r: 2 }}
+                    name={`Top (${weightUnit})`}
+                  />
+                  <RC.Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="avgWeight"
+                    stroke="rgba(96,165,250,0.8)"
+                    strokeDasharray="5 4"
+                    strokeWidth={2}
+                    dot={false}
+                    name={`Avg (${weightUnit})`}
+                  />
                 </RC.ComposedChart>
               </RC.ResponsiveContainer>
             ) : (
@@ -1206,7 +1466,8 @@ export default function Analytics() {
             </div>
             {exerciseAnalytics && (
               <span className="text-xs text-white/50">
-                {formatCount(exerciseAnalytics.totals.sessions)} sessions tracked
+                {formatCount(exerciseAnalytics.totals.sessions)} sessions
+                tracked
               </span>
             )}
           </div>
@@ -1214,7 +1475,8 @@ export default function Analytics() {
             {exerciseTimeline
               .slice()
               .sort(
-                (a, b) => parseISO(b.dateISO).getTime() - parseISO(a.dateISO).getTime()
+                (a, b) =>
+                  parseISO(b.dateISO).getTime() - parseISO(a.dateISO).getTime()
               )
               .slice(0, 6)
               .map((entry) => (
@@ -1258,9 +1520,13 @@ export default function Analytics() {
                       >
                         <span className="text-white/40">Set {idx + 1}</span>
                         <span className="tabular-nums text-white/80">
-                          {formatCount(set.reps)} reps @ {formatWeightValue(set.weightKg)}
+                          {formatCount(set.reps)} reps @{" "}
+                          {formatWeightValue(set.weightKg)}
                           {set.rpe != null && (
-                            <span className="text-white/40"> • RPE {set.rpe}</span>
+                            <span className="text-white/40">
+                              {" "}
+                              • RPE {set.rpe}
+                            </span>
                           )}
                         </span>
                       </div>
@@ -1291,7 +1557,8 @@ export default function Analytics() {
               Analytics Studio
             </h1>
             <p className="mt-1 text-sm text-white/60">
-              Explore weekly momentum, session quality, muscle balance, and exercise-specific trends with interactive visuals.
+              Explore weekly momentum, session quality, muscle balance, and
+              exercise-specific trends with interactive visuals.
             </p>
           </div>
         </div>
@@ -1309,9 +1576,7 @@ export default function Analytics() {
               <svg
                 aria-hidden
                 className={`h-4 w-4 ${
-                  mode === item.key
-                    ? "fill-emerald-300"
-                    : "fill-white/50"
+                  mode === item.key ? "fill-emerald-300" : "fill-white/50"
                 }`}
                 viewBox="0 0 24 24"
               >
