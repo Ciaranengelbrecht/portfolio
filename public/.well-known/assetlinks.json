@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-  "package_name": "com.ciaranengelbrecht.liftlog",
+      "package_name": "com.ciaranengelbrecht.LiftLog",
       "sha256_cert_fingerprints": [
         "84:22:4C:2F:A0:6F:2A:0A:0F:07:65:0A:E4:07:9B:45:DB:2E:A7:0F:64:D5:1A:94:DC:B3:17:24:99:C8:06:CD"
       ]
