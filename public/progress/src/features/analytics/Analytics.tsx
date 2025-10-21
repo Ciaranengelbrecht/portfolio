@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import GlassCard from "../../components/GlassCard";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { getAllCached } from "../../lib/dataCache";
@@ -473,6 +474,7 @@ export default function Analytics() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const aggregates = useAggregates();
 
@@ -1318,6 +1320,20 @@ export default function Analytics() {
               {item.label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => navigate("/measurements")}
+            className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <svg
+              aria-hidden
+              className="h-4 w-4 fill-white/50"
+              viewBox="0 0 24 24"
+            >
+              <path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14v-2H5V5h14V3H5Zm6 4c-1.1 0-2 .9-2 2v2h2v-2h2v2h2V9c0-1.1-.9-2-2-2h-2Zm-4 6h12v2H7v-2Zm0 4h8v2H7v-2Z" />
+            </svg>
+            Measurements
+          </button>
         </div>
       </header>
 
