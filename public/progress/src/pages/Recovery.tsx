@@ -137,7 +137,7 @@ export default function RecoveryPage() {
         </button>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+  <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))] lg:[grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         {ORDER.map((m) => {
           const rec = view.muscles.find((x) => x.muscle === m);
           const pct = rec ? rec.percent : 100;
@@ -147,48 +147,56 @@ export default function RecoveryPage() {
           return (
             <div
               key={m}
-              className="rounded-lg border border-white/10 bg-slate-900/55 p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-sm transition hover:border-emerald-400/40"
+              className="group relative overflow-hidden rounded-xl border border-white/10 bg-slate-950/65 p-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-sm transition hover:border-emerald-400/40"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/5">
-                  <img
-                    src={MUSCLE_ICON_PATHS[m]}
-                    alt=""
-                    className="h-6 w-6 object-contain opacity-80"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate text-sm font-semibold capitalize text-slate-100">
-                      {m}
-                    </h2>
-                    <span
-                      className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-semibold ${meta.badge}`}
-                    >
-                      {status}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-slate-400">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h2 className="truncate text-sm font-semibold capitalize text-slate-100">
+                    {m}
+                  </h2>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400/80">
                     {meta.caption}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold ${meta.badge}`}
+                  >
+                    {status}
+                  </span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5">
+                    <img
+                      src={MUSCLE_ICON_PATHS[m]}
+                      alt=""
+                      className="h-5 w-5 object-contain opacity-80"
+                    />
                   </div>
                 </div>
-                <div className="w-10 text-right text-xs font-semibold text-slate-200 tabular-nums">
-                  {Math.round(pct)}%
+              </div>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-semibold text-slate-100">
+                      {Math.round(pct)}
+                    </span>
+                    <span className="text-xs font-medium text-slate-400">%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    {recommendation(pct)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-400">ETA</p>
+                  <p className="text-xs font-semibold text-slate-200 tabular-nums">
+                    {formatETA(eta) || "—"}
+                  </p>
                 </div>
               </div>
-              <div className="mt-2 flex items-center gap-3">
-                <div className={`flex-1 h-2.5 rounded-full ${meta.track}`}>
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${meta.bar}`}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
-                  />
-                </div>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                <span className="truncate pr-2">{recommendation(pct)}</span>
-                <span className="font-medium text-slate-200 tabular-nums">
-                  {formatETA(eta) || "—"}
-                </span>
+              <div className={`mt-3 h-1.5 rounded-full ${meta.track}`}>
+                <div
+                  className={`h-full rounded-full bg-gradient-to-r ${meta.bar}`}
+                  style={{ width: `${Math.min(pct, 100)}%` }}
+                />
               </div>
             </div>
           );
