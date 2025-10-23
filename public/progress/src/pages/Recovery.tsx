@@ -137,7 +137,7 @@ export default function RecoveryPage() {
         </button>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
-      <div className="mx-auto grid w-full max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+  <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {ORDER.map((m) => {
           const rec = view.muscles.find((x) => x.muscle === m);
           const pct = rec ? rec.percent : 100;
@@ -147,52 +147,50 @@ export default function RecoveryPage() {
           return (
             <div
               key={m}
-              className="group flex h-full flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-950/80 via-slate-950/70 to-slate-900/60 p-4 shadow-[0_12px_32px_rgba(15,23,42,0.35)] transition duration-200 hover:border-emerald-400/40 hover:shadow-[0_18px_40px_rgba(16,185,129,0.25)]"
+              className="group flex h-full flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/75 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.28)] transition duration-200 hover:border-emerald-400/40 hover:shadow-[0_14px_28px_rgba(16,185,129,0.2)]"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/10">
                     <img
                       src={MUSCLE_ICON_PATHS[m]}
                       alt=""
-                      className="h-7 w-7 object-contain opacity-85"
+                      className="h-5 w-5 object-contain opacity-85"
                     />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold capitalize text-slate-50">
+                    <h2 className="truncate text-sm font-semibold capitalize text-slate-50">
                       {m}
                     </h2>
-                    <p className="text-xs text-slate-400">{meta.caption}</p>
+                    <p className="text-[11px] text-slate-400">{meta.caption}</p>
                   </div>
                 </div>
                 <span
-                  className={`whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide ${meta.badge}`}
+                  className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${meta.badge}`}
                 >
                   {status}
                 </span>
               </div>
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-semibold text-slate-50 tabular-nums">
+              <div className="flex items-end justify-between gap-2">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-semibold text-slate-50 tabular-nums">
                     {Math.round(pct)}
                   </span>
-                  <span className="text-sm text-slate-400">% recovered</span>
+                  <span className="text-xs text-slate-400">%</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
                     ETA
                   </p>
-                  <p className="text-sm font-semibold text-slate-200 tabular-nums">
+                  <p className="text-xs font-semibold text-slate-200 tabular-nums">
                     {formatETA(eta) || "—"}
                   </p>
                 </div>
               </div>
-              <p className="text-sm font-medium text-slate-200">
+              <p className="truncate text-[11px] font-medium text-slate-200">
                 {recommendation(pct)}
               </p>
-              <div
-                className={`relative h-2 overflow-hidden rounded-full ${meta.track}`}
-              >
+              <div className={`relative h-1.5 overflow-hidden rounded-full ${meta.track}`}>
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${meta.bar}`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
