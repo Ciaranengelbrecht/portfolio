@@ -190,7 +190,9 @@ export default function RecoveryPage() {
               <p className="text-sm font-medium text-slate-200">
                 {recommendation(pct)}
               </p>
-              <div className={`relative h-2 overflow-hidden rounded-full ${meta.track}`}>
+              <div
+                className={`relative h-2 overflow-hidden rounded-full ${meta.track}`}
+              >
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${meta.bar}`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
