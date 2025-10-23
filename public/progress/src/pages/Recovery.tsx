@@ -137,7 +137,7 @@ export default function RecoveryPage() {
         </button>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
-  <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))] lg:[grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+      <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))] lg:[grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         {ORDER.map((m) => {
           const rec = view.muscles.find((x) => x.muscle === m);
           const pct = rec ? rec.percent : 100;
@@ -179,7 +179,9 @@ export default function RecoveryPage() {
                     <span className="text-xl font-semibold text-slate-100">
                       {Math.round(pct)}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">%</span>
+                    <span className="text-xs font-medium text-slate-400">
+                      %
+                    </span>
                   </div>
                   <p className="text-[10px] text-slate-400">
                     {recommendation(pct)}
