@@ -137,7 +137,7 @@ export default function RecoveryPage() {
         </button>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
-  <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
+      <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {ORDER.map((m) => {
           const rec = view.muscles.find((x) => x.muscle === m);
           const pct = rec ? rec.percent : 100;
@@ -190,7 +190,9 @@ export default function RecoveryPage() {
               <p className="truncate text-[11px] font-medium text-slate-200">
                 {recommendation(pct)}
               </p>
-              <div className={`relative h-1.5 overflow-hidden rounded-full ${meta.track}`}>
+              <div
+                className={`relative h-1.5 overflow-hidden rounded-full ${meta.track}`}
+              >
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${meta.bar}`}
                   style={{ width: `${Math.min(pct, 100)}%` }}
