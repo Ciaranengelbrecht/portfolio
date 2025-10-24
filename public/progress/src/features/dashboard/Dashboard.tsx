@@ -1675,153 +1675,160 @@ export default function Dashboard() {
         </AnimatePresence>
       </div>
       {modalMuscleKey && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-8">
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
           <div
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
             onClick={closeMuscleDetail}
           />
-          <div className="relative z-10 w-full max-w-2xl">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)] max-h-[85vh]">
-              <button
-                type="button"
-                onClick={closeMuscleDetail}
-                className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-slate-100 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-                aria-label="Close muscle breakdown"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+          <div className="flex min-h-full items-center justify-center px-4 py-8">
+            <div className="relative z-10 w-full max-w-2xl">
+              <div className="relative flex max-h-[85vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)]">
+                <button
+                  type="button"
+                  onClick={closeMuscleDetail}
+                  className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-slate-100 transition hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                  aria-label="Close muscle breakdown"
                 >
-                  <path
-                    d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth={1.5}
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-              <div className="p-5 sm:p-6 space-y-5 text-slate-100">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-                      <img
-                        src={getMuscleIconPath(modalIconKey || "other")}
-                        alt={modalGroupLabel || modalIconKey || "muscle"}
-                        className="h-7 w-7"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm uppercase tracking-widest text-white/40">
-                        Focus
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                  >
+                    <path
+                      d="M6 6l12 12M18 6L6 18"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+                <div className="p-5 sm:p-6 text-slate-100 flex flex-col gap-5 min-h-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                        <img
+                          src={getMuscleIconPath(modalIconKey || "other")}
+                          alt={modalGroupLabel || modalIconKey || "muscle"}
+                          className="h-7 w-7"
+                          loading="lazy"
+                        />
                       </div>
-                      <h2 className="text-2xl font-semibold capitalize">
-                        {modalGroupLabel || modalIconKey}
-                      </h2>
-                      <p className="text-[11px] text-slate-300">
-                        {modalHasDetail
-                          ? modalSessionCount > 0
-                            ? `${modalSessionCount} ${
-                                modalSessionCount === 1 ? "session" : "sessions"
-                              } logged in week ${week}`
-                            : `No sessions logged in week ${week}`
-                          : modalTotalSets > 0
-                          ? `${modalTotalSets} sets logged in week ${week}`
-                          : `No sets logged in week ${week}`}
-                      </p>
-                      {activeMuscleMembers && (
-                        <p className="text-[11px] text-slate-400">
-                          Includes{" "}
-                          {activeMuscleMembers
-                            .map((member) => humanizeMuscleName(member))
-                            .join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="hidden text-right text-xs text-slate-400 sm:block">
-                    Click outside or press Esc to close
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3 text-sm">
-                  <div className="rounded-2xl bg-white/5 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-wide text-white/40">
-                      Total Sets
-                    </div>
-                    <div className="text-lg font-semibold tabular-nums text-white">
-                      {modalTotalSets}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-wide text-white/40">
-                      Total Volume
-                    </div>
-                    <div className="text-lg font-semibold tabular-nums text-white">
-                      {(modalTotalTonnage * tonnageUnitMultiplier).toFixed(1)}
-                      <span className="text-[11px] uppercase text-white/60 ml-1">
-                        {tonnageUnit}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-wide text-white/40">
-                      Avg Sets / Session
-                    </div>
-                    <div className="text-lg font-semibold tabular-nums text-white">
-                      {modalSessionCount
-                        ? (modalTotalSets / modalSessionCount).toFixed(1)
-                        : "0.0"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 max-h-[45vh] overflow-y-auto pr-1">
-                  {modalHasDetail ? (
-                    modalSessions.map((session) => (
-                      <div
-                        key={session.sessionId}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 space-y-2"
-                      >
-                        <div className="flex items-center justify-between text-[11px] text-slate-300">
-                          <span>{session.label}</span>
-                          <span className="tabular-nums text-white/70">
-                            {session.totalSets} sets ·{" "}
-                            {(
-                              session.totalTonnage * tonnageUnitMultiplier
-                            ).toFixed(1)}{" "}
-                            {tonnageUnit}
-                          </span>
+                      <div className="space-y-1">
+                        <div className="text-sm uppercase tracking-widest text-white/40">
+                          Focus
                         </div>
-                        <div className="space-y-1">
-                          {session.exercises.map((exercise) => (
-                            <div
-                              key={exercise.exerciseId}
-                              className="flex items-center justify-between text-[11px] text-slate-200/90"
-                            >
-                              <span className="truncate max-w-[60%]">
-                                {exercise.name}
-                              </span>
-                              <span className="tabular-nums text-slate-300">
-                                {exercise.sets} sets ·{" "}
+                        <h2 className="text-2xl font-semibold capitalize">
+                          {modalGroupLabel || modalIconKey}
+                        </h2>
+                        <p className="text-[11px] text-slate-300">
+                          {modalHasDetail
+                            ? modalSessionCount > 0
+                              ? `${modalSessionCount} ${
+                                  modalSessionCount === 1
+                                    ? "session"
+                                    : "sessions"
+                                } logged in week ${week}`
+                              : `No sessions logged in week ${week}`
+                            : modalTotalSets > 0
+                            ? `${modalTotalSets} sets logged in week ${week}`
+                            : `No sets logged in week ${week}`}
+                        </p>
+                        {activeMuscleMembers && (
+                          <p className="text-[11px] text-slate-400">
+                            Includes{" "}
+                            {activeMuscleMembers
+                              .map((member) => humanizeMuscleName(member))
+                              .join(", ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="hidden text-right text-xs text-slate-400 sm:block">
+                      Click outside or press Esc to close
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3 text-sm">
+                    <div className="rounded-2xl bg-white/5 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                        Total Sets
+                      </div>
+                      <div className="text-lg font-semibold tabular-nums text-white">
+                        {modalTotalSets}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white/5 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                        Total Volume
+                      </div>
+                      <div className="text-lg font-semibold tabular-nums text-white">
+                        {(modalTotalTonnage * tonnageUnitMultiplier).toFixed(1)}
+                        <span className="text-[11px] uppercase text-white/60 ml-1">
+                          {tonnageUnit}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-white/5 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                        Avg Sets / Session
+                      </div>
+                      <div className="text-lg font-semibold tabular-nums text-white">
+                        {modalSessionCount
+                          ? (modalTotalSets / modalSessionCount).toFixed(1)
+                          : "0.0"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    {modalHasDetail ? (
+                      <div className="space-y-4 h-full overflow-y-auto pr-1 sm:pr-2">
+                        {modalSessions.map((session) => (
+                          <div
+                            key={session.sessionId}
+                            className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 space-y-2"
+                          >
+                            <div className="flex items-center justify-between text-[11px] text-slate-300">
+                              <span>{session.label}</span>
+                              <span className="tabular-nums text-white/70">
+                                {session.totalSets} sets ·{" "}
                                 {(
-                                  exercise.tonnage * tonnageUnitMultiplier
+                                  session.totalTonnage * tonnageUnitMultiplier
                                 ).toFixed(1)}{" "}
                                 {tonnageUnit}
                               </span>
                             </div>
-                          ))}
+                            <div className="space-y-1">
+                              {session.exercises.map((exercise) => (
+                                <div
+                                  key={exercise.exerciseId}
+                                  className="flex items-center justify-between text-[11px] text-slate-200/90"
+                                >
+                                  <span className="truncate max-w-[60%]">
+                                    {exercise.name}
+                                  </span>
+                                  <span className="tabular-nums text-slate-300">
+                                    {exercise.sets} sets ·{" "}
+                                    {(
+                                      exercise.tonnage * tonnageUnitMultiplier
+                                    ).toFixed(1)}{" "}
+                                    {tonnageUnit}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="h-full overflow-y-auto">
+                        <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-[12px] text-slate-300">
+                          No detailed session data available for this muscle in
+                          the selected week.
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-[12px] text-slate-300">
-                      No detailed session data available for this muscle in the
-                      selected week.
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
