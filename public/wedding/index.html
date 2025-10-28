@@ -3,16 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ciaran &amp; Cheylin Wedding</title>
+    <title>Ciaran &amp; Cheylin — Wedding</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap"
       rel="stylesheet" />
     <style>
       :root {
         --gold: #d4af37;
-        --lilac: #c8a2c8;
+        --gold-soft: #e3c766;
+        --gold-deep: #b28c1b;
         --white: #ffffff;
-        --text: #333333;
+        --smoke: rgba(255, 255, 255, 0.72);
+        --ink: #2a2a2a;
       }
       * {
         box-sizing: border-box;
@@ -21,37 +23,111 @@
       }
       body {
         font-family: "Montserrat", sans-serif;
-        /* White background */
-        background: var(--white);
-        color: var(--text);
+        background: radial-gradient(
+          1200px 800px at 80% -10%,
+          #f5f5f5 0%,
+          #fafafa 35%,
+          #ffffff 70%
+        );
+        color: var(--ink);
         line-height: 1.6;
       }
-      header {
-        background: linear-gradient(135deg, var(--gold), var(--lilac));
-        color: var(--white);
+      header.hero {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(
+            1200px 600px at 20% -10%,
+            rgba(212, 175, 55, 0.28),
+            rgba(255, 255, 255, 0) 60%
+          ),
+          linear-gradient(180deg, #ffffff 0%, #fbfbfb 60%, #f6f3ea 100%);
+        color: var(--ink);
         text-align: center;
-        padding: 80px 20px;
-        animation: gradientBG 10s ease infinite;
+        padding: 100px 20px 120px;
+        isolation: isolate;
       }
-      header h1 {
+      /* Subtle moving smoke */
+      header.hero::before {
+        content: "";
+        position: absolute;
+        inset: -20% -10%;
+        background: radial-gradient(
+            60% 40% at 20% 30%,
+            rgba(255, 255, 255, 0.9) 0%,
+            rgba(255, 255, 255, 0) 70%
+          ),
+          radial-gradient(
+            50% 35% at 70% 60%,
+            rgba(255, 255, 255, 0.85) 0%,
+            rgba(255, 255, 255, 0) 70%
+          );
+        filter: blur(18px) saturate(105%);
+        animation: drift 28s ease-in-out infinite alternate;
+        opacity: 0.7;
+        z-index: -1;
+      }
+      @keyframes drift {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        100% {
+          transform: translate3d(-2%, 3%, 0) scale(1.08);
+        }
+      }
+
+      header .shimmer-text {
         font-family: "Playfair Display", serif;
-        font-size: 3rem;
+        font-size: clamp(2.5rem, 5vw, 4.25rem);
         letter-spacing: 2px;
-        animation: glow 3s ease-in-out infinite alternate;
-        text-shadow: 0 0 8px var(--white), 0 0 16px var(--lilac);
+        background: linear-gradient(
+          92deg,
+          var(--gold-deep),
+          var(--gold) 35%,
+          var(--gold-soft) 60%,
+          var(--gold-deep)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        background-size: 200% 100%;
+        animation: shimmer 6s linear infinite;
+        text-shadow: 0 0 0 rgba(0, 0, 0, 0);
       }
-      @keyframes glow {
-        from {
-          text-shadow: 0 0 8px var(--white), 0 0 16px var(--lilac);
+      @keyframes shimmer {
+        0% {
+          background-position: 0% 50%;
         }
-        to {
-          text-shadow: 0 0 16px var(--white), 0 0 32px var(--lilac);
+        100% {
+          background-position: 200% 50%;
         }
       }
-      header p {
+      header .date-venue {
         font-family: "Playfair Display", serif;
-        font-size: 1.25rem;
+        font-size: 1.15rem;
+        color: rgba(0, 0, 0, 0.7);
         margin-top: 10px;
+      }
+      .scroll-cue {
+        margin-top: 28px;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.55);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        opacity: 0.9;
+      }
+      .scroll-cue .chev {
+        animation: floaty 2.4s ease-in-out infinite;
+      }
+      @keyframes floaty {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(6px);
+        }
       }
       main {
         max-width: 1000px;
@@ -66,7 +142,7 @@
         display: inline-block;
         font-family: "Playfair Display", serif;
         font-size: 2rem;
-        color: var(--gold);
+        color: var(--gold-deep);
         margin-bottom: 20px;
         text-align: center;
       }
@@ -75,23 +151,34 @@
         position: absolute;
         bottom: -5px;
         left: 50%;
-        width: 50%;
+        width: 56%;
         height: 2px;
-        background: var(--lilac);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold),
+          transparent
+        );
         transform: translateX(-50%);
         transition: background 0.3s ease, width 0.3s ease;
       }
       .section-title:hover::after {
-        background: var(--gold);
-        width: 75%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--gold-soft),
+          transparent
+        );
+        width: 78%;
       }
       .content {
-        /* Frosted lilac glass container */
-        background: rgba(200, 162, 200, 0.2);
+        /* Smokey white frosted glass */
+        background: rgba(255, 255, 255, 0.55);
         backdrop-filter: blur(10px);
         padding: 20px;
-        border: 1px solid rgba(200, 162, 200, 0.5);
+        border: 1px solid rgba(212, 175, 55, 0.28);
         border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
       }
       .content img {
         max-width: 100%;
@@ -106,13 +193,13 @@
       #details .item {
         text-align: center;
         padding: 20px;
-        /* Frosted lilac box */
-        background: rgba(200, 162, 200, 0.2);
+        /* Frosted white with gold edge */
+        background: rgba(255, 255, 255, 0.6);
         backdrop-filter: blur(10px);
         border-radius: 8px;
-        color: var(--text);
-        border: 1px solid rgba(200, 162, 200, 0.5);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        color: var(--ink);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
         transition: transform 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
       }
       #details .item h3 {
@@ -121,7 +208,8 @@
       }
       #details .item:hover {
         transform: translateY(-5px) scale(1.02);
-        box-shadow: 0 0 15px var(--gold), 0 0 30px var(--lilac);
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.45),
+          0 0 26px rgba(212, 175, 55, 0.25);
       }
       #rsvp iframe {
         width: 100%;
@@ -136,7 +224,7 @@
       footer {
         text-align: center;
         padding: 20px;
-        background: #f8f8f8;
+        background: linear-gradient(180deg, #fafafa, #f5f0e6);
         font-size: 0.9rem;
       }
       a {
@@ -159,21 +247,7 @@
         border-radius: 50%;
         box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
       }
-      /* Header background gradient animation */
-      @keyframes gradientBG {
-        0% {
-          background: linear-gradient(135deg, var(--gold), var(--lilac));
-        }
-        50% {
-          background: linear-gradient(225deg, var(--lilac), var(--gold));
-        }
-        100% {
-          background: linear-gradient(135deg, var(--gold), var(--lilac));
-        }
-      }
-      header {
-        animation: gradientBG 10s ease infinite;
-      }
+      /* Remove previous header animation; shimmer handles motion */
       /* Sparkle effect */
       @keyframes sparkle {
         0% {
@@ -190,7 +264,7 @@
         pointer-events: none;
         width: 6px;
         height: 6px;
-        background: radial-gradient(circle, var(--gold), var(--lilac));
+        background: radial-gradient(circle, var(--gold), #fff5cc);
         border-radius: 50%;
         filter: blur(1px);
         animation: sparkle 0.8s ease-out forwards;
@@ -205,7 +279,7 @@
         position: absolute;
         pointer-events: none;
         border-radius: 50%;
-        background: rgba(212, 175, 55, 0.1);
+        background: rgba(212, 175, 55, 0.08);
         filter: blur(2px);
         animation: rise linear infinite;
       }
@@ -260,9 +334,26 @@
   </head>
   <body>
     <!-- Hero Section -->
-    <header>
-      <h1>Ciarán &amp; Cheylin</h1>
-      <p>September 26, 2027 &bull; Caversham House</p>
+    <header class="hero">
+      <h1 class="shimmer-text">Ciarán &amp; Cheylin</h1>
+      <p class="date-venue">September 26, 2027 &bull; Caversham House</p>
+      <div class="scroll-cue" aria-hidden="true">
+        <span>Scroll</span>
+        <svg
+          class="chev"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </div>
     </header>
 
     <main>
@@ -280,22 +371,22 @@
 
       <!-- Event Details -->
       <section id="details">
-        <h2 class="section-title">Event Details</h2>
-        <div class="grid">
+        <h2 class="section-title">The Day</h2>
+        <div class="grid" style="align-items: start">
           <div class="item">
             <h3>Ceremony</h3>
-            <p>
-              1:00 PM &mdash; 3:00 PM &mdash; St Michael the Archangel,
-              Leederville
-            </p>
+            <p>1:00 PM &mdash; 3:00 PM</p>
+            <p>St Michael the Archangel, Leederville</p>
           </div>
           <div class="item">
             <h3>Reception</h3>
-            <p>4:00 PM &mdash; 11:00 PM &mdash; Marquee at Caversham House</p>
+            <p>4:00 PM &mdash; 11:00 PM</p>
+            <p>Marquee at Caversham House</p>
           </div>
           <div class="item">
             <h3>Dress Code</h3>
-            <p>Black Tie Optional &mdash; Regal Touches Welcome</p>
+            <p>Black Tie Optional</p>
+            <p style="opacity: 0.8">Hint: gold accents welcome ✨</p>
           </div>
         </div>
       </section>
@@ -317,8 +408,90 @@
       <!-- RSVP -->
       <section id="rsvp">
         <h2 class="section-title">RSVP</h2>
-        <!-- Embed your Google or Microsoft form below -->
-        <iframe src="YOUR_FORM_URL_HERE" title="RSVP Form"></iframe>
+        <div class="content" style="text-align: center">
+          <p style="margin-bottom: 16px">
+            We’re excited to celebrate with you. Please RSVP below.
+          </p>
+          <button
+            id="openRsvp"
+            style="
+              display: inline-flex;
+              align-items: center;
+              gap: 10px;
+              border: 1px solid rgba(212, 175, 55, 0.5);
+              background: linear-gradient(180deg, #fff, #fbf7ea);
+              color: #705b12;
+              padding: 10px 16px;
+              border-radius: 999px;
+              cursor: pointer;
+              box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+              font-weight: 600;
+            ">
+            <span>Open RSVP Form</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M5 12h14M13 5l7 7-7 7"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </button>
+          <div
+            style="
+              margin-top: 14px;
+              font-size: 12px;
+              color: rgba(0, 0, 0, 0.55);
+            ">
+            Online submissions opening soon. For now, the form saves locally.
+          </div>
+        </div>
+      </section>
+
+      <!-- Menu (coming soon) -->
+      <section id="menu">
+        <h2 class="section-title">Menu</h2>
+        <div class="content" style="position: relative; overflow: hidden">
+          <p>Final menu options will be revealed closer to the date.</p>
+          <ul style="margin-top: 12px; opacity: 0.8">
+            <li>Entrées — Seasonal selection</li>
+            <li>Mains — Beef | Chicken | Vegetarian | Vegan</li>
+            <li>Desserts — Chef’s trio</li>
+          </ul>
+          <div
+            style="
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0.6),
+                rgba(255, 255, 255, 0.9)
+              );
+              backdrop-filter: blur(6px);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+            <span
+              style="
+                font-family: 'Playfair Display', serif;
+                color: rgba(178, 140, 27, 0.95);
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                border: 1px solid rgba(212, 175, 55, 0.5);
+                padding: 8px 12px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.5);
+              "
+              >Coming Soon</span
+            >
+          </div>
+        </div>
       </section>
     </main>
 
@@ -326,6 +499,202 @@
     <footer>
       <p>&copy; 2027 Ciaran &amp; Cheylin. All Rights Reserved.</p>
     </footer>
+
+    <!-- RSVP Modal -->
+    <div
+      id="rsvpModal"
+      aria-hidden="true"
+      style="
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 40;
+      ">
+      <div
+        class="backdrop"
+        style="
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+        "></div>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="RSVP form"
+        style="
+          position: relative;
+          width: min(680px, 92vw);
+          max-height: 85vh;
+          overflow: auto;
+          background: rgba(255, 255, 255, 0.85);
+          border: 1px solid rgba(212, 175, 55, 0.35);
+          border-radius: 18px;
+          box-shadow: 0 40px 120px rgba(0, 0, 0, 0.25);
+          padding: 20px 20px 16px;
+          backdrop-filter: blur(10px);
+        ">
+        <button
+          id="closeRsvp"
+          aria-label="Close"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            height: 36px;
+            width: 36px;
+            border: none;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.06);
+            cursor: pointer;
+          ">
+          ✕
+        </button>
+        <h3
+          style="
+            font-family: 'Playfair Display', serif;
+            color: var(--gold-deep);
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+          ">
+          RSVP
+        </h3>
+        <form
+          id="rsvpForm"
+          style="display: grid; gap: 14px; grid-template-columns: 1fr 1fr">
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span>Full Name</span>
+            <input
+              required
+              name="name"
+              placeholder="e.g. Alex Smith"
+              style="
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                background: #fff;
+              " />
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span>Email</span>
+            <input
+              type="email"
+              name="email"
+              placeholder="alex@email.com"
+              style="
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                background: #fff;
+              " />
+          </label>
+          <label
+            style="
+              grid-column: 1/-1;
+              display: flex;
+              flex-direction: column;
+              gap: 6px;
+            ">
+            <span>Will you be attending?</span>
+            <select
+              name="attending"
+              style="
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                background: #fff;
+              ">
+              <option value="yes">Yes, I’ll be there</option>
+              <option value="no">Sorry, can’t make it</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span>Meal Preference</span>
+            <select
+              name="meal"
+              style="
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                background: #fff;
+              ">
+              <option value="tbd">Decide later</option>
+              <option>Beef</option>
+              <option>Chicken</option>
+              <option>Vegetarian</option>
+              <option>Vegan</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 6px">
+            <span>Dietary Notes</span>
+            <input
+              name="diet"
+              placeholder="Allergies, etc."
+              style="
+                padding: 10px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 0, 0, 0.12);
+                background: #fff;
+              " />
+          </label>
+          <div
+            style="
+              grid-column: 1/-1;
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              align-items: center;
+            ">
+            <button
+              type="button"
+              id="saveRsvp"
+              style="
+                border: 1px solid rgba(212, 175, 55, 0.45);
+                border-radius: 999px;
+                padding: 10px 16px;
+                background: linear-gradient(180deg, #fff, #fbf7ea);
+                color: #705b12;
+                font-weight: 600;
+                cursor: pointer;
+              ">
+              Save
+            </button>
+            <button
+              type="submit"
+              disabled
+              title="Online submission coming soon"
+              style="
+                opacity: 0.7;
+                cursor: not-allowed;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                border-radius: 999px;
+                padding: 10px 16px;
+                background: #fff;
+              ">
+              Submit
+            </button>
+          </div>
+        </form>
+        <div
+          id="rsvpToast"
+          role="status"
+          aria-live="polite"
+          style="
+            display: none;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #1b5e20;
+            background: #e6f4ea;
+            border: 1px solid #a5d6a7;
+            padding: 8px 10px;
+            border-radius: 8px;
+          ">
+          Saved locally. We’ll enable online RSVPs soon.
+        </div>
+      </div>
+    </div>
 
     <!-- Sparkle and fade-in scripts -->
     <script>
@@ -350,7 +719,7 @@
         setTimeout(() => sparkle.remove(), 1200);
       }
       // Generate sparkles periodically
-      setInterval(createSparkle, 300);
+      setInterval(createSparkle, 400);
 
       // Create floating bubbles
       function createBubble() {
@@ -401,6 +770,44 @@
           current = (current + 1) % slides.length;
           slides[current].classList.add("active");
         }, 4000); // change every 4 seconds
+      });
+
+      // RSVP modal logic (temporary local save)
+      const modal = document.getElementById("rsvpModal");
+      const openRsvp = document.getElementById("openRsvp");
+      const closeRsvp = document.getElementById("closeRsvp");
+      const form = document.getElementById("rsvpForm");
+      const saveBtn = document.getElementById("saveRsvp");
+      const toast = document.getElementById("rsvpToast");
+
+      function openModal() {
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal() {
+        modal.style.display = "none";
+        document.body.style.overflow = "";
+      }
+      openRsvp?.addEventListener("click", openModal);
+      closeRsvp?.addEventListener("click", closeModal);
+      modal?.querySelector(".backdrop")?.addEventListener("click", closeModal);
+
+      function saveLocal() {
+        const data = Object.fromEntries(new FormData(form));
+        try {
+          const list = JSON.parse(
+            localStorage.getItem("wedding_rsvps") || "[]"
+          );
+          list.push({ ...data, ts: Date.now() });
+          localStorage.setItem("wedding_rsvps", JSON.stringify(list));
+          toast.style.display = "block";
+          setTimeout(() => (toast.style.display = "none"), 2200);
+        } catch {}
+      }
+      saveBtn?.addEventListener("click", saveLocal);
+      form?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        saveLocal();
       });
     </script>
   </body>
