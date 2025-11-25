@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ciaran &amp; Cheylin — Wedding</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Great+Vibes&family=Playfair+Display:wght@400;700&family=Montserrat:wght@400;600&display=swap"
       rel="stylesheet" />
     <style>
       :root {
@@ -37,14 +37,18 @@
         overflow: hidden;
         background: radial-gradient(
             1200px 600px at 20% -10%,
-            rgba(212, 175, 55, 0.28),
+            rgba(212, 175, 55, 0.25),
             rgba(255, 255, 255, 0) 60%
           ),
           linear-gradient(180deg, #ffffff 0%, #fbfbfb 60%, #f6f3ea 100%);
         color: var(--ink);
         text-align: center;
-        padding: 100px 20px 120px;
+        padding: 80px 20px 90px;
         isolation: isolate;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
       }
       /* Subtle moving smoke */
       header.hero::before {
@@ -76,8 +80,8 @@
       }
 
       header .shimmer-text {
-        font-family: "Playfair Display", serif;
-        font-size: clamp(2.5rem, 5vw, 4.25rem);
+        font-family: "Great Vibes", "Playfair Display", serif;
+        font-size: clamp(3rem, 6vw, 5rem);
         letter-spacing: 2px;
         background: linear-gradient(
           92deg,
@@ -101,11 +105,111 @@
           background-position: 200% 50%;
         }
       }
+      .hero-names {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
       header .date-venue {
-        font-family: "Playfair Display", serif;
+        font-family: "Cinzel", "Playfair Display", serif;
         font-size: 1.15rem;
         color: rgba(0, 0, 0, 0.7);
-        margin-top: 10px;
+      }
+      .hero-tagline {
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        color: rgba(0, 0, 0, 0.5);
+      }
+      .hero-media {
+        width: min(960px, 95vw);
+        border-radius: 18px;
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.1);
+      }
+      .hero-media .image-strip {
+        display: flex;
+        width: calc(300%);
+        animation: strip-slide 28s linear infinite;
+      }
+      .hero-media .frame {
+        flex: 1;
+        min-height: 220px;
+        background-size: cover;
+        background-position: center;
+        filter: saturate(105%);
+      }
+      @keyframes strip-slide {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(-66.66%);
+        }
+      }
+      .hero-overlay-text {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          90deg,
+          rgba(3, 7, 18, 0.55),
+          rgba(3, 7, 18, 0.15)
+        );
+        color: var(--white);
+        text-transform: uppercase;
+        letter-spacing: 0.4em;
+        font-size: clamp(0.75rem, 2vw, 1rem);
+        font-family: "Montserrat", sans-serif;
+      }
+      .hero-overlay-text span {
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.3em;
+      }
+      .countdown-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .countdown-card {
+        width: 90px;
+        padding: 12px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(8px);
+        text-align: center;
+        font-family: "Cinzel", serif;
+      }
+      .countdown-card strong {
+        display: block;
+        font-size: 1.8rem;
+        color: var(--gold-deep);
+        letter-spacing: 2px;
+      }
+      .countdown-card span {
+        font-size: 0.75rem;
+        letter-spacing: 0.25em;
+        color: rgba(0, 0, 0, 0.6);
+      }
+      .hero-ribbon {
+        margin-top: 16px;
+        padding: 10px 18px;
+        border: 1px solid rgba(212, 175, 55, 0.4);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        font-family: "Montserrat", sans-serif;
+        letter-spacing: 0.22em;
+        font-size: 0.75rem;
+        color: rgba(0, 0, 0, 0.65);
       }
       .scroll-cue {
         margin-top: 28px;
@@ -335,8 +439,55 @@
   <body>
     <!-- Hero Section -->
     <header class="hero">
-      <h1 class="shimmer-text">Ciarán &amp; Cheylin</h1>
-      <p class="date-venue">September 26, 2027 &bull; Caversham House</p>
+      <div class="hero-names">
+        <p class="hero-tagline">A celebration of vows</p>
+        <h1 class="shimmer-text">Ciarán &amp; Cheylin</h1>
+        <p class="date-venue">
+          Sunday 26 September 2027 &bull; Perth, Western Australia
+        </p>
+        <p class="date-venue">
+          St Joseph’s Catholic Church &bull; Subiaco &bull; 2:00 PM
+        </p>
+      </div>
+      <div class="hero-media" aria-hidden="true">
+        <div class="image-strip">
+          <div
+            class="frame"
+            style="background-image: url('../images/venuepic1.webp')"></div>
+          <div
+            class="frame"
+            style="background-image: url('../images/venuepic3.webp')"></div>
+          <div
+            class="frame"
+            style="background-image: url('../images/venuepic4.webp')"></div>
+          <div
+            class="frame"
+            style="background-image: url('../images/venuepic2.webp')"></div>
+        </div>
+        <div class="hero-overlay-text">
+          For Eternity
+          <span>and Always</span>
+        </div>
+      </div>
+      <div class="countdown-wrapper" id="countdown" aria-live="polite">
+        <div class="countdown-card">
+          <strong id="count-days">--</strong>
+          <span>Days</span>
+        </div>
+        <div class="countdown-card">
+          <strong id="count-hours">--</strong>
+          <span>Hours</span>
+        </div>
+        <div class="countdown-card">
+          <strong id="count-minutes">--</strong>
+          <span>Mins</span>
+        </div>
+        <div class="countdown-card">
+          <strong id="count-seconds">--</strong>
+          <span>Secs</span>
+        </div>
+      </div>
+      <div class="hero-ribbon">Countdown to the vows</div>
       <div class="scroll-cue" aria-hidden="true">
         <span>Scroll</span>
         <svg
@@ -375,18 +526,20 @@
         <div class="grid" style="align-items: start">
           <div class="item">
             <h3>Ceremony</h3>
-            <p>1:00 PM &mdash; 3:00 PM</p>
-            <p>St Michael the Archangel, Leederville</p>
+            <p>2:00 PM &mdash; 3:00 PM</p>
+            <p>St Joseph’s Catholic Church, Subiaco</p>
+            <p style="opacity: 0.75">Doors open 1:30 PM</p>
           </div>
           <div class="item">
             <h3>Reception</h3>
-            <p>4:00 PM &mdash; 11:00 PM</p>
-            <p>Marquee at Caversham House</p>
+            <p>5:00 PM &mdash; Late</p>
+            <p>Riverside Marquee, Caversham House</p>
+            <p style="opacity: 0.75">Sunset canapés &amp; live music</p>
           </div>
           <div class="item">
             <h3>Dress Code</h3>
-            <p>Black Tie Optional</p>
-            <p style="opacity: 0.8">Hint: gold accents welcome ✨</p>
+            <p>Black Tie (gold accents welcome)</p>
+            <p style="opacity: 0.8">Think modern regal glamour ✨</p>
           </div>
         </div>
       </section>
@@ -455,42 +608,33 @@
 
       <!-- Menu (coming soon) -->
       <section id="menu">
-        <h2 class="section-title">Menu</h2>
-        <div class="content" style="position: relative; overflow: hidden">
-          <p>Final menu options will be revealed closer to the date.</p>
-          <ul style="margin-top: 12px; opacity: 0.8">
-            <li>Entrées — Seasonal selection</li>
-            <li>Mains — Beef | Chicken | Vegetarian | Vegan</li>
-            <li>Desserts — Chef’s trio</li>
+        <h2 class="section-title">Reception Menu</h2>
+        <div class="content">
+          <p>
+            We’re curating a seated menu with Caversham House that marries
+            classic European techniques with the produce of the Swan Valley.
+            Final tasting selections will be confirmed after our chef’s table in
+            early 2027.
+          </p>
+          <ul style="margin-top: 16px; opacity: 0.85">
+            <li>
+              Entrée &amp; main pairings: seasonal chef’s choice with bespoke
+              vegetarian and vegan parallels.
+            </li>
+            <li>
+              Dessert finale: artisan trio served tableside with petite fours to
+              follow.
+            </li>
+            <li>
+              Drinks: champagne tower on arrival plus an all-evening premium
+              wine &amp; cocktail package.
+            </li>
           </ul>
-          <div
-            style="
-              position: absolute;
-              inset: 0;
-              background: linear-gradient(
-                180deg,
-                rgba(255, 255, 255, 0.6),
-                rgba(255, 255, 255, 0.9)
-              );
-              backdrop-filter: blur(6px);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-            <span
-              style="
-                font-family: 'Playfair Display', serif;
-                color: rgba(178, 140, 27, 0.95);
-                letter-spacing: 2px;
-                text-transform: uppercase;
-                border: 1px solid rgba(212, 175, 55, 0.5);
-                padding: 8px 12px;
-                border-radius: 999px;
-                background: rgba(255, 255, 255, 0.5);
-              "
-              >Coming Soon</span
-            >
-          </div>
+          <p style="margin-top: 14px; font-size: 0.95rem">
+            Detailed options (including children’s plates and dietary pathways)
+            will be shared mid-2027. Please note any requirements in your RSVP
+            so the chef can prepare your custom course.
+          </p>
         </div>
       </section>
     </main>
@@ -708,6 +852,29 @@
           el.style.animationDelay = `${idx * 0.3}s`;
         });
       });
+
+      // Countdown to ceremony (26 Sep 2027, 2:00 PM AWST)
+      const ceremonyDate = new Date("2027-09-26T14:00:00+08:00").getTime();
+      const dayEl = document.getElementById("count-days");
+      const hourEl = document.getElementById("count-hours");
+      const minuteEl = document.getElementById("count-minutes");
+      const secondEl = document.getElementById("count-seconds");
+
+      function updateCountdown() {
+        const now = Date.now();
+        let diff = ceremonyDate - now;
+        if (diff < 0) diff = 0;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+        dayEl.textContent = String(days).padStart(2, "0");
+        hourEl.textContent = String(hours).padStart(2, "0");
+        minuteEl.textContent = String(minutes).padStart(2, "0");
+        secondEl.textContent = String(seconds).padStart(2, "0");
+      }
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
 
       // Create random sparkles with size variation
       function createSparkle() {
