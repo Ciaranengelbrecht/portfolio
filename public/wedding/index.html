@@ -42,6 +42,8 @@
         opacity: 0;
         transition: opacity 0.8s ease;
         z-index: 0;
+        background-repeat: repeat;
+        background-attachment: fixed;
       }
       body.mode-light {
         background: radial-gradient(
@@ -66,72 +68,69 @@
         opacity: 1;
         background-image: radial-gradient(
             1px 1px at 12% 15%,
-            rgba(255, 234, 190, 0.85),
-            transparent 35%
+            rgba(255, 236, 205, 0.95),
+            transparent 30%
           ),
           radial-gradient(
-            1px 1px at 45% 65%,
-            rgba(255, 210, 145, 0.8),
-            transparent 35%
+            1px 1px at 42% 62%,
+            rgba(255, 215, 160, 0.9),
+            transparent 28%
           ),
           radial-gradient(
-            1px 1px at 78% 25%,
-            rgba(255, 255, 255, 0.75),
-            transparent 40%
+            1px 1px at 72% 28%,
+            rgba(255, 255, 255, 0.85),
+            transparent 32%
           ),
           radial-gradient(
-            2px 2px at 30% 40%,
-            rgba(255, 255, 255, 0.6),
-            transparent 45%
+            1px 1px at 30% 40%,
+            rgba(255, 230, 190, 0.85),
+            transparent 30%
           ),
           radial-gradient(
-            1px 1px at 60% 85%,
-            rgba(255, 225, 165, 0.7),
-            transparent 40%
+            1px 1px at 62% 80%,
+            rgba(255, 205, 140, 0.85),
+            transparent 28%
           ),
           radial-gradient(
             1px 1px at 90% 70%,
-            rgba(255, 205, 120, 0.75),
-            transparent 35%
+            rgba(255, 240, 210, 0.9),
+            transparent 32%
           );
-        background-size: 110px 110px, 140px 140px, 90px 90px, 170px 170px,
-          130px 130px, 100px 100px;
-        background-position: 0 0, 30px 80px, 60px 40px, 90px 10px, 45px 25px,
-          10px 60px;
-        animation: starDrift 120s linear infinite;
-        mix-blend-mode: lighten;
+        background-size: 80px 80px, 95px 95px, 70px 70px, 90px 90px, 85px 85px,
+          75px 75px;
+        background-position: 0 0, 20px 60px, 40px 25px, 60px 0, 15px 30px,
+          35px 45px;
       }
       body.mode-night::after {
-        opacity: 0.9;
+        opacity: 0.85;
         background-image: radial-gradient(
             2px 2px at 25% 45%,
-            rgba(255, 250, 220, 0.85),
-            transparent 50%
+            rgba(255, 252, 232, 0.9),
+            transparent 55%
           ),
           radial-gradient(
-            2px 2px at 65% 15%,
-            rgba(255, 220, 160, 0.9),
+            1.5px 1.5px at 65% 15%,
+            rgba(255, 230, 170, 0.85),
             transparent 55%
           ),
           radial-gradient(
             1px 1px at 15% 80%,
-            rgba(255, 215, 140, 0.85),
-            transparent 50%
+            rgba(255, 210, 135, 0.8),
+            transparent 55%
           ),
           radial-gradient(
-            3px 3px at 75% 70%,
-            rgba(255, 235, 200, 0.8),
-            transparent 60%
+            2px 2px at 75% 70%,
+            rgba(255, 240, 200, 0.85),
+            transparent 55%
           ),
           radial-gradient(
             1px 1px at 40% 25%,
-            rgba(255, 230, 170, 0.85),
+            rgba(255, 220, 150, 0.8),
             transparent 55%
           );
-        background-size: 160px 160px, 220px 220px, 140px 140px, 260px 260px,
-          180px 180px;
-        animation: starGlint 14s ease-in-out infinite;
-        mix-blend-mode: screen;
+        background-size: 130px 130px, 150px 150px, 120px 120px, 180px 180px,
+          140px 140px;
+        animation: starTwinkle 7s ease-in-out infinite;
       }
       header,
       main,
@@ -399,29 +398,15 @@
           transform: translateY(6px);
         }
       }
-      @keyframes starDrift {
+      @keyframes starTwinkle {
         0% {
-          transform: translate3d(0, 0, 0);
+          opacity: 0.55;
         }
         50% {
-          transform: translate3d(-3%, 2%, 0);
+          opacity: 1;
         }
         100% {
-          transform: translate3d(-6%, 4%, 0);
-        }
-      }
-      @keyframes starGlint {
-        0% {
-          opacity: 0.2;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.7;
-          transform: scale(1.05) translateY(-6px);
-        }
-        100% {
-          opacity: 0.3;
-          transform: scale(1) translateY(0);
+          opacity: 0.6;
         }
       }
       @keyframes starPulse {
@@ -439,6 +424,8 @@
         }
       }
       main {
+        position: relative;
+        z-index: 1;
         max-width: 1000px;
         margin: 40px auto;
         padding: 0 20px;
@@ -545,12 +532,12 @@
           color 0.6s ease;
       }
       body.mode-night .content {
-        background: rgba(6, 6, 12, 0.55);
+        background: rgba(4, 4, 10, 0.45);
         border-color: rgba(212, 175, 55, 0.25);
-        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
       }
       body.mode-night #details .item {
-        background: rgba(8, 8, 14, 0.65);
+        background: rgba(8, 8, 14, 0.55);
         color: var(--night-ink);
         border-color: rgba(212, 175, 55, 0.4);
       }
@@ -729,13 +716,13 @@
         border-radius: 50%;
         background: radial-gradient(
           circle at 30% 30%,
-          rgba(255, 255, 255, 0.7),
-          rgba(212, 175, 55, 0.25)
+          rgba(255, 249, 232, 0.8),
+          rgba(212, 175, 55, 0.4)
         );
-        box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
-        filter: blur(1px);
+        box-shadow: 0 0 14px rgba(212, 175, 55, 0.55);
+        filter: blur(0.5px);
         animation: rise linear infinite;
-        opacity: 0.85;
+        opacity: 0.7;
       }
       @keyframes rise {
         0% {
@@ -1294,13 +1281,13 @@
       function createBubble() {
         const bubble = document.createElement("div");
         bubble.className = "bubble";
-        const size = Math.random() * 90 + 35;
+        const size = Math.random() * 25 + 12;
         bubble.style.width = size + "px";
         bubble.style.height = size + "px";
         bubble.style.left = Math.random() * 100 + "%";
         bubble.style.bottom = "-20px";
-        bubble.style.animationDuration = Math.random() * 9 + 6 + "s";
-        bubble.style.opacity = (0.35 + Math.random() * 0.4).toFixed(2);
+        bubble.style.animationDuration = Math.random() * 4 + 5 + "s";
+        bubble.style.opacity = (0.45 + Math.random() * 0.3).toFixed(2);
         document.body.appendChild(bubble);
         setTimeout(
           () => bubble.remove(),
@@ -1308,7 +1295,7 @@
         );
       }
       // Generate bubbles periodically
-      setInterval(createBubble, 650);
+      setInterval(createBubble, 900);
 
       // Slideshow functionality
       const slides = document.querySelectorAll(".slideshow img");
