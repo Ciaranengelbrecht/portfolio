@@ -634,13 +634,13 @@
         border-radius: 50%;
         background: radial-gradient(
           circle at 30% 30%,
-          rgba(255, 249, 232, 0.8),
-          rgba(212, 175, 55, 0.4)
+          rgba(255, 249, 232, 0.85),
+          rgba(212, 175, 55, 0.35)
         );
-        box-shadow: 0 0 14px rgba(212, 175, 55, 0.55);
+        box-shadow: 0 0 14px rgba(212, 175, 55, 0.45);
         filter: blur(0.5px);
         animation: rise linear infinite;
-        opacity: 0.7;
+        opacity: 0.65;
       }
       @keyframes rise {
         0% {
@@ -1124,6 +1124,7 @@
       const bodyEl = document.body;
       const modeToggle = document.getElementById("modeToggle");
       const starContainer = document.querySelector(".starry-sky");
+      const heroEl = document.querySelector("header.hero");
       const STAR_COUNT = 360;
       let resizeStarTimeout;
 
@@ -1240,6 +1241,7 @@
 
       // Create floating bubbles
       function createBubble() {
+        if (!heroEl) return;
         const bubble = document.createElement("div");
         bubble.className = "bubble";
         const size = Math.random() * 25 + 12;
@@ -1249,10 +1251,7 @@
         bubble.style.bottom = "-20px";
         bubble.style.animationDuration = Math.random() * 4 + 5 + "s";
         bubble.style.opacity = (0.45 + Math.random() * 0.3).toFixed(2);
-        if (!starContainer || !bodyEl.classList.contains("mode-night")) {
-          return;
-        }
-        starContainer.appendChild(bubble);
+        heroEl.appendChild(bubble);
         setTimeout(
           () => bubble.remove(),
           parseFloat(bubble.style.animationDuration) * 1000
