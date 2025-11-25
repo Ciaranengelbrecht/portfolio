@@ -55,11 +55,19 @@
       .starry-sky {
         position: fixed;
         inset: 0;
+        width: 100vw;
+        height: 100vh;
         overflow: hidden;
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.8s ease;
         z-index: 0;
+        background: transparent;
+      }
+      @supports (height: 100dvh) {
+        .starry-sky {
+          height: 100dvh;
+        }
       }
       body.mode-night .starry-sky {
         opacity: 1;
@@ -113,6 +121,14 @@
         flex-direction: column;
         align-items: center;
         gap: 18px;
+      }
+      body.mode-night header.hero {
+        background: radial-gradient(
+            1000px 620px at 15% -5%,
+            rgba(212, 175, 55, 0.35),
+            rgba(255, 255, 255, 0) 65%
+          ),
+          linear-gradient(180deg, #fffef8 0%, #fdf9ec 55%, #f7f1de 100%);
       }
       header.hero .hero-effects {
         position: absolute;
@@ -172,6 +188,18 @@
         animation: shimmer 6s linear infinite;
         text-shadow: 0 0 0 rgba(0, 0, 0, 0);
       }
+      body.mode-night header .shimmer-text {
+        background: linear-gradient(
+          105deg,
+          #fff6cf,
+          #ffe6a6 35%,
+          #f3c046 60%,
+          #d89a27
+        );
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35),
+          0 0 16px rgba(255, 219, 141, 0.65);
+        -webkit-text-fill-color: transparent;
+      }
       @keyframes shimmer {
         0% {
           background-position: 0% 50%;
@@ -190,11 +218,17 @@
         font-size: 1.15rem;
         color: rgba(0, 0, 0, 0.7);
       }
+      body.mode-night header .date-venue {
+        color: rgba(0, 0, 0, 0.6);
+      }
       .hero-tagline {
         font-family: "Cinzel", serif;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         font-size: 0.85rem;
+        color: rgba(0, 0, 0, 0.5);
+      }
+      body.mode-night .hero-tagline {
         color: rgba(0, 0, 0, 0.5);
       }
       .hero-media {
@@ -284,6 +318,10 @@
         font-family: "Montserrat", sans-serif;
         letter-spacing: 0.22em;
         font-size: 0.75rem;
+        color: rgba(0, 0, 0, 0.65);
+      }
+      body.mode-night .hero-ribbon {
+        background: rgba(255, 255, 255, 0.8);
         color: rgba(0, 0, 0, 0.65);
       }
       .mode-toggle {
@@ -1140,26 +1178,46 @@
       const heroEffectsLayer = heroEl?.querySelector(".hero-effects");
       const bubbleHost = heroEffectsLayer || heroEl;
       const STAR_COUNT = 360;
+      const STAR_COUNT_MOBILE = 220;
+      const compactQuery = window.matchMedia
+        ? window.matchMedia("(max-width: 768px)")
+        : null;
       let resizeStarTimeout;
+
+      function getStarSettings() {
+        const isCompact = compactQuery?.matches ?? false;
+        return {
+          isCompact,
+          count: isCompact ? STAR_COUNT_MOBILE : STAR_COUNT,
+          minSize: isCompact ? 1.2 : 0.8,
+          maxSize: isCompact ? 3.4 : 2.4,
+          glowChance: isCompact ? 0.32 : 0.2,
+        };
+      }
 
       function populateStarfield(force = false) {
         if (!starContainer) return;
         if (starContainer.childElementCount && !force) return;
         starContainer.innerHTML = "";
         const fragment = document.createDocumentFragment();
-        for (let i = 0; i < STAR_COUNT; i++) {
+        const { count, minSize, maxSize, glowChance, isCompact } =
+          getStarSettings();
+        for (let i = 0; i < count; i++) {
           const star = document.createElement("span");
           star.className = "star";
-          if (Math.random() < 0.2) {
+          if (Math.random() < glowChance) {
             star.classList.add("glow");
           }
-          const size = Math.random() * 2 + 0.8;
+          const size = Math.random() * (maxSize - minSize) + minSize;
           star.style.width = `${size}px`;
           star.style.height = `${size}px`;
           star.style.left = `${Math.random() * 100}%`;
           star.style.top = `${Math.random() * 100}%`;
           star.style.animationDuration = `${1.6 + Math.random() * 3.5}s`;
           star.style.animationDelay = `${Math.random() * 4}s`;
+          if (isCompact) {
+            star.style.opacity = (0.7 + Math.random() * 0.3).toFixed(2);
+          }
           fragment.appendChild(star);
         }
         starContainer.appendChild(fragment);
@@ -1211,6 +1269,19 @@
         clearTimeout(resizeStarTimeout);
         resizeStarTimeout = setTimeout(() => populateStarfield(true), 400);
       });
+
+      function handleCompactChange() {
+        if (!bodyEl.classList.contains("mode-night")) return;
+        populateStarfield(true);
+      }
+
+      if (compactQuery) {
+        if (typeof compactQuery.addEventListener === "function") {
+          compactQuery.addEventListener("change", handleCompactChange);
+        } else if (typeof compactQuery.addListener === "function") {
+          compactQuery.addListener(handleCompactChange);
+        }
+      }
 
       // Countdown to ceremony (26 Sep 2027, 2:00 PM AWST)
       const ceremonyDate = new Date("2027-09-26T14:00:00+08:00").getTime();
