@@ -209,31 +209,8 @@
         font-family: "Great Vibes", "Playfair Display", serif;
         font-size: clamp(3rem, 6vw, 5rem);
         letter-spacing: 2px;
-        background: linear-gradient(
-          92deg,
-          var(--gold-deep),
-          var(--gold) 35%,
-          var(--gold-soft) 60%,
-          var(--gold-deep)
-        );
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        background-size: 200% 100%;
-        animation: shimmer 6s linear infinite;
-        text-shadow: 0 0 0 rgba(0, 0, 0, 0);
-      }
-      body.mode-night header .shimmer-text {
-        text-shadow: 0 0 14px rgba(255, 227, 168, 0.55),
-          0 0 28px rgba(212, 175, 55, 0.35);
-      }
-      @keyframes shimmer {
-        0% {
-          background-position: 0% 50%;
-        }
-        100% {
-          background-position: 200% 50%;
-        }
+        color: #8a6a17;
+        text-shadow: none;
       }
       .hero-names {
         display: flex;
@@ -245,20 +222,12 @@
         font-size: 1.15rem;
         color: rgba(0, 0, 0, 0.7);
       }
-      body.mode-night header .date-venue {
-        color: rgba(20, 12, 4, 0.8);
-        text-shadow: 0 0 12px rgba(255, 227, 168, 0.35);
-      }
       .hero-tagline {
         font-family: "Cinzel", serif;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         font-size: 0.85rem;
-        color: rgba(0, 0, 0, 0.5);
-      }
-      body.mode-night .hero-tagline {
-        color: rgba(18, 9, 2, 0.72);
-        text-shadow: 0 0 10px rgba(255, 227, 168, 0.3);
+        color: rgba(0, 0, 0, 0.55);
       }
       .hero-media {
         width: min(960px, 95vw);
