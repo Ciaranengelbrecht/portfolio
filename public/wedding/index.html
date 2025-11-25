@@ -31,7 +31,6 @@
         min-height: 100vh;
         overflow-x: hidden;
         background-color: #ffffff;
-        z-index: 0;
       }
       body.mode-light {
         background: radial-gradient(
@@ -55,19 +54,55 @@
       .starry-sky {
         position: fixed;
         inset: 0;
-        width: 100vw;
-        height: 100vh;
         overflow: hidden;
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.8s ease;
         z-index: 0;
-        background: transparent;
       }
-      @supports (height: 100dvh) {
-        .starry-sky {
-          height: 100dvh;
-        }
+      .starry-sky::before,
+      .starry-sky::after {
+        content: "";
+        position: absolute;
+        inset: -20%;
+        pointer-events: none;
+        opacity: 0.22;
+        background-repeat: repeat;
+        will-change: transform;
+      }
+      .starry-sky::before {
+        background-image: radial-gradient(
+            2px 2px at 20% 30%,
+            rgba(250, 220, 150, 0.7),
+            transparent 60%
+          ),
+          radial-gradient(
+            1px 1px at 70% 60%,
+            rgba(255, 245, 200, 0.6),
+            transparent 55%
+          ),
+          radial-gradient(
+            1.4px 1.4px at 40% 80%,
+            rgba(212, 175, 55, 0.6),
+            transparent 65%
+          );
+        background-size: 220px 220px, 260px 260px, 200px 200px;
+        animation: starLayerDrift 60s linear infinite;
+      }
+      .starry-sky::after {
+        background-image: radial-gradient(
+            2.2px 2.2px at 30% 70%,
+            rgba(255, 230, 170, 0.6),
+            transparent 60%
+          ),
+          radial-gradient(
+            1.6px 1.6px at 80% 20%,
+            rgba(255, 255, 255, 0.5),
+            transparent 55%
+          );
+        background-size: 280px 280px, 240px 240px;
+        animation: starLayerDrift 85s linear infinite reverse;
+        opacity: 0.18;
       }
       body.mode-night .starry-sky {
         opacity: 1;
@@ -91,6 +126,14 @@
         box-shadow: 0 0 18px rgba(212, 175, 55, 0.85);
         filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.65));
         animation-duration: 3.8s;
+      }
+      @keyframes starLayerDrift {
+        from {
+          transform: translate3d(0, 0, 0);
+        }
+        to {
+          transform: translate3d(-6%, -4%, 0);
+        }
       }
       header,
       main,
@@ -121,14 +164,6 @@
         flex-direction: column;
         align-items: center;
         gap: 18px;
-      }
-      body.mode-night header.hero {
-        background: radial-gradient(
-            1000px 620px at 15% -5%,
-            rgba(212, 175, 55, 0.35),
-            rgba(255, 255, 255, 0) 65%
-          ),
-          linear-gradient(180deg, #fffef8 0%, #fdf9ec 55%, #f7f1de 100%);
       }
       header.hero .hero-effects {
         position: absolute;
@@ -189,16 +224,13 @@
         text-shadow: 0 0 0 rgba(0, 0, 0, 0);
       }
       body.mode-night header .shimmer-text {
-        background: linear-gradient(
-          105deg,
-          #fff6cf,
-          #ffe6a6 35%,
-          #f3c046 60%,
-          #d89a27
-        );
-        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35),
-          0 0 16px rgba(255, 219, 141, 0.65);
-        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 18px rgba(255, 214, 150, 0.55))
+          drop-shadow(0 0 32px rgba(212, 175, 55, 0.35));
+      }
+      @media (prefers-color-scheme: dark) {
+        body.mode-light header .shimmer-text {
+          filter: drop-shadow(0 0 14px rgba(255, 214, 150, 0.4));
+        }
       }
       @keyframes shimmer {
         0% {
@@ -1178,7 +1210,7 @@
       const heroEffectsLayer = heroEl?.querySelector(".hero-effects");
       const bubbleHost = heroEffectsLayer || heroEl;
       const STAR_COUNT = 360;
-      const STAR_COUNT_MOBILE = 220;
+      const STAR_COUNT_MOBILE = 250;
       const compactQuery = window.matchMedia
         ? window.matchMedia("(max-width: 768px)")
         : null;
@@ -1189,9 +1221,9 @@
         return {
           isCompact,
           count: isCompact ? STAR_COUNT_MOBILE : STAR_COUNT,
-          minSize: isCompact ? 1.2 : 0.8,
-          maxSize: isCompact ? 3.4 : 2.4,
-          glowChance: isCompact ? 0.32 : 0.2,
+          minSize: isCompact ? 1.8 : 1.1,
+          maxSize: isCompact ? 4.5 : 3.2,
+          glowChance: isCompact ? 0.4 : 0.28,
         };
       }
 
@@ -1215,9 +1247,10 @@
           star.style.top = `${Math.random() * 100}%`;
           star.style.animationDuration = `${1.6 + Math.random() * 3.5}s`;
           star.style.animationDelay = `${Math.random() * 4}s`;
-          if (isCompact) {
-            star.style.opacity = (0.7 + Math.random() * 0.3).toFixed(2);
-          }
+          const opacity = (
+            isCompact ? 0.75 + Math.random() * 0.25 : 0.65 + Math.random() * 0.3
+          ).toFixed(2);
+          star.style.opacity = opacity;
           fragment.appendChild(star);
         }
         starContainer.appendChild(fragment);
