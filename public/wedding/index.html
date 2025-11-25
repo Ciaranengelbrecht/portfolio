@@ -33,18 +33,6 @@
         background-color: #ffffff;
         z-index: 0;
       }
-      body::before,
-      body::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.8s ease;
-        z-index: 0;
-        background-repeat: repeat;
-        background-attachment: fixed;
-      }
       body.mode-light {
         background: radial-gradient(
           1200px 800px at 80% -10%,
@@ -64,73 +52,37 @@
         color: var(--night-ink);
         line-height: 1.6;
       }
-      body.mode-night::before {
-        opacity: 1;
-        background-image: radial-gradient(
-            1px 1px at 12% 15%,
-            rgba(255, 236, 205, 0.95),
-            transparent 30%
-          ),
-          radial-gradient(
-            1px 1px at 42% 62%,
-            rgba(255, 215, 160, 0.9),
-            transparent 28%
-          ),
-          radial-gradient(
-            1px 1px at 72% 28%,
-            rgba(255, 255, 255, 0.85),
-            transparent 32%
-          ),
-          radial-gradient(
-            1px 1px at 30% 40%,
-            rgba(255, 230, 190, 0.85),
-            transparent 30%
-          ),
-          radial-gradient(
-            1px 1px at 62% 80%,
-            rgba(255, 205, 140, 0.85),
-            transparent 28%
-          ),
-          radial-gradient(
-            1px 1px at 90% 70%,
-            rgba(255, 240, 210, 0.9),
-            transparent 32%
-          );
-        background-size: 80px 80px, 95px 95px, 70px 70px, 90px 90px, 85px 85px,
-          75px 75px;
-        background-position: 0 0, 20px 60px, 40px 25px, 60px 0, 15px 30px,
-          35px 45px;
+      .starry-sky {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.8s ease;
+        z-index: 0;
       }
-      body.mode-night::after {
-        opacity: 0.85;
-        background-image: radial-gradient(
-            2px 2px at 25% 45%,
-            rgba(255, 252, 232, 0.9),
-            transparent 55%
-          ),
-          radial-gradient(
-            1.5px 1.5px at 65% 15%,
-            rgba(255, 230, 170, 0.85),
-            transparent 55%
-          ),
-          radial-gradient(
-            1px 1px at 15% 80%,
-            rgba(255, 210, 135, 0.8),
-            transparent 55%
-          ),
-          radial-gradient(
-            2px 2px at 75% 70%,
-            rgba(255, 240, 200, 0.85),
-            transparent 55%
-          ),
-          radial-gradient(
-            1px 1px at 40% 25%,
-            rgba(255, 220, 150, 0.8),
-            transparent 55%
-          );
-        background-size: 130px 130px, 150px 150px, 120px 120px, 180px 180px,
-          140px 140px;
-        animation: starTwinkle 7s ease-in-out infinite;
+      body.mode-night .starry-sky {
+        opacity: 1;
+      }
+      .starry-sky .star {
+        position: absolute;
+        border-radius: 999px;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 255, 255, 0.95) 0%,
+          rgba(255, 236, 205, 0.85) 40%,
+          rgba(212, 175, 55, 0.65) 65%,
+          rgba(212, 175, 55, 0) 100%
+        );
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+        animation: twinkle 2.6s ease-in-out infinite;
+        opacity: 0.8;
+        mix-blend-mode: screen;
+      }
+      .starry-sky .star.glow {
+        box-shadow: 0 0 18px rgba(212, 175, 55, 0.85);
+        filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.65));
+        animation-duration: 3.8s;
       }
       header,
       main,
@@ -398,15 +350,18 @@
           transform: translateY(6px);
         }
       }
-      @keyframes starTwinkle {
+      @keyframes twinkle {
         0% {
-          opacity: 0.55;
+          opacity: 0.4;
+          transform: scale(0.95);
         }
         50% {
           opacity: 1;
+          transform: scale(1.1);
         }
         100% {
-          opacity: 0.6;
+          opacity: 0.45;
+          transform: scale(0.9);
         }
       }
       @keyframes starPulse {
@@ -429,43 +384,6 @@
         max-width: 1000px;
         margin: 40px auto;
         padding: 0 20px;
-      }
-      main::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 26px;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.8s ease;
-        z-index: -1;
-      }
-      body.mode-night main::before {
-        opacity: 0.95;
-        background-image: radial-gradient(
-            1px 1px at 5% 10%,
-            rgba(255, 235, 200, 0.75),
-            transparent 45%
-          ),
-          radial-gradient(
-            1px 1px at 35% 45%,
-            rgba(255, 210, 140, 0.7),
-            transparent 40%
-          ),
-          radial-gradient(
-            2px 2px at 65% 25%,
-            rgba(255, 255, 255, 0.55),
-            transparent 55%
-          ),
-          radial-gradient(
-            1px 1px at 85% 70%,
-            rgba(255, 225, 180, 0.8),
-            transparent 45%
-          ),
-          linear-gradient(180deg, rgba(2, 2, 10, 0.7), rgba(2, 2, 8, 0.85));
-        background-size: 90px 90px, 110px 110px, 150px 150px, 120px 120px,
-          100% 100%;
-        filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.18));
       }
       section {
         margin-bottom: 60px;
@@ -774,6 +692,7 @@
     </style>
   </head>
   <body class="mode-light">
+    <div class="starry-sky" aria-hidden="true"></div>
     <!-- Hero Section -->
     <header class="hero">
       <div class="hero-names">
@@ -1204,12 +1123,48 @@
       const MODE_KEY = "wedding_display_mode";
       const bodyEl = document.body;
       const modeToggle = document.getElementById("modeToggle");
+      const starContainer = document.querySelector(".starry-sky");
+      const STAR_COUNT = 360;
+      let resizeStarTimeout;
+
+      function populateStarfield(force = false) {
+        if (!starContainer) return;
+        if (starContainer.childElementCount && !force) return;
+        starContainer.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < STAR_COUNT; i++) {
+          const star = document.createElement("span");
+          star.className = "star";
+          if (Math.random() < 0.2) {
+            star.classList.add("glow");
+          }
+          const size = Math.random() * 2 + 0.8;
+          star.style.width = `${size}px`;
+          star.style.height = `${size}px`;
+          star.style.left = `${Math.random() * 100}%`;
+          star.style.top = `${Math.random() * 100}%`;
+          star.style.animationDuration = `${1.6 + Math.random() * 3.5}s`;
+          star.style.animationDelay = `${Math.random() * 4}s`;
+          fragment.appendChild(star);
+        }
+        starContainer.appendChild(fragment);
+      }
+
+      function clearStarfield() {
+        if (!starContainer) return;
+        starContainer.innerHTML = "";
+      }
 
       function applyMode(mode) {
         const isNight = mode === "night";
         bodyEl.classList.toggle("mode-night", isNight);
         bodyEl.classList.toggle("mode-light", !isNight);
         if (modeToggle) modeToggle.checked = isNight;
+        if (isNight) {
+          populateStarfield();
+        } else {
+          clearStarfield();
+        }
       }
 
       function readStoredMode() {
@@ -1234,6 +1189,12 @@
         } catch (err) {
           /* ignore */
         }
+      });
+
+      window.addEventListener("resize", () => {
+        if (!bodyEl.classList.contains("mode-night")) return;
+        clearTimeout(resizeStarTimeout);
+        resizeStarTimeout = setTimeout(() => populateStarfield(true), 400);
       });
 
       // Countdown to ceremony (26 Sep 2027, 2:00 PM AWST)
@@ -1288,7 +1249,10 @@
         bubble.style.bottom = "-20px";
         bubble.style.animationDuration = Math.random() * 4 + 5 + "s";
         bubble.style.opacity = (0.45 + Math.random() * 0.3).toFixed(2);
-        document.body.appendChild(bubble);
+        if (!starContainer || !bodyEl.classList.contains("mode-night")) {
+          return;
+        }
+        starContainer.appendChild(bubble);
         setTimeout(
           () => bubble.remove(),
           parseFloat(bubble.style.animationDuration) * 1000
