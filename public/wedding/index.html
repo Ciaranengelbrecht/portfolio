@@ -114,6 +114,17 @@
         align-items: center;
         gap: 18px;
       }
+      header.hero .hero-effects {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 0;
+      }
+      header.hero > *:not(.hero-effects) {
+        position: relative;
+        z-index: 1;
+      }
       /* Subtle moving smoke */
       header.hero::before {
         content: "";
@@ -695,6 +706,7 @@
     <div class="starry-sky" aria-hidden="true"></div>
     <!-- Hero Section -->
     <header class="hero">
+      <div class="hero-effects" aria-hidden="true"></div>
       <div class="hero-names">
         <p class="hero-tagline">A celebration of vows</p>
         <h1 class="shimmer-text">Ciarán &amp; Cheylin</h1>
@@ -1125,6 +1137,8 @@
       const modeToggle = document.getElementById("modeToggle");
       const starContainer = document.querySelector(".starry-sky");
       const heroEl = document.querySelector("header.hero");
+      const heroEffectsLayer = heroEl?.querySelector(".hero-effects");
+      const bubbleHost = heroEffectsLayer || heroEl;
       const STAR_COUNT = 360;
       let resizeStarTimeout;
 
@@ -1241,7 +1255,7 @@
 
       // Create floating bubbles
       function createBubble() {
-        if (!heroEl) return;
+        if (!bubbleHost) return;
         const bubble = document.createElement("div");
         bubble.className = "bubble";
         const size = Math.random() * 25 + 12;
@@ -1251,14 +1265,60 @@
         bubble.style.bottom = "-20px";
         bubble.style.animationDuration = Math.random() * 4 + 5 + "s";
         bubble.style.opacity = (0.45 + Math.random() * 0.3).toFixed(2);
-        heroEl.appendChild(bubble);
+        bubbleHost.appendChild(bubble);
         setTimeout(
           () => bubble.remove(),
           parseFloat(bubble.style.animationDuration) * 1000
         );
       }
-      // Generate bubbles periodically
-      setInterval(createBubble, 900);
+
+      function clearBubbles() {
+        if (!bubbleHost) return;
+        bubbleHost.querySelectorAll(".bubble").forEach((node) => node.remove());
+      }
+
+      let bubbleIntervalId = null;
+
+      function startBubbleStream() {
+        if (bubbleIntervalId || !bubbleHost) return;
+        createBubble();
+        bubbleIntervalId = setInterval(createBubble, 900);
+      }
+
+      function stopBubbleStream() {
+        if (!bubbleIntervalId) return;
+        clearInterval(bubbleIntervalId);
+        bubbleIntervalId = null;
+        clearBubbles();
+      }
+
+      function heroIsVisible() {
+        if (!heroEl) return false;
+        const rect = heroEl.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      }
+
+      if (heroEl && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.target !== heroEl) return;
+              if (entry.isIntersecting) {
+                startBubbleStream();
+              } else {
+                stopBubbleStream();
+              }
+            });
+          },
+          { threshold: 0.2 }
+        );
+        observer.observe(heroEl);
+        if (heroIsVisible()) {
+          startBubbleStream();
+        }
+      } else if (heroIsVisible()) {
+        startBubbleStream();
+      }
 
       // Slideshow functionality
       const slides = document.querySelectorAll(".slideshow img");
