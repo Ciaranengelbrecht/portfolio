@@ -10,6 +10,7 @@ const categoryIcons = {
   All: "🎯",
   Web: "🌐",
   AI: "🤖",
+  Security: "🔒",
   Systems: "⚙️",
   Algorithms: "📊",
   Graphics: "🎨",
@@ -19,18 +20,28 @@ const categoryIcons = {
 const projectsData = [
   {
     id: 1,
+    title: "Macro Scanner",
+    description:
+      "Cross-platform security tooling for triaging macro-enabled Office documents with heuristic analysis, Defender integration, and browser-based batch processing.",
+    tag: ["All", "Security"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/macro-scanner",
+    previewUrl: "https://github.com/Ciaranengelbrecht/macro-scanner",
+    tech: ["JavaScript", "Python", "PowerShell", "Security"],
+    featured: true,
+  },
+  {
+    id: 2,
     title: "TaskHub Web App",
     description:
       "Full-stack task management platform with real-time collaboration, user authentication, and intuitive UI for team productivity.",
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
-    previewUrl: "https://taskhub.ciaranengelbrecht.com",
-    tech: ["JavaScript", "Node.js", "Express", "MongoDB"],
-    hasDemo: true,
+    previewUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
+    tech: ["JavaScript", "Node.js", "Flask", "SQLite"],
     featured: true,
   },
   {
-    id: 2,
+    id: 3,
     title: "Super Mario ML Speedrun",
     description:
       "Reinforcement learning AI that learns to speedrun Super Mario Bros using neural networks and evolutionary algorithms.",
@@ -41,7 +52,7 @@ const projectsData = [
     featured: true,
   },
   {
-    id: 3,
+    id: 4,
     title: "OCR Table Detection",
     description:
       "Computer vision system for detecting and extracting tables from documents, converting them to structured data formats.",
@@ -49,20 +60,19 @@ const projectsData = [
     gitUrl: "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
     previewUrl: "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
     tech: ["Python", "OpenCV", "Tesseract"],
-    featured: true,
   },
   {
-    id: 4,
+    id: 5,
     title: "Ontology Knowledge System",
     description:
-      "Semantic web project implementing knowledge representation using ontologies and reasoning systems.",
+      "Semantic web project implementing knowledge representation using ontologies and reasoning systems with SPARQL queries.",
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3005-Ontology-Project",
     previewUrl: "https://github.com/Ciaranengelbrecht/CITS3005-Ontology-Project",
     tech: ["OWL", "SPARQL", "Semantic Web"],
   },
   {
-    id: 5,
+    id: 6,
     title: "Document OCR Pipeline",
     description:
       "End-to-end optical character recognition system for extracting and processing text from scanned documents.",
@@ -72,17 +82,17 @@ const projectsData = [
     tech: ["Python", "PyTorch", "Image Processing"],
   },
   {
-    id: 6,
+    id: 7,
     title: "PDF Subject Splitter",
     description:
-      "Automated tool for splitting large PDF documents by subject markers, streamlining document organization.",
+      "Automated tool for splitting large PDF documents by subject markers, streamlining document organization workflows.",
     tag: ["All", "Utility"],
     gitUrl: "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
     previewUrl: "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
     tech: ["Python", "PyPDF2"],
   },
   {
-    id: 7,
+    id: 8,
     title: "Systems Programming Suite",
     description:
       "Collection of low-level systems programming projects exploring memory management, processes, and OS concepts.",
@@ -92,27 +102,27 @@ const projectsData = [
     tech: ["C", "Linux", "POSIX"],
   },
   {
-    id: 8,
-    title: "Data Structures Library",
+    id: 9,
+    title: "Data Structures & Algorithms",
     description:
-      "Comprehensive implementation of classic data structures and algorithms with performance analysis.",
+      "Comprehensive implementation of classic data structures and algorithms with performance analysis for CITS2200.",
     tag: ["All", "Algorithms"],
     gitUrl: "https://github.com/Ciaranengelbrecht/Data-Structures-and-Algorithms",
     previewUrl: "https://github.com/Ciaranengelbrecht/Data-Structures-and-Algorithms",
     tech: ["Java", "Algorithms", "DSA"],
   },
   {
-    id: 9,
-    title: "AI Agents Framework",
+    id: 10,
+    title: "AI Agents & Search",
     description:
-      "Multi-agent system framework for solving complex problems through collaborative artificial intelligence.",
+      "Multi-agent systems and AI search algorithms for solving complex problems through collaborative artificial intelligence.",
     tag: ["All", "AI"],
     gitUrl: "https://github.com/Ciaranengelbrecht/Algorithms-Agents-and-AI",
     previewUrl: "https://github.com/Ciaranengelbrecht/Algorithms-Agents-and-AI",
     tech: ["Python", "Multi-Agent", "Search"],
   },
   {
-    id: 10,
+    id: 11,
     title: "Network Server Engine",
     description:
       "Custom networking server implementing TCP/IP protocols and concurrent connection handling.",
@@ -122,8 +132,8 @@ const projectsData = [
     tech: ["C", "Sockets", "TCP/IP"],
   },
   {
-    id: 11,
-    title: "Smart Car Park System",
+    id: 12,
+    title: "Car Park System",
     description:
       "Automated parking management system with real-time occupancy tracking and reservation capabilities.",
     tag: ["All", "Web"],
@@ -132,7 +142,7 @@ const projectsData = [
     tech: ["Python", "Flask", "SQLite"],
   },
   {
-    id: 12,
+    id: 13,
     title: "3D Graphics Engine",
     description:
       "OpenGL-based graphics engine featuring real-time rendering, shaders, and animation systems.",
@@ -140,6 +150,26 @@ const projectsData = [
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3003_Project_Gaphics-and-Animation",
     previewUrl: "https://github.com/Ciaranengelbrecht/CITS3003_Project_Gaphics-and-Animation",
     tech: ["C++", "OpenGL", "GLSL"],
+  },
+  {
+    id: 14,
+    title: "File Duplicate Detector",
+    description:
+      "Efficient C program to detect and manage duplicate files across directories using hash-based comparison.",
+    tag: ["All", "Systems"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/C-File-Duplicate-Detector",
+    previewUrl: "https://github.com/Ciaranengelbrecht/C-File-Duplicate-Detector",
+    tech: ["C", "File Systems", "Hashing"],
+  },
+  {
+    id: 15,
+    title: "Java Akari Puzzle",
+    description:
+      "Interactive Akari (Light Up) puzzle game implementation with solver algorithms and GUI interface.",
+    tag: ["All", "Algorithms"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/Java-Akari-Puzzle",
+    previewUrl: "https://github.com/Ciaranengelbrecht/Java-Akari-Puzzle",
+    tech: ["Java", "GUI", "Algorithms"],
   },
 ];
 
@@ -319,7 +349,7 @@ const ProjectsSection = () => {
   // Show only first 6 projects unless "show all" is clicked
   const displayedProjects = showAll ? filteredProjects : filteredProjects.slice(0, 6);
 
-  const categories = ["All", "Web", "AI", "Systems", "Algorithms", "Graphics"];
+  const categories = ["All", "Web", "AI", "Security", "Systems", "Algorithms", "Graphics"];
 
   const containerVariants = {
     hidden: { opacity: 0 },
