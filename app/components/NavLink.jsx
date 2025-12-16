@@ -1,12 +1,28 @@
 "use client";
-import Link from "next/link";
 import { motion } from "framer-motion";
 
 const NavLink = ({ href, title, isActive }) => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    
+    // Extract section id from href (e.g., "#about" -> "about")
+    const sectionId = href.replace("#", "");
+    const section = document.getElementById(sectionId);
+    
+    if (section) {
+      // Smooth scroll to section
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      
+      // Update URL without page reload
+      window.history.pushState(null, "", href);
+    }
+  };
+
   return (
-    <Link
+    <a
       href={href}
-      className="relative px-4 py-2 rounded-full transition-all duration-300"
+      onClick={handleClick}
+      className="relative px-4 py-2 rounded-full transition-all duration-300 cursor-pointer"
     >
       {/* Active background */}
       {isActive && (
@@ -24,7 +40,7 @@ const NavLink = ({ href, title, isActive }) => {
       >
         {title}
       </span>
-    </Link>
+    </a>
   );
 };
 

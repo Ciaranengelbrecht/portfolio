@@ -27,6 +27,22 @@ const item = {
 };
 
 const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
+  const handleLinkClick = (e, path) => {
+    e.preventDefault();
+    setNavbarOpen(false);
+    
+    // Small delay to allow menu to close first
+    setTimeout(() => {
+      const sectionId = path.replace("#", "");
+      const section = document.getElementById(sectionId);
+      
+      if (section) {
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+        window.history.pushState(null, "", path);
+      }
+    }, 300);
+  };
+
   return (
     <motion.div
       className="flex flex-col items-start justify-center h-full w-full px-8"
@@ -40,10 +56,10 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
           const isActive = activeSection === link.path.substring(1);
           return (
             <motion.div key={index} variants={item}>
-              <Link
+              <a
                 href={link.path}
-                onClick={() => setNavbarOpen(false)}
-                className="group flex items-center gap-4 py-4 border-b border-white/5"
+                onClick={(e) => handleLinkClick(e, link.path)}
+                className="group flex items-center gap-4 py-4 border-b border-white/5 cursor-pointer"
               >
                 {/* Index number */}
                 <span className={`text-sm font-mono ${isActive ? 'text-primary-400' : 'text-slate-600'}`}>
@@ -79,7 +95,7 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
-              </Link>
+              </a>
             </motion.div>
           );
         })}
