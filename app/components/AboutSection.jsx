@@ -2,134 +2,182 @@
 import React, { useTransition, useState, useEffect } from "react";
 import Image from "next/image";
 import TabButton from "./TabButton";
-import { motion, useAnimation } from "framer-motion";
+import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+
+// Stats data
+const stats = [
+  { label: "Years Coding", value: "5+", icon: "⚡" },
+  { label: "Projects Completed", value: "20+", icon: "🚀" },
+  { label: "Technologies", value: "15+", icon: "💻" },
+  { label: "Certifications", value: "3", icon: "🏆" },
+];
+
+// Personal interests/values
+const interests = [
+  { name: "Problem Solving", icon: "🧩" },
+  { name: "AI & Machine Learning", icon: "🤖" },
+  { name: "Open Source", icon: "🌐" },
+  { name: "Clean Code", icon: "✨" },
+];
 
 const TAB_DATA = [
   {
-    title: "Skills",
-    id: "skills",
-    content: (
-      <div className="grid grid-cols-2 gap-4">
-        {[
-          { skill: "C", level: 85 },
-          { skill: "Python", level: 90 },
-          { skill: "Java", level: 80 },
-          { skill: "SQL", level: 75 },
-          { skill: "JavaScript", level: 85 },
-          { skill: "CSS", level: 70 },
-          { skill: "HTML", level: 90 },
-        ].map((item, index) => (
-          <div key={index} className="mb-4">
-            <div className="flex justify-between mb-1">
-              <span className="font-medium">{item.skill}</span>
-              <span>{item.level}%</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${item.level}%` }}
-                transition={{ duration: 1, delay: 0.2 * index }}
-                className="bg-primary-500 h-2 rounded-full"></motion.div>
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
     title: "Education",
     id: "education",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+      </svg>
+    ),
     content: (
       <div className="space-y-6">
-        <div className="relative pl-8 border-l-2 border-primary-500">
-          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500"></div>
-          <div className="mb-1 text-xs inline-block px-2 py-1 rounded bg-primary-900/30 text-primary-300">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative pl-8 border-l-2 border-primary-500/50"
+        >
+          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 shadow-glow-sm" />
+          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400 text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             2021 - 2025
           </div>
-          <h4 className="text-xl font-semibold">
+          <h4 className="text-xl font-semibold text-white mb-1">
             Bachelor of Science - Computer Science
           </h4>
-          <p className="text-gray-400">University of Western Australia</p>
-          <p className="mt-2">
-            Specialised in software engineering and advanced algorithms
+          <p className="text-primary-400 font-medium mb-2">University of Western Australia</p>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Specialised in software engineering, advanced algorithms, and artificial intelligence. 
+            Gained hands-on experience with real-world projects and collaborative development.
           </p>
-        </div>
-        <div className="relative pl-8 border-l-2 border-primary-500">
-          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500"></div>
-          <div className="mb-1 text-xs inline-block px-2 py-1 rounded bg-primary-900/30 text-primary-300">
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="relative pl-8 border-l-2 border-accent-500/50"
+        >
+          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-accent-400 to-accent-600" />
+          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-accent-500/30 text-accent-400 text-xs font-medium">
             2017 - 2020
           </div>
-          <h4 className="text-xl font-semibold">Bachelor of Science</h4>
-          <p className="text-gray-400">Edith Cowan University</p>
-          <p className="mt-2"></p>
-        </div>
+          <h4 className="text-xl font-semibold text-white mb-1">Bachelor of Science</h4>
+          <p className="text-accent-400 font-medium mb-2">Edith Cowan University</p>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Foundation in scientific methodology and analytical thinking. 
+            Developed strong problem-solving skills and research capabilities.
+          </p>
+        </motion.div>
       </div>
     ),
   },
   {
     title: "Certifications",
     id: "certifications",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
+      </svg>
+    ),
     content: (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {[
           {
             title: "CompTIA Network+",
-            subtitle:
-              "Code: VBM3CR955MQE1EW3 Criteria: N10-009 - CompTIA Network+ ce",
-            image: "/images/certifications/cs50.png",
+            issuer: "CompTIA",
+            code: "N10-009",
+            color: "primary",
           },
           {
             title: "CompTIA Security+",
-            subtitle: "",
-            image: "/images/certifications/cs50p.png",
+            issuer: "CompTIA",
+            code: "SY0-701",
+            color: "accent",
           },
           {
             title: "GitHub Foundations",
-            subtitle: "",
-            image: "/images/certifications/githubfoundation.png",
+            issuer: "GitHub",
+            code: "Certified",
+            color: "primary",
           },
         ].map((cert, index) => (
-          <div key={index} className="bg-gray-800 p-4 rounded-lg">
-            <div className="h-24 mb-3 bg-gray-700 rounded flex items-center justify-center">
-              {cert.image ? (
-                <Image
-                  src={cert.image}
-                  alt={cert.title}
-                  width={100}
-                  height={60}
-                />
-              ) : (
-                <div className="text-center text-gray-400">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="40"
-                    height="40"
-                    fill="currentColor"
-                    className="bi bi-award mx-auto mb-1"
-                    viewBox="0 0 16 16">
-                    <path d="M9.669.864 8 0 6.331.864l-1.858.282-.842 1.68-1.337 1.32L2.6 6l-.306 1.854 1.337 1.32.842 1.68 1.858.282L8 12l1.669-.864 1.858-.282.842-1.68 1.337-1.32L13.4 6l.306-1.854-1.337-1.32-.842-1.68L9.669.864zm1.196 1.193.684 1.365 1.086 1.072L12.387 6l.248 1.506-1.086 1.072-.684 1.365-1.51.229L8 10.874l-1.355-.702-1.51-.229-.684-1.365-1.086-1.072L3.614 6l-.25-1.506 1.087-1.072.684-1.365 1.51-.229L8 1.126l1.356.702 1.509.229z" />
-                    <path d="M4 11.794V16l4-1 4 1v-4.206l-2.018.306L8 13.126 6.018 12.1 4 11.794z" />
-                  </svg>
-                </div>
-              )}
+          <motion.div 
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: index * 0.1 }}
+            className={`glass-card p-4 hover:shadow-glow-sm transition-all duration-300 group`}
+          >
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-xl bg-${cert.color}-500/20 group-hover:bg-${cert.color}-500/30 transition-colors`}>
+                <svg className={`w-6 h-6 text-${cert.color}-400`} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors">{cert.title}</h4>
+                <p className="text-slate-400 text-sm">{cert.issuer}</p>
+                <span className="inline-block mt-2 px-2 py-0.5 rounded text-xs bg-white/5 text-slate-500">{cert.code}</span>
+              </div>
             </div>
-            <h4 className="text-lg font-semibold">{cert.title}</h4>
-            <p className="text-gray-400">{cert.subtitle}</p>
-          </div>
+          </motion.div>
         ))}
+      </div>
+    ),
+  },
+  {
+    title: "Experience",
+    id: "experience",
+    icon: (
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
+      </svg>
+    ),
+    content: (
+      <div className="space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="glass-card p-5 hover:shadow-glow-sm transition-all duration-300"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h4 className="text-lg font-semibold text-white">Software Developer</h4>
+              <p className="text-primary-400 text-sm font-medium">Freelance & Academic Projects</p>
+            </div>
+            <span className="text-xs px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400">
+              2021 - Present
+            </span>
+          </div>
+          <ul className="space-y-2 text-slate-400 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Developed full-stack web applications using React, Next.js, and Python
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Built AI/ML solutions including computer vision and reinforcement learning projects
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Collaborated on team projects using Agile methodologies and Git workflows
+            </li>
+          </ul>
+        </motion.div>
       </div>
     ),
   },
 ];
 
 const AboutSection = () => {
-  const [tab, setTab] = useState("skills");
+  const [tab, setTab] = useState("education");
   const [isPending, startTransition] = useTransition();
   const controls = useAnimation();
   const [ref, inView] = useInView({
     triggerOnce: true,
-    threshold: 0.2,
+    threshold: 0.1,
   });
 
   useEffect(() => {
@@ -149,18 +197,19 @@ const AboutSection = () => {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
+        staggerChildren: 0.15,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1],
       },
     },
   };
@@ -171,13 +220,89 @@ const AboutSection = () => {
       initial="hidden"
       animate={controls}
       variants={containerVariants}
-      className="text-white py-20"
-      id="about">
-      <div className="md:grid md:grid-cols-2 gap-12 items-start py-8 px-4 xl:gap-16 sm:py-16 xl:px-16">
-        <motion.div variants={itemVariants} className="relative">
-          <div className="rounded-2xl overflow-hidden shadow-xl">
-            <div className="h-full w-full bg-gradient-to-br from-primary-500 to-primary-700 p-1">
-              <div className="bg-dark h-full w-full rounded-xl overflow-hidden">
+      className="text-white py-20 relative overflow-hidden"
+      id="about"
+    >
+      {/* Background decorations */}
+      <div className="absolute top-1/4 -right-32 w-96 h-96 bg-primary-500/10 rounded-full filter blur-3xl" />
+      <div className="absolute bottom-1/4 -left-32 w-96 h-96 bg-accent-500/10 rounded-full filter blur-3xl" />
+
+      {/* Section Header */}
+      <motion.div variants={itemVariants} className="text-center mb-16">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-sm font-medium mb-4">
+          <span className="w-2 h-2 rounded-full bg-primary-400" />
+          Get to know me
+        </span>
+        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          About <span className="gradient-text">Me</span>
+        </h2>
+        <div className="h-1 w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full" />
+      </motion.div>
+
+      <div className="grid lg:grid-cols-2 gap-12 items-start">
+        {/* Left Column - Bio & Stats */}
+        <motion.div variants={itemVariants} className="space-y-8">
+          {/* Bio Card */}
+          <div className="glass-card p-8 relative overflow-hidden">
+            {/* Gradient accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-accent-500" />
+            
+            <h3 className="text-2xl font-bold text-white mb-4">
+              Hello! I&apos;m Ciaran 👋
+            </h3>
+            
+            <div className="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                I&apos;m a passionate <span className="text-primary-400 font-medium">Software Engineer</span> based 
+                in Perth, Australia, with a deep love for crafting elegant solutions to complex problems.
+              </p>
+              <p>
+                Currently completing my <span className="text-accent-400 font-medium">Computer Science degree</span> at 
+                UWA, I specialize in full-stack development, AI/ML applications, and building software that makes 
+                a real impact.
+              </p>
+              <p>
+                When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to open-source 
+                projects, or working on personal projects that push my skills further.
+              </p>
+            </div>
+
+            {/* Interest Tags */}
+            <div className="flex flex-wrap gap-2 mt-6">
+              {interests.map((interest, index) => (
+                <motion.span
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass border border-white/10 text-sm text-slate-300 hover:border-primary-500/50 hover:text-primary-400 transition-all cursor-default"
+                >
+                  <span>{interest.icon}</span>
+                  {interest.name}
+                </motion.span>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="glass-card p-5 text-center hover:shadow-glow-sm transition-all duration-300 group"
+              >
+                <span className="text-2xl mb-2 block">{stat.icon}</span>
+                <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
+                <div className="text-slate-400 text-sm">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Profile Image - Mobile Only */}
+          <div className="lg:hidden relative">
+            <div className="rounded-2xl overflow-hidden glass-card p-1">
+              <div className="rounded-xl overflow-hidden">
                 <Image
                   src="/images/about-image.webp"
                   alt="Computer setup"
@@ -188,50 +313,79 @@ const AboutSection = () => {
               </div>
             </div>
           </div>
-
-          {/* Decoration elements */}
-          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-primary-500/20 rounded-full blur-2xl"></div>
-          <div className="absolute -top-6 -left-6 w-32 h-32 bg-primary-800/10 rounded-full blur-2xl"></div>
         </motion.div>
 
-        <motion.div
-          variants={itemVariants}
-          className="mt-8 md:mt-0 text-left flex flex-col h-full">
-          <div className="flex flex-col gap-2 mb-6">
-            <h2 className="text-4xl font-bold text-white mb-4">About Me</h2>
-            <div className="h-1 w-20 bg-primary-500 rounded"></div>
+        {/* Right Column - Tabs */}
+        <motion.div variants={itemVariants} className="space-y-6">
+          {/* Profile Image - Desktop Only */}
+          <div className="hidden lg:block relative mb-8">
+            <div className="rounded-2xl overflow-hidden relative">
+              {/* Gradient border */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl" />
+              <div className="relative m-[2px] rounded-[14px] overflow-hidden bg-surface-900">
+                <Image
+                  src="/images/about-image.webp"
+                  alt="Computer setup"
+                  width={500}
+                  height={300}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            </div>
+            {/* Decoration */}
+            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary-500/20 rounded-full blur-2xl" />
+            <div className="absolute -top-4 -left-4 w-32 h-32 bg-accent-500/10 rounded-full blur-2xl" />
           </div>
 
-          <p className="text-base lg:text-lg mb-6">
-            I am a student software engineer with a passion for finding
-            solutions to a range of complex problems. I have experience working
-            with JavaScript, React, Java, C, Python, StableBaselines, HTML, CSS,
-            and Github. I endeavor to keep learning and developing my skillset,
-            looking to expand my knowledge. I am a team player and I am excited
-            to work with others to develop new projects.
-          </p>
-
-          <div className="flex flex-row justify-start mt-4 mb-2">
-            <TabButton
-              selectTab={() => handleTabChange("skills")}
-              active={tab === "skills"}>
-              Skills
-            </TabButton>
-            <TabButton
-              selectTab={() => handleTabChange("education")}
-              active={tab === "education"}>
-              Education
-            </TabButton>
-            <TabButton
-              selectTab={() => handleTabChange("certifications")}
-              active={tab === "certifications"}>
-              Certifications
-            </TabButton>
+          {/* Tab Buttons */}
+          <div className="flex flex-wrap gap-2">
+            {TAB_DATA.map((tabData) => (
+              <button
+                key={tabData.id}
+                onClick={() => handleTabChange(tabData.id)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300
+                  ${tab === tabData.id 
+                    ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow-sm" 
+                    : "glass border border-white/10 text-slate-400 hover:text-white hover:border-primary-500/50"
+                  }
+                `}
+              >
+                {tabData.icon}
+                {tabData.title}
+              </button>
+            ))}
           </div>
 
-          <div className="mt-4 bg-[#1A1A1A] rounded-xl p-6 shadow-lg flex-grow">
-            {TAB_DATA.find((t) => t.id === tab).content}
-          </div>
+          {/* Tab Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="glass-card p-6 min-h-[300px]"
+            >
+              {TAB_DATA.find((t) => t.id === tab)?.content}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Resume CTA */}
+          <motion.div variants={itemVariants} className="text-center lg:text-left">
+            <a
+              href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 btn-primary"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Download Resume
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </a>
+          </motion.div>
         </motion.div>
       </div>
     </motion.section>

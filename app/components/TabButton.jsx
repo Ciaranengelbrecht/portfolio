@@ -1,25 +1,43 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const variants = {
-  default: { width: 0 },
-  active: { width: "calc(100% - 0.75rem)" },
-};
-
-const TabButton = ({ active, selectTab, children }) => {
-  const buttonClasses = active
-    ? "text-primary-500 font-semibold"
-    : "text-[#ADB7BE] hover:text-primary-400";
-
+const TabButton = ({ active, selectTab, children, icon }) => {
   return (
-    <button onClick={selectTab} className={`${buttonClasses} mr-6 relative`}>
-      <span className="text-lg">{children}</span>
-      <motion.div
-        animate={active ? "active" : "default"}
-        variants={variants}
-        className="h-1 rounded-full bg-primary-500 mt-2 absolute bottom-[-6px] left-0"
-        transition={{ duration: 0.3 }}></motion.div>
-    </button>
+    <motion.button
+      onClick={selectTab}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={`
+        relative flex items-center gap-2 px-5 py-3 rounded-xl font-medium text-sm 
+        transition-all duration-300 overflow-hidden
+        ${active 
+          ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow-sm" 
+          : "glass border border-white/10 text-slate-400 hover:text-white hover:border-primary-500/50"
+        }
+      `}
+    >
+      {/* Shimmer effect on active */}
+      {active && (
+        <motion.div
+          initial={{ x: "-100%" }}
+          animate={{ x: "200%" }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+        />
+      )}
+      
+      {icon && <span className="relative z-10">{icon}</span>}
+      <span className="relative z-10">{children}</span>
+      
+      {/* Active indicator dot */}
+      {active && (
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute top-1 right-1 w-2 h-2 rounded-full bg-white/50"
+        />
+      )}
+    </motion.button>
   );
 };
 
