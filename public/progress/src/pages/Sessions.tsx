@@ -6782,11 +6782,14 @@ function SessionMomentumPanel({
   analytics,
   onFocusRequest,
   focusedEntryId,
+  defaultCollapsed = true,
 }: {
   analytics: SessionAnalytics;
   onFocusRequest?: (entryId: string) => void;
   focusedEntryId?: string | null;
+  defaultCollapsed?: boolean;
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const completion = Math.max(0, Math.min(100, analytics.completionPct));
   const activeMuscleCount = analytics.muscleLoad.filter(
     (m) => m.workingSets > 0
@@ -6800,134 +6803,166 @@ function SessionMomentumPanel({
   const queueRemainder = Math.max(0, remainingTasks - 1);
 
   return (
-    <div className="mx-4 mt-2 space-y-3 rounded-2xl border border-white/12 bg-[rgba(15,23,42,0.78)] px-4 py-4 shadow-[0_14px_30px_-24px_rgba(59,130,246,0.55)] backdrop-blur-sm sm:px-5 sm:py-4 fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <div className="mx-4 mt-2 rounded-2xl border border-white/12 bg-[rgba(15,23,42,0.78)] shadow-[0_14px_30px_-24px_rgba(59,130,246,0.55)] backdrop-blur-sm fade-in overflow-hidden">
+      {/* Collapsible header - always visible */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="w-full px-4 py-3 sm:px-5 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3 min-w-0">
           <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400/80">
             Session momentum
           </p>
-          <div className="mt-1 flex items-baseline gap-1.5">
-            <span className="text-2xl font-semibold text-white/90">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-lg font-semibold text-white/90">
               {completion}%
             </span>
-            <span className="text-[10px] uppercase tracking-[0.28em] text-slate-400">
-              Complete
-            </span>
           </div>
+          {/* Compact progress bar in header */}
+          <div className="hidden sm:block w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-emerald-400/80 to-emerald-300/70"
+              style={{ width: `${completion}%` }}
+            />
+          </div>
+          <span className="text-[10px] text-slate-400">
+            {analytics.completedSets}/{analytics.plannedSets} sets
+          </span>
         </div>
-        <div className="text-right text-[11px] text-slate-300">
-          <div className="font-medium text-white/90 leading-tight">
-            {analytics.completedSets.toLocaleString()} /{" "}
-            {analytics.plannedSets.toLocaleString()} sets
-          </div>
-          <div className="text-[10px] text-slate-400">
-            {analytics.completedExercises}/{analytics.totalExercises} exercises
-            logged
-          </div>
-        </div>
-      </div>
-      <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400/80 via-emerald-400/70 to-emerald-300/70"
-          style={{ width: `${completion}%` }}
-          aria-hidden="true"
-        />
-      </div>
-      <div className="flex flex-wrap gap-2 text-[10px] text-slate-200">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-          <span className="text-slate-400 uppercase tracking-[0.24em]">
-            Sets
-          </span>
-          <span className="text-white/90">
-            {analytics.completedSets.toLocaleString()} /{" "}
-            {analytics.plannedSets.toLocaleString()}
-          </span>
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-          <span className="text-slate-400 uppercase tracking-[0.24em]">
-            Volume
-          </span>
-          <span className="text-emerald-300">
-            {analytics.totalVolume.toLocaleString()}
-          </span>
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-          <span className="text-slate-400 uppercase tracking-[0.24em]">PR</span>
-          <span className="text-white/90">{analytics.prSignals}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-          <span className="text-slate-400 uppercase tracking-[0.24em]">
-            Muscles
-          </span>
-          <span className="text-white/90">{activeMuscleCount}</span>
-        </span>
-      </div>
-      {topMuscles.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
-          {topMuscles.map((m) => {
-            const icon = getMuscleIconPath(m.muscle);
-            return (
-              <span
-                key={m.muscle}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
-                title={`${m.muscle} · ${m.workingSets}/${m.totalSets} sets`}
-              >
-                {icon ? (
-                  <img
-                    src={icon}
-                    alt={m.muscle}
-                    className="h-5 w-5 rounded-sm border border-white/15 bg-black/20"
-                  />
-                ) : (
-                  <span
-                    className="h-5 w-5 rounded-sm border border-white/10 bg-slate-700/60"
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="font-medium text-emerald-200">
-                  {m.workingSets}/{m.totalSets}
+        <svg
+          className={`w-4 h-4 text-slate-400 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Expanded content */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 sm:px-5 space-y-3">
+              {/* Full progress bar */}
+              <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400/80 via-emerald-400/70 to-emerald-300/70"
+                  style={{ width: `${completion}%` }}
+                  aria-hidden="true"
+                />
+              </div>
+              
+              {/* Stats pills */}
+              <div className="flex flex-wrap gap-2 text-[10px] text-slate-200">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+                    Sets
+                  </span>
+                  <span className="text-white/90">
+                    {analytics.completedSets.toLocaleString()} /{" "}
+                    {analytics.plannedSets.toLocaleString()}
+                  </span>
                 </span>
-              </span>
-            );
-          })}
-        </div>
-      )}
-      {nextTask && (
-        <div className="rounded-xl border border-white/12 bg-white/5 px-3 py-3">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-slate-400">
-            <span>Up next</span>
-            <span className="text-slate-500 normal-case tracking-normal">
-              {queueRemainder > 0
-                ? `+${queueRemainder} more`
-                : `${remainingTasks} item${remainingTasks === 1 ? "" : "s"}`}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-200">
-            <div className="min-w-0">
-              <div className="truncate font-medium text-white/90">
-                {nextTask.name}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+                    Volume
+                  </span>
+                  <span className="text-emerald-300">
+                    {analytics.totalVolume.toLocaleString()}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.24em]">PR</span>
+                  <span className="text-white/90">{analytics.prSignals}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+                    Muscles
+                  </span>
+                  <span className="text-white/90">{activeMuscleCount}</span>
+                </span>
               </div>
-              <div className="text-[10px] text-slate-400">
-                {nextTask.missingSets} set
-                {nextTask.missingSets === 1 ? "" : "s"} remaining ·{" "}
-                <span className="capitalize">{nextTask.muscle}</span>
-              </div>
+
+              {/* Top muscles */}
+              {topMuscles.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
+                  {topMuscles.map((m) => {
+                    const icon = getMuscleIconPath(m.muscle);
+                    return (
+                      <span
+                        key={m.muscle}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
+                        title={`${m.muscle} · ${m.workingSets}/${m.totalSets} sets`}
+                      >
+                        {icon ? (
+                          <img
+                            src={icon}
+                            alt={m.muscle}
+                            className="h-5 w-5 rounded-sm border border-white/15 bg-black/20"
+                          />
+                        ) : (
+                          <span
+                            className="h-5 w-5 rounded-sm border border-white/10 bg-slate-700/60"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span className="font-medium text-emerald-200">
+                          {m.workingSets}/{m.totalSets}
+                        </span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Up next task */}
+              {nextTask && (
+                <div className="rounded-xl border border-white/12 bg-white/5 px-3 py-3">
+                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-slate-400">
+                    <span>Up next</span>
+                    <span className="text-slate-500 normal-case tracking-normal">
+                      {queueRemainder > 0
+                        ? `+${queueRemainder} more`
+                        : `${remainingTasks} item${remainingTasks === 1 ? "" : "s"}`}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-200">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-white/90">
+                        {nextTask.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {nextTask.missingSets} set
+                        {nextTask.missingSets === 1 ? "" : "s"} remaining ·{" "}
+                        <span className="capitalize">{nextTask.muscle}</span>
+                      </div>
+                    </div>
+                    {onFocusRequest && (
+                      <button
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+                          focusedEntryId === nextTask.entryId
+                            ? "bg-emerald-400 text-slate-950"
+                            : "bg-slate-700 text-slate-200 hover:bg-slate-600"
+                        }`}
+                        onClick={() => onFocusRequest(nextTask.entryId)}
+                      >
+                        {focusedEntryId === nextTask.entryId ? "Focused" : "Focus"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            {onFocusRequest && (
-              <button
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
-                  focusedEntryId === nextTask.entryId
-                    ? "bg-emerald-400 text-slate-950"
-                    : "bg-slate-700 text-slate-200 hover:bg-slate-600"
-                }`}
-                onClick={() => onFocusRequest(nextTask.entryId)}
-              >
-                {focusedEntryId === nextTask.entryId ? "Focused" : "Focus"}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
