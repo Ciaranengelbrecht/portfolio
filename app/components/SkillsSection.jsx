@@ -207,8 +207,6 @@ const SkillCard = ({ skill, index, isVisible }) => {
               animate={{ width: isVisible ? `${skill.level}%` : 0 }}
               transition={{ duration: 1, delay: 0.3 + index * 0.1, ease: "easeOut" }}
               className={`h-full rounded-full bg-gradient-to-r ${skill.color}`}
-              transition={{ duration: 1, delay: 0.3 + index * 0.1, ease: "easeOut" }}
-              className={`h-full rounded-full bg-gradient-to-r ${skill.color}`}
             />
           </div>
         </div>

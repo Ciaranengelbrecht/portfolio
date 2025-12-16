@@ -20,7 +20,7 @@ const AssetImage = ({ src, ...props }) => {
     }
   }, [src]);
 
-  return <Image src={adjustedSrc} {...props} />;
+  return <Image src={adjustedSrc} alt={props.alt || ''} {...props} />;
 };
 
 export default AssetImage;
