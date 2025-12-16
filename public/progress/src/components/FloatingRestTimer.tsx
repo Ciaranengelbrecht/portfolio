@@ -37,18 +37,24 @@ export default function FloatingRestTimer({
   onRestart,
   className,
 }: FloatingRestTimerProps) {
-  // Find the most relevant active timer (running, or most recently finished)
+  // Find the most relevant active timer (most recently started running timer)
   const activeTimer = useMemo(() => {
     const entries = Object.entries(restTimers);
     
-    // First priority: running timers
-    const running = entries.find(([_, t]) => t.running && !t.finished);
-    if (running) return { entryId: running[0], timer: running[1] };
+    // First priority: running timers - pick the one that started most recently
+    const runningTimers = entries.filter(([_, t]) => t.running && !t.finished);
+    if (runningTimers.length > 0) {
+      // Sort by start time descending (most recent first)
+      runningTimers.sort((a, b) => b[1].start - a[1].start);
+      const mostRecent = runningTimers[0];
+      return { entryId: mostRecent[0], timer: mostRecent[1] };
+    }
     
-    // Second priority: finished but not dismissed (within last 5 seconds)
+    // Second priority: finished but not dismissed (within last 3 seconds)
+    // Also pick most recent
     const recentlyFinished = entries
-      .filter(([_, t]) => t.finished && Date.now() - t.start - t.elapsed < 5000)
-      .sort((a, b) => b[1].elapsed - a[1].elapsed)[0];
+      .filter(([_, t]) => t.finished && Date.now() - t.start - t.elapsed < 3000)
+      .sort((a, b) => b[1].start - a[1].start)[0];
     if (recentlyFinished) return { entryId: recentlyFinished[0], timer: recentlyFinished[1] };
     
     return null;
