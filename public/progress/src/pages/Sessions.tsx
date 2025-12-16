@@ -4027,6 +4027,7 @@ export default function Sessions() {
     return `${s}s`;
   };
   const [showPacingDetails, setShowPacingDetails] = useState(false);
+  const [pacingCollapsed, setPacingCollapsed] = useState(true); // Collapsed by default
   const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>(
     {}
   );
@@ -4489,95 +4490,133 @@ export default function Sessions() {
         />
       )}
       {session && pacing && pacing.overall.count > 0 && (
-        <div className="mx-4 mt-3 bg-[rgba(30,41,59,0.65)] rounded-xl p-3 space-y-2 border border-white/5">
-          <div className="flex items-center justify-between text-[11px] text-slate-300">
-            <span className="font-semibold tracking-wide">Pacing</span>
-            <button
-              className="text-[10px] underline text-slate-400"
-              onClick={() => setShowPacingDetails((s) => !s)}
+        <div className="mx-4 mt-3 bg-[rgba(30,41,59,0.65)] rounded-xl border border-white/5 overflow-hidden">
+          {/* Collapsible pacing header */}
+          <button
+            onClick={() => setPacingCollapsed(!pacingCollapsed)}
+            className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-3 text-[11px] text-slate-300">
+              <span className="font-semibold tracking-wide">Pacing</span>
+              <span className="text-slate-400">
+                {pacing.overall.count} sets · avg {formatMs(pacing.overall.averageMs)}
+              </span>
+            </div>
+            <svg
+              className={`w-4 h-4 text-slate-400 transition-transform ${pacingCollapsed ? "" : "rotate-180"}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              {showPacingDetails ? "Hide Details" : "Show Details"}
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
-            <div>
-              Sets:{" "}
-              <span className="text-slate-200 font-medium">
-                {pacing.overall.count}
-              </span>
-            </div>
-            <div>
-              Avg Rest:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.averageMs)}
-              </span>
-            </div>
-            <div>
-              Median:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.medianMs)}
-              </span>
-            </div>
-            <div>
-              Longest:{" "}
-              <span className="text-slate-200 font-medium">
-                {formatMs(pacing.overall.longestMs)}
-              </span>
-            </div>
-            {sessionDuration && (
-              <div>
-                Session Span:{" "}
-                <span className="text-slate-200 font-medium">
-                  {sessionDuration}
-                </span>
-              </div>
-            )}
-          </div>
-          {showPacingDetails && (
-            <div className="space-y-1 max-h-64 overflow-auto pr-1">
-              {pacing.exercises
-                .filter((e) => e.count > 0)
-                .map((e) => {
-                  const ex = exMap.get(e.exerciseId);
-                  const name =
-                    ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
-                  return (
-                    <div
-                      key={e.exerciseId}
-                      className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <button
-                          onClick={() => toggleName(e.exerciseId)}
-                          className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
-                        >
-                          <span
-                            className={`capitalize ${
-                              expandedNames[e.exerciseId]
-                                ? "whitespace-normal break-words"
-                                : ""
-                            }`}
-                          >
-                            {name}
-                          </span>
-                        </button>
-                      </div>
-                      <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
-                        <span>n{e.count}</span>
-                        <span>avg {formatMs(e.averageMs)}</span>
-                        <span>med {formatMs(e.medianMs)}</span>
-                        <span>max {formatMs(e.longestMs)}</span>
-                      </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Expanded pacing content */}
+          <AnimatePresence initial={false}>
+            {!pacingCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="px-3 pb-3 space-y-2">
+                  <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
+                    <div>
+                      Sets:{" "}
+                      <span className="text-slate-200 font-medium">
+                        {pacing.overall.count}
+                      </span>
                     </div>
-                  );
-                })}
-              {!pacing.exercises.some((e) => e.count > 0) && (
-                <div className="text-[10px] text-slate-500">
-                  No rest intervals yet.
+                    <div>
+                      Avg Rest:{" "}
+                      <span className="text-slate-200 font-medium">
+                        {formatMs(pacing.overall.averageMs)}
+                      </span>
+                    </div>
+                    <div>
+                      Median:{" "}
+                      <span className="text-slate-200 font-medium">
+                        {formatMs(pacing.overall.medianMs)}
+                      </span>
+                    </div>
+                    <div>
+                      Longest:{" "}
+                      <span className="text-slate-200 font-medium">
+                        {formatMs(pacing.overall.longestMs)}
+                      </span>
+                    </div>
+                    {sessionDuration && (
+                      <div>
+                        Session Span:{" "}
+                        <span className="text-slate-200 font-medium">
+                          {sessionDuration}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    className="text-[10px] underline text-slate-400 hover:text-slate-300"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPacingDetails((s) => !s);
+                    }}
+                  >
+                    {showPacingDetails ? "Hide Per-Exercise Details" : "Show Per-Exercise Details"}
+                  </button>
+                  
+                  {showPacingDetails && (
+                    <div className="space-y-1 max-h-64 overflow-auto pr-1">
+                      {pacing.exercises
+                        .filter((e) => e.count > 0)
+                        .map((e) => {
+                          const ex = exMap.get(e.exerciseId);
+                          const name =
+                            ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
+                          return (
+                            <div
+                              key={e.exerciseId}
+                              className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <button
+                                  onClick={() => toggleName(e.exerciseId)}
+                                  className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
+                                >
+                                  <span
+                                    className={`capitalize ${
+                                      expandedNames[e.exerciseId]
+                                        ? "whitespace-normal break-words"
+                                        : ""
+                                    }`}
+                                  >
+                                    {name}
+                                  </span>
+                                </button>
+                              </div>
+                              <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
+                                <span>n{e.count}</span>
+                                <span>avg {formatMs(e.averageMs)}</span>
+                                <span>med {formatMs(e.medianMs)}</span>
+                                <span>max {formatMs(e.longestMs)}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      {!pacing.exercises.some((e) => e.count > 0) && (
+                        <div className="text-[10px] text-slate-500">
+                          No rest intervals yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
       {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
