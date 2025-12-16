@@ -1,44 +1,29 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
-const NavLink = ({ href, title }) => {
-  const [isActive, setIsActive] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // Skip if href doesn't start with #
-      if (!href.startsWith("#")) return;
-
-      const sectionId = href.substring(1);
-      const section = document.getElementById(sectionId);
-
-      if (section) {
-        const rect = section.getBoundingClientRect();
-        const isInView = rect.top <= 100 && rect.bottom >= 100;
-        setIsActive(isInView);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    // Initial check
-    handleScroll();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [href]);
-
+const NavLink = ({ href, title, isActive }) => {
   return (
     <Link
       href={href}
-      className={`relative py-2 text-[#ADB7BE] hover:text-white transition-colors duration-300 ${
-        isActive ? "text-primary-500" : ""
-      }`}>
-      {title}
+      className="relative px-4 py-2 rounded-full transition-all duration-300"
+    >
+      {/* Active background */}
       {isActive && (
-        <span className="absolute left-0 right-0 bottom-0 h-0.5 bg-primary-500 transform origin-left"></span>
+        <motion.div
+          layoutId="activeNav"
+          className="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-accent-500/20 rounded-full border border-primary-500/30"
+          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+        />
       )}
+      
+      <span
+        className={`relative z-10 text-sm font-medium transition-colors duration-300 ${
+          isActive ? "text-white" : "text-slate-400 hover:text-white"
+        }`}
+      >
+        {title}
+      </span>
     </Link>
   );
 };
