@@ -82,7 +82,7 @@ const skills = [
   { name: "SQL", level: 75, category: "languages", color: "from-orange-400 to-orange-600" },
   { name: "HTML", level: 90, category: "frontend", color: "from-orange-500 to-red-500" },
   { name: "CSS", level: 80, category: "frontend", color: "from-blue-400 to-blue-600" },
-  { name: "React", level: 80, category: "frontend", color: "from-cyan-400 to-cyan-600" },
+  { name: "React", level: 80, category: "frontend", color: "from-slate-400 to-slate-500" },
   { name: "Next.js", level: 75, category: "frontend", color: "from-slate-400 to-slate-600" },
   { name: "Tailwind", level: 85, category: "frontend", color: "from-teal-400 to-teal-600" },
   { name: "Git", level: 85, category: "tools", color: "from-orange-500 to-red-600" },
@@ -132,8 +132,8 @@ const CircularProgress = ({ level, color, isVisible }) => {
         {/* Gradient definition */}
         <defs>
           <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#06B6D4" />
-            <stop offset="100%" stopColor="#8B5CF6" />
+            <stop offset="0%" stopColor="#A8B2C1" />
+            <stop offset="100%" stopColor="#64748B" />
           </linearGradient>
         </defs>
       </svg>

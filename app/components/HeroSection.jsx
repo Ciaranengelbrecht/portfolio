@@ -263,7 +263,7 @@ const HeroSection = () => {
         >
           <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] lg:w-[380px] lg:h-[380px] xl:w-[420px] xl:h-[420px]">
             {/* Glow ring behind image */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 blur-2xl animate-glow-pulse" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-400/20 blur-2xl animate-glow-pulse" />
             
             {/* Rotating border */}
             <motion.div 
@@ -271,7 +271,7 @@ const HeroSection = () => {
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               className="absolute inset-0 rounded-full"
               style={{
-                background: "conic-gradient(from 0deg, #06B6D4, #8B5CF6, #06B6D4)",
+                background: "conic-gradient(from 0deg, #A8B2C1, #64748B, #D4D4D8, #A8B2C1)",
                 padding: "3px",
               }}
             >

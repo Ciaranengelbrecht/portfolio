@@ -7,76 +7,80 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-jetbrains)', 'ui-monospace', 'monospace'],
+      },
       colors: {
-        // Modern vibrant primary palette - Cyan/Teal accent
+        // Monochrome Silver/Steel primary palette
         primary: {
-          DEFAULT: "#06B6D4",
-          50: "#ECFEFF",
-          100: "#CFFAFE",
-          200: "#A5F3FC",
-          300: "#67E8F9",
-          400: "#22D3EE",
-          500: "#06B6D4",
-          600: "#0891B2",
-          700: "#0E7490",
-          800: "#155E75",
-          900: "#164E63",
-          950: "#083344",
-        },
-        // Secondary accent - Purple/Violet for gradients
-        accent: {
-          DEFAULT: "#8B5CF6",
-          50: "#F5F3FF",
-          100: "#EDE9FE",
-          200: "#DDD6FE",
-          300: "#C4B5FD",
-          400: "#A78BFA",
-          500: "#8B5CF6",
-          600: "#7C3AED",
-          700: "#6D28D9",
-          800: "#5B21B6",
-          900: "#4C1D95",
-        },
-        // Warm accent for CTAs - Orange/Amber
-        warm: {
-          DEFAULT: "#F59E0B",
-          400: "#FBBF24",
-          500: "#F59E0B",
-          600: "#D97706",
-        },
-        // Surface colors for dark mode
-        surface: {
-          DEFAULT: "#0F172A",
+          DEFAULT: "#A8B2C1",
           50: "#F8FAFC",
           100: "#F1F5F9",
-          800: "#1E293B",
-          900: "#0F172A",
-          950: "#020617",
+          200: "#E2E8F0",
+          300: "#CBD5E1",
+          400: "#94A3B8",
+          500: "#A8B2C1",
+          600: "#64748B",
+          700: "#475569",
+          800: "#334155",
+          900: "#1E293B",
+          950: "#0F172A",
         },
-        secondary: "#1E293B",
-        dark: "#0F172A",
-        light: "#F8FAFC",
+        // Accent - Warm silver/champagne for highlights
+        accent: {
+          DEFAULT: "#D4D4D8",
+          50: "#FAFAFA",
+          100: "#F4F4F5",
+          200: "#E4E4E7",
+          300: "#D4D4D8",
+          400: "#A1A1AA",
+          500: "#71717A",
+          600: "#52525B",
+          700: "#3F3F46",
+          800: "#27272A",
+          900: "#18181B",
+        },
+        // Subtle warm accent for CTAs - Soft gold
+        warm: {
+          DEFAULT: "#D4AF37",
+          400: "#E5C158",
+          500: "#D4AF37",
+          600: "#B8962F",
+        },
+        // Surface colors for dark mode - Deep charcoal
+        surface: {
+          DEFAULT: "#111111",
+          50: "#FAFAFA",
+          100: "#F5F5F5",
+          800: "#1A1A1A",
+          900: "#111111",
+          950: "#0A0A0A",
+        },
+        secondary: "#1A1A1A",
+        dark: "#111111",
+        light: "#FAFAFA",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
-        // Hero gradients
-        "hero-gradient": "linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%)",
-        "mesh-gradient": "radial-gradient(at 40% 20%, hsla(180,100%,50%,0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, hsla(270,100%,60%,0.15) 0px, transparent 50%), radial-gradient(at 0% 50%, hsla(180,100%,50%,0.1) 0px, transparent 50%), radial-gradient(at 80% 50%, hsla(270,100%,60%,0.1) 0px, transparent 50%), radial-gradient(at 0% 100%, hsla(180,100%,50%,0.15) 0px, transparent 50%), radial-gradient(at 80% 100%, hsla(270,100%,60%,0.1) 0px, transparent 50%)",
-        // Card gradients
-        "card-gradient": "linear-gradient(135deg, rgba(6,182,212,0.1) 0%, rgba(139,92,246,0.1) 100%)",
-        "card-gradient-hover": "linear-gradient(135deg, rgba(6,182,212,0.2) 0%, rgba(139,92,246,0.2) 100%)",
-        // Glow effects
-        "glow-conic": "conic-gradient(from 180deg at 50% 50%, #06B6D4 0deg, #8B5CF6 180deg, #06B6D4 360deg)",
+        // Hero gradients - Monochrome steel
+        "hero-gradient": "linear-gradient(135deg, #111111 0%, #1A1A1A 50%, #111111 100%)",
+        "mesh-gradient": "radial-gradient(at 40% 20%, hsla(220,10%,50%,0.08) 0px, transparent 50%), radial-gradient(at 80% 0%, hsla(220,10%,60%,0.06) 0px, transparent 50%), radial-gradient(at 0% 50%, hsla(220,10%,50%,0.05) 0px, transparent 50%), radial-gradient(at 80% 50%, hsla(220,10%,60%,0.05) 0px, transparent 50%), radial-gradient(at 0% 100%, hsla(220,10%,50%,0.08) 0px, transparent 50%), radial-gradient(at 80% 100%, hsla(220,10%,60%,0.05) 0px, transparent 50%)",
+        // Card gradients - Silver
+        "card-gradient": "linear-gradient(135deg, rgba(168,178,193,0.08) 0%, rgba(212,212,216,0.08) 100%)",
+        "card-gradient-hover": "linear-gradient(135deg, rgba(168,178,193,0.15) 0%, rgba(212,212,216,0.15) 100%)",
+        // Glow effects - Silver/Steel
+        "glow-conic": "conic-gradient(from 180deg at 50% 50%, #A8B2C1 0deg, #D4D4D8 180deg, #A8B2C1 360deg)",
       },
       boxShadow: {
-        "glow-sm": "0 0 15px -3px rgba(6,182,212,0.4), 0 0 6px -2px rgba(139,92,246,0.3)",
-        "glow": "0 0 25px -5px rgba(6,182,212,0.5), 0 0 10px -3px rgba(139,92,246,0.4)",
-        "glow-lg": "0 0 35px -5px rgba(6,182,212,0.6), 0 0 20px -5px rgba(139,92,246,0.5)",
-        "glow-xl": "0 0 50px -10px rgba(6,182,212,0.7), 0 0 30px -10px rgba(139,92,246,0.6)",
-        "inner-glow": "inset 0 0 20px -5px rgba(6,182,212,0.3)",
-        "card": "0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -2px rgba(0,0,0,0.2)",
-        "card-hover": "0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.3)",
+        "glow-sm": "0 0 15px -3px rgba(168,178,193,0.3), 0 0 6px -2px rgba(212,212,216,0.2)",
+        "glow": "0 0 25px -5px rgba(168,178,193,0.4), 0 0 10px -3px rgba(212,212,216,0.3)",
+        "glow-lg": "0 0 35px -5px rgba(168,178,193,0.5), 0 0 20px -5px rgba(212,212,216,0.4)",
+        "glow-xl": "0 0 50px -10px rgba(168,178,193,0.6), 0 0 30px -10px rgba(212,212,216,0.5)",
+        "inner-glow": "inset 0 0 20px -5px rgba(168,178,193,0.2)",
+        "card": "0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3)",
+        "card-hover": "0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.4)",
       },
       animation: {
         "pulse-slow": "pulse 4s ease-in-out infinite",

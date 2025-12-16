@@ -1,15 +1,15 @@
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ 
+const outfit = Outfit({ 
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-outfit",
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -28,13 +28,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`scroll-smooth ${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className={`${inter.className} bg-surface-900 text-white antialiased`}>
+    <html lang="en" className={`scroll-smooth ${outfit.variable} ${jetbrainsMono.variable}`}>
+      <body className={`${outfit.className} bg-surface-900 text-white antialiased`}>
         {/* Background gradient overlay */}
         <div className="fixed inset-0 bg-mesh-gradient pointer-events-none z-0" />
         
         {/* Subtle noise texture */}
-        <div className="fixed inset-0 noise-overlay opacity-[0.015] pointer-events-none z-0" />
+        <div className="fixed inset-0 noise-overlay opacity-[0.02] pointer-events-none z-0" />
         
         <div className="relative z-10">
           {children}
