@@ -282,7 +282,7 @@ const AboutSection = () => {
       initial="hidden"
       animate={controls}
       variants={containerVariants}
-      className="text-white py-20 relative overflow-hidden"
+      className="text-white py-20 relative overflow-visible"
       id="about"
     >
       {/* Background decorations */}
@@ -429,7 +429,7 @@ const AboutSection = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="glass-card p-6 min-h-[300px]"
+              className="glass-card p-6"
             >
               {TAB_DATA.find((t) => t.id === tab)?.content}
             </motion.div>
