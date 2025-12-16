@@ -93,7 +93,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="home" className="min-h-[90vh] lg:py-16 relative overflow-x-hidden flex items-center">
+    <section id="home" className="min-h-screen py-16 lg:py-24 relative overflow-x-hidden flex items-center">
       {/* Animated background orbs */}
       <BackgroundOrb 
         className="top-1/4 right-1/4 w-96 h-96 bg-primary-500/20 animate-pulse-slow" 
@@ -115,7 +115,7 @@ const HeroSection = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative z-20 w-full overflow-visible"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 relative z-20 w-full overflow-visible px-4 md:px-8 lg:px-12"
       >
         {/* Text Content */}
         <div className="lg:col-span-7 flex flex-col justify-center text-center lg:text-left order-2 lg:order-1">
@@ -258,10 +258,10 @@ const HeroSection = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.3, type: "spring", stiffness: 100 }}
-          className="lg:col-span-5 flex justify-center items-center order-1 lg:order-2 overflow-visible"
+          className="lg:col-span-5 flex justify-center items-center order-1 lg:order-2 overflow-visible py-8 lg:py-0"
           style={{ x: parallaxX, y: parallaxY }}
         >
-          <div className="relative w-[280px] h-[280px] lg:w-[400px] lg:h-[400px] lg:mr-12">
+          <div className="relative w-[280px] h-[280px] lg:w-[400px] lg:h-[400px] lg:mr-16 xl:mr-20">
             {/* Glow ring behind image */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/30 to-accent-500/30 blur-2xl animate-glow-pulse" />
             
