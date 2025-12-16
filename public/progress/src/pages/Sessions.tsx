@@ -4083,14 +4083,24 @@ export default function Sessions() {
                 className="mt-1"
               />
             </div>
-            {sessionDuration && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200"
-                title="Active logging duration (first to last non-zero set)"
-              >
-                ⏱ {sessionDuration}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {sessionDuration && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200"
+                  title="Active logging duration (first to last non-zero set)"
+                >
+                  ⏱ {sessionDuration}
+                </span>
+              )}
+              {/* Keyboard shortcuts hint - desktop only */}
+              <div className="hidden lg:flex items-center gap-1.5 text-[9px] text-slate-500">
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 font-mono">/</kbd>
+                <span>add</span>
+                <span className="text-slate-600">·</span>
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 font-mono">⇧↵</kbd>
+                <span>next</span>
+              </div>
+            </div>
           </div>
           <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
             <div className="flex min-w-[200px] flex-col gap-1">
