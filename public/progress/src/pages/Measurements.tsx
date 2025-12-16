@@ -11,6 +11,7 @@ import { useSnack } from "../state/snackbar";
 import { parseEvoltTextToMeasurement } from "../lib/evoltImport";
 import { extractTextFromPdf } from "../lib/pdf";
 import { SkeletonChart } from "../components/Skeleton";
+import QuickWeighIn from "../components/QuickWeighIn";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -1110,9 +1111,32 @@ export default function Measurements() {
     return null;
   })();
 
+  // Get the last recorded weight for QuickWeighIn placeholder
+  const lastRecordedWeight = useMemo(() => {
+    const withWeight = data.filter((m) => typeof m.weightKg === "number");
+    if (!withWeight.length) return undefined;
+    const sorted = [...withWeight].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    return sorted[0].weightKg;
+  }, [data]);
+
+  // Refresh data after quick weigh-in
+  const refreshData = useCallback(async () => {
+    const list = await db.getAll<Measurement>("measurements");
+    const sorted = [...list].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    setData(sorted);
+    // Also update the current entry if it's today
+    const today = new Date().toISOString().slice(0, 10);
+    const todayEntry = sorted.find((r) => r.dateISO.slice(0, 10) === today);
+    if (todayEntry) setM(todayEntry);
+  }, []);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Measurements</h2>
+      
+      {/* Quick Weigh-in for fast daily weight logging */}
+      <QuickWeighIn onSave={refreshData} lastWeight={lastRecordedWeight} />
+      
       <SectionCard
         id="entry"
         eyebrow="Current entry"
