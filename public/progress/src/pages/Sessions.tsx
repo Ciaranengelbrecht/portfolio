@@ -52,6 +52,7 @@ import { useSnack } from "../state/snackbar";
 import { getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
 import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
+import { fuzzySearch, highlightMatches } from "../lib/fuzzySearch";
 
 const KG_TO_LB = 2.2046226218;
 
@@ -3344,14 +3345,51 @@ export default function Sessions() {
     return ["all", ...sorted];
   }, [exercises]);
 
+  // Create a set of recent exercise IDs for priority boosting
+  const recentExerciseIds = useMemo(
+    () => new Set(recentExercises.map((ex) => ex.id)),
+    [recentExercises]
+  );
+
   const addExerciseOptions = useMemo<OptionSheetOption[]>(() => {
-    const q = query.trim().toLowerCase();
-    const list = exercises
-      .filter((ex) => addFilter === "all" || ex.muscleGroup === addFilter)
-      .filter((ex) => (q ? ex.name.toLowerCase().includes(q) : true))
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .slice(0, 200);
-    return list.map((ex) => {
+    const q = query.trim();
+    
+    // Filter by muscle group first
+    const filtered = exercises.filter(
+      (ex) => addFilter === "all" || ex.muscleGroup === addFilter
+    );
+
+    // Use fuzzy search if there's a query, otherwise sort alphabetically
+    let results: Array<{ item: Exercise; score: number; matches: Array<{ start: number; end: number }> }>;
+    
+    if (q) {
+      // Fuzzy search with combined name + muscle group for better matches
+      results = fuzzySearch(filtered, q, (ex) => `${ex.name} ${ex.muscleGroup || ""}`, {
+        minScore: 0.05,
+        maxResults: 200,
+      });
+      
+      // Boost recent exercises in results
+      results = results.map((r) => ({
+        ...r,
+        score: recentExerciseIds.has(r.item.id) ? r.score + 0.15 : r.score,
+      }));
+      
+      // Re-sort after boosting
+      results.sort((a, b) => b.score - a.score);
+    } else {
+      // No query: show recent exercises first, then alphabetical
+      const recent = filtered.filter((ex) => recentExerciseIds.has(ex.id));
+      const rest = filtered
+        .filter((ex) => !recentExerciseIds.has(ex.id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      
+      // Combine: recent first (in their original order), then rest alphabetically
+      const combined = [...recent, ...rest].slice(0, 200);
+      results = combined.map((ex) => ({ item: ex, score: 1, matches: [] }));
+    }
+
+    return results.map(({ item: ex, matches }) => {
       const secondary =
         ex.secondaryMuscles && ex.secondaryMuscles.length
           ? `Secondary: ${ex.secondaryMuscles
@@ -3359,11 +3397,41 @@ export default function Sessions() {
               .join(", ")}`
           : undefined;
       const isInSession = sessionExerciseIds.has(ex.id);
+      const isRecent = recentExerciseIds.has(ex.id);
+      
+      // Build label with highlighted matches for display
+      let labelNode: React.ReactNode = ex.name;
+      if (q && matches.length > 0) {
+        // Only highlight matches within the name portion
+        const nameMatches = matches.filter((m) => m.start < ex.name.length);
+        if (nameMatches.length > 0) {
+          const parts = highlightMatches(ex.name, nameMatches);
+          labelNode = (
+            <>
+              {parts.map((part, i) =>
+                part.highlight ? (
+                  <span key={i} className="text-emerald-400 font-semibold">
+                    {part.text}
+                  </span>
+                ) : (
+                  <span key={i}>{part.text}</span>
+                )
+              )}
+            </>
+          );
+        }
+      }
+      
       return {
         id: ex.id,
-        label: ex.name,
+        label: labelNode as any, // OptionSheet accepts ReactNode
         description: formatMuscleLabel(ex.muscleGroup),
         hint: secondary,
+        badge: isRecent && !q ? (
+          <span className="text-[10px] uppercase tracking-wider text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded">
+            Recent
+          </span>
+        ) : undefined,
         selected: isInSession,
         trailing: isInSession ? "In session" : undefined,
         onSelect: () => {
@@ -3374,7 +3442,7 @@ export default function Sessions() {
         },
       } satisfies OptionSheetOption;
     });
-  }, [exercises, addFilter, query, sessionExerciseIds, addExerciseToSession]);
+  }, [exercises, addFilter, query, sessionExerciseIds, addExerciseToSession, recentExerciseIds]);
 
   const addSheetHighlight = (muscleFilters.length > 1 ||
     recentExercises.length > 0) && (
