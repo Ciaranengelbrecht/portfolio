@@ -46,6 +46,7 @@ import { setLastAction, undo as undoLast } from "../lib/undo";
 import PhaseStepper from "../components/PhaseStepper";
 import SessionBreadcrumb from "../components/SessionBreadcrumb";
 import JumpToLatest from "../components/JumpToLatest";
+import FloatingRestTimer from "../components/FloatingRestTimer";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 import { getMuscleIconPath } from "../lib/muscles";
@@ -3964,8 +3965,28 @@ export default function Sessions() {
   const toggleName = (id: string) =>
     setExpandedNames((p) => ({ ...p, [id]: !p[id] }));
 
+  // Map entry IDs to exercise names for FloatingRestTimer
+  const entryIdToExerciseName = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (session?.entries) {
+      for (const entry of session.entries) {
+        const ex = exMap.get(entry.exerciseId);
+        map[entry.id] = ex?.name || exNameCache[entry.exerciseId] || "Exercise";
+      }
+    }
+    return map;
+  }, [session?.entries, exMap, exNameCache]);
+
   return (
     <div className="space-y-4">
+      {/* Floating Rest Timer */}
+      <FloatingRestTimer
+        restTimers={restTimers}
+        targetSeconds={settingsState?.restTimerTargetSeconds ?? 90}
+        exerciseNames={entryIdToExerciseName}
+        onStop={stopRestTimer}
+        onRestart={restartRestTimer}
+      />
       {/* Top scroll anchor at very start to allow absolute top jump */}
       <div
         id="sessions-top-anchor"
