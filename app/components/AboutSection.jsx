@@ -15,10 +15,10 @@ const stats = [
 
 // Personal interests/values
 const interests = [
-  { name: "Cyber Security", icon: "🔒" },
-  { name: "Cloud & Infrastructure", icon: "☁️" },
-  { name: "Automation", icon: "⚙️" },
-  { name: "SIEM & Detection", icon: "🛡️" },
+  { name: "Software Development", icon: "💻" },
+  { name: "Full-Stack Engineering", icon: "🚀" },
+  { name: "Automation & Scripting", icon: "⚙️" },
+  { name: "Problem Solving", icon: "🧩" },
 ];
 
 const TAB_DATA = [
@@ -315,18 +315,19 @@ const AboutSection = () => {
             
             <div className="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                I&apos;m a <span className="text-primary-400 font-medium">Cyber Security Professional</span> based 
-                in Perth, Australia, currently working as a Graduate ICT Officer specialising in security operations, 
-                threat detection, and identity protection.
+                I&apos;m a <span className="text-primary-400 font-medium">Software Developer</span> and 
+                <span className="text-primary-400 font-medium"> ICT Professional</span> based in Perth, Australia, 
+                passionate about building innovative solutions and solving complex technical challenges.
               </p>
               <p>
                 With a <span className="text-accent-400 font-medium">Bachelor of Computer Science from UWA</span> and 
-                4+ years of IT experience, I focus on SIEM/XDR monitoring, security automation, Essential Eight compliance, 
-                and building tools that improve security posture and operational efficiency.
+                4+ years of IT experience, I specialise in full-stack development, automation, and systems engineering. 
+                I enjoy working across the entire development lifecycle, from design to deployment.
               </p>
               <p>
-                I combine hands-on security operations with development skills in Python, PowerShell, and KQL to create 
-                practical solutions for real-world security challenges.
+                I leverage strong technical skills in Python, JavaScript, C, and modern frameworks to build robust applications, 
+                automate workflows, and deliver practical solutions. Currently gaining valuable experience in the security 
+                space while maintaining my core focus on software development.
               </p>
             </div>
 

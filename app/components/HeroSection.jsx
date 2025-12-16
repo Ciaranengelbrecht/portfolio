@@ -146,15 +146,15 @@ const HeroSection = () => {
             <span className="text-slate-500">I&apos;m </span>
             <TypeAnimation
               sequence={[
-                "a Software Engineer",
+                "a Software Developer",
                 2000,
-                "a Full-Stack Developer",
-                2000,
-                "an AI Enthusiast",
+                "a Full-Stack Engineer",
                 2000,
                 "a Problem Solver",
                 2000,
-                "a Creative Thinker",
+                "an ICT Professional",
+                2000,
+                "a Creative Builder",
                 2000,
               ]}
               wrapper="span"
