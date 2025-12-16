@@ -4850,6 +4850,11 @@ export default function Sessions() {
                   (b.weightKg || 0) * (b.reps || 0) -
                   (a.weightKg || 0) * (a.reps || 0)
               )[0];
+            // Determine completion status for visual indicator
+            const plannedSetCount = guide?.sets ?? entry.sets.length;
+            const isFullyComplete = setsLogged.length >= plannedSetCount && setsLogged.length > 0;
+            const isPartiallyComplete = setsLogged.length > 0 && setsLogged.length < plannedSetCount;
+            const isNotStarted = setsLogged.length === 0;
             const collapsedSummaryContent = (
               <>
                 <span className="font-medium text-slate-100">
@@ -4907,12 +4912,18 @@ export default function Sessions() {
               <div
                 key={entry.id}
                 id={`exercise-${entry.id}`}
-                className={`relative card-enhanced rounded-2xl px-3.5 py-3 sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 ${
+                className={`relative card-enhanced rounded-2xl px-3.5 py-3 sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[3px] ${
                   dimmed ? "opacity-30" : ""
                 } ${
                   isFocusTarget
                     ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-slate-950 shadow-[0_0_0_1px_rgba(var(--accent-rgb,59,130,246),0.45)]"
                     : ""
+                } ${
+                  isFullyComplete
+                    ? "border-l-emerald-500/60"
+                    : isPartiallyComplete
+                    ? "border-l-amber-500/50"
+                    : "border-l-slate-600/30"
                 }`}
                 draggable
                 onDragStart={(e) => {
