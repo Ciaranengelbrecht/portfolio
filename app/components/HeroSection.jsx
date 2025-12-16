@@ -324,7 +324,10 @@ const HeroSection = () => {
           <motion.div
             animate={{ opacity: [1, 0], y: [0, 12] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="w-1.5 h-1.5 rounded-full bg-warm-400"
+            className="w-1.5 h-1.5 rounded-full bg-warm-400"
+          />
+        </motion.div>
+      </motion.div>
     </section>
   );
 };
