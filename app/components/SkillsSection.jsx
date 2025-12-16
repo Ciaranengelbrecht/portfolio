@@ -277,7 +277,7 @@ const SkillsSection = () => {
             Technical Expertise
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-300 via-primary-300 to-white">Skills</span>
+            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-400 via-primary-100 to-white">Skills</span>
           </h2>
           <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">

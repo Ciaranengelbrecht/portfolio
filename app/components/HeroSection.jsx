@@ -133,7 +133,7 @@ const HeroSection = () => {
             className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-6"
           >
             <span className="block text-slate-300 mb-2">Hi, I&apos;m</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-warm-300 to-primary-300 font-extrabold">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-warm-400 to-primary-100 font-extrabold">
               Ciaran Engelbrecht
             </span>
           </motion.h1>

@@ -175,11 +175,11 @@ code, pre, .font-mono {
 
 /* Gradient text */
 .gradient-text {
-  @apply text-transparent bg-clip-text bg-gradient-to-r from-white via-primary-300 to-accent-300;
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-white via-primary-100 to-accent-100;
 }
 
 .gradient-text-animated {
-  @apply text-transparent bg-clip-text bg-gradient-to-r from-white via-primary-400 to-white;
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-white via-warm-400 to-white;
   background-size: 200% auto;
   animation: gradient-shift 3s linear infinite;
 }
