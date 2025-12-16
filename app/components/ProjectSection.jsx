@@ -48,9 +48,10 @@ const projectsData = [
       "Full-stack task management platform with real-time collaboration, user authentication, and intuitive UI for team productivity.",
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
-    previewUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
-    tech: ["JavaScript", "Node.js", "Flask", "SQLite"],
+    previewUrl: "https://taskhub.ciaranengelbrecht.com",
+    tech: ["JavaScript", "Flask", "Python", "SQLite"],
     featured: true,
+    hasDemo: true,
   },
   {
     id: 4,
