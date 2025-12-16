@@ -6,6 +6,7 @@ import { archiveCurrentProgram } from '../lib/profile';
 import { ensureProgram } from '../lib/program';
 import { nanoid } from 'nanoid';
 import { useProgram } from '../state/program';
+import { SkeletonCard } from '../components/Skeleton';
 
 interface DisplayPreset {
   id: string;
@@ -60,7 +61,13 @@ export default function Store() {
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <h2 className="text-2xl font-semibold">Program Store</h2>
       <p className="text-sm text-gray-400">Browse curated preset programs. Purchase & import functionality coming soon — for now these are previews with suggested volume targets, splits, and exercise day templates.</p>
-      {loading && <div className="text-sm text-gray-400">Loading presets…</div>}
+      {loading ? (
+        <div className="grid md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} showHeader={false} lines={4} className="min-h-[200px]" />
+          ))}
+        </div>
+      ) : (
       <div className="grid md:grid-cols-2 gap-4">
         {presets.map(p=> {
           const isOpen = open===p.id;
@@ -141,6 +148,7 @@ export default function Store() {
           );
         })}
       </div>
+      )}
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-lg text-sm shadow-lg border border-white/10" role="status" onAnimationEnd={()=> setTimeout(()=> setToast(null), 2500)}>{toast}</div>
       )}

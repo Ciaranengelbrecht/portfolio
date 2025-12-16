@@ -10,6 +10,7 @@ import UnifiedTooltip from "../components/UnifiedTooltip";
 import { useSnack } from "../state/snackbar";
 import { parseEvoltTextToMeasurement } from "../lib/evoltImport";
 import { extractTextFromPdf } from "../lib/pdf";
+import { SkeletonChart } from "../components/Skeleton";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -1727,11 +1728,7 @@ export default function Measurements() {
           </span>
         </div>
         <div className="h-72">
-          {!RC && (
-            <div className="h-full flex items-center justify-center text-xs text-gray-500">
-              Loading…
-            </div>
-          )}
+          {!RC && <SkeletonChart height="h-72" />}
           {RC && (
             <div className="relative h-full">
               <div className="relative h-full rounded-2xl border border-white/10 bg-slate-950/30">
@@ -2568,11 +2565,7 @@ function ChartCard({
     <div className="bg-card rounded-2xl p-4 shadow-soft">
       <h3 className="font-medium mb-2">{title}</h3>
       <div className="h-56">
-        {!RC && (
-          <div className="h-full flex items-center justify-center text-xs text-gray-500">
-            Loading…
-          </div>
-        )}
+        {!RC && <SkeletonChart height="h-56" />}
         {RC && (
           <div className="relative h-full rounded-xl border border-white/10 bg-slate-950/30">
             <RC.ResponsiveContainer width="100%" height="100%">

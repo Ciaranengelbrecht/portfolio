@@ -16,6 +16,7 @@ import UnifiedTooltip from "../components/UnifiedTooltip";
 // Recharts is lazy loaded; see RC state
 import DashboardDeloadTable from "./DashboardDeloadTable";
 import ProgressBars from "../components/ProgressBars";
+import { SkeletonChart } from "../components/Skeleton";
 
 // Lightweight animated number hook respecting reduced motion
 function useAnimatedNumber(value: number, duration = 600) {
@@ -1299,11 +1300,7 @@ export default function Dashboard() {
             })}
           </div>
           <div className="h-56">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-56" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.BarChart data={volData}>
@@ -1384,11 +1381,7 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Bodyweight (kg)</h3>
           <div className="h-56">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-56" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={weights}>
@@ -1450,11 +1443,7 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Waist (cm)</h3>
           <div className="h-56">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-56" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={waist}>
@@ -1489,11 +1478,7 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Upper Arm (cm)</h3>
           <div className="h-56">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-56" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={arm}>
@@ -1600,11 +1585,7 @@ export default function Dashboard() {
             </div>
           )}
           <div className="h-64">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-64" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.LineChart data={volumeTrend}>
@@ -1676,11 +1657,7 @@ export default function Dashboard() {
         <div className="bg-card rounded-2xl p-4 shadow-soft">
           <h3 className="font-medium mb-2">Intensity Distribution</h3>
           <div className="h-64">
-            {!RC && (
-              <div className="h-full flex items-center justify-center text-xs text-gray-500">
-                Loading…
-              </div>
-            )}
+            {!RC && <SkeletonChart height="h-64" />}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.BarChart data={intensityDist}>

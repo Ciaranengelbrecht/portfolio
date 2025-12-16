@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getRecovery, MuscleRecoveryState } from "../lib/recovery";
 import { MUSCLE_ICON_PATHS } from "../lib/muscles";
+import { SkeletonMuscleCard } from "../components/Skeleton";
 
 interface ViewState {
   loading: boolean;
@@ -137,6 +138,13 @@ export default function RecoveryPage() {
         </button>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
+      {view.loading ? (
+        <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
+          {ORDER.map((m) => (
+            <SkeletonMuscleCard key={m} />
+          ))}
+        </div>
+      ) : (
       <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {ORDER.map((m) => {
           const rec = view.muscles.find((x) => x.muscle === m);
@@ -202,6 +210,7 @@ export default function RecoveryPage() {
           );
         })}
       </div>
+      )}
       <footer className="pt-1 text-[10px] leading-relaxed text-slate-500">
         <p>
           <strong className="font-semibold text-slate-300">

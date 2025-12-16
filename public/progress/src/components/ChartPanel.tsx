@@ -11,6 +11,7 @@ import {
   RangeKey,
   rollingPRs,
 } from "../lib/helpers";
+import { SkeletonChart } from "./Skeleton";
 
 const RANGE_OPTS: RangeKey[] = ["4w", "8w", "12w", "all"];
 const EX_SERIES_KEYS = [
@@ -109,11 +110,7 @@ export default function ChartPanel({
     };
   }, []);
 
-  const Loading = (
-    <div className="h-60 flex items-center justify-center text-xs text-gray-500">
-      Loading chart…
-    </div>
-  );
+  const Loading = <SkeletonChart height="h-60" />;
 
   return (
     <GlassCard>

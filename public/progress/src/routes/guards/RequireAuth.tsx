@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { waitForSession } from "../../lib/supabase";
 import { useEffect, useState } from "react";
+import { SkeletonPage } from "../../components/Skeleton";
 
 export default function RequireAuth({ children }: { children: JSX.Element }) {
   const loc = useLocation();
@@ -14,7 +15,7 @@ export default function RequireAuth({ children }: { children: JSX.Element }) {
     })();
   }, []);
   if (!checked)
-    return <div className="p-6 text-sm text-gray-400">Loading…</div>;
+    return <SkeletonPage cards={2} />;
   if (!authed)
     return <Navigate to="/auth" replace state={{ redirectTo: loc.pathname }} />;
   return children;
