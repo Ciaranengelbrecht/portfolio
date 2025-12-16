@@ -36,17 +36,17 @@ const TAB_DATA = [
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative pl-8 border-l-2 border-primary-500/50"
+          className="relative pl-8 border-l-2 border-warm-500/50"
         >
-          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 shadow-glow-sm" />
-          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400 text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-warm-400 to-warm-600 shadow-lg" />
+          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-warm-500/40 text-warm-400 text-xs font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-warm-400 animate-pulse" />
             2021 - 2025
           </div>
           <h4 className="text-xl font-semibold text-white mb-1">
             Bachelor of Science - Computer Science
           </h4>
-          <p className="text-primary-400 font-medium mb-2">University of Western Australia</p>
+          <p className="text-warm-400 font-medium mb-2">University of Western Australia</p>
           <p className="text-slate-400 text-sm leading-relaxed">
             Specialised in software engineering, advanced algorithms, and artificial intelligence. 
             Gained hands-on experience with real-world projects and collaborative development.
@@ -56,14 +56,14 @@ const TAB_DATA = [
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="relative pl-8 border-l-2 border-accent-500/50"
+          className="relative pl-8 border-l-2 border-primary-500/40"
         >
-          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-accent-400 to-accent-600" />
-          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-accent-500/30 text-accent-400 text-xs font-medium">
+          <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-br from-primary-300 to-primary-500" />
+          <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400 text-xs font-medium">
             2017 - 2020
           </div>
           <h4 className="text-xl font-semibold text-white mb-1">Bachelor of Science - Nursing</h4>
-          <p className="text-accent-400 font-medium mb-2">Edith Cowan University</p>
+          <p className="text-primary-400 font-medium mb-2">Edith Cowan University</p>
           <p className="text-slate-400 text-sm leading-relaxed">
             Foundation in scientific methodology and analytical thinking. 
             Developed strong problem-solving skills and research capabilities.

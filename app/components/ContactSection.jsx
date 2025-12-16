@@ -139,14 +139,14 @@ const ContactSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-sm font-medium mb-4">
-            <span className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" />
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium mb-4 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
             Available for opportunities
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Let&apos;s <span className="gradient-text">Connect</span>
+            Let&apos;s <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-300 via-primary-300 to-white">Connect</span>
           </h2>
-          <div className="h-1 w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full mb-6" />
+          <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">
             I&apos;m always interested in hearing about new projects and opportunities.
             Whether you have a question or just want to say hi, feel free to reach out!

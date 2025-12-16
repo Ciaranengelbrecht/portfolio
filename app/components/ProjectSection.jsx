@@ -397,14 +397,14 @@ const ProjectsSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-sm font-medium mb-4">
-            <span className="w-2 h-2 rounded-full bg-primary-400" />
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium mb-4 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
             Portfolio Showcase
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Featured <span className="gradient-text">Projects</span>
+            Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-300 via-primary-300 to-white">Projects</span>
           </h2>
-          <div className="h-1 w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full mb-6" />
+          <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">
             A collection of projects showcasing my skills in web development, 
             artificial intelligence, systems programming, and more.

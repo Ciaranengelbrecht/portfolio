@@ -7,10 +7,12 @@
   --background-rgb: 17, 17, 17;
   --primary-rgb: 168, 178, 193;
   --accent-rgb: 212, 212, 216;
+  --warm-rgb: 212, 175, 55;
 }
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {

@@ -272,14 +272,14 @@ const SkillsSection = () => {
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
         <motion.div variants={itemVariants} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-sm font-medium mb-4">
-            <span className="w-2 h-2 rounded-full bg-primary-400" />
+          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium mb-4 shadow-lg">
+            <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
             Technical Expertise
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            My <span className="gradient-text">Skills</span>
+            My <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-300 via-primary-300 to-white">Skills</span>
           </h2>
-          <div className="h-1 w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full mb-6" />
+          <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">
             A comprehensive toolkit built through years of learning and hands-on experience.
             From low-level systems programming to modern web development.
@@ -297,8 +297,8 @@ const SkillsSection = () => {
               className={`
                 flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-300
                 ${category === cat.id 
-                  ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow-sm" 
-                  : "glass border border-white/10 text-slate-400 hover:text-white hover:border-primary-500/50"
+                  ? "bg-gradient-to-r from-warm-500 to-warm-600 text-surface-900 shadow-lg font-semibold" 
+                  : "glass border border-white/10 text-slate-400 hover:text-white hover:border-warm-500/40 hover:bg-warm-500/5"
                 }
               `}
             >
