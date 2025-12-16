@@ -278,16 +278,27 @@ const HeroSection = () => {
               <div className="w-full h-full rounded-full bg-surface-900" />
             </motion.div>
 
-            {/* Profile image container */}
-            <div className="absolute inset-2 lg:inset-3 rounded-full overflow-hidden glass-dark">
-              <AssetImage
-                src="/portfolio/images/portrait.webp"
-                alt="Ciaran Engelbrecht"
-                className="object-cover scale-105 hover:scale-110 transition-transform duration-500"
-                fill
-                priority
-              />
-            </div>
+            {/* Profile image container - rotates with border */}
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-2 lg:inset-3 rounded-full overflow-hidden glass-dark"
+            >
+              {/* Counter-rotate the image to keep it upright */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="w-full h-full"
+              >
+                <AssetImage
+                  src="/portfolio/images/portrait.webp"
+                  alt="Ciaran Engelbrecht"
+                  className="object-cover scale-105 hover:scale-110 transition-transform duration-500"
+                  fill
+                  priority
+                />
+              </motion.div>
+            </motion.div>
 
             {/* Floating tech tags */}
             {techTags.map((tag) => (
