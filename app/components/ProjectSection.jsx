@@ -31,6 +31,18 @@ const projectsData = [
   },
   {
     id: 2,
+    title: "LiftLog - Gym Progress Tracker",
+    description:
+      "Fast, offline-first PWA for tracking lifting sessions and body measurements with heuristic recovery modeling and guided program setup.",
+    tag: ["All", "Web"],
+    gitUrl: "https://github.com/Ciaranengelbrecht/portfolio",
+    previewUrl: "https://ciaranengelbrecht.com/progress",
+    tech: ["React", "TypeScript", "Vite", "IndexedDB", "PWA"],
+    featured: true,
+    hasDemo: true,
+  },
+  {
+    id: 3,
     title: "TaskHub Web App",
     description:
       "Full-stack task management platform with real-time collaboration, user authentication, and intuitive UI for team productivity.",
@@ -41,7 +53,7 @@ const projectsData = [
     featured: true,
   },
   {
-    id: 3,
+    id: 4,
     title: "Super Mario ML Speedrun",
     description:
       "Reinforcement learning AI that learns to speedrun Super Mario Bros using neural networks and evolutionary algorithms.",
@@ -52,7 +64,7 @@ const projectsData = [
     featured: true,
   },
   {
-    id: 4,
+    id: 5,
     title: "OCR Table Detection",
     description:
       "Computer vision system for detecting and extracting tables from documents, converting them to structured data formats.",
@@ -62,7 +74,7 @@ const projectsData = [
     tech: ["Python", "OpenCV", "Tesseract"],
   },
   {
-    id: 5,
+    id: 6,
     title: "Ontology Knowledge System",
     description:
       "Semantic web project implementing knowledge representation using ontologies and reasoning systems with SPARQL queries.",
@@ -72,7 +84,7 @@ const projectsData = [
     tech: ["OWL", "SPARQL", "Semantic Web"],
   },
   {
-    id: 6,
+    id: 7,
     title: "Document OCR Pipeline",
     description:
       "End-to-end optical character recognition system for extracting and processing text from scanned documents.",
@@ -82,7 +94,7 @@ const projectsData = [
     tech: ["Python", "PyTorch", "Image Processing"],
   },
   {
-    id: 7,
+    id: 8,
     title: "PDF Subject Splitter",
     description:
       "Automated tool for splitting large PDF documents by subject markers, streamlining document organization workflows.",
@@ -92,7 +104,7 @@ const projectsData = [
     tech: ["Python", "PyPDF2"],
   },
   {
-    id: 8,
+    id: 9,
     title: "Systems Programming Suite",
     description:
       "Collection of low-level systems programming projects exploring memory management, processes, and OS concepts.",
@@ -102,7 +114,7 @@ const projectsData = [
     tech: ["C", "Linux", "POSIX"],
   },
   {
-    id: 9,
+    id: 10,
     title: "Data Structures & Algorithms",
     description:
       "Comprehensive implementation of classic data structures and algorithms with performance analysis for CITS2200.",
@@ -112,7 +124,7 @@ const projectsData = [
     tech: ["Java", "Algorithms", "DSA"],
   },
   {
-    id: 10,
+    id: 11,
     title: "AI Agents & Search",
     description:
       "Multi-agent systems and AI search algorithms for solving complex problems through collaborative artificial intelligence.",
@@ -122,7 +134,7 @@ const projectsData = [
     tech: ["Python", "Multi-Agent", "Search"],
   },
   {
-    id: 11,
+    id: 12,
     title: "Network Server Engine",
     description:
       "Custom networking server implementing TCP/IP protocols and concurrent connection handling.",
@@ -132,7 +144,7 @@ const projectsData = [
     tech: ["C", "Sockets", "TCP/IP"],
   },
   {
-    id: 12,
+    id: 13,
     title: "Car Park System",
     description:
       "Automated parking management system with real-time occupancy tracking and reservation capabilities.",
@@ -142,7 +154,7 @@ const projectsData = [
     tech: ["Python", "Flask", "SQLite"],
   },
   {
-    id: 13,
+    id: 14,
     title: "3D Graphics Engine",
     description:
       "OpenGL-based graphics engine featuring real-time rendering, shaders, and animation systems.",
@@ -152,7 +164,7 @@ const projectsData = [
     tech: ["C++", "OpenGL", "GLSL"],
   },
   {
-    id: 14,
+    id: 15,
     title: "File Duplicate Detector",
     description:
       "Efficient C program to detect and manage duplicate files across directories using hash-based comparison.",
@@ -162,7 +174,7 @@ const projectsData = [
     tech: ["C", "File Systems", "Hashing"],
   },
   {
-    id: 15,
+    id: 16,
     title: "Java Akari Puzzle",
     description:
       "Interactive Akari (Light Up) puzzle game implementation with solver algorithms and GUI interface.",

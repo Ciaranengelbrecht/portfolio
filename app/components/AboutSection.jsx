@@ -7,18 +7,18 @@ import { useInView } from "react-intersection-observer";
 
 // Stats data
 const stats = [
-  { label: "Years Coding", value: "5+", icon: "⚡" },
-  { label: "Projects Completed", value: "20+", icon: "🚀" },
-  { label: "Technologies", value: "15+", icon: "💻" },
+  { label: "Years Experience", value: "4+", icon: "⚡" },
+  { label: "Projects Completed", value: "23+", icon: "🚀" },
+  { label: "Technologies", value: "20+", icon: "💻" },
   { label: "Certifications", value: "3", icon: "🏆" },
 ];
 
 // Personal interests/values
 const interests = [
-  { name: "Problem Solving", icon: "🧩" },
-  { name: "AI & Machine Learning", icon: "🤖" },
-  { name: "Open Source", icon: "🌐" },
-  { name: "Clean Code", icon: "✨" },
+  { name: "Cyber Security", icon: "🔒" },
+  { name: "Cloud & Infrastructure", icon: "☁️" },
+  { name: "Automation", icon: "⚙️" },
+  { name: "SIEM & Detection", icon: "🛡️" },
 ];
 
 const TAB_DATA = [
@@ -144,25 +144,93 @@ const TAB_DATA = [
         >
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h4 className="text-lg font-semibold text-white">Software Developer</h4>
-              <p className="text-primary-400 text-sm font-medium">Freelance & Academic Projects</p>
+              <h4 className="text-lg font-semibold text-white">Graduate ICT Officer (Cyber Security)</h4>
+              <p className="text-primary-400 text-sm font-medium">Main Roads Western Australia</p>
             </div>
-            <span className="text-xs px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400">
-              2021 - Present
+            <span className="text-xs px-3 py-1 rounded-full glass border border-green-500/30 text-green-400">
+              2025 - Present
             </span>
           </div>
           <ul className="space-y-2 text-slate-400 text-sm">
             <li className="flex items-start gap-2">
               <span className="text-primary-400 mt-1">▹</span>
-              Developed full-stack web applications using React, Next.js, and Python
+              SIEM monitoring with Microsoft Sentinel, developing KQL queries for threat detection and incident triage
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary-400 mt-1">▹</span>
-              Built AI/ML solutions including computer vision and reinforcement learning projects
+              Essential Eight uplift: macro security controls, digital signing validation, governance documentation
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary-400 mt-1">▹</span>
-              Collaborated on team projects using Agile methodologies and Git workflows
+              Identity & access management: privileged account reviews, least privilege enforcement, MFA analysis
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Security automation: PowerShell/GraphAPI scripting for audit evidence collection and reporting
+            </li>
+          </ul>
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="glass-card p-5 hover:shadow-glow-sm transition-all duration-300"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h4 className="text-lg font-semibold text-white">Junior IT Systems Engineer</h4>
+              <p className="text-primary-400 text-sm font-medium">ITDynamics</p>
+            </div>
+            <span className="text-xs px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400">
+              2023 - 2025
+            </span>
+          </div>
+          <ul className="space-y-2 text-slate-400 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Administered Microsoft 365, SharePoint, Teams, Active Directory, JAMF MDM for secure deployments
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Managed network infrastructure (Aruba Central, Cisco): switches, APs, VLANs, troubleshooting
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Built Python OCR utility reducing manual processing by ~90%, automated workflows with Power Automate
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Provided L2 support across Windows/macOS, business applications, structured documentation in IT Glue
+            </li>
+          </ul>
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="glass-card p-5 hover:shadow-glow-sm transition-all duration-300"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h4 className="text-lg font-semibold text-white">IT Help Desk Technician</h4>
+              <p className="text-primary-400 text-sm font-medium">Catholic Education WA (CEWA)</p>
+            </div>
+            <span className="text-xs px-3 py-1 rounded-full glass border border-primary-500/30 text-primary-400">
+              2021 - 2023
+            </span>
+          </div>
+          <ul className="space-y-2 text-slate-400 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Delivered L1 IT support: device imaging, AV troubleshooting, Wi-Fi connectivity in education setting
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Triaged tickets and escalated complex issues to L2/L3 teams per SLA requirements
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary-400 mt-1">▹</span>
+              Created user documentation and guides, improving staff confidence and reducing repeat incidents
             </li>
           </ul>
         </motion.div>
@@ -253,17 +321,18 @@ const AboutSection = () => {
             
             <div className="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                I&apos;m a passionate <span className="text-primary-400 font-medium">Software Engineer</span> based 
-                in Perth, Australia, with a deep love for crafting elegant solutions to complex problems.
+                I&apos;m a <span className="text-primary-400 font-medium">Cyber Security Professional</span> based 
+                in Perth, Australia, currently working as a Graduate ICT Officer specializing in security operations, 
+                threat detection, and identity protection.
               </p>
               <p>
-                Currently completing my <span className="text-accent-400 font-medium">Computer Science degree</span> at 
-                UWA, I specialize in full-stack development, AI/ML applications, and building software that makes 
-                a real impact.
+                With a <span className="text-accent-400 font-medium">Bachelor of Computer Science from UWA</span> and 
+                4+ years of IT experience, I focus on SIEM/XDR monitoring, security automation, Essential Eight compliance, 
+                and building tools that improve security posture and operational efficiency.
               </p>
               <p>
-                When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to open-source 
-                projects, or working on personal projects that push my skills further.
+                I combine hands-on security operations with development skills in Python, PowerShell, and KQL to create 
+                practical solutions for real-world security challenges.
               </p>
             </div>
 
