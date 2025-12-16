@@ -10,7 +10,7 @@ const stats = [
   { label: "Years Experience", value: "4+", icon: "⚡" },
   { label: "Projects Completed", value: "23+", icon: "🚀" },
   { label: "Technologies", value: "20+", icon: "💻" },
-  { label: "Certifications", value: "3", icon: "🏆" },
+  { label: "Certifications", value: "2", icon: "🏆" },
 ];
 
 // Personal interests/values
@@ -62,7 +62,7 @@ const TAB_DATA = [
           <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-full glass border border-accent-500/30 text-accent-400 text-xs font-medium">
             2017 - 2020
           </div>
-          <h4 className="text-xl font-semibold text-white mb-1">Bachelor of Science</h4>
+          <h4 className="text-xl font-semibold text-white mb-1">Bachelor of Science - Nursing</h4>
           <p className="text-accent-400 font-medium mb-2">Edith Cowan University</p>
           <p className="text-slate-400 text-sm leading-relaxed">
             Foundation in scientific methodology and analytical thinking. 
@@ -90,16 +90,10 @@ const TAB_DATA = [
             color: "primary",
           },
           {
-            title: "CompTIA Security+",
-            issuer: "CompTIA",
-            code: "SY0-701",
-            color: "accent",
-          },
-          {
             title: "GitHub Foundations",
             issuer: "GitHub",
             code: "Certified",
-            color: "primary",
+            color: "accent",
           },
         ].map((cert, index) => (
           <motion.div 
@@ -322,7 +316,7 @@ const AboutSection = () => {
             <div className="space-y-4 text-slate-300 leading-relaxed">
               <p>
                 I&apos;m a <span className="text-primary-400 font-medium">Cyber Security Professional</span> based 
-                in Perth, Australia, currently working as a Graduate ICT Officer specializing in security operations, 
+                in Perth, Australia, currently working as a Graduate ICT Officer specialising in security operations, 
                 threat detection, and identity protection.
               </p>
               <p>

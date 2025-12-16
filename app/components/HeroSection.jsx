@@ -170,7 +170,7 @@ const HeroSection = () => {
             className="text-slate-400 text-base lg:text-lg mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
           >
             Passionate about crafting elegant solutions to complex problems. 
-            I specialize in building modern web applications, exploring AI/ML, 
+            I specialise in building modern web applications, exploring AI/ML, 
             and creating impactful software that makes a difference.
           </motion.p>
 
