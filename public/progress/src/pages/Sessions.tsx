@@ -44,6 +44,8 @@ import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
 import { setLastAction, undo as undoLast } from "../lib/undo";
 import PhaseStepper from "../components/PhaseStepper";
+import SessionBreadcrumb from "../components/SessionBreadcrumb";
+import JumpToLatest from "../components/JumpToLatest";
 // Using global snack queue instead of legacy Snackbar
 import { useSnack } from "../state/snackbar";
 import { getMuscleIconPath } from "../lib/muscles";
@@ -537,6 +539,12 @@ export default function Sessions() {
   const [deloadError, setDeloadError] = useState(false);
   const [autoNavDone, setAutoNavDone] = useState(false);
   const lastRealSessionAppliedRef = useRef(false);
+  // Track the latest session location for jump-to-latest feature
+  const [latestLocation, setLatestLocation] = useState<{
+    phase: number;
+    week: number;
+    day: number;
+  } | null>(null);
   // Per-exercise rest timers keyed by entry.id (single timer per exercise)
   const [restTimers, setRestTimers] = useState<
     Record<
@@ -1412,9 +1420,13 @@ export default function Sessions() {
       if (targetWeek !== week) {
         setWeek(targetWeek as any);
       }
+      // Record the latest location for jump-to-latest feature
+      if (best) {
+        setLatestLocation({ phase, week: best.week, day });
+      }
       setAutoNavDone(true);
     })();
-  }, [phase, autoNavDone, week, initialRouteReady]);
+  }, [phase, autoNavDone, week, day, initialRouteReady]);
 
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
   useEffect(() => {
@@ -3968,9 +3980,18 @@ export default function Sessions() {
               <h2 className="text-lg font-semibold tracking-tight text-slate-50">
                 Sessions
               </h2>
-              <p className="text-[11px] text-slate-300/70">
-                Manage today’s plan without the clutter.
-              </p>
+              <SessionBreadcrumb
+                phase={phase}
+                week={Number(week) || 1}
+                day={day}
+                dayLabel={
+                  program
+                    ? program.weeklySplit[day]?.customLabel ||
+                      program.weeklySplit[day]?.type
+                    : undefined
+                }
+                className="mt-1"
+              />
             </div>
             {sessionDuration && (
               <span
@@ -6347,6 +6368,31 @@ export default function Sessions() {
         id="sessions-bottom-anchor"
         aria-hidden="true"
         style={{ position: "relative", height: 0 }}
+      />
+      {/* Jump to Latest floating button */}
+      <JumpToLatest
+        onJump={() => {
+          if (latestLocation) {
+            setPhase(latestLocation.phase);
+            setWeek(latestLocation.week as any);
+            setDay(latestLocation.day);
+          }
+          // Scroll to top
+          document.getElementById("sessions-top-anchor")?.scrollIntoView({
+            behavior: "smooth",
+          });
+        }}
+        isAtLatest={
+          !latestLocation ||
+          (phase === latestLocation.phase &&
+            week === latestLocation.week &&
+            day === latestLocation.day)
+        }
+        latestLabel={
+          latestLocation
+            ? `P${latestLocation.phase} W${latestLocation.week}`
+            : undefined
+        }
       />
     </div>
   );
