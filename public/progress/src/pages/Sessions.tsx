@@ -3044,8 +3044,23 @@ export default function Sessions() {
     if (!session) return;
     const prevSession = session;
     const prevEntry = session.entries.find((e) => e.id === entry.id);
+    // Stamp completedAt on any set that now has work and didn't before
+    const nowIso = new Date().toISOString();
+    const stamped: SessionEntry = {
+      ...entry,
+      sets: entry.sets.map((set, idx) => {
+        const prevSet = prevEntry?.sets?.[idx];
+        const hadWork = prevSet && ((prevSet.weightKg || 0) > 0 || (prevSet.reps || 0) > 0);
+        const hasWork = (set.weightKg || 0) > 0 || (set.reps || 0) > 0;
+        // Stamp if set now has work (either new work or changed values)
+        if (hasWork && (!set.completedAt || !hadWork)) {
+          return { ...set, completedAt: nowIso };
+        }
+        return set;
+      }),
+    };
     const newEntries = session.entries.map((e) =>
-      e.id === entry.id ? entry : e
+      e.id === entry.id ? stamped : e
     );
     let updated = { ...session, entries: newEntries } as Session;
     // If session previously had no working sets and now has at least one, re-stamp date to today
@@ -4042,10 +4057,10 @@ export default function Sessions() {
       {/* Removed mobile floating Add Exercise button (user preference) */}
       <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
         <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-3 py-3 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
-          {/* Always visible row: Day selector + expand toggle */}
+          {/* Always visible row: Day selector + session timer + expand toggle */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
-            <div className="flex flex-col gap-0.5 min-w-[130px]">
+            <div className="flex flex-col gap-0.5 min-w-[110px]">
               <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                 Day
               </span>
@@ -4065,21 +4080,35 @@ export default function Sessions() {
                 }}
               />
             </div>
+            {/* Session timer - always visible */}
+            {sessionDuration && (
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                  Session
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 rounded-md bg-indigo-500/15 border border-indigo-500/30 px-2 py-1 text-xs font-semibold text-indigo-200 tabular-nums"
+                  title="Active logging duration"
+                >
+                  ⏱ {sessionDuration}
+                </span>
+              </div>
+            )}
             {/* Toggle for expanded controls */}
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/60 px-2.5 py-1.5 text-[10px] text-slate-300 transition hover:bg-slate-700/70"
+              className="flex items-center gap-1 rounded-md border border-white/10 bg-slate-800/50 px-2 py-1.5 text-[10px] text-slate-400 transition hover:bg-slate-700/60"
               onClick={() => setToolbarCollapsed((v) => !v)}
               aria-expanded={!toolbarCollapsed}
             >
               <span className="hidden xs:inline">
-                {toolbarCollapsed ? "Week · Phase · Date" : "Collapse"}
-              </span>
-              <span className="xs:hidden">
                 {toolbarCollapsed ? "More" : "Less"}
               </span>
+              <span className="xs:hidden">
+                {toolbarCollapsed ? "⋯" : "−"}
+              </span>
               <span
-                className={`text-[11px] leading-none transition-transform duration-150 ${
+                className={`text-[10px] leading-none transition-transform duration-150 ${
                   toolbarCollapsed ? "" : "rotate-180"
                 }`}
                 aria-hidden="true"
@@ -4702,7 +4731,7 @@ export default function Sessions() {
       )}
 
       <div
-        className={`space-y-3 sm:mt-0 ${
+        className={`space-y-2.5 px-1 sm:px-0 sm:mt-0 ${
           hasMomentumPanel ? "mt-0" : "-mt-[72px]"
         }`}
       >
@@ -5175,7 +5204,7 @@ export default function Sessions() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <AnimatePresence initial={false}>
+                <AnimatePresence initial={false} mode="wait">
                   {!isCollapsed && (
                     <motion.div
                       key="setsBlock"
@@ -5183,10 +5212,10 @@ export default function Sessions() {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{
-                        duration: 0.28,
-                        ease: [0.32, 0.72, 0.33, 1],
+                        height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+                        opacity: { duration: 0.2, ease: "easeOut" },
                       }}
-                      style={{ overflow: "hidden" }}
+                      style={{ overflow: "hidden", willChange: "height, opacity" }}
                     >
                       {/* Sets - mobile friendly list (Phase 6: Clean UX - Refined Dec 2025) */}
                       <div
@@ -5417,49 +5446,52 @@ export default function Sessions() {
                         );
                         })}
                         
-                        {/* Add Set button - compact */}
-                        <button
-                          className="btn-add-set mt-1.5"
-                          onClick={() => addSet(entry)}
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                          </svg>
-                          Add Set
-                        </button>
-                        
-                        {/* Rest Timer - Compact inline design */}
-                        <div className={`rest-timer-prominent mt-1.5 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
+                        {/* Compact action row: Add Set + Rest Timer in corners */}
+                        <div className="flex items-center justify-between gap-2 mt-2">
+                          {/* Add Set button - small corner */}
                           <button
-                            className={`flex items-center justify-center gap-1 px-2.5 h-7 rounded-md text-xs font-medium transition-all active:scale-95 ${
-                              restTimers[entry.id]?.running
-                                ? "bg-emerald-600/20 text-emerald-300"
-                                : "bg-slate-800/60 text-slate-400"
-                            }`}
-                            onClick={() => restartRestTimer(entry.id)}
-                            aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800/40 border border-slate-700/30 text-slate-500 text-[10px] font-medium transition hover:bg-slate-700/50 hover:text-slate-300 active:scale-95"
+                            onClick={() => addSet(entry)}
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
-                            {restTimers[entry.id] ? "Restart" : "Rest"}
+                            Add
                           </button>
-                          {restTimers[entry.id] && (
-                            <>
-                              <div className="rest-timer-value">
-                                {restTimerDisplay(entry.id)}
-                              </div>
-                              <button
-                                className="h-6 w-6 flex items-center justify-center rounded-md bg-slate-800/50 text-slate-500 hover:text-rose-400 transition-colors"
-                                aria-label="Stop rest timer"
-                                onClick={() => stopRestTimer(entry.id)}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </>
-                          )}
+                          
+                          {/* Rest Timer - small corner */}
+                          <div className={`inline-flex items-center gap-1 ${restTimers[entry.id]?.running ? '' : ''}`}>
+                            <button
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all active:scale-95 ${
+                                restTimers[entry.id]?.running
+                                  ? "bg-emerald-600/15 border border-emerald-500/25 text-emerald-300"
+                                  : "bg-slate-800/40 border border-slate-700/30 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300"
+                              }`}
+                              onClick={() => restartRestTimer(entry.id)}
+                              aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
+                            >
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {restTimers[entry.id] ? "Restart" : "Rest"}
+                            </button>
+                            {restTimers[entry.id] && (
+                              <>
+                                <span className="text-xs font-semibold tabular-nums text-white min-w-[40px] text-center">
+                                  {restTimerDisplay(entry.id)}
+                                </span>
+                                <button
+                                  className="h-5 w-5 flex items-center justify-center rounded bg-slate-800/40 text-slate-500 hover:text-rose-400 transition-colors"
+                                  aria-label="Stop rest timer"
+                                  onClick={() => stopRestTimer(entry.id)}
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
