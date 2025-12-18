@@ -282,7 +282,7 @@ const AboutSection = () => {
       initial="hidden"
       animate={controls}
       variants={containerVariants}
-      className="text-white py-20 relative overflow-visible"
+      className="text-white py-12 sm:py-16 md:py-20 relative overflow-visible px-4 sm:px-6 md:px-8"
       id="about"
     >
       {/* Background decorations */}
@@ -290,30 +290,30 @@ const AboutSection = () => {
       <div className="absolute bottom-1/4 -left-32 w-96 h-96 bg-accent-500/10 rounded-full filter blur-3xl" />
 
       {/* Section Header */}
-      <motion.div variants={itemVariants} className="text-center mb-16">
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-sm font-medium mb-4">
-          <span className="w-2 h-2 rounded-full bg-primary-400" />
+      <motion.div variants={itemVariants} className="text-center mb-10 sm:mb-12 md:mb-16">
+        <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-primary-500/30 text-primary-400 text-xs sm:text-sm font-medium mb-3 sm:mb-4">
+          <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-primary-400" />
           Get to know me
         </span>
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
           About <span className="gradient-text">Me</span>
         </h2>
-        <div className="h-1 w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full" />
+        <div className="h-1 w-16 sm:w-24 bg-gradient-to-r from-primary-500 to-accent-500 mx-auto rounded-full" />
       </motion.div>
 
-      <div className="grid lg:grid-cols-2 gap-12 items-start">
+      <div className="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-start">
         {/* Left Column - Bio & Stats */}
         <motion.div variants={itemVariants} className="space-y-8">
           {/* Bio Card */}
-          <div className="glass-card p-8 relative overflow-hidden">
+          <div className="glass-card p-5 sm:p-6 md:p-8 relative overflow-hidden">
             {/* Gradient accent */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-accent-500" />
             
-            <h3 className="text-2xl font-bold text-white mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
               Hello! I&apos;m Ciaran 👋
             </h3>
             
-            <div className="space-y-4 text-slate-300 leading-relaxed">
+            <div className="space-y-3 sm:space-y-4 text-slate-300 leading-relaxed text-sm sm:text-base">
               <p>
                 I&apos;m a <span className="text-primary-400 font-medium">Software Developer</span> and 
                 <span className="text-primary-400 font-medium"> ICT Professional</span> based in Perth, Australia, 
@@ -332,14 +332,14 @@ const AboutSection = () => {
             </div>
 
             {/* Interest Tags */}
-            <div className="flex flex-wrap gap-2 mt-6">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-4 sm:mt-6">
               {interests.map((interest, index) => (
                 <motion.span
                   key={index}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass border border-white/10 text-sm text-slate-300 hover:border-primary-500/50 hover:text-primary-400 transition-all cursor-default"
+                  className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full glass border border-white/10 text-xs sm:text-sm text-slate-300 hover:border-primary-500/50 hover:text-primary-400 transition-all cursor-default"
                 >
                   <span>{interest.icon}</span>
                   {interest.name}
@@ -349,16 +349,16 @@ const AboutSection = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {stats.map((stat, index) => (
               <motion.div
                 key={index}
                 variants={itemVariants}
-                className="glass-card p-5 text-center hover:shadow-glow-sm transition-all duration-300 group"
+                className="glass-card p-3 sm:p-4 md:p-5 text-center hover:shadow-glow-sm transition-all duration-300 group"
               >
-                <span className="text-2xl mb-2 block">{stat.icon}</span>
-                <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
-                <div className="text-slate-400 text-sm">{stat.label}</div>
+                <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">{stat.icon}</span>
+                <div className="text-2xl sm:text-3xl font-bold gradient-text mb-0.5 sm:mb-1">{stat.value}</div>
+                <div className="text-slate-400 text-xs sm:text-sm">{stat.label}</div>
               </motion.div>
             ))}
           </div>

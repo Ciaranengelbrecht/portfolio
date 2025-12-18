@@ -5,17 +5,17 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
 import AssetImage from "./AssetImage";
 
-// Floating tech tags with individual animations
+// Floating tech tags with individual animations - reduced on mobile
 const techTags = [
-  { name: "React", delay: 0, position: "top-0 right-0 lg:right-2" },
-  { name: "Python", delay: 0.1, position: "top-16 right-2 lg:top-20 lg:right-4" },
-  { name: "Java", delay: 0.2, position: "bottom-2 left-0 lg:left-2" },
-  { name: "C", delay: 0.3, position: "bottom-16 left-2 lg:bottom-20 lg:left-4" },
-  { name: "JavaScript", delay: 0.4, position: "bottom-0 right-8 lg:bottom-2 lg:right-10" },
-  { name: "Next.js", delay: 0.5, position: "top-2 left-8 lg:top-4 lg:left-10" },
-  { name: "TypeScript", delay: 0.6, position: "top-4 left-0 lg:top-6 lg:left-2" },
-  { name: "SQL", delay: 0.7, position: "top-28 left-2 lg:top-32 lg:left-4" },
-  { name: "Tailwind", delay: 0.8, position: "bottom-8 right-0 lg:bottom-10 lg:right-2" },
+  { name: "React", delay: 0, position: "hidden sm:block sm:top-0 sm:right-0 lg:right-2" },
+  { name: "Python", delay: 0.1, position: "top-0 right-0 sm:top-16 sm:right-2 lg:top-20 lg:right-4" },
+  { name: "Java", delay: 0.2, position: "hidden sm:block sm:bottom-2 sm:left-0 lg:left-2" },
+  { name: "C", delay: 0.3, position: "bottom-0 left-0 sm:bottom-16 sm:left-2 lg:bottom-20 lg:left-4" },
+  { name: "JavaScript", delay: 0.4, position: "hidden lg:block lg:bottom-2 lg:right-10" },
+  { name: "Next.js", delay: 0.5, position: "hidden lg:block lg:top-4 lg:left-10" },
+  { name: "TypeScript", delay: 0.6, position: "top-12 left-0 sm:top-4 sm:left-0 lg:top-6 lg:left-2" },
+  { name: "SQL", delay: 0.7, position: "hidden sm:block sm:top-28 sm:left-2 lg:top-32 lg:left-4" },
+  { name: "Tailwind", delay: 0.8, position: "bottom-12 right-0 sm:bottom-8 sm:right-0 lg:bottom-10 lg:right-2" },
 ];
 
 const TechTag = ({ name, delay, position }) => (
@@ -28,7 +28,7 @@ const TechTag = ({ name, delay, position }) => (
     <motion.div
       animate={{ y: [0, -8, 0] }}
       transition={{ duration: 3 + delay, repeat: Infinity, ease: "easeInOut" }}
-      className="glass px-3 py-1.5 rounded-full text-xs font-medium text-primary-300 border border-warm-500/40 shadow-glow-sm hover:shadow-glow hover:border-warm-400/60 hover:text-warm-300 transition-all duration-300 cursor-default"
+      className="glass px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium text-primary-300 border border-warm-500/40 shadow-glow-sm hover:shadow-glow hover:border-warm-400/60 hover:text-warm-300 transition-all duration-300 cursor-default"
     >
       {name}
     </motion.div>
@@ -93,7 +93,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="home" className="h-screen relative overflow-hidden flex items-center">
+    <section id="home" className="min-h-screen relative overflow-hidden flex items-center py-20 sm:py-0">
       {/* Animated background orbs */}
       <BackgroundOrb 
         className="top-1/4 right-1/4 w-96 h-96 bg-primary-500/20 animate-pulse-slow" 
@@ -115,14 +115,14 @@ const HeroSection = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 relative z-20 w-full px-6 md:px-12 lg:px-16 xl:px-20 py-8"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 relative z-20 w-full px-4 sm:px-6 md:px-12 lg:px-16 xl:px-20 py-4 sm:py-8"
       >
         {/* Text Content */}
         <div className="lg:col-span-7 flex flex-col justify-center text-center lg:text-left order-2 lg:order-1">
           {/* Badge */}
           <motion.div variants={itemVariants} className="mb-6">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium shadow-lg">
+              <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
               Available for opportunities
             </span>
           </motion.div>
@@ -130,9 +130,9 @@ const HeroSection = () => {
           {/* Main Heading */}
           <motion.h1 
             variants={itemVariants}
-            className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6"
           >
-            <span className="block text-slate-300 mb-2">Hi, I&apos;m</span>
+            <span className="block text-slate-300 mb-1 sm:mb-2 text-base sm:text-lg md:text-xl">Hi, I&apos;m</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-warm-400 to-primary-100 font-extrabold">
               Ciaran Engelbrecht
             </span>
@@ -141,7 +141,7 @@ const HeroSection = () => {
           {/* Type Animation */}
           <motion.div 
             variants={itemVariants}
-            className="text-xl sm:text-2xl lg:text-3xl font-medium text-slate-400 mb-6 h-12"
+            className="text-base sm:text-xl md:text-2xl lg:text-3xl font-medium text-slate-400 mb-4 sm:mb-6 h-8 sm:h-12"
           >
             <span className="text-slate-500">I&apos;m </span>
             <TypeAnimation
@@ -167,7 +167,7 @@ const HeroSection = () => {
           {/* Description */}
           <motion.p 
             variants={itemVariants}
-            className="text-slate-400 text-base lg:text-lg mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+            className="text-slate-400 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0"
           >
             Passionate about crafting elegant solutions to complex problems. 
             I specialise in building modern web applications, exploring AI/ML, 
@@ -177,7 +177,7 @@ const HeroSection = () => {
           {/* CTA Buttons */}
           <motion.div 
             variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-4 sm:px-0"
           >
             <Link
               href="#projects"
@@ -219,7 +219,7 @@ const HeroSection = () => {
           {/* Social Links */}
           <motion.div 
             variants={itemVariants}
-            className="flex gap-4 mt-8 justify-center lg:justify-start"
+            className="flex gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center lg:justify-start"
           >
             <Link
               href="https://github.com/Ciaranengelbrecht"
@@ -261,7 +261,7 @@ const HeroSection = () => {
           className="lg:col-span-5 flex justify-center items-center order-1 lg:order-2"
           style={{ x: parallaxX, y: parallaxY }}
         >
-          <div className="relative w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] lg:w-[380px] lg:h-[380px] xl:w-[420px] xl:h-[420px]">
+          <div className="relative w-[200px] h-[200px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[380px] lg:h-[380px] xl:w-[420px] xl:h-[420px]">
             {/* Glow ring behind image */}
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-400/20 blur-2xl animate-glow-pulse" />
             

@@ -74,16 +74,16 @@ const Navbar = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        className="container mx-auto py-4 px-4 md:px-8 flex items-center justify-between"
+        className="container mx-auto py-3 sm:py-4 px-4 md:px-8 flex items-center justify-between"
       >
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 z-50 group">
           <motion.div
             whileHover={{ rotate: 360, scale: 1.1 }}
             transition={{ duration: 0.5 }}
-            className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300"
           >
-            <span className="text-lg font-bold text-white">CE</span>
+            <span className="text-base sm:text-lg font-bold text-white">CE</span>
           </motion.div>
           <motion.span
             initial={{ opacity: 0, x: -10 }}
@@ -136,7 +136,7 @@ const Navbar = () => {
         <motion.button
           onClick={() => setNavbarOpen(!navbarOpen)}
           whileTap={{ scale: 0.95 }}
-          className="md:hidden z-50 w-10 h-10 rounded-xl glass border border-white/10 flex items-center justify-center text-white focus:outline-none"
+          className="md:hidden z-50 w-11 h-11 rounded-xl glass border border-white/10 flex items-center justify-center text-white focus:outline-none active:scale-95 transition-transform"
         >
           <div className="relative w-5 h-5">
             <motion.span

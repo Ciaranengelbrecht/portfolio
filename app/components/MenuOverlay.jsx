@@ -45,13 +45,13 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
 
   return (
     <motion.div
-      className="flex flex-col items-start justify-center h-full w-full px-8"
+      className="flex flex-col items-start justify-center h-full w-full px-6 sm:px-8"
       variants={container}
       initial="hidden"
       animate="show"
     >
       {/* Menu Links */}
-      <div className="space-y-2 mb-12 w-full">
+      <div className="space-y-1 sm:space-y-2 mb-8 sm:mb-12 w-full">
         {links.map((link, index) => {
           const isActive = activeSection === link.path.substring(1);
           return (
@@ -59,7 +59,7 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
               <a
                 href={link.path}
                 onClick={(e) => handleLinkClick(e, link.path)}
-                className="group flex items-center gap-4 py-4 border-b border-white/5 cursor-pointer"
+                className="group flex items-center gap-3 sm:gap-4 py-3 sm:py-4 border-b border-white/5 cursor-pointer active:bg-white/5 rounded-lg transition-colors"
               >
                 {/* Index number */}
                 <span className={`text-sm font-mono ${isActive ? 'text-primary-400' : 'text-slate-600'}`}>
@@ -67,7 +67,7 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
                 </span>
                 
                 {/* Link title */}
-                <span className={`text-3xl font-bold transition-all duration-300 ${
+                <span className={`text-2xl sm:text-3xl font-bold transition-all duration-300 ${
                   isActive 
                     ? 'text-white translate-x-2' 
                     : 'text-slate-400 group-hover:text-white group-hover:translate-x-2'
@@ -107,7 +107,7 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
           href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
           target="_blank"
           onClick={() => setNavbarOpen(false)}
-          className="group w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-semibold text-lg transition-all duration-300 shadow-glow"
+          className="group w-full flex items-center justify-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-semibold text-base sm:text-lg transition-all duration-300 shadow-glow active:scale-[0.98]"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -118,8 +118,8 @@ const MenuOverlay = ({ links, setNavbarOpen, activeSection }) => {
       </motion.div>
 
       {/* Social Links */}
-      <motion.div variants={item} className="mt-12 flex items-center gap-4">
-        <span className="text-sm text-slate-500">Find me on</span>
+      <motion.div variants={item} className="mt-8 sm:mt-12 flex items-center gap-3 sm:gap-4">
+        <span className="text-xs sm:text-sm text-slate-500">Find me on</span>
         <div className="flex gap-3">
           {[
             { href: "https://github.com/Ciaranengelbrecht", icon: "github" },

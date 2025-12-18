@@ -130,46 +130,46 @@ const ContactSection = () => {
       initial="hidden"
       animate={controls}
       variants={containerVariants}
-      className="py-20 relative overflow-hidden"
+      className="py-12 sm:py-16 md:py-20 relative overflow-hidden"
     >
       {/* Background decorations */}
-      <div className="absolute top-1/4 -right-32 w-96 h-96 bg-primary-500/10 rounded-full filter blur-3xl" />
-      <div className="absolute bottom-1/4 -left-32 w-96 h-96 bg-accent-500/10 rounded-full filter blur-3xl" />
+      <div className="absolute top-1/4 -right-32 w-64 sm:w-96 h-64 sm:h-96 bg-primary-500/10 rounded-full filter blur-3xl" />
+      <div className="absolute bottom-1/4 -left-32 w-64 sm:w-96 h-64 sm:h-96 bg-accent-500/10 rounded-full filter blur-3xl" />
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Section Header */}
-        <motion.div variants={itemVariants} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium mb-4 shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
+        <motion.div variants={itemVariants} className="text-center mb-10 sm:mb-12 md:mb-16">
+          <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium mb-3 sm:mb-4 shadow-lg">
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
             Available for opportunities
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             Let&apos;s <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-400 via-primary-100 to-white">Connect</span>
           </h2>
-          <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+          <div className="h-0.5 sm:h-1 w-16 sm:w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-4 sm:mb-6 shadow-lg" />
+          <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base md:text-lg px-2 sm:px-0">
             I&apos;m always interested in hearing about new projects and opportunities.
             Whether you have a question or just want to say hi, feel free to reach out!
           </p>
         </motion.div>
 
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8">
           {/* Contact Info Panel */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-2 glass-card p-8 relative overflow-hidden"
+            className="lg:col-span-2 glass-card p-5 sm:p-6 md:p-8 relative overflow-hidden"
           >
             {/* Decorative gradient */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-primary-500/20 to-transparent rounded-bl-full" />
+            <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-gradient-to-bl from-primary-500/20 to-transparent rounded-bl-full" />
             
-            <h3 className="text-2xl font-bold text-white mb-2">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">
               Contact Information
             </h3>
-            <p className="text-slate-400 mb-8">
+            <p className="text-slate-400 text-sm sm:text-base mb-6 sm:mb-8">
               Feel free to reach out through any of these channels.
             </p>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {contactInfo.map((item, index) => (
                 <motion.a
                   key={index}
@@ -177,16 +177,16 @@ const ContactSection = () => {
                   target={item.href.startsWith("http") ? "_blank" : undefined}
                   rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
                   whileHover={{ x: 5 }}
-                  className="group flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-all duration-300"
+                  className="group flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl hover:bg-white/5 transition-all duration-300 active:scale-[0.98]"
                 >
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-primary-400 group-hover:text-white group-hover:from-primary-500 group-hover:to-accent-500 transition-all duration-300">
+                  <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-primary-400 group-hover:text-white group-hover:from-primary-500 group-hover:to-accent-500 transition-all duration-300">
                     {item.icon}
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-slate-400 mb-1">
+                    <h4 className="text-xs sm:text-sm font-medium text-slate-400 mb-0.5 sm:mb-1">
                       {item.label}
                     </h4>
-                    <p className="text-white group-hover:text-primary-400 transition-colors break-all">
+                    <p className="text-white group-hover:text-primary-400 transition-colors break-all text-sm sm:text-base">
                       {item.value}
                     </p>
                   </div>
@@ -195,9 +195,9 @@ const ContactSection = () => {
             </div>
 
             {/* Social Links */}
-            <div className="mt-10 pt-8 border-t border-white/10">
-              <p className="text-sm text-slate-400 mb-4">Follow me on</p>
-              <div className="flex gap-3">
+            <div className="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-white/10">
+              <p className="text-xs sm:text-sm text-slate-400 mb-3 sm:mb-4">Follow me on</p>
+              <div className="flex gap-2 sm:gap-3">
                 {[
                   { href: "https://github.com/Ciaranengelbrecht", icon: "github" },
                   { href: "https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243", icon: "linkedin" },
@@ -209,7 +209,7 @@ const ContactSection = () => {
                     rel="noopener noreferrer"
                     whileHover={{ scale: 1.1, y: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-11 h-11 rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-primary-500/50 transition-all duration-300"
+                    className="w-10 sm:w-11 h-10 sm:h-11 rounded-lg sm:rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-primary-500/50 transition-all duration-300 active:scale-95"
                   >
                     {social.icon === "github" ? (
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -229,10 +229,10 @@ const ContactSection = () => {
           {/* Contact Form */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-3 glass-card p-8 relative overflow-hidden"
+            className="lg:col-span-3 glass-card p-5 sm:p-6 md:p-8 relative overflow-hidden"
           >
             {/* Decorative gradient */}
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-accent-500/20 to-transparent rounded-tr-full" />
+            <div className="absolute bottom-0 left-0 w-24 sm:w-32 h-24 sm:h-32 bg-gradient-to-tr from-accent-500/20 to-transparent rounded-tr-full" />
             
             <AnimatePresence mode="wait">
               {emailSubmitted ? (
@@ -241,19 +241,19 @@ const ContactSection = () => {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="flex flex-col items-center justify-center h-full text-center py-12"
+                  className="flex flex-col items-center justify-center h-full text-center py-8 sm:py-12"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.1 }}
-                    className="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center mb-6"
+                    className="w-16 sm:w-20 h-16 sm:h-20 rounded-full bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center mb-4 sm:mb-6"
                   >
                     <motion.svg
                       initial={{ pathLength: 0 }}
                       animate={{ pathLength: 1 }}
                       transition={{ duration: 0.5, delay: 0.3 }}
-                      className="w-10 h-10 text-green-500"
+                      className="w-8 sm:w-10 h-8 sm:h-10 text-green-500"
                       fill="none"
                       viewBox="0 0 24 24"
                       strokeWidth={2}
@@ -262,10 +262,10 @@ const ContactSection = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </motion.svg>
                   </motion.div>
-                  <h3 className="text-2xl font-bold text-white mb-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">
                     Message Sent Successfully!
                   </h3>
-                  <p className="text-slate-400 mb-8 max-w-md">
+                  <p className="text-slate-400 mb-6 sm:mb-8 max-w-md text-sm sm:text-base">
                     Thank you for reaching out. I&apos;ll get back to you as soon as possible.
                   </p>
                   <motion.button
@@ -284,10 +284,10 @@ const ContactSection = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <h3 className="text-2xl font-bold text-white mb-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1.5 sm:mb-2">
                     Send Me a Message
                   </h3>
-                  <p className="text-slate-400 mb-8">
+                  <p className="text-slate-400 mb-6 sm:mb-8 text-sm sm:text-base">
                     Have a project in mind? Let&apos;s discuss how we can work together.
                   </p>
 
@@ -295,7 +295,7 @@ const ContactSection = () => {
                     ref={formRef}
                     action="https://formsubmit.co/ciaran.engelbrecht@outlook.com"
                     method="POST"
-                    className="space-y-6"
+                    className="space-y-4 sm:space-y-6"
                     onSubmit={handleSubmit}
                   >
                     <input type="hidden" name="_subject" value="New message from portfolio website" />
@@ -303,7 +303,7 @@ const ContactSection = () => {
                     <input type="hidden" name="_captcha" value="false" />
                     <input type="hidden" name="_template" value="table" />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       {/* Name field */}
                       <div className="relative">
                         <label
@@ -411,20 +411,20 @@ const ContactSection = () => {
                       disabled={isSubmitting}
                       whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
                       whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                      className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-semibold shadow-glow-sm hover:shadow-glow transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                      className="w-full px-6 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-semibold shadow-glow-sm hover:shadow-glow transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base active:scale-[0.98]"
                     >
                       {isSubmitting ? (
                         <>
-                          <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Sending Message...
+                          <span className="text-sm sm:text-base">Sending...</span>
                         </>
                       ) : (
                         <>
                           <span>Send Message</span>
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                          <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                           </svg>
                         </>

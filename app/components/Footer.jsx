@@ -78,32 +78,32 @@ const Footer = () => {
       {/* Top gradient line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
 
-      <div className="container mx-auto py-16 px-4 relative z-10">
+      <div className="container mx-auto py-10 sm:py-12 md:py-16 px-4 sm:px-6 relative z-10">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-10 md:gap-12 pb-8 sm:pb-10 md:pb-12 border-b border-white/10">
           {/* Brand Section */}
           <div className="md:col-span-5">
-            <Link href="/" className="inline-flex items-center gap-3 group">
+            <Link href="/" className="inline-flex items-center gap-2 sm:gap-3 group">
               <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.5 }}
-                className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-glow-sm"
+                className="w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-glow-sm"
               >
-                <span className="text-xl font-bold text-white">CE</span>
+                <span className="text-lg sm:text-xl font-bold text-white">CE</span>
               </motion.div>
-              <span className="text-2xl font-bold gradient-text group-hover:opacity-80 transition-opacity">
+              <span className="text-xl sm:text-2xl font-bold gradient-text group-hover:opacity-80 transition-opacity">
                 Ciaran Engelbrecht
               </span>
             </Link>
             
-            <p className="text-slate-400 mt-6 leading-relaxed max-w-md">
+            <p className="text-slate-400 mt-4 sm:mt-6 leading-relaxed max-w-md text-sm sm:text-base">
               Software engineer passionate about crafting elegant solutions, 
               building innovative applications, and pushing the boundaries of 
               what's possible with code.
             </p>
 
             {/* Social Links */}
-            <div className="flex items-center gap-4 mt-8">
+            <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               {socialLinks.map((social) => (
                 <motion.a
                   key={social.name}
@@ -112,7 +112,7 @@ const Footer = () => {
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.1, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  className="group w-11 h-11 rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-primary-400 hover:border-primary-500/50 transition-all duration-300"
+                  className="group w-10 sm:w-11 h-10 sm:h-11 rounded-lg sm:rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-primary-400 hover:border-primary-500/50 transition-all duration-300 active:scale-95"
                 >
                   {social.icon}
                 </motion.a>
@@ -122,15 +122,15 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="md:col-span-3">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">
+            <h3 className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider mb-4 sm:mb-6">
               Navigation
             </h3>
-            <nav className="flex flex-col gap-4">
+            <nav className="flex flex-col gap-3 sm:gap-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                  className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
                 >
                   <span className="w-0 group-hover:w-4 h-px bg-primary-500 transition-all duration-300" />
                   {link.name}
@@ -141,12 +141,12 @@ const Footer = () => {
 
           {/* Contact & Resume */}
           <div className="md:col-span-4">
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-6">
+            <h3 className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider mb-4 sm:mb-6">
               Get in Touch
             </h3>
             
-            <div className="space-y-4">
-              <p className="text-slate-400 text-sm">
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-slate-400 text-xs sm:text-sm">
                 Ready to start a project or just want to say hi? 
                 Feel free to reach out!
               </p>
@@ -155,19 +155,19 @@ const Footer = () => {
                 href="mailto:ciaran.engelbrecht@outlook.com"
                 className="group flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors"
               >
-                <span className="text-sm">ciaran.engelbrecht@outlook.com</span>
+                <span className="text-xs sm:text-sm break-all">ciaran.engelbrecht@outlook.com</span>
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                 </svg>
               </a>
 
-              <div className="pt-4">
+              <div className="pt-3 sm:pt-4">
                 <Link
                   href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
                   target="_blank"
-                  className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-glow-sm hover:shadow-glow transition-all duration-300"
+                  className="group inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-glow-sm hover:shadow-glow transition-all duration-300 text-sm sm:text-base active:scale-95"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
                   Download Resume
@@ -179,12 +179,12 @@ const Footer = () => {
         </div>
 
         {/* Bottom Footer */}
-        <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-slate-500 text-sm"
+            className="text-slate-500 text-xs sm:text-sm text-center md:text-left"
           >
             © {currentYear} Ciaran Engelbrecht. Crafted with passion and code.
           </motion.p>
@@ -193,7 +193,7 @@ const Footer = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex items-center gap-2 text-slate-500 text-sm"
+            className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm"
           >
             <span>Built with</span>
             <motion.span
@@ -213,7 +213,7 @@ const Footer = () => {
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         whileHover={{ scale: 1.1, y: -2 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-8 right-8 w-12 h-12 rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-primary-500/50 shadow-glow-sm z-50 transition-all duration-300"
+        className="fixed bottom-4 sm:bottom-8 right-4 sm:right-8 w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-primary-500/50 shadow-glow-sm z-50 transition-all duration-300 active:scale-95"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />

@@ -260,7 +260,7 @@ const SkillsSection = () => {
       initial="hidden"
       animate={controls}
       variants={containerVariants}
-      className="py-20 relative overflow-hidden"
+      className="py-12 sm:py-16 md:py-20 relative overflow-hidden"
     >
       {/* Background decorations */}
       <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary-500/10 rounded-full filter blur-3xl" />
@@ -269,25 +269,25 @@ const SkillsSection = () => {
       {/* Grid pattern */}
       <div className="absolute inset-0 bg-grid opacity-20" />
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Section Header */}
-        <motion.div variants={itemVariants} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-sm font-medium mb-4 shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-warm-400 animate-pulse" />
+        <motion.div variants={itemVariants} className="text-center mb-10 sm:mb-12 md:mb-16">
+          <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium mb-3 sm:mb-4 shadow-lg">
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
             Technical Expertise
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             My <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-400 via-primary-100 to-white">Skills</span>
           </h2>
-          <div className="h-1 w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-6 shadow-lg" />
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+          <div className="h-1 w-16 sm:w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-4 sm:mb-6 shadow-lg" />
+          <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base md:text-lg px-2 sm:px-0">
             A comprehensive toolkit built through years of learning and hands-on experience.
             From low-level systems programming to modern web development.
           </p>
         </motion.div>
 
         {/* Category Filter */}
-        <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-3 mb-12">
+        <motion.div variants={itemVariants} className="flex overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap justify-start sm:justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
           {categories.map((cat) => (
             <motion.button
               key={cat.id}
@@ -295,7 +295,7 @@ const SkillsSection = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-300
+                flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full font-medium text-xs sm:text-sm transition-all duration-300 whitespace-nowrap flex-shrink-0
                 ${category === cat.id 
                   ? "bg-gradient-to-r from-warm-500 to-warm-600 text-surface-900 shadow-lg font-semibold" 
                   : "glass border border-white/10 text-slate-400 hover:text-white hover:border-warm-500/40 hover:bg-warm-500/5"
@@ -316,7 +316,7 @@ const SkillsSection = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
           >
             {filteredSkills.map((skill, index) => (
               <SkillCard key={skill.name} skill={skill} index={index} isVisible={inView} />
@@ -327,7 +327,7 @@ const SkillsSection = () => {
         {/* Bottom Stats */}
         <motion.div 
           variants={itemVariants}
-          className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6"
+          className="mt-10 sm:mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
         >
           {[
             { label: "Languages Mastered", value: "7+", icon: "📝" },
