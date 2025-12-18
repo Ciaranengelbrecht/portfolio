@@ -855,82 +855,84 @@ input[type="number"] {
 
 /* ===== PHASE 6: MOBILE TRAINING UX ENHANCEMENTS ===== */
 /* Dec 2024 - Optimized for mid-workout use */
+/* Dec 2025 - Refined for cleaner, more compact layout */
 
-/* Clean set card - minimal but functional */
+/* Clean set card - compact but functional */
 .set-card-clean {
-  @apply relative rounded-2xl px-4 py-4;
-  @apply bg-slate-900/50 border border-white/[0.04];
+  @apply relative rounded-xl px-3 py-2.5;
+  @apply bg-slate-900/40 border border-white/[0.05];
   @apply transition-all duration-200;
 }
 
 .set-card-clean.completed {
-  @apply border-l-[3px] border-l-emerald-500/60;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(15, 23, 42, 0.5) 100%);
+  @apply border-l-[2px] border-l-emerald-500/60;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.4) 100%);
 }
 
 .set-card-clean.active {
-  @apply border-l-[3px] border-l-amber-500/60;
+  @apply border-l-[2px] border-l-amber-500/60;
   @apply ring-1 ring-amber-500/20;
 }
 
-/* Large touch-friendly +/- buttons */
+/* Compact touch-friendly +/- buttons */
 .btn-stepper-large {
   @apply flex items-center justify-center;
-  @apply min-h-[52px] min-w-[52px] h-[52px] w-[52px];
-  @apply rounded-xl;
-  @apply bg-slate-800/90 border border-slate-700/60;
-  @apply text-white text-xl font-bold;
+  @apply min-h-[42px] min-w-[42px] h-[42px] w-[42px];
+  @apply rounded-lg;
+  @apply bg-slate-800/80 border border-slate-700/50;
+  @apply text-white text-lg font-semibold;
   @apply active:scale-90 active:bg-slate-700;
   @apply transition-all duration-150;
-  @apply shadow-md;
+  @apply shadow-sm;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 .btn-stepper-large:active {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Extra large input for mid-workout logging */
+/* Compact input for mid-workout logging */
 .input-workout-large {
-  @apply h-[52px] w-full;
-  @apply bg-slate-950/95 border-2 border-slate-700/60 rounded-xl;
-  @apply text-white text-xl font-bold text-center tabular-nums;
+  @apply h-[42px] w-full;
+  @apply bg-slate-950/90 border border-slate-700/50 rounded-lg;
+  @apply text-white text-lg font-bold text-center tabular-nums;
   @apply transition-all duration-200;
-  @apply focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none;
+  @apply focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  min-width: 0;
 }
 
 .input-workout-large::placeholder {
-  @apply text-slate-600 font-normal;
+  @apply text-slate-600 font-normal text-base;
 }
 
-/* Simplified set header */
+/* Compact set header */
 .set-header-clean {
-  @apply flex items-center justify-between mb-3;
+  @apply flex items-center justify-between mb-2;
 }
 
 .set-number-badge {
-  @apply inline-flex items-center gap-2;
-  @apply text-base font-semibold text-slate-200;
+  @apply inline-flex items-center gap-1.5;
+  @apply text-sm font-semibold text-slate-200;
 }
 
 .set-number-badge .number {
   @apply flex items-center justify-center;
-  @apply w-7 h-7 rounded-lg;
-  @apply bg-slate-800/80 text-slate-300;
-  @apply text-sm font-bold;
+  @apply w-6 h-6 rounded-md;
+  @apply bg-slate-800/70 text-slate-300;
+  @apply text-xs font-bold;
 }
 
 .set-number-badge.completed .number {
-  @apply bg-emerald-600/30 text-emerald-300;
+  @apply bg-emerald-600/25 text-emerald-300;
 }
 
 /* Completion indicator - subtle checkmark */
 .set-complete-indicator {
   @apply inline-flex items-center justify-center;
-  @apply w-6 h-6 rounded-full;
+  @apply w-5 h-5 rounded-full;
   @apply bg-emerald-500/20 border border-emerald-500/40;
   animation: completePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -941,29 +943,29 @@ input[type="number"] {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Weight/Reps input section - cleaner layout */
+/* Weight/Reps input section - tighter layout */
 .input-group-workout {
-  @apply flex items-center gap-2;
+  @apply flex items-center gap-1.5;
 }
 
 .input-wrapper-workout {
-  @apply flex-1 flex flex-col gap-1;
+  @apply flex-1 flex flex-col;
 }
 
 .input-label-workout {
-  @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+  @apply text-[10px] font-semibold uppercase tracking-wider text-slate-500;
 }
 
-/* Minimal action buttons in set header */
+/* Compact action buttons in set header */
 .set-actions-minimal {
-  @apply flex items-center gap-2;
+  @apply flex items-center gap-1;
 }
 
 .btn-set-action {
   @apply flex items-center justify-center;
-  @apply h-9 w-9 rounded-lg;
-  @apply bg-slate-800/60 border border-white/[0.05];
-  @apply text-slate-400 text-sm;
+  @apply h-7 w-7 rounded-md;
+  @apply bg-slate-800/50 border border-white/[0.04];
+  @apply text-slate-400 text-xs;
   @apply transition-all duration-150;
   @apply hover:bg-slate-700/60 hover:text-slate-200;
   @apply active:scale-90;
@@ -971,79 +973,79 @@ input[type="number"] {
 
 .btn-set-delete {
   @apply btn-set-action;
-  @apply bg-rose-500/10 border-rose-500/30;
+  @apply bg-rose-500/10 border-rose-500/25;
   @apply text-rose-400;
   @apply hover:bg-rose-500/20 hover:text-rose-300;
 }
 
-/* Rest timer - more prominent */
+/* Rest timer - compact design */
 .rest-timer-prominent {
-  @apply flex items-center justify-center gap-3;
-  @apply px-4 py-3 rounded-xl;
-  @apply bg-slate-800/70 border border-slate-700/50;
+  @apply flex items-center justify-center gap-2;
+  @apply px-3 py-2 rounded-lg;
+  @apply bg-slate-800/60 border border-slate-700/40;
 }
 
 .rest-timer-prominent.running {
-  @apply bg-emerald-900/30 border-emerald-500/40;
+  @apply bg-emerald-900/25 border-emerald-500/35;
   animation: restTimerPulse 2s ease-in-out infinite;
 }
 
 @keyframes restTimerPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 16px 2px rgba(16, 185, 129, 0.15); }
 }
 
 .rest-timer-value {
-  @apply text-2xl font-bold tabular-nums;
+  @apply text-xl font-bold tabular-nums;
 }
 
 .rest-timer-prominent.running .rest-timer-value {
   @apply text-emerald-400;
 }
 
-/* Quick add set button - prominent */
+/* Quick add set button - compact */
 .btn-add-set {
-  @apply w-full py-4;
-  @apply flex items-center justify-center gap-2;
-  @apply rounded-xl;
-  @apply bg-slate-800/60 border-2 border-dashed border-slate-700/60;
-  @apply text-slate-300 text-sm font-semibold;
+  @apply w-full py-2.5;
+  @apply flex items-center justify-center gap-1.5;
+  @apply rounded-lg;
+  @apply bg-slate-800/50 border border-dashed border-slate-700/50;
+  @apply text-slate-400 text-xs font-semibold;
   @apply transition-all duration-200;
-  @apply hover:bg-slate-800/80 hover:border-slate-600;
+  @apply hover:bg-slate-800/70 hover:border-slate-600 hover:text-slate-300;
   @apply active:scale-[0.98];
 }
 
 /* Exercise card - cleaner collapsed state */
 .exercise-card-collapsed-summary {
-  @apply flex items-center gap-2 flex-wrap;
-  @apply mt-2 pt-2 border-t border-white/[0.03];
+  @apply flex items-center gap-1.5 flex-wrap;
+  @apply mt-1.5 pt-1.5 border-t border-white/[0.03];
 }
 
 .exercise-stat-chip {
-  @apply inline-flex items-center gap-1.5;
-  @apply px-2.5 py-1 rounded-lg;
-  @apply bg-slate-800/60 border border-white/[0.04];
-  @apply text-xs font-medium text-slate-300 tabular-nums;
+  @apply inline-flex items-center gap-1;
+  @apply px-2 py-0.5 rounded-md;
+  @apply bg-slate-800/50 border border-white/[0.04];
+  @apply text-[10px] font-medium text-slate-300 tabular-nums;
 }
 
 .exercise-stat-chip.highlight {
-  @apply bg-emerald-500/15 border-emerald-500/30 text-emerald-300;
+  @apply bg-emerald-500/12 border-emerald-500/25 text-emerald-300;
 }
 
-/* Previous hints - cleaner */
+/* Previous hints - compact */
 .prev-hint-pill {
-  @apply inline-flex items-center gap-1.5;
-  @apply px-2.5 py-1 rounded-lg;
-  @apply bg-slate-800/50 border border-white/[0.04];
-  @apply text-[11px] font-medium text-slate-400 tabular-nums;
+  @apply inline-flex items-center gap-1;
+  @apply px-2 py-0.5 rounded-md;
+  @apply bg-slate-800/40 border border-white/[0.04];
+  @apply text-[10px] font-medium text-slate-400 tabular-nums;
 }
 
 .prev-hint-pill[data-suggest="true"] {
-  @apply bg-amber-500/10 border-amber-500/30 text-amber-300;
+  @apply bg-amber-500/10 border-amber-500/25 text-amber-300;
 }
 
 .prev-hint-pill[data-nudge="true"] {
-  @apply bg-blue-500/10 border-blue-500/30 text-blue-300;
+  @apply bg-blue-500/10 border-blue-500/25 text-blue-300;
   animation: gentlePulse 2s ease-in-out infinite;
 }
 

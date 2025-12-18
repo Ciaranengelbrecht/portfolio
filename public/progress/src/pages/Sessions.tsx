@@ -4875,7 +4875,7 @@ export default function Sessions() {
               <div
                 key={entry.id}
                 id={`exercise-${entry.id}`}
-                className={`relative card-enhanced rounded-2xl px-3.5 py-3 sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[3px] ${
+                className={`relative card-enhanced rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
                   dimmed ? "opacity-30" : ""
                 } ${
                   isFocusTarget
@@ -5046,10 +5046,10 @@ export default function Sessions() {
                       )}
                       {/* Mobile reorder buttons (shown inline only when expanded to save vertical space) */}
                       {!isCollapsed && (
-                        <div className="flex sm:hidden items-center gap-1 ml-auto shrink-0">
+                        <div className="flex sm:hidden items-center gap-0.5 ml-auto shrink-0">
                           <button
                             disabled={entryIdx === 0}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
@@ -5059,7 +5059,7 @@ export default function Sessions() {
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
@@ -5076,9 +5076,9 @@ export default function Sessions() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end gap-1 relative min-w-[100px]">
+                    <div className="shrink-0 flex flex-col items-end gap-0.5 relative min-w-[80px] sm:min-w-[100px]">
                       {isDeloadWeek && (
-                        <div className="w-full flex justify-end mt-1">
+                        <div className="w-full flex justify-end">
                           <span data-shape="deload">
                             <AsyncChip
                               loading={deloadLoading}
@@ -5092,7 +5092,7 @@ export default function Sessions() {
                       <div className="flex items-center gap-1 justify-end w-full">
                         <button
                           aria-label="Switch exercise"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.06] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                          className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-md sm:rounded-lg border border-white/[0.06] bg-slate-800/70 text-[11px] sm:text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSwitchTarget({ entryId: entry.id });
@@ -5105,7 +5105,7 @@ export default function Sessions() {
                         </button>
                         <button
                           aria-label="Remove exercise"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/15 text-[12px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                          className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-md sm:rounded-lg border border-rose-500/35 bg-rose-500/12 text-[11px] sm:text-[12px] text-rose-200 transition-colors duration-150 hover:bg-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           onClick={() => removeEntry(entry.id)}
                           title="Remove exercise"
                         >
@@ -5114,10 +5114,10 @@ export default function Sessions() {
                         </button>
                       </div>
                       {isCollapsed && (
-                        <div className="flex sm:hidden items-center gap-1 w-full justify-end">
+                        <div className="flex sm:hidden items-center gap-0.5 w-full justify-end mt-0.5">
                           <button
                             disabled={entryIdx === 0}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
@@ -5127,7 +5127,7 @@ export default function Sessions() {
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
@@ -5223,10 +5223,10 @@ export default function Sessions() {
                       }}
                       style={{ overflow: "hidden" }}
                     >
-                      {/* Sets - mobile friendly list (Phase 6: Clean UX) */}
+                      {/* Sets - mobile friendly list (Phase 6: Clean UX - Refined Dec 2025) */}
                       <div
                         id={`entry-${entry.id}-sets`}
-                        className="mt-4 sm:hidden space-y-3"
+                        className="mt-3 sm:hidden space-y-2"
                       >
                         {entry.sets.map((set, idx) => {
                           const isSetComplete = (set.weightKg ?? 0) > 0 && (set.reps ?? 0) > 0;
@@ -5235,19 +5235,19 @@ export default function Sessions() {
                             key={idx}
                             className={`set-card-clean ${isSetComplete ? 'completed' : ''}`}
                           >
-                            {/* Clean set header */}
+                            {/* Compact set header */}
                             <div className="set-header-clean">
                               <div className={`set-number-badge ${isSetComplete ? 'completed' : ''}`}>
                                 <span className="number">{set.setNumber}</span>
                                 {isSetComplete && (
                                   <span className="set-complete-indicator">
-                                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                     </svg>
                                   </span>
                                 )}
                                 {idx === 0 && !isSetComplete && suggestions.get(entry.exerciseId) && (
-                                  <span className="exercise-stat-chip highlight text-[10px]" title="Suggested progression">
+                                  <span className="exercise-stat-chip highlight text-[9px]" title="Suggested progression">
                                     {(() => {
                                       const s = suggestions.get(entry.exerciseId)!;
                                       return `${s.weightKg ?? ""}${s.weightKg ? "kg" : ""}${s.reps ? ` × ${s.reps}` : ""}`;
@@ -5280,23 +5280,20 @@ export default function Sessions() {
                                 >✕</button>
                               </div>
                             </div>
-                            {/* Weight & Reps - Large touch targets for gym use */}
-                            <div className="grid grid-cols-2 gap-3 mt-1">
-                              {/* Weight Input */}
+                            {/* Weight & Reps - Compact touch targets */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* Weight Input - Compact */}
                               <div className="input-wrapper-workout">
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="input-label-workout">Weight (kg)</span>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="input-label-workout">Weight</span>
                                   {(() => {
                                     const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                     if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
                                     const gained = set.weightKg - prev.weightKg;
                                     if (gained > 0) {
                                       return (
-                                        <span className="exercise-stat-chip highlight text-[9px] px-1.5 py-0.5">
-                                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                                          </svg>
-                                          +{gained}
+                                        <span className="exercise-stat-chip highlight text-[8px] px-1 py-0">
+                                          ↑+{gained}
                                         </span>
                                       );
                                     }
@@ -5312,7 +5309,7 @@ export default function Sessions() {
                                     })}
                                     aria-label="Decrease weight"
                                   >−</button>
-                                  <div className="relative flex-1">
+                                  <div className="relative flex-1 min-w-0">
                                     <input
                                       type="text"
                                       inputMode="decimal"
@@ -5354,8 +5351,8 @@ export default function Sessions() {
                                       const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (prev && prev.weightKg != null) {
                                         return (
-                                          <div className="text-center text-[9px] text-slate-500 mt-1 tabular-nums">
-                                            prev: {prev.weightKg}kg
+                                          <div className="text-center text-[8px] text-slate-500/70 mt-0.5 tabular-nums">
+                                            prev: {prev.weightKg}
                                           </div>
                                         );
                                       }
@@ -5373,9 +5370,9 @@ export default function Sessions() {
                                 </div>
                               </div>
 
-                              {/* Reps Input */}
+                              {/* Reps Input - Compact */}
                               <div className="input-wrapper-workout">
-                                <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center justify-between mb-1">
                                   <span className="input-label-workout">Reps</span>
                                   {(() => {
                                     const prev = prevWeekSets[entry.exerciseId]?.[idx];
@@ -5383,11 +5380,8 @@ export default function Sessions() {
                                     const gained = set.reps - prev.reps;
                                     if (gained > 0) {
                                       return (
-                                        <span className="exercise-stat-chip highlight text-[9px] px-1.5 py-0.5">
-                                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-                                          </svg>
-                                          +{gained}
+                                        <span className="exercise-stat-chip highlight text-[8px] px-1 py-0">
+                                          ↑+{gained}
                                         </span>
                                       );
                                     }
@@ -5403,7 +5397,7 @@ export default function Sessions() {
                                     })}
                                     aria-label="Decrease reps"
                                   >−</button>
-                                  <div className="relative flex-1">
+                                  <div className="relative flex-1 min-w-0">
                                     <input
                                       inputMode="numeric"
                                       aria-label="Reps"
@@ -5450,7 +5444,7 @@ export default function Sessions() {
                                       const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (prev && prev.reps != null) {
                                         return (
-                                          <div className="text-center text-[9px] text-slate-500 mt-1 tabular-nums">
+                                          <div className="text-center text-[8px] text-slate-500/70 mt-0.5 tabular-nums">
                                             prev: {prev.reps}
                                           </div>
                                         );
@@ -5465,9 +5459,7 @@ export default function Sessions() {
                                       sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: (s.reps || 0) + 1 } : s),
                                       })
                                     }
-                                  >
-                                    +
-                                  </button>
+                                  >+</button>
                                 </div>
                               </div>
                             </div>
@@ -5475,32 +5467,32 @@ export default function Sessions() {
                         );
                         })}
                         
-                        {/* Add Set button - cleaner style */}
+                        {/* Add Set button - compact */}
                         <button
-                          className="btn-add-set mt-2"
+                          className="btn-add-set mt-1.5"
                           onClick={() => addSet(entry)}
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                           </svg>
                           Add Set
                         </button>
                         
-                        {/* Rest Timer - Clean prominent design */}
-                        <div className={`rest-timer-prominent mt-3 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
+                        {/* Rest Timer - Compact design */}
+                        <div className={`rest-timer-prominent mt-2 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
                           <button
-                            className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl font-semibold transition-all active:scale-95 ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-medium transition-all active:scale-95 ${
                               restTimers[entry.id]?.running
-                                ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
-                                : "bg-slate-800 text-slate-200 border border-slate-700"
+                                ? "bg-emerald-600/25 text-emerald-300 border border-emerald-500/35"
+                                : "bg-slate-800/70 text-slate-300 border border-slate-700/50"
                             }`}
                             onClick={() => restartRestTimer(entry.id)}
                             aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
                           >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            {restTimers[entry.id] ? "Restart" : "Rest Timer"}
+                            {restTimers[entry.id] ? "Restart" : "Rest"}
                           </button>
                           {restTimers[entry.id] && (
                             <>
@@ -5508,11 +5500,11 @@ export default function Sessions() {
                                 {restTimerDisplay(entry.id)}
                               </div>
                               <button
-                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors"
+                                className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors"
                                 aria-label="Stop rest timer"
                                 onClick={() => stopRestTimer(entry.id)}
                               >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                               </button>
