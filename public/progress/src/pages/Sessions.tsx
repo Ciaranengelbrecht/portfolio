@@ -89,9 +89,9 @@ function TopMuscleAndContents({
 
   if (session.entries.length === 0) return null;
   return (
-    <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1">
+    <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1 px-2.5 sm:px-1">
       {muscleCounts.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
           {muscleCounts.map(([k, c]) => {
             const src = getMuscleIconPath(k);
             return (
@@ -101,21 +101,21 @@ function TopMuscleAndContents({
                 aria-label={`${k} working sets ${c}`}
               >
                 {src ? (
-                  <img src={src} alt={k} className="w-6 h-6 object-contain" />
+                  <img src={src} alt={k} className="w-5 h-5 object-contain" />
                 ) : (
-                  <span className="w-6 h-6" />
+                  <span className="w-5 h-5" />
                 )}
-                <span className="tabular-nums leading-none">{c}</span>
+                <span className="tabular-nums leading-none text-[10px]">{c}</span>
               </div>
             );
           })}
         </div>
       )}
-      <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-xl bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
+      <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
         {session.entries.map((en, i) => {
           const ex = exMap.get(en.exerciseId);
           const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i + 1}`;
-          const short = name.length > 18 ? name.slice(0, 16) + "…" : name;
+          const short = name.length > 16 ? name.slice(0, 14) + "…" : name;
           return (
             <button
               key={en.id}
@@ -124,7 +124,7 @@ function TopMuscleAndContents({
                 if (el)
                   el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
-              className="text-[10px] leading-none px-2 py-1 rounded-lg bg-slate-700/60 hover:bg-slate-600/70 active:scale-95 transition text-slate-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+              className="text-[9px] leading-none px-1.5 py-1 rounded-md bg-slate-700/50 hover:bg-slate-600/60 active:scale-95 transition text-slate-300 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
             >
               {short}
             </button>
@@ -4055,7 +4055,7 @@ export default function Sessions() {
         style={{ position: "relative", height: 0 }}
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
-      <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
+      <section className="px-2.5 sm:px-4" aria-label="Session controls" ref={toolbarRef}>
         <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-3 py-3 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
           {/* Always visible row: Day selector + session timer + expand toggle */}
           <div className="flex items-center justify-between gap-2">
@@ -4731,7 +4731,7 @@ export default function Sessions() {
       )}
 
       <div
-        className={`space-y-2.5 px-1 sm:px-0 sm:mt-0 ${
+        className={`space-y-2.5 px-2.5 sm:px-1 sm:mt-0 ${
           hasMomentumPanel ? "mt-0" : "-mt-[72px]"
         }`}
       >
@@ -4838,30 +4838,9 @@ export default function Sessions() {
             const isPartiallyComplete = setsLogged.length > 0 && setsLogged.length < plannedSetCount;
             const isNotStarted = setsLogged.length === 0;
             const collapsedSummaryContent = (
-              <>
-                <span className="font-medium text-slate-100">
-                  {entry.sets.length} sets
-                </span>
-                {tonnage > 0 && (
-                  <span className="opacity-70 tabular-nums">
-                    • {tonnage.toLocaleString()}
-                  </span>
-                )}
-                {bestSet && (
-                  <span className="opacity-70 tabular-nums">
-                    • {bestSet.weightKg}×{bestSet.reps}
-                  </span>
-                )}
-                {guide && (
-                  <span
-                    className="opacity-80"
-                    title="Template guide (planned sets × rep range)"
-                  >
-                    • Guide {guide.sets ? `${guide.sets}×` : ""}
-                    {guide.reps || ""}
-                  </span>
-                )}
-              </>
+              <span className="font-medium text-slate-200 text-[10px]">
+                {setsLogged.length}/{entry.sets.length} sets
+              </span>
             );
             const collapsedSummaryClass =
               "inline-flex items-center gap-1.5 rounded-lg bg-slate-800/60 px-2.5 py-0.5 text-[11px] text-slate-200 ring-1 ring-white/[0.05] shadow-sm";
@@ -5979,17 +5958,18 @@ export default function Sessions() {
         maxListHeight={520}
       />
 
-      <div className="bg-card rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-base font-medium">Add exercise</div>
-          <button
-            className="btn-primary-enhanced btn-enhanced text-sm px-4 py-2.5 rounded-xl font-medium text-white"
-            onClick={() => setShowAdd(true)}
-          >
-            Search
-          </button>
+      <div className="px-2.5 sm:px-1">
+        <div className="bg-card rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-slate-300">Add exercise</div>
+            <button
+              className="btn-primary-enhanced btn-enhanced text-xs px-3 py-2 rounded-lg font-medium text-white"
+              onClick={() => setShowAdd(true)}
+            >
+              Search
+            </button>
+          </div>
         </div>
-        {/* Removed full exercise chip list to avoid rendering hundreds; user opens Search to query */}
       </div>
 
       <OptionSheet
