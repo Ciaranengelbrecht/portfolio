@@ -5260,575 +5260,246 @@ export default function Sessions() {
                       }}
                       style={{ overflow: "hidden" }}
                     >
-                      {/* Sets - mobile friendly list */}
+                      {/* Sets - mobile friendly list (Phase 6: Clean UX) */}
                       <div
                         id={`entry-${entry.id}-sets`}
-                        className="mt-3 sm:hidden space-y-2"
+                        className="mt-4 sm:hidden space-y-3"
                       >
-                        {entry.sets.map((set, idx) => (
+                        {entry.sets.map((set, idx) => {
+                          const isSetComplete = (set.weightKg ?? 0) > 0 && (set.reps ?? 0) > 0;
+                          return (
                           <div
                             key={idx}
-                            className="group relative rounded-2xl bg-gradient-to-br from-slate-900/40 to-slate-900/60 px-3 py-3 border border-white/[0.03] shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-white/[0.06] hover:from-slate-900/50 hover:to-slate-900/70"
+                            className={`set-card-clean ${isSetComplete ? 'completed' : ''}`}
                           >
-                            {/* Subtle gradient overlay on hover for feedback */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover:from-emerald-500/5 group-hover:to-transparent rounded-2xl transition-all duration-300 pointer-events-none" />
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="text-sm font-medium flex items-center gap-2">
-                                <span className="text-gray-300 flex items-center gap-1.5">
-                                  Set {set.setNumber}
-                                  {/* Success checkmark when set is complete */}
-                                  {set.weightKg != null &&
-                                    set.weightKg > 0 &&
-                                    set.reps != null &&
-                                    set.reps > 0 && (
-                                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500/20 success-checkmark">
-                                        <svg
-                                          className="w-2.5 h-2.5 text-emerald-400 success-glow"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                          strokeWidth="3"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M5 13l4 4L19 7"
-                                          />
-                                        </svg>
-                                      </span>
-                                    )}
-                                  {(() => {
-                                    const iso = set.addedAt || set.completedAt;
-                                    if (!iso) return null;
-                                    try {
-                                      const d = new Date(iso);
-                                      const hh = String(d.getHours()).padStart(
-                                        2,
-                                        "0"
-                                      );
-                                      const mm = String(
-                                        d.getMinutes()
-                                      ).padStart(2, "0");
-                                      return (
-                                        <span
-                                          className="ml-1 text-[10px] text-slate-400/50 tabular-nums"
-                                          title={`Added at ${d.toLocaleTimeString(
-                                            [],
-                                            {
-                                              hour: "2-digit",
-                                              minute: "2-digit",
-                                            }
-                                          )}`}
-                                        >
-                                          {hh}:{mm}
-                                        </span>
-                                      );
-                                    } catch {
-                                      return null;
-                                    }
-                                  })()}
-                                </span>
-                                {idx === 0 &&
-                                  (set.weightKg || 0) === 0 &&
-                                  (set.reps || 0) === 0 &&
-                                  suggestions.get(entry.exerciseId) && (
-                                    <span
-                                      className="text-[10px] text-emerald-300 bg-emerald-600/20 px-1.5 py-0.5 rounded"
-                                      title="Suggested progression (enter manually to apply)"
-                                    >
-                                      {(() => {
-                                        const s = suggestions.get(
-                                          entry.exerciseId
-                                        )!;
-                                        return `${s.weightKg ?? ""}${
-                                          s.weightKg ? "kg" : ""
-                                        }${s.reps ? ` x ${s.reps}` : ""}`;
-                                      })()}
-                                    </span>
-                                  )}
-                                <PRChip
-                                  exerciseId={entry.exerciseId}
-                                  score={(set.weightKg ?? 0) * (set.reps ?? 0)}
-                                  week={week}
-                                />
+                            {/* Clean set header */}
+                            <div className="set-header-clean">
+                              <div className={`set-number-badge ${isSetComplete ? 'completed' : ''}`}>
+                                <span className="number">{set.setNumber}</span>
+                                {isSetComplete && (
+                                  <span className="set-complete-indicator">
+                                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </span>
+                                )}
+                                {idx === 0 && !isSetComplete && suggestions.get(entry.exerciseId) && (
+                                  <span className="exercise-stat-chip highlight text-[10px]" title="Suggested progression">
+                                    {(() => {
+                                      const s = suggestions.get(entry.exerciseId)!;
+                                      return `${s.weightKg ?? ""}${s.weightKg ? "kg" : ""}${s.reps ? ` × ${s.reps}` : ""}`;
+                                    })()}
+                                  </span>
+                                )}
+                                <PRChip exerciseId={entry.exerciseId} score={(set.weightKg ?? 0) * (set.reps ?? 0)} week={week} />
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="set-actions-minimal">
+                                {entry.sets.length > 1 && (
+                                  <>
+                                    <button
+                                      className="btn-set-action"
+                                      disabled={idx === 0}
+                                      onClick={() => reorderSet(entry, idx, idx - 1)}
+                                      aria-label="Move set up"
+                                    >↑</button>
+                                    <button
+                                      className="btn-set-action"
+                                      disabled={idx === entry.sets.length - 1}
+                                      onClick={() => reorderSet(entry, idx, idx + 1)}
+                                      aria-label="Move set down"
+                                    >↓</button>
+                                  </>
+                                )}
                                 <button
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={idx === 0}
-                                  onClick={() =>
-                                    reorderSet(entry, idx, idx - 1)
-                                  }
-                                  aria-label="Move set up"
-                                >
-                                  <span aria-hidden="true">↑</span>
-                                </button>
-                                <button
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
-                                  disabled={idx === entry.sets.length - 1}
-                                  onClick={() =>
-                                    reorderSet(entry, idx, idx + 1)
-                                  }
-                                  aria-label="Move set down"
-                                >
-                                  <span aria-hidden="true">↓</span>
-                                </button>
-                                <button
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-500/35 bg-rose-500/15 text-[12px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25"
+                                  className="btn-set-delete"
                                   onClick={() => deleteSet(entry, idx)}
                                   aria-label="Delete set"
-                                >
-                                  <span aria-hidden="true">✕</span>
-                                </button>
+                                >✕</button>
                               </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-slate-900/40 rounded-xl px-2 py-2 relative">
-                                <div className="text-[11px] text-gray-400 mb-1 flex items-center justify-between">
-                                  <span>Weight</span>
-                                  {/* Progressive overload indicator - aligned with label */}
+                            {/* Weight & Reps - Large touch targets for gym use */}
+                            <div className="grid grid-cols-2 gap-3 mt-1">
+                              {/* Weight Input */}
+                              <div className="input-wrapper-workout">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="input-label-workout">Weight (kg)</span>
                                   {(() => {
-                                    const prev =
-                                      prevWeekSets[entry.exerciseId]?.[idx];
-                                    if (
-                                      !prev ||
-                                      prev.weightKg == null ||
-                                      set.weightKg == null ||
-                                      set.weightKg === 0
-                                    )
-                                      return null;
+                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (!prev || prev.weightKg == null || set.weightKg == null || set.weightKg === 0) return null;
                                     const gained = set.weightKg - prev.weightKg;
                                     if (gained > 0) {
                                       return (
-                                        <div
-                                          className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm"
-                                          title="Progressive overload - weight increased!"
-                                        >
-                                          <svg
-                                            className="w-2 h-2"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
-                                              clipRule="evenodd"
-                                            />
+                                        <span className="exercise-stat-chip highlight text-[9px] px-1.5 py-0.5">
+                                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
                                           </svg>
                                           +{gained}
-                                        </div>
+                                        </span>
                                       );
                                     }
                                     return null;
                                   })()}
                                 </div>
-                                <div className="flex items-start gap-1.5">
+                                <div className="input-group-workout">
                                   <button
-                                    className="btn-input-compact text-base leading-none"
-                                    onClick={() =>
-                                      updateEntry({
-                                        ...entry,
-                                        sets: entry.sets.map((s, i) =>
-                                          i === idx
-                                            ? {
-                                                ...s,
-                                                weightKg: Math.max(
-                                                  0,
-                                                  (s.weightKg || 0) - 2.5
-                                                ),
-                                              }
-                                            : s
-                                        ),
-                                      })
-                                    }
-                                  >
-                                    -
-                                  </button>
-                                  <div className="relative flex-1 pb-4 sm:pb-5">
+                                    className="btn-stepper-large"
+                                    onClick={() => updateEntry({
+                                      ...entry,
+                                      sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: Math.max(0, (s.weightKg || 0) - 2.5) } : s),
+                                    })}
+                                    aria-label="Decrease weight"
+                                  >−</button>
+                                  <div className="relative flex-1">
                                     <input
                                       type="text"
                                       inputMode="decimal"
                                       pattern="[0-9]*[.,]?[0-9]*"
                                       aria-label="Weight"
-                                      className="input-number-enhanced h-9 w-full"
+                                      className="input-workout-large"
                                       data-set-input="true"
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
-                                      value={
-                                        weightInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] ?? formatOptionalNumber(set.weightKg)
-                                      }
-                                      placeholder=""
+                                      value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? formatOptionalNumber(set.weightKg)}
+                                      placeholder={suggestions.get(entry.exerciseId)?.weightKg ? String(suggestions.get(entry.exerciseId)?.weightKg) : "0"}
                                       onKeyDown={(e) => {
                                         if (e.key === "ArrowUp") {
                                           e.preventDefault();
-                                          updateEntry({
-                                            ...entry,
-                                            sets: entry.sets.map((s, i) =>
-                                              i === idx
-                                                ? {
-                                                    ...s,
-                                                    weightKg:
-                                                      (s.weightKg || 0) + 2.5,
-                                                  }
-                                                : s
-                                            ),
-                                          });
+                                          updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: (s.weightKg || 0) + 2.5 } : s) });
                                         } else if (e.key === "ArrowDown") {
                                           e.preventDefault();
-                                          updateEntry({
-                                            ...entry,
-                                            sets: entry.sets.map((s, i) =>
-                                              i === idx
-                                                ? {
-                                                    ...s,
-                                                    weightKg: Math.max(
-                                                      0,
-                                                      (s.weightKg || 0) - 2.5
-                                                    ),
-                                                  }
-                                                : s
-                                            ),
-                                          });
+                                          updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: Math.max(0, (s.weightKg || 0) - 2.5) } : s) });
                                         }
                                       }}
                                       onChange={(e) => {
                                         let v = e.target.value;
-                                        if (v.includes(","))
-                                          v = v.replace(",", ".");
-                                        if (!/^\d*(?:[.,]\d*)?$/.test(v))
-                                          return;
-                                        weightInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] = v;
+                                        if (v.includes(",")) v = v.replace(",", ".");
+                                        if (!/^\d*(?:[.,]\d*)?$/.test(v)) return;
+                                        weightInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
                                         if (v === "" || /[.,]$/.test(v)) return;
                                         const num = parseOptionalNumber(v);
-                                        updateEntry({
-                                          ...entry,
-                                          sets: entry.sets.map((s, i) =>
-                                            i === idx
-                                              ? { ...s, weightKg: num }
-                                              : s
-                                          ),
-                                        });
+                                        updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: num } : s) });
                                       }}
                                       onBlur={(e) => {
                                         let v = e.target.value;
-                                        if (v.includes(","))
-                                          v = v.replace(",", ".");
-                                        const num = parseOptionalNumber(
-                                          v.replace(/\.$/, "")
-                                        );
-                                        updateEntry({
-                                          ...entry,
-                                          sets: entry.sets.map((s, i) =>
-                                            i === idx
-                                              ? { ...s, weightKg: num }
-                                              : s
-                                          ),
-                                        });
-                                        delete weightInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ];
+                                        if (v.includes(",")) v = v.replace(",", ".");
+                                        const num = parseOptionalNumber(v.replace(/\.$/, ""));
+                                        updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: num } : s) });
+                                        delete weightInputEditing.current[`${entry.id}:${set.setNumber}`];
                                       }}
                                     />
                                     {(() => {
-                                      const prev =
-                                        prevWeekSets[entry.exerciseId]?.[idx];
+                                      const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (prev && prev.weightKg != null) {
-                                        const wk = prevWeekSourceWeek;
                                         return (
-                                          <div
-                                            className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium"
-                                            title={
-                                              wk
-                                                ? `Week ${wk} weight`
-                                                : "Previous weight"
-                                            }
-                                          >
-                                            <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">
-                                              prev: {prev.weightKg}kg
-                                            </span>
-                                          </div>
-                                        );
-                                      }
-                                      if (prevWeekLoading) {
-                                        return (
-                                          <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">
-                                            ...
+                                          <div className="text-center text-[9px] text-slate-500 mt-1 tabular-nums">
+                                            prev: {prev.weightKg}kg
                                           </div>
                                         );
                                       }
                                       return null;
                                     })()}
-                                    {!(
-                                      (
-                                        weightInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] ?? ""
-                                      ).length > 0
-                                    ) &&
-                                      set.weightKg == null &&
-                                      suggestions.get(entry.exerciseId)
-                                        ?.weightKg && (
-                                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-500/40 font-medium">
-                                          {
-                                            suggestions.get(entry.exerciseId)
-                                              ?.weightKg
-                                          }
-                                          kg
-                                        </span>
-                                      )}
                                   </div>
                                   <button
-                                    className="btn-input-compact text-base leading-none"
-                                    onClick={() =>
-                                      updateEntry({
-                                        ...entry,
-                                        sets: entry.sets.map((s, i) =>
-                                          i === idx
-                                            ? {
-                                                ...s,
-                                                weightKg:
-                                                  (s.weightKg || 0) + 2.5,
-                                              }
-                                            : s
-                                        ),
-                                      })
-                                    }
-                                  >
-                                    +
-                                  </button>
+                                    className="btn-stepper-large"
+                                    onClick={() => updateEntry({
+                                      ...entry,
+                                      sets: entry.sets.map((s, i) => i === idx ? { ...s, weightKg: (s.weightKg || 0) + 2.5 } : s),
+                                    })}
+                                    aria-label="Increase weight"
+                                  >+</button>
                                 </div>
                               </div>
-                              <div className="bg-slate-900/40 rounded-xl px-2 py-2 relative">
-                                <div className="text-[11px] text-gray-400 mb-1 flex items-center justify-between">
-                                  <span>Reps</span>
-                                  {/* Progressive overload indicator - aligned with label */}
+
+                              {/* Reps Input */}
+                              <div className="input-wrapper-workout">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="input-label-workout">Reps</span>
                                   {(() => {
-                                    const prev =
-                                      prevWeekSets[entry.exerciseId]?.[idx];
-                                    if (
-                                      !prev ||
-                                      prev.reps == null ||
-                                      set.reps == null ||
-                                      set.reps === 0
-                                    )
-                                      return null;
+                                    const prev = prevWeekSets[entry.exerciseId]?.[idx];
+                                    if (!prev || prev.reps == null || set.reps == null || set.reps === 0) return null;
                                     const gained = set.reps - prev.reps;
                                     if (gained > 0) {
                                       return (
-                                        <div
-                                          className="flex items-center gap-0.5 bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 px-1 py-0.5 rounded text-[8px] font-bold shadow-sm"
-                                          title="Progressive overload - reps increased!"
-                                        >
-                                          <svg
-                                            className="w-2 h-2"
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                          >
-                                            <path
-                                              fillRule="evenodd"
-                                              d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z"
-                                              clipRule="evenodd"
-                                            />
+                                        <span className="exercise-stat-chip highlight text-[9px] px-1.5 py-0.5">
+                                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
                                           </svg>
                                           +{gained}
-                                        </div>
+                                        </span>
                                       );
                                     }
                                     return null;
                                   })()}
                                 </div>
-                                <div className="flex items-start gap-1.5">
+                                <div className="input-group-workout">
                                   <button
-                                    className="btn-input-compact text-base leading-none"
-                                    onClick={() =>
-                                      updateEntry({
-                                        ...entry,
-                                        sets: entry.sets.map((s, i) =>
-                                          i === idx
-                                            ? {
-                                                ...s,
-                                                reps: Math.max(
-                                                  0,
-                                                  (s.reps || 0) - 1
-                                                ),
-                                              }
-                                            : s
-                                        ),
-                                      })
-                                    }
-                                  >
-                                    -
-                                  </button>
-                                  <div className="relative flex-1 pb-4 sm:pb-5">
+                                    className="btn-stepper-large"
+                                    onClick={() => updateEntry({
+                                      ...entry,
+                                      sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: Math.max(0, (s.reps || 0) - 1) } : s),
+                                    })}
+                                    aria-label="Decrease reps"
+                                  >−</button>
+                                  <div className="relative flex-1">
                                     <input
                                       inputMode="numeric"
                                       aria-label="Reps"
-                                      className="input-number-enhanced h-9 w-full"
+                                      className="input-workout-large"
                                       data-set-input="true"
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
-                                      value={
-                                        repsInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] ??
-                                        (set.reps == null
-                                          ? ""
-                                          : String(set.reps))
-                                      }
-                                      placeholder=""
-                                      onFocus={() => {
-                                        editingFieldsRef.current.add(
-                                          `${entry.id}:${set.setNumber}:reps`
-                                        );
-                                      }}
+                                      value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? "" : String(set.reps))}
+                                      placeholder={suggestions.get(entry.exerciseId)?.reps ? String(suggestions.get(entry.exerciseId)?.reps) : "0"}
+                                      onFocus={() => editingFieldsRef.current.add(`${entry.id}:${set.setNumber}:reps`)}
                                       onKeyDown={(e) => {
                                         if (e.key === "ArrowUp") {
                                           e.preventDefault();
-                                          updateEntry({
-                                            ...entry,
-                                            sets: entry.sets.map((s, i) =>
-                                              i === idx
-                                                ? {
-                                                    ...s,
-                                                    reps: (s.reps || 0) + 1,
-                                                  }
-                                                : s
-                                            ),
-                                          });
+                                          updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: (s.reps || 0) + 1 } : s) });
                                         } else if (e.key === "ArrowDown") {
                                           e.preventDefault();
-                                          updateEntry({
-                                            ...entry,
-                                            sets: entry.sets.map((s, i) =>
-                                              i === idx
-                                                ? {
-                                                    ...s,
-                                                    reps: Math.max(
-                                                      0,
-                                                      (s.reps || 0) - 1
-                                                    ),
-                                                  }
-                                                : s
-                                            ),
-                                          });
+                                          updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: Math.max(0, (s.reps || 0) - 1) } : s) });
                                         } else if (e.key === "Enter") {
-                                          const buf =
-                                            repsInputEditing.current[
-                                              `${entry.id}:${set.setNumber}`
-                                            ];
+                                          const buf = repsInputEditing.current[`${entry.id}:${set.setNumber}`];
                                           if (buf !== undefined) {
-                                            const num =
-                                              buf === "" ? null : Number(buf);
-                                            updateEntry({
-                                              ...entry,
-                                              sets: entry.sets.map((s, i) =>
-                                                i === idx
-                                                  ? { ...s, reps: num }
-                                                  : s
-                                              ),
-                                            });
-                                            delete repsInputEditing.current[
-                                              `${entry.id}:${set.setNumber}`
-                                            ];
-                                            editingFieldsRef.current.delete(
-                                              `${entry.id}:${set.setNumber}:reps`
-                                            );
+                                            const num = buf === "" ? null : Number(buf);
+                                            updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: num } : s) });
+                                            delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                                            editingFieldsRef.current.delete(`${entry.id}:${set.setNumber}:reps`);
                                           }
                                         }
                                       }}
                                       onChange={(e) => {
                                         const v = e.target.value;
                                         if (!/^\d*$/.test(v)) return;
-                                        repsInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] = v;
+                                        repsInputEditing.current[`${entry.id}:${set.setNumber}`] = v;
                                         if (v === "") return;
-                                        updateEntry({
-                                          ...entry,
-                                          sets: entry.sets.map((s, i) =>
-                                            i === idx
-                                              ? { ...s, reps: Number(v) }
-                                              : s
-                                          ),
-                                        });
+                                        updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: Number(v) } : s) });
                                       }}
                                       onBlur={(e) => {
                                         const v = e.target.value;
                                         const num = v === "" ? null : Number(v);
-                                        updateEntry({
-                                          ...entry,
-                                          sets: entry.sets.map((s, i) =>
-                                            i === idx ? { ...s, reps: num } : s
-                                          ),
-                                        });
-                                        delete repsInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ];
-                                        editingFieldsRef.current.delete(
-                                          `${entry.id}:${set.setNumber}:reps`
-                                        );
+                                        updateEntry({ ...entry, sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: num } : s) });
+                                        delete repsInputEditing.current[`${entry.id}:${set.setNumber}`];
+                                        editingFieldsRef.current.delete(`${entry.id}:${set.setNumber}:reps`);
                                       }}
                                     />
                                     {(() => {
-                                      const prev =
-                                        prevWeekSets[entry.exerciseId]?.[idx];
+                                      const prev = prevWeekSets[entry.exerciseId]?.[idx];
                                       if (prev && prev.reps != null) {
-                                        const wk = prevWeekSourceWeek;
                                         return (
-                                          <div
-                                            className="absolute -bottom-1 left-0 right-0 text-center text-[9px] text-emerald-400/60 tabular-nums pointer-events-none select-none font-medium"
-                                            title={
-                                              wk
-                                                ? `Week ${wk} reps`
-                                                : "Previous reps"
-                                            }
-                                          >
-                                            <span className="bg-slate-900/70 px-1 py-0.5 rounded text-[8px]">
-                                              prev: {prev.reps}r
-                                            </span>
-                                          </div>
-                                        );
-                                      }
-                                      if (prevWeekLoading) {
-                                        return (
-                                          <div className="absolute -bottom-1 left-0 right-0 text-center text-[8px] text-slate-500/40 pointer-events-none select-none">
-                                            ...
+                                          <div className="text-center text-[9px] text-slate-500 mt-1 tabular-nums">
+                                            prev: {prev.reps}
                                           </div>
                                         );
                                       }
                                       return null;
                                     })()}
-                                    {!(
-                                      (
-                                        repsInputEditing.current[
-                                          `${entry.id}:${set.setNumber}`
-                                        ] ?? ""
-                                      ).length > 0
-                                    ) &&
-                                      set.reps == null &&
-                                      (suggestions.get(entry.exerciseId)
-                                        ?.reps ||
-                                        entry.targetRepRange) && (
-                                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-400/35 font-medium">
-                                          {suggestions.get(entry.exerciseId)
-                                            ?.reps ?? entry.targetRepRange}
-                                        </span>
-                                      )}
                                   </div>
                                   <button
-                                    className="btn-input-compact text-base leading-none"
-                                    onClick={() =>
-                                      updateEntry({
-                                        ...entry,
-                                        sets: entry.sets.map((s, i) =>
-                                          i === idx
-                                            ? { ...s, reps: (s.reps || 0) + 1 }
-                                            : s
-                                        ),
+                                    className="btn-stepper-large"
+                                    onClick={() => updateEntry({
+                                      ...entry,
+                                      sets: entry.sets.map((s, i) => i === idx ? { ...s, reps: (s.reps || 0) + 1 } : s),
                                       })
                                     }
                                   >
@@ -5837,54 +5508,53 @@ export default function Sessions() {
                                 </div>
                               </div>
                             </div>
-                            {/* Removed per-set rest controls */}
-                            {set.completedAt && (
-                              <div className="mt-1 text-[10px] text-right text-slate-400/40 tracking-tight">
-                                {new Date(set.completedAt).toLocaleTimeString(
-                                  [],
-                                  { hour: "2-digit", minute: "2-digit" }
-                                )}
-                              </div>
-                            )}
                           </div>
-                        ))}
+                        );
+                        })}
+                        
+                        {/* Add Set button - cleaner style */}
                         <button
-                          className="w-full btn-touch-primary"
+                          className="btn-add-set mt-2"
                           onClick={() => addSet(entry)}
                         >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                          </svg>
                           Add Set
                         </button>
-                        {/* Exercise-level rest control (mobile) */}
-                        <div className="pt-2 pb-1 flex items-center justify-end gap-3 min-h-[56px]">
+                        
+                        {/* Rest Timer - Clean prominent design */}
+                        <div className={`rest-timer-prominent mt-3 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
                           <button
-                            className={`px-4 h-10 leading-none rounded-lg bg-slate-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/60 text-sm flex items-center ${
+                            className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl font-semibold transition-all active:scale-95 ${
                               restTimers[entry.id]?.running
-                                ? "bg-emerald-700 text-emerald-50 shadow-inner"
-                                : ""
+                                ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                                : "bg-slate-800 text-slate-200 border border-slate-700"
                             }`}
                             onClick={() => restartRestTimer(entry.id)}
-                            aria-label={
-                              restTimers[entry.id]
-                                ? "Restart rest timer"
-                                : "Start rest timer"
-                            }
+                            aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
                           >
-                            {restTimers[entry.id]
-                              ? "Restart Rest"
-                              : "Start Rest"}
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {restTimers[entry.id] ? "Restart" : "Rest Timer"}
                           </button>
-                          <div className="flex items-center gap-1.5 ml-1 min-h-[56px]">
-                            {restTimerDisplay(entry.id)}
-                            {restTimers[entry.id] && (
+                          {restTimers[entry.id] && (
+                            <>
+                              <div className="rest-timer-value">
+                                {restTimerDisplay(entry.id)}
+                              </div>
                               <button
-                                className="h-9 w-9 leading-none flex items-center justify-center rounded-lg border border-white/10 bg-slate-800/80 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/80 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors"
                                 aria-label="Stop rest timer"
                                 onClick={() => stopRestTimer(entry.id)}
                               >
-                                ×
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                               </button>
-                            )}
-                          </div>
+                            </>
+                          )}
                         </div>
                       </div>
 

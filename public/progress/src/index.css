@@ -852,3 +852,265 @@ input[type="number"] {
   transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
+
+/* ===== PHASE 6: MOBILE TRAINING UX ENHANCEMENTS ===== */
+/* Dec 2024 - Optimized for mid-workout use */
+
+/* Clean set card - minimal but functional */
+.set-card-clean {
+  @apply relative rounded-2xl px-4 py-4;
+  @apply bg-slate-900/50 border border-white/[0.04];
+  @apply transition-all duration-200;
+}
+
+.set-card-clean.completed {
+  @apply border-l-[3px] border-l-emerald-500/60;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.06) 0%, rgba(15, 23, 42, 0.5) 100%);
+}
+
+.set-card-clean.active {
+  @apply border-l-[3px] border-l-amber-500/60;
+  @apply ring-1 ring-amber-500/20;
+}
+
+/* Large touch-friendly +/- buttons */
+.btn-stepper-large {
+  @apply flex items-center justify-center;
+  @apply min-h-[52px] min-w-[52px] h-[52px] w-[52px];
+  @apply rounded-xl;
+  @apply bg-slate-800/90 border border-slate-700/60;
+  @apply text-white text-xl font-bold;
+  @apply active:scale-90 active:bg-slate-700;
+  @apply transition-all duration-150;
+  @apply shadow-md;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-stepper-large:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Extra large input for mid-workout logging */
+.input-workout-large {
+  @apply h-[52px] w-full;
+  @apply bg-slate-950/95 border-2 border-slate-700/60 rounded-xl;
+  @apply text-white text-xl font-bold text-center tabular-nums;
+  @apply transition-all duration-200;
+  @apply focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.input-workout-large::placeholder {
+  @apply text-slate-600 font-normal;
+}
+
+/* Simplified set header */
+.set-header-clean {
+  @apply flex items-center justify-between mb-3;
+}
+
+.set-number-badge {
+  @apply inline-flex items-center gap-2;
+  @apply text-base font-semibold text-slate-200;
+}
+
+.set-number-badge .number {
+  @apply flex items-center justify-center;
+  @apply w-7 h-7 rounded-lg;
+  @apply bg-slate-800/80 text-slate-300;
+  @apply text-sm font-bold;
+}
+
+.set-number-badge.completed .number {
+  @apply bg-emerald-600/30 text-emerald-300;
+}
+
+/* Completion indicator - subtle checkmark */
+.set-complete-indicator {
+  @apply inline-flex items-center justify-center;
+  @apply w-6 h-6 rounded-full;
+  @apply bg-emerald-500/20 border border-emerald-500/40;
+  animation: completePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes completePop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Weight/Reps input section - cleaner layout */
+.input-group-workout {
+  @apply flex items-center gap-2;
+}
+
+.input-wrapper-workout {
+  @apply flex-1 flex flex-col gap-1;
+}
+
+.input-label-workout {
+  @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+}
+
+/* Minimal action buttons in set header */
+.set-actions-minimal {
+  @apply flex items-center gap-2;
+}
+
+.btn-set-action {
+  @apply flex items-center justify-center;
+  @apply h-9 w-9 rounded-lg;
+  @apply bg-slate-800/60 border border-white/[0.05];
+  @apply text-slate-400 text-sm;
+  @apply transition-all duration-150;
+  @apply hover:bg-slate-700/60 hover:text-slate-200;
+  @apply active:scale-90;
+}
+
+.btn-set-delete {
+  @apply btn-set-action;
+  @apply bg-rose-500/10 border-rose-500/30;
+  @apply text-rose-400;
+  @apply hover:bg-rose-500/20 hover:text-rose-300;
+}
+
+/* Rest timer - more prominent */
+.rest-timer-prominent {
+  @apply flex items-center justify-center gap-3;
+  @apply px-4 py-3 rounded-xl;
+  @apply bg-slate-800/70 border border-slate-700/50;
+}
+
+.rest-timer-prominent.running {
+  @apply bg-emerald-900/30 border-emerald-500/40;
+  animation: restTimerPulse 2s ease-in-out infinite;
+}
+
+@keyframes restTimerPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.2); }
+}
+
+.rest-timer-value {
+  @apply text-2xl font-bold tabular-nums;
+}
+
+.rest-timer-prominent.running .rest-timer-value {
+  @apply text-emerald-400;
+}
+
+/* Quick add set button - prominent */
+.btn-add-set {
+  @apply w-full py-4;
+  @apply flex items-center justify-center gap-2;
+  @apply rounded-xl;
+  @apply bg-slate-800/60 border-2 border-dashed border-slate-700/60;
+  @apply text-slate-300 text-sm font-semibold;
+  @apply transition-all duration-200;
+  @apply hover:bg-slate-800/80 hover:border-slate-600;
+  @apply active:scale-[0.98];
+}
+
+/* Exercise card - cleaner collapsed state */
+.exercise-card-collapsed-summary {
+  @apply flex items-center gap-2 flex-wrap;
+  @apply mt-2 pt-2 border-t border-white/[0.03];
+}
+
+.exercise-stat-chip {
+  @apply inline-flex items-center gap-1.5;
+  @apply px-2.5 py-1 rounded-lg;
+  @apply bg-slate-800/60 border border-white/[0.04];
+  @apply text-xs font-medium text-slate-300 tabular-nums;
+}
+
+.exercise-stat-chip.highlight {
+  @apply bg-emerald-500/15 border-emerald-500/30 text-emerald-300;
+}
+
+/* Previous hints - cleaner */
+.prev-hint-pill {
+  @apply inline-flex items-center gap-1.5;
+  @apply px-2.5 py-1 rounded-lg;
+  @apply bg-slate-800/50 border border-white/[0.04];
+  @apply text-[11px] font-medium text-slate-400 tabular-nums;
+}
+
+.prev-hint-pill[data-suggest="true"] {
+  @apply bg-amber-500/10 border-amber-500/30 text-amber-300;
+}
+
+.prev-hint-pill[data-nudge="true"] {
+  @apply bg-blue-500/10 border-blue-500/30 text-blue-300;
+  animation: gentlePulse 2s ease-in-out infinite;
+}
+
+@keyframes gentlePulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* Floating rest timer - enhanced for visibility */
+.floating-rest-timer {
+  @apply fixed bottom-4 right-4 z-50;
+  @apply flex items-center gap-3;
+  @apply px-5 py-3 rounded-2xl;
+  @apply bg-slate-900/95 border border-slate-700/60;
+  @apply shadow-2xl backdrop-blur-sm;
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.floating-rest-timer.active {
+  @apply bg-emerald-900/80 border-emerald-500/50;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.25),
+              0 0 0 1px rgba(16, 185, 129, 0.3);
+}
+
+/* Mobile-optimized scrollbar */
+@media (max-width: 640px) {
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Reorder animation feedback */
+.reorder-anim {
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+}
+
+.reorder-anim.dragging {
+  @apply opacity-60 scale-[0.98];
+}
+
+/* Exercise completion status border */
+.exercise-complete {
+  border-left: 3px solid rgba(16, 185, 129, 0.6) !important;
+}
+
+.exercise-partial {
+  border-left: 3px solid rgba(245, 158, 11, 0.5) !important;
+}
+
+.exercise-empty {
+  border-left: 3px solid rgba(71, 85, 105, 0.3) !important;
+}
+
+/* Touch feedback for buttons */
+@media (hover: none) {
+  .btn-stepper-large:active,
+  .btn-set-action:active,
+  .btn-add-set:active {
+    transform: scale(0.92);
+  }
+}
