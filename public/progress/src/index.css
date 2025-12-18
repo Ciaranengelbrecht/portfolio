@@ -1029,7 +1029,7 @@ input[type="number"] {
 }
 
 .exercise-stat-chip.highlight {
-  @apply bg-emerald-500/12 border-emerald-500/25 text-emerald-300;
+  @apply bg-emerald-500/[0.12] border-emerald-500/25 text-emerald-300;
 }
 
 /* Previous hints - compact */

@@ -568,6 +568,8 @@ export default function Sessions() {
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  // Top toolbar collapsed state (default collapsed to save space)
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   const [wipeSheetOpen, setWipeSheetOpen] = useState(false);
   const [wipeBusy, setWipeBusy] = useState(false);
   const [wipeCounts, setWipeCounts] = useState<WipeCounts | null>(null);
@@ -3601,19 +3603,31 @@ export default function Sessions() {
               ? formatWeightDisplay(set.weightKg || 0)
               : "BW";
           const reps = set.reps != null ? set.reps : "—";
+          // Format timestamp if available
+          const timestamp = set.completedAt
+            ? new Date(set.completedAt).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : null;
           return (
             <div
               key={`${item.sessionId}-${item.entryId}-set-${setIdx}`}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-2.5 py-1.5"
             >
-              <span className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+              <span className="text-[9px] uppercase tracking-[0.2em] text-white/40 w-10">
                 Set {setIdx + 1}
               </span>
-              <span className="text-sm font-semibold text-white">{weight}</span>
+              <span className="text-sm font-semibold text-white tabular-nums">{weight}</span>
               <span className="text-sm text-white/80">× {reps}</span>
               {set.rpe != null ? (
-                <span className="text-xs text-white/60">RPE {set.rpe}</span>
+                <span className="text-[10px] text-white/50">RPE {set.rpe}</span>
               ) : null}
+              {timestamp && (
+                <span className="ml-auto text-[10px] text-white/35 tabular-nums" title="Time logged">
+                  {timestamp}
+                </span>
+              )}
             </div>
           );
         }
@@ -4027,48 +4041,13 @@ export default function Sessions() {
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
       <section className="px-4" aria-label="Session controls" ref={toolbarRef}>
-        <div className="min-w-0 space-y-3 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-4 py-4 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-0">
-              <h2 className="text-lg font-semibold tracking-tight text-slate-50">
-                Sessions
-              </h2>
-              <SessionBreadcrumb
-                phase={phase}
-                week={Number(week) || 1}
-                day={day}
-                dayLabel={
-                  program
-                    ? program.weeklySplit[day]?.customLabel ||
-                      program.weeklySplit[day]?.type
-                    : undefined
-                }
-                className="mt-1"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              {sessionDuration && (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1 text-[10px] font-medium text-indigo-200"
-                  title="Active logging duration (first to last non-zero set)"
-                >
-                  ⏱ {sessionDuration}
-                </span>
-              )}
-              {/* Keyboard shortcuts hint - desktop only */}
-              <div className="hidden lg:flex items-center gap-1.5 text-[9px] text-slate-500">
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 font-mono">/</kbd>
-                <span>add</span>
-                <span className="text-slate-600">·</span>
-                <kbd className="px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 font-mono">⇧↵</kbd>
-                <span>next</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-            <div className="flex min-w-[200px] flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
-                Workout day
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-3 py-3 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
+          {/* Always visible row: Day selector + expand toggle */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Day Selector - always visible */}
+            <div className="flex flex-col gap-0.5 min-w-[130px]">
+              <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                Day
               </span>
               <DaySelector
                 labels={
@@ -4086,162 +4065,173 @@ export default function Sessions() {
                 }}
               />
             </div>
-            <div className="flex min-w-[220px] flex-col gap-1">
-              <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
-                Week & phase
+            {/* Toggle for expanded controls */}
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/60 px-2.5 py-1.5 text-[10px] text-slate-300 transition hover:bg-slate-700/70"
+              onClick={() => setToolbarCollapsed((v) => !v)}
+              aria-expanded={!toolbarCollapsed}
+            >
+              <span className="hidden xs:inline">
+                {toolbarCollapsed ? "Week · Phase · Date" : "Collapse"}
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <WeekSelector
-                  value={Number(week) || 1}
-                  totalWeeks={
-                    program && Number.isFinite(program.mesoWeeks)
-                      ? Math.max(1, Number(program.mesoWeeks) || 1)
-                      : 9
-                  }
-                  deloadWeeks={deloadWeeks}
-                  onChange={(selectedWeek) => {
-                    setWeek(selectedWeek as any);
-                    setAutoNavDone(true);
-                    setAllowEmptyPhase(true);
-                  }}
-                />
-                <PhaseStepper
-                  variant="compact"
-                  value={phase}
-                  onChange={async (p) => {
-                    setPhase(p);
-                    setAllowEmptyPhase(true);
-                    phaseCommitPendingRef.current = p;
-                    const s = await getSettings();
-                    await setSettings({
-                      ...s,
-                      dashboardPrefs: {
-                        ...(s.dashboardPrefs || {}),
-                        lastLocation: {
-                          ...(s.dashboardPrefs?.lastLocation || {
-                            weekNumber: 1,
-                            dayId: 0,
-                          }),
-                          phaseNumber: p,
-                        },
-                      },
-                    });
-                  }}
-                />
-              </div>
-            </div>
-            {session && (
-              <div className="flex min-w-[240px] flex-1 flex-col gap-1">
-                <span className="text-[10px] uppercase tracking-[0.32em] text-slate-300/60">
-                  Session date & quick actions
-                </span>
-                <div
-                  className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/75 px-3 py-2 text-[11px] text-slate-100"
-                  title="Current assigned date (edit or stamp)"
-                >
-                  {editingDate ? (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <input
-                        type="date"
-                        className="rounded border border-white/10 bg-slate-800/90 px-2 py-1 text-[11px] text-slate-200"
-                        value={dateEditValue}
-                        onChange={(e) => setDateEditValue(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="rounded bg-emerald-500/80 px-2 py-1 text-[10px] font-medium text-emerald-900 transition hover:bg-emerald-400"
-                        onClick={saveManualDate}
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
-                        onClick={() => setEditingDate(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <span
-                      className="font-mono tracking-tight"
-                      title={session.localDate || session.dateISO.slice(0, 10)}
-                    >
-                      {displayDate(
-                        session.localDate || session.dateISO.slice(0, 10)
-                      )}
-                    </span>
-                  )}
-                  <div className="ml-auto flex items-center gap-1.5">
-                    {!editingDate && (
-                      <button
-                        type="button"
-                        className={`rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600 ${
-                          stampAnimating ? "animate-stamp" : ""
-                        }`}
-                        onClick={() => {
-                          setStampAnimating(true);
-                          setTimeout(() => setStampAnimating(false), 360);
-                          stampToday();
-                        }}
-                        aria-label="Stamp with today's date"
-                      >
-                        Stamp
-                      </button>
-                    )}
-                    {!editingDate && (
-                      <button
-                        type="button"
-                        aria-label="Edit date"
-                        className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
-                        onClick={() => {
-                          setDateEditValue(
-                            session.localDate || session.dateISO.slice(0, 10)
-                          );
-                          setEditingDate(true);
-                        }}
-                      >
-                        ✎
-                      </button>
-                    )}
-                    {session && !!session.entries.length && (
-                      <button
-                        type="button"
-                        className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
-                        aria-label={
-                          allCollapsed
-                            ? "Expand all exercises"
-                            : "Collapse all exercises"
-                        }
-                        title={
-                          allCollapsed
-                            ? "Expand all exercises"
-                            : "Collapse all exercises"
-                        }
-                        onClick={() => {
-                          if (allCollapsed) expandAll();
-                          else collapseAll();
-                          try {
-                            navigator.vibrate?.(8);
-                          } catch {}
-                        }}
-                      >
-                        {allCollapsed ? "Expand" : "Collapse"}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="rounded bg-slate-800/70 px-2 py-1 text-[10px] uppercase tracking-[0.24em] text-white/70 transition hover:bg-slate-700/70"
-                      onClick={() => setEditingDate((v) => !v)}
-                    >
-                      {editingDate ? "Done" : "Edit"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+              <span className="xs:hidden">
+                {toolbarCollapsed ? "More" : "Less"}
+              </span>
+              <span
+                className={`text-[11px] leading-none transition-transform duration-150 ${
+                  toolbarCollapsed ? "" : "rotate-180"
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
+
+          {/* Collapsible section: Week, Phase, Date controls */}
+          <AnimatePresence initial={false}>
+            {!toolbarCollapsed && (
+              <motion.div
+                key="toolbar-expanded"
+                className="mt-3 space-y-3"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: [0.32, 0.72, 0.33, 1] }}
+              >
+                <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+                  {/* Week & Phase */}
+                  <div className="flex flex-col gap-1 min-w-[200px]">
+                    <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                      Week & Phase
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <WeekSelector
+                        value={Number(week) || 1}
+                        totalWeeks={
+                          program && Number.isFinite(program.mesoWeeks)
+                            ? Math.max(1, Number(program.mesoWeeks) || 1)
+                            : 9
+                        }
+                        deloadWeeks={deloadWeeks}
+                        onChange={(selectedWeek) => {
+                          setWeek(selectedWeek as any);
+                          setAutoNavDone(true);
+                          setAllowEmptyPhase(true);
+                        }}
+                      />
+                      <PhaseStepper
+                        variant="compact"
+                        value={phase}
+                        onChange={async (p) => {
+                          setPhase(p);
+                          setAllowEmptyPhase(true);
+                          phaseCommitPendingRef.current = p;
+                          const s = await getSettings();
+                          await setSettings({
+                            ...s,
+                            dashboardPrefs: {
+                              ...(s.dashboardPrefs || {}),
+                              lastLocation: {
+                                ...(s.dashboardPrefs?.lastLocation || {
+                                  weekNumber: 1,
+                                  dayId: 0,
+                                }),
+                                phaseNumber: p,
+                              },
+                            },
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {/* Session date & quick actions */}
+                  {session && (
+                    <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                        Session Date
+                      </span>
+                      <div
+                        className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-slate-900/70 px-2.5 py-1.5 text-[11px] text-slate-100"
+                        title="Current assigned date (edit or stamp)"
+                      >
+                        {editingDate ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <input
+                              type="date"
+                              className="rounded border border-white/10 bg-slate-800/90 px-2 py-1 text-[11px] text-slate-200"
+                              value={dateEditValue}
+                              onChange={(e) => setDateEditValue(e.target.value)}
+                            />
+                            <button
+                              type="button"
+                              className="rounded bg-emerald-500/80 px-2 py-1 text-[10px] font-medium text-emerald-900 transition hover:bg-emerald-400"
+                              onClick={saveManualDate}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded bg-slate-700/80 px-2 py-1 text-[10px] text-slate-200 transition hover:bg-slate-600"
+                              onClick={() => setEditingDate(false)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <span
+                            className="font-mono tracking-tight"
+                            title={session.localDate || session.dateISO.slice(0, 10)}
+                          >
+                            {displayDate(
+                              session.localDate || session.dateISO.slice(0, 10)
+                            )}
+                          </span>
+                        )}
+                        <div className="ml-auto flex items-center gap-1.5">
+                          {!editingDate && (
+                            <button
+                              type="button"
+                              className={`rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600 ${
+                                stampAnimating ? "animate-stamp" : ""
+                              }`}
+                              onClick={() => {
+                                setStampAnimating(true);
+                                setTimeout(() => setStampAnimating(false), 360);
+                                stampToday();
+                              }}
+                              aria-label="Stamp with today's date"
+                            >
+                              Stamp
+                            </button>
+                          )}
+                          {!editingDate && (
+                            <button
+                              type="button"
+                              aria-label="Edit date"
+                              className="rounded bg-slate-700 px-2 py-1 text-[10px] transition hover:bg-slate-600"
+                              onClick={() => {
+                                setDateEditValue(
+                                  session.localDate || session.dateISO.slice(0, 10)
+                                );
+                                setEditingDate(true);
+                              }}
+                            >
+                              ✎
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Tools toggle button - always visible at bottom */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
             <button
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-800/70 px-3 py-1.5 font-medium text-slate-100 shadow-sm transition hover:bg-slate-700/80"
               onClick={() => setToolsOpen((open) => !open)}
