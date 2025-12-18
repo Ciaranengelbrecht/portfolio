@@ -1014,38 +1014,45 @@ export default function Sessions() {
   useEffect(() => {
     (async () => {
       try {
-        // Add timeout to getSettings() to prevent hanging forever
+        // Faster initial load with shorter timeout - fail fast if settings unavailable
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("getSettings timeout")), 5000)
+          setTimeout(() => reject(new Error("getSettings timeout")), 2500)
         );
         const s = await Promise.race([getSettings(), timeoutPromise]);
 
-        // Only apply stored lastLocation if we haven't already picked the most recent session
-        // Also, if navigation explicitly set lastLocation (via sessionStorage flag), prefer it and skip auto-pick
+        // Check for explicit navigation intent first (highest priority)
         let hadIntent = false;
         try {
           hadIntent = sessionStorage.getItem("lastLocationIntent") === "1";
           sessionStorage.removeItem("lastLocationIntent");
         } catch {}
+        
+        // If explicit navigation, apply immediately and skip other logic
+        if (hadIntent && s.dashboardPrefs?.lastLocation) {
+          const loc = s.dashboardPrefs.lastLocation;
+          setPhase(loc.phaseNumber || s.currentPhase || 1);
+          setWeek(loc.weekNumber as any);
+          setDay(loc.dayId);
+          skipAutoNavRef.current = true;
+          pickedLatestRef.current = true;
+          setInitialRouteReady(true);
+          return;
+        }
+        
+        // Otherwise, validate lastLocation before applying
         let last = s.dashboardPrefs?.lastLocation;
         if (last) {
           let candidate: Session | null = null;
           try {
-            if (last.sessionId) {
-              candidate =
-                (await db.get<Session>("sessions", last.sessionId)) || null;
-            }
-            if (!candidate) {
-              const fallbackId = `${last.phaseNumber}-${last.weekNumber}-${last.dayId}`;
-              candidate =
-                (await db.get<Session>("sessions", fallbackId)) || null;
-            }
+            // Quick lookup without full validation first
+            const sessionId = last.sessionId || `${last.phaseNumber}-${last.weekNumber}-${last.dayId}`;
+            candidate = (await db.get<Session>("sessions", sessionId)) || null;
           } catch {}
           if (!sessionHasRealWork(candidate)) {
             last = undefined;
           }
         }
-        if (!pickedLatestRef.current || hadIntent) {
+        if (!pickedLatestRef.current) {
           setPhase(s.currentPhase || 1);
           if (last) {
             if (debugSessions.current) {
@@ -1202,57 +1209,32 @@ export default function Sessions() {
     };
   }, []);
 
-  // After initial mount, choose the most recently ACTIVE session with data.
-  // Priority order:
-  // 1. Latest calendar date (localDate or dateISO day) that has any non-zero set
-  // 2. Within same date, latest activity timestamp (loggedEndAt > loggedStartAt > updatedAt > createdAt > dateISO)
-  // 3. Tie-breaker: higher weekNumber then higher day index (parsed from id)
-  // Also retroactively backfill missing loggedStart/End stamps.
+  // After initial route is resolved, pick the most recently ACTIVE session with data
+  // (only if settings didn't already provide a valid lastLocation).
+  // Priority: latest real activity timestamp, then calendar date, then week/day index.
   useEffect(() => {
+    // Wait for initial settings to be processed first
+    if (!initialRouteReady) return;
+    // Skip if already determined by settings or explicit intent
+    if (lastRealSessionAppliedRef.current || pickedLatestRef.current) return;
+    
     (async () => {
-      if (lastRealSessionAppliedRef.current) return;
-      // If user explicitly navigated with a chosen week/day, don't auto-pick latest
-      try {
-        if (sessionStorage.getItem("lastLocationIntent") === "1") {
-          pickedLatestRef.current = true;
-          return;
-        }
-      } catch {}
       try {
         const all = await db.getAll<Session>("sessions");
-        let mutated = false;
-        for (const s of all) {
-          if (sessionHasRealWork(s) && !s.loggedEndAt) {
-            (s as any).loggedEndAt = s.updatedAt || s.createdAt || s.dateISO;
-            mutated = true;
-          }
-          if (sessionHasRealWork(s) && !s.loggedStartAt) {
-            (s as any).loggedStartAt =
-              s.loggedEndAt || s.updatedAt || s.createdAt || s.dateISO;
-            mutated = true;
-          }
-        }
-        if (mutated) {
-          for (const s of all) {
-            if (s.loggedEndAt && s.loggedStartAt) {
-              try {
-                await persistSession(s);
-              } catch {}
-            }
-          }
-        }
+        
+        // Helper to extract calendar day as number for comparison
         const dayVal = (s: Session) => {
-          const d = (s.localDate || s.dateISO?.slice(0, 10) || "").replace(
-            /-/g,
-            ""
-          );
+          const d = (s.localDate || s.dateISO?.slice(0, 10) || "").replace(/-/g, "");
           return /^\d{8}$/.test(d) ? Number(d) : 0;
         };
+        
         const withData = all.filter(sessionHasRealWork);
         if (!withData.length) {
           lastRealSessionAppliedRef.current = true;
           return;
         }
+        
+        // Sort by most recent activity (primary), then calendar date, then week/day
         withData.sort((a, b) => {
           const realA = sessionRealActivityMs(a);
           const realB = sessionRealActivityMs(b);
@@ -1265,37 +1247,17 @@ export default function Sessions() {
           const bd = Number(b.id.split("-")[2] || 0);
           return bd - ad;
         });
+        
         const chosen = withData[0];
         if (debugSessions.current) {
-          // Sanity: ensure no candidate has strictly newer calendar day than chosen
-          const newer = withData.find((s) => dayVal(s) > dayVal(chosen));
-          if (newer) {
-            console.warn(
-              "[Sessions debug] Found newer calendar session not chosen",
-              { chosen: chosen.id, newer: newer.id }
-            );
-          }
-        }
-        if (debugSessions.current) {
           try {
-            console.groupCollapsed("[Sessions debug] selection");
-            console.log("Candidates (top 12):");
-            withData.slice(0, 12).forEach((s) =>
-              console.log(s.id, {
-                localDate: s.localDate,
-                dateISO: s.dateISO?.slice(0, 10),
-                dayVal: dayVal(s),
-                loggedStartAt: s.loggedStartAt,
-                loggedEndAt: s.loggedEndAt,
-                updatedAt: s.updatedAt,
-                createdAt: s.createdAt,
-                realActivityMs: sessionRealActivityMs(s),
-              })
-            );
-            console.log("Chosen:", chosen.id);
-            console.groupEnd();
+            console.log("[Sessions debug] auto-picked latest:", chosen.id, {
+              realActivityMs: sessionRealActivityMs(chosen),
+              localDate: chosen.localDate,
+            });
           } catch {}
         }
+        
         const parts = chosen.id.split("-");
         if (parts.length === 3) {
           const p = Number(parts[0]);
@@ -1309,7 +1271,8 @@ export default function Sessions() {
         }
         lastRealSessionAppliedRef.current = true;
         pickedLatestRef.current = true;
-        // Persist immediately so settings don't point to an older session later
+        
+        // Persist to settings for next load
         try {
           const settings = await getSettings();
           await setSettings({
@@ -1317,8 +1280,7 @@ export default function Sessions() {
             dashboardPrefs: {
               ...(settings.dashboardPrefs || {}),
               lastLocation: {
-                phaseNumber:
-                  Number(parts[0]) || chosen.phaseNumber || chosen.phase || 1,
+                phaseNumber: Number(parts[0]) || chosen.phaseNumber || chosen.phase || 1,
                 weekNumber: Number(parts[1]) || chosen.weekNumber,
                 dayId: Number(parts[2]) || 0,
                 sessionId: chosen.id,
@@ -1327,10 +1289,11 @@ export default function Sessions() {
           });
         } catch {}
       } catch (e) {
-        console.warn("Failed picking last active session", e);
+        console.warn("[Sessions] Failed picking latest session:", e);
+        lastRealSessionAppliedRef.current = true;
       }
     })();
-  }, []);
+  }, [initialRouteReady]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -3366,7 +3329,7 @@ export default function Sessions() {
       // Fuzzy search with combined name + muscle group for better matches
       results = fuzzySearch(filtered, q, (ex) => `${ex.name} ${ex.muscleGroup || ""}`, {
         minScore: 0.05,
-        maxResults: 200,
+        maxResults: 400, // Allow more results for scrollable list
       });
       
       // Boost recent exercises in results
@@ -3385,7 +3348,7 @@ export default function Sessions() {
         .sort((a, b) => a.name.localeCompare(b.name));
       
       // Combine: recent first (in their original order), then rest alphabetically
-      const combined = [...recent, ...rest].slice(0, 200);
+      const combined = [...recent, ...rest].slice(0, 400); // Allow more exercises for scrollable list
       results = combined.map((ex) => ({ item: ex, score: 1, matches: [] }));
     }
 
@@ -3513,7 +3476,7 @@ export default function Sessions() {
     const list = scoped
       .filter((ex) => (q ? ex.name.toLowerCase().includes(q) : true))
       .sort((a, b) => a.name.localeCompare(b.name))
-      .slice(0, 160);
+      .slice(0, 400); // Allow more results for smooth scrolling
     const options = list.map((ex) => {
       const secondary =
         ex.secondaryMuscles && ex.secondaryMuscles.length
@@ -6091,7 +6054,7 @@ export default function Sessions() {
               }
             : undefined
         }
-        maxListHeight={560}
+        maxListHeight={640}
       />
 
       <OptionSheet
@@ -6141,7 +6104,7 @@ export default function Sessions() {
             </div>
           ) : undefined
         }
-        maxListHeight={520}
+        maxListHeight={640}
       />
 
       <OptionSheet

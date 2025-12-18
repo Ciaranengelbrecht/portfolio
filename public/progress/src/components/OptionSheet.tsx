@@ -123,14 +123,14 @@ export default function OptionSheet({
               onClick={onClose}
             />
             <motion.div
-              className="relative z-10 w-full max-h-[92vh] overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 backdrop-blur-sm shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] sm:max-w-2xl sm:rounded-3xl"
+              className="relative z-10 w-full max-h-[94vh] overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 backdrop-blur-sm shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] sm:max-w-2xl sm:rounded-3xl flex flex-col"
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
               initial={{ y: 48, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 34 }}
+              transition={{ type: "spring", stiffness: 320, damping: 32 }}
             >
               <div className="flex flex-col gap-4 p-5">
                 <header className="flex flex-col gap-2 pr-8">
@@ -174,12 +174,18 @@ export default function OptionSheet({
                 <div
                   ref={listRef}
                   tabIndex={-1}
-                  className="relative -mx-2 flex-1 overflow-y-auto px-2 pb-2"
-                  style={{ maxHeight: `min(68vh, ${maxListHeight}px)` }}
+                  className="relative -mx-2 flex-1 px-2 pb-2 overscroll-contain"
+                  style={{
+                    maxHeight: `min(72vh, ${maxListHeight}px)`,
+                    overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "rgba(255,255,255,0.15) transparent",
+                  }}
                 >
-                  <div className="pointer-events-none absolute inset-x-2 top-0 h-4 bg-gradient-to-b from-slate-950/95 to-transparent" />
-                  <div className="pointer-events-none absolute inset-x-2 bottom-0 h-6 bg-gradient-to-t from-slate-950/95 to-transparent" />
-                  <div className="relative space-y-2 pb-4">
+                  <div className="pointer-events-none sticky top-0 z-10 h-4 -mb-4 bg-gradient-to-b from-slate-950/95 to-transparent" />
+                  <div className="pointer-events-none sticky bottom-0 z-10 h-6 -mt-6 bg-gradient-to-t from-slate-950/95 to-transparent" />
+                  <div className="relative space-y-2 pb-4 pt-2">
                     {options.length === 0 && emptyState}
                     {options.map((option) => (
                       <Fragment key={option.id}>
