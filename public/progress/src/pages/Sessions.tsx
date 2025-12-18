@@ -5259,11 +5259,11 @@ export default function Sessions() {
                                 >✕</button>
                               </div>
                             </div>
-                            {/* Weight & Reps - Compact touch targets */}
-                            <div className="grid grid-cols-2 gap-2">
-                              {/* Weight Input - Compact */}
+                            {/* Weight & Reps - Aligned compact touch targets */}
+                            <div className="grid grid-cols-2 gap-2 items-start">
+                              {/* Weight Input */}
                               <div className="input-wrapper-workout">
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-0.5 h-4">
                                   <span className="input-label-workout">Weight</span>
                                   {(() => {
                                     const prev = prevWeekSets[entry.exerciseId]?.[idx];
@@ -5349,9 +5349,9 @@ export default function Sessions() {
                                 </div>
                               </div>
 
-                              {/* Reps Input - Compact */}
+                              {/* Reps Input */}
                               <div className="input-wrapper-workout">
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-0.5 h-4">
                                   <span className="input-label-workout">Reps</span>
                                   {(() => {
                                     const prev = prevWeekSets[entry.exerciseId]?.[idx];
@@ -5446,46 +5446,46 @@ export default function Sessions() {
                         );
                         })}
                         
-                        {/* Compact action row: Add Set + Rest Timer in corners */}
-                        <div className="flex items-center justify-between gap-2 mt-2">
-                          {/* Add Set button - small corner */}
+                        {/* Action row: Add Set + Rest Timer */}
+                        <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-white/[0.04]">
+                          {/* Add Set button - prominent */}
                           <button
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-800/40 border border-slate-700/30 text-slate-500 text-[10px] font-medium transition hover:bg-slate-700/50 hover:text-slate-300 active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-all hover:bg-indigo-500/25 hover:border-indigo-400/40 hover:shadow-[0_0_12px_rgba(99,102,241,0.25)] active:scale-95"
                             onClick={() => addSet(entry)}
                           >
-                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
-                            Add
+                            Add Set
                           </button>
                           
-                          {/* Rest Timer - small corner */}
-                          <div className={`inline-flex items-center gap-1 ${restTimers[entry.id]?.running ? '' : ''}`}>
+                          {/* Rest Timer - prominent */}
+                          <div className="inline-flex items-center gap-1.5">
                             <button
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all active:scale-95 ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
                                 restTimers[entry.id]?.running
-                                  ? "bg-emerald-600/15 border border-emerald-500/25 text-emerald-300"
-                                  : "bg-slate-800/40 border border-slate-700/30 text-slate-500 hover:bg-slate-700/50 hover:text-slate-300"
+                                  ? "bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                                  : "bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)]"
                               }`}
                               onClick={() => restartRestTimer(entry.id)}
                               aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
                             >
-                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               {restTimers[entry.id] ? "Restart" : "Rest"}
                             </button>
                             {restTimers[entry.id] && (
                               <>
-                                <span className="text-xs font-semibold tabular-nums text-white min-w-[40px] text-center">
+                                <span className="text-sm font-bold tabular-nums text-emerald-200 min-w-[44px] text-center">
                                   {restTimerDisplay(entry.id)}
                                 </span>
                                 <button
-                                  className="h-5 w-5 flex items-center justify-center rounded bg-slate-800/40 text-slate-500 hover:text-rose-400 transition-colors"
+                                  className="h-6 w-6 flex items-center justify-center rounded-md bg-rose-500/15 border border-rose-500/25 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all"
                                   aria-label="Stop rest timer"
                                   onClick={() => stopRestTimer(entry.id)}
                                 >
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
