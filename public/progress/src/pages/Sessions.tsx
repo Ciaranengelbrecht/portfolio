@@ -5157,41 +5157,16 @@ export default function Sessions() {
                       exit="exit"
                     >
                       {prev ? (
-                        <>
-                          <span
-                            className="prev-hint-pill"
-                            aria-label={`Previous best set: ${prev.set.weightKg} kilograms for ${prev.set.reps} reps`}
-                            title="Last logged best set"
-                          >
-                            <span className="opacity-70">Prev:</span>
-                            <span>{prev.set.weightKg}</span>
-                            <span>×</span>
-                            <span>{prev.set.reps}</span>
-                          </span>
-                          {prev.set.weightKg != null &&
-                            prev.set.reps != null &&
-                            prev.set.weightKg > 0 &&
-                            prev.set.reps > 0 && (
-                              <span
-                                className="prev-hint-pill opacity-80"
-                                aria-label={`Suggested target: ${
-                                  prev.set.weightKg
-                                } kilograms for ${prev.set.reps + 1} reps`}
-                                title="Suggested target (same weight, +1 rep)"
-                                data-suggest="true"
-                              >
-                                <span className="opacity-60">Target:</span>
-                                <span>{prev.set.weightKg}</span>
-                                <span>×</span>
-                                <span>{prev.set.reps + 1}</span>
-                              </span>
-                            )}
-                          {showNudge && (
-                            <span className="prev-hint-pill" data-nudge="true">
-                              Try +1 rep or +2.5kg?
-                            </span>
-                          )}
-                        </>
+                        <span
+                          className="prev-hint-pill"
+                          aria-label={`Previous: ${prev.set.weightKg}kg × ${prev.set.reps} reps`}
+                          title="Last logged best set"
+                        >
+                          <span className="opacity-60">Prev:</span>
+                          <span>{prev.set.weightKg}</span>
+                          <span className="opacity-50">×</span>
+                          <span>{prev.set.reps}</span>
+                        </span>
                       ) : prevBestLoading ? (
                         <span className="prev-hint-pill" aria-hidden="true">
                           ...
@@ -5225,25 +5200,10 @@ export default function Sessions() {
                             key={idx}
                             className={`set-card-clean ${isSetComplete ? 'completed' : ''}`}
                           >
-                            {/* Compact set header */}
+                            {/* Compact set header - cleaner without tick */}
                             <div className="set-header-clean">
                               <div className={`set-number-badge ${isSetComplete ? 'completed' : ''}`}>
                                 <span className="number">{set.setNumber}</span>
-                                {isSetComplete && (
-                                  <span className="set-complete-indicator">
-                                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  </span>
-                                )}
-                                {idx === 0 && !isSetComplete && suggestions.get(entry.exerciseId) && (
-                                  <span className="exercise-stat-chip highlight text-[9px]" title="Suggested progression">
-                                    {(() => {
-                                      const s = suggestions.get(entry.exerciseId)!;
-                                      return `${s.weightKg ?? ""}${s.weightKg ? "kg" : ""}${s.reps ? ` × ${s.reps}` : ""}`;
-                                    })()}
-                                  </span>
-                                )}
                                 <PRChip exerciseId={entry.exerciseId} score={(set.weightKg ?? 0) * (set.reps ?? 0)} week={week} />
                               </div>
                               <div className="set-actions-minimal">
@@ -5468,18 +5428,18 @@ export default function Sessions() {
                           Add Set
                         </button>
                         
-                        {/* Rest Timer - Compact design */}
-                        <div className={`rest-timer-prominent mt-2 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
+                        {/* Rest Timer - Compact inline design */}
+                        <div className={`rest-timer-prominent mt-1.5 ${restTimers[entry.id]?.running ? 'running' : ''}`}>
                           <button
-                            className={`flex-1 flex items-center justify-center gap-1.5 h-9 rounded-lg text-sm font-medium transition-all active:scale-95 ${
+                            className={`flex items-center justify-center gap-1 px-2.5 h-7 rounded-md text-xs font-medium transition-all active:scale-95 ${
                               restTimers[entry.id]?.running
-                                ? "bg-emerald-600/25 text-emerald-300 border border-emerald-500/35"
-                                : "bg-slate-800/70 text-slate-300 border border-slate-700/50"
+                                ? "bg-emerald-600/20 text-emerald-300"
+                                : "bg-slate-800/60 text-slate-400"
                             }`}
                             onClick={() => restartRestTimer(entry.id)}
                             aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             {restTimers[entry.id] ? "Restart" : "Rest"}
@@ -5490,11 +5450,11 @@ export default function Sessions() {
                                 {restTimerDisplay(entry.id)}
                               </div>
                               <button
-                                className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 transition-colors"
+                                className="h-6 w-6 flex items-center justify-center rounded-md bg-slate-800/50 text-slate-500 hover:text-rose-400 transition-colors"
                                 aria-label="Stop rest timer"
                                 onClick={() => stopRestTimer(entry.id)}
                               >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                               </button>

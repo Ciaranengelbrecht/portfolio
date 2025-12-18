@@ -857,55 +857,55 @@ input[type="number"] {
 /* Dec 2024 - Optimized for mid-workout use */
 /* Dec 2025 - Refined for cleaner, more compact layout */
 
-/* Clean set card - compact but functional */
+/* Clean set card - minimal and compact */
 .set-card-clean {
-  @apply relative rounded-xl px-3 py-2.5;
-  @apply bg-slate-900/40 border border-white/[0.05];
+  @apply relative rounded-lg px-2.5 py-2;
+  @apply bg-slate-900/35 border border-white/[0.04];
   @apply transition-all duration-200;
 }
 
 .set-card-clean.completed {
-  @apply border-l-[2px] border-l-emerald-500/60;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(15, 23, 42, 0.4) 100%);
+  @apply border-l-2 border-l-emerald-500/50;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(15, 23, 42, 0.35) 100%);
 }
 
 .set-card-clean.active {
-  @apply border-l-[2px] border-l-amber-500/60;
-  @apply ring-1 ring-amber-500/20;
+  @apply border-l-2 border-l-amber-500/50;
+  @apply ring-1 ring-amber-500/15;
 }
 
-/* Compact touch-friendly +/- buttons */
+/* Compact touch-friendly +/- buttons - smaller for cleaner mobile UI */
 .btn-stepper-large {
   @apply flex items-center justify-center;
-  @apply min-h-[42px] min-w-[42px] h-[42px] w-[42px];
-  @apply rounded-lg;
-  @apply bg-slate-800/80 border border-slate-700/50;
-  @apply text-white text-lg font-semibold;
+  @apply min-h-[32px] min-w-[32px] h-[32px] w-[32px];
+  @apply rounded-md;
+  @apply bg-slate-800/70 border border-slate-700/40;
+  @apply text-white/90 text-base font-medium;
   @apply active:scale-90 active:bg-slate-700;
   @apply transition-all duration-150;
-  @apply shadow-sm;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 .btn-stepper-large:active {
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-/* Compact input for mid-workout logging */
+/* Input for mid-workout logging - wider, clearer values */
 .input-workout-large {
-  @apply h-[42px] w-full;
-  @apply bg-slate-950/90 border border-slate-700/50 rounded-lg;
-  @apply text-white text-lg font-bold text-center tabular-nums;
+  @apply h-[38px] w-full;
+  @apply bg-slate-950/80 border border-slate-700/40 rounded-md;
+  @apply text-white text-base font-semibold text-center tabular-nums;
+  @apply px-2;
   @apply transition-all duration-200;
   @apply focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  min-width: 0;
+  min-width: 50px;
 }
 
 .input-workout-large::placeholder {
-  @apply text-slate-600 font-normal text-base;
+  @apply text-slate-600 font-normal text-sm;
 }
 
 /* Compact set header */
@@ -914,46 +914,32 @@ input[type="number"] {
 }
 
 .set-number-badge {
-  @apply inline-flex items-center gap-1.5;
-  @apply text-sm font-semibold text-slate-200;
+  @apply inline-flex items-center gap-1;
+  @apply text-xs font-medium text-slate-300;
 }
 
 .set-number-badge .number {
   @apply flex items-center justify-center;
-  @apply w-6 h-6 rounded-md;
-  @apply bg-slate-800/70 text-slate-300;
-  @apply text-xs font-bold;
+  @apply w-5 h-5 rounded;
+  @apply bg-slate-800/60 text-slate-400;
+  @apply text-[10px] font-semibold;
 }
 
 .set-number-badge.completed .number {
-  @apply bg-emerald-600/25 text-emerald-300;
+  @apply bg-emerald-600/20 text-emerald-400;
 }
 
-/* Completion indicator - subtle checkmark */
-.set-complete-indicator {
-  @apply inline-flex items-center justify-center;
-  @apply w-5 h-5 rounded-full;
-  @apply bg-emerald-500/20 border border-emerald-500/40;
-  animation: completePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-@keyframes completePop {
-  0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* Weight/Reps input section - tighter layout */
+/* Weight/Reps input section - tight layout */
 .input-group-workout {
-  @apply flex items-center gap-1.5;
+  @apply flex items-center gap-1;
 }
 
 .input-wrapper-workout {
-  @apply flex-1 flex flex-col;
+  @apply flex-1 flex flex-col min-w-0;
 }
 
 .input-label-workout {
-  @apply text-[10px] font-semibold uppercase tracking-wider text-slate-500;
+  @apply text-[9px] font-medium uppercase tracking-wide text-slate-500/80;
 }
 
 /* Compact action buttons in set header */
@@ -963,55 +949,56 @@ input[type="number"] {
 
 .btn-set-action {
   @apply flex items-center justify-center;
-  @apply h-7 w-7 rounded-md;
-  @apply bg-slate-800/50 border border-white/[0.04];
-  @apply text-slate-400 text-xs;
+  @apply h-5 w-5 rounded;
+  @apply bg-slate-800/40 border border-white/[0.03];
+  @apply text-slate-500 text-[10px];
   @apply transition-all duration-150;
-  @apply hover:bg-slate-700/60 hover:text-slate-200;
+  @apply hover:bg-slate-700/50 hover:text-slate-300;
   @apply active:scale-90;
 }
 
 .btn-set-delete {
   @apply btn-set-action;
-  @apply bg-rose-500/10 border-rose-500/25;
-  @apply text-rose-400;
-  @apply hover:bg-rose-500/20 hover:text-rose-300;
+  @apply bg-rose-500/[0.08] border-rose-500/20;
+  @apply text-rose-400/80;
+  @apply hover:bg-rose-500/[0.15] hover:text-rose-300;
 }
 
-/* Rest timer - compact design */
+/* Rest timer - compact inline design */
 .rest-timer-prominent {
-  @apply flex items-center justify-center gap-2;
-  @apply px-3 py-2 rounded-lg;
-  @apply bg-slate-800/60 border border-slate-700/40;
+  @apply flex items-center justify-center gap-1.5;
+  @apply px-2 py-1.5 rounded-lg;
+  @apply bg-slate-800/50 border border-slate-700/30;
 }
 
 .rest-timer-prominent.running {
-  @apply bg-emerald-900/25 border-emerald-500/35;
+  @apply bg-emerald-950/40 border-emerald-500/30;
   animation: restTimerPulse 2s ease-in-out infinite;
 }
 
 @keyframes restTimerPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  50% { box-shadow: 0 0 16px 2px rgba(16, 185, 129, 0.15); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3); }
+  50% { box-shadow: 0 0 10px 1px rgba(16, 185, 129, 0.1); }
 }
 
 .rest-timer-value {
-  @apply text-xl font-bold tabular-nums;
+  @apply text-base font-semibold tabular-nums text-white;
+  @apply min-w-[52px] text-center;
 }
 
 .rest-timer-prominent.running .rest-timer-value {
   @apply text-emerald-400;
 }
 
-/* Quick add set button - compact */
+/* Quick add set button - minimal */
 .btn-add-set {
-  @apply w-full py-2.5;
-  @apply flex items-center justify-center gap-1.5;
-  @apply rounded-lg;
-  @apply bg-slate-800/50 border border-dashed border-slate-700/50;
-  @apply text-slate-400 text-xs font-semibold;
+  @apply w-full py-1.5;
+  @apply flex items-center justify-center gap-1;
+  @apply rounded-md;
+  @apply bg-slate-800/40 border border-dashed border-slate-700/40;
+  @apply text-slate-500 text-[10px] font-medium;
   @apply transition-all duration-200;
-  @apply hover:bg-slate-800/70 hover:border-slate-600 hover:text-slate-300;
+  @apply hover:bg-slate-800/60 hover:border-slate-600 hover:text-slate-400;
   @apply active:scale-[0.98];
 }
 
@@ -1032,26 +1019,12 @@ input[type="number"] {
   @apply bg-emerald-500/[0.12] border-emerald-500/25 text-emerald-300;
 }
 
-/* Previous hints - compact */
+/* Previous hint - minimal compact pill */
 .prev-hint-pill {
-  @apply inline-flex items-center gap-1;
-  @apply px-2 py-0.5 rounded-md;
-  @apply bg-slate-800/40 border border-white/[0.04];
-  @apply text-[10px] font-medium text-slate-400 tabular-nums;
-}
-
-.prev-hint-pill[data-suggest="true"] {
-  @apply bg-amber-500/10 border-amber-500/25 text-amber-300;
-}
-
-.prev-hint-pill[data-nudge="true"] {
-  @apply bg-blue-500/10 border-blue-500/25 text-blue-300;
-  animation: gentlePulse 2s ease-in-out infinite;
-}
-
-@keyframes gentlePulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+  @apply inline-flex items-center gap-0.5;
+  @apply px-1.5 py-0.5 rounded;
+  @apply bg-slate-800/30 border border-white/[0.03];
+  @apply text-[9px] font-medium text-slate-500 tabular-nums;
 }
 
 /* Floating rest timer - enhanced for visibility */
