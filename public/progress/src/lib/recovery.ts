@@ -1,6 +1,13 @@
-// Recovery model utilities
+// Recovery model utilities - Enhanced v2
 // NOTE: This is a heuristic model drawing from general resistance training recovery literature.
 // It is NOT a medical tool. Parameters are intentionally conservative and configurable.
+// 
+// Key improvements in v2:
+// - RPE-based effort scaling for sets with recorded RPE
+// - Compound vs isolation classification with exercise-specific modifiers
+// - High-fatigue exercise detection (deadlifts, squats, etc.)
+// - Non-linear fatigue accumulation for frequent training
+// - Secondary muscle contribution based on exercise type
 
 import type { Session, SessionEntry, SetEntry, Exercise } from './types';
 import { getAllCached } from './dataCache';
@@ -20,7 +27,7 @@ export const BASELINE_HOURS: Record<MuscleGroup, number> = {
   chest: 48,       // Large muscle, but simpler movement
   back: 60,        // Large, complex muscle group
   quads: 72,       // Very large muscle group
-  hamstrings: 72,  // Large muscle group
+  hamstrings: 72,  // Large muscle group, high eccentric stress
   glutes: 72,      // Large muscle group
   other: 48,
 };
@@ -42,8 +49,81 @@ export const MUSCLE_MOD: Record<MuscleGroup, number> = {
   other: 1.0,
 };
 
-// Isolation heuristic keywords; if exercise name contains one -> reduce stress 30%
-const ISOLATION_KEYWORDS = /(curl|extension|raise|fly|pullover|pressdown|lateral|reverse fly|cable cross|rear delt)/i;
+// ==== EXERCISE CLASSIFICATION ====
+
+// Isolation exercises - reduced systemic stress (0.65x modifier)
+const ISOLATION_KEYWORDS = /(curl|extension|raise|fly|pullover|pressdown|lateral|reverse fly|cable cross|rear delt|kickback|concentration|preacher|scott|spider|hammer curl|wrist|calf raise|leg curl|leg extension|pec deck|machine fly)/i;
+
+// High-fatigue compound exercises - increased stress and longer recovery (1.3x modifier)
+// These exercises cause significant CNS fatigue and systemic stress
+const HIGH_FATIGUE_KEYWORDS = /(deadlift|squat|clean|snatch|thruster|front squat|back squat|sumo|conventional|romanian|rdl|stiff.?leg|good morning|hip thrust|barbell row|pendlay|t-bar)/i;
+
+// Heavy compound exercises - moderate extra stress (1.15x modifier)
+const COMPOUND_HEAVY_KEYWORDS = /(bench press|overhead press|military press|incline press|decline press|dip|pull.?up|chin.?up|lat pulldown|row|press)/i;
+
+// Exercises with high eccentric stress - slower recovery (1.2x recovery time)
+const HIGH_ECCENTRIC_KEYWORDS = /(romanian|rdl|stiff.?leg|nordic|negative|eccentric|tempo|pause|deficit)/i;
+
+// Convert RPE (1-10) to effort factor (0.5-1.0)
+// RPE 10 = failure = 1.0 effort
+// RPE 6 = 4 reps in reserve = 0.65 effort
+function rpeToEffort(rpe: number | undefined | null): number {
+  if (rpe == null || rpe <= 0) return 0.85; // Default assumption: ~2 RIR
+  // Clamp RPE to 5-10 range
+  const clampedRpe = Math.max(5, Math.min(10, rpe));
+  // Linear mapping: RPE 5 = 0.5, RPE 10 = 1.0
+  return 0.5 + (clampedRpe - 5) * 0.1;
+}
+
+// Classify exercise and return stress modifiers
+interface ExerciseModifiers {
+  stressMultiplier: number;    // Applied to set stress
+  recoveryMultiplier: number;  // Applied to recovery time
+  secondaryContribution: number; // How much secondary muscles contribute (0-1)
+}
+
+function classifyExercise(exerciseName: string): ExerciseModifiers {
+  const name = exerciseName.toLowerCase();
+  
+  // High-fatigue compounds (deadlifts, squats, Olympic lifts)
+  if (HIGH_FATIGUE_KEYWORDS.test(name)) {
+    return {
+      stressMultiplier: 1.35,
+      recoveryMultiplier: 1.25,
+      secondaryContribution: 0.45, // Secondary muscles work hard
+    };
+  }
+  
+  // Heavy compound movements
+  if (COMPOUND_HEAVY_KEYWORDS.test(name)) {
+    return {
+      stressMultiplier: 1.1,
+      recoveryMultiplier: 1.1,
+      secondaryContribution: 0.4,
+    };
+  }
+  
+  // Isolation exercises
+  if (ISOLATION_KEYWORDS.test(name)) {
+    return {
+      stressMultiplier: 0.65,
+      recoveryMultiplier: 0.9,
+      secondaryContribution: 0.2, // Minimal secondary involvement
+    };
+  }
+  
+  // Default: moderate compound
+  return {
+    stressMultiplier: 1.0,
+    recoveryMultiplier: 1.0,
+    secondaryContribution: 0.35,
+  };
+}
+
+// Check if exercise has high eccentric component
+function hasHighEccentric(exerciseName: string): boolean {
+  return HIGH_ECCENTRIC_KEYWORDS.test(exerciseName.toLowerCase());
+}
 
 // Rolling window (ms) to inspect past sessions; 7 days = 168h
 const WINDOW_MS = 1000 * 60 * 60 * 168;
@@ -80,36 +160,63 @@ export interface RecoveryBundle {
   byMuscle: Record<MuscleGroup, MuscleRecoveryState>;
 }
 
-// Compute per-set stress with realistic fatigue modeling
-// This calculates how much "fatigue" a set induces based on volume, intensity, and effort
+// Compute per-set stress with realistic fatigue modeling (v2)
+// This calculates how much "fatigue" a set induces based on:
+// - Volume (reps × weight)
+// - Intensity (relative load)
+// - Effort (RPE-based or assumed)
+// - Exercise type (compound vs isolation, high-fatigue movements)
+// - Eccentric stress considerations
 function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGroup, whenMs: number): SetStressRecord[] {
   if (!set.reps || !set.weightKg || set.reps <= 0 || set.weightKg <= 0) return [];
   const reps = set.reps;
   const weight = set.weightKg;
   
+  // ==== INTENSITY CALCULATION ====
   // Smart intensity calculation - uses relative intensity zones
   // Light: <60kg (0.5), Moderate: 60-100kg (0.7-1.0), Heavy: >100kg (1.2+)
-  const intensityProxy = 0.5 + (Math.log(weight + 1) / Math.log(150)) * 0.7; // Logarithmic scaling
+  const intensityProxy = 0.5 + (Math.log(weight + 1) / Math.log(150)) * 0.7;
   
+  // ==== REP RANGE FATIGUE MODIFIER ====
+  // Different rep ranges cause different types of fatigue:
+  // - Low reps (1-5): High neural fatigue, moderate muscle damage
+  // - Moderate reps (6-12): Balanced fatigue profile
+  // - High reps (13+): High metabolic stress, extended recovery
+  let repRangeMod = 1.0;
+  if (reps <= 5) {
+    repRangeMod = 1.1; // Heavy singles/triples are CNS taxing
+  } else if (reps >= 15) {
+    repRangeMod = 1.15; // High rep sets cause significant metabolic stress
+  }
+  
+  // ==== VOLUME CALCULATION ====
   // Volume factor: total work done (reps × weight × intensity)
   // Normalized to reasonable set volumes (8-12 reps × 50-80kg = baseline)
-  const volumeLoad = (reps * weight * intensityProxy) / 600; // Normalized to moderate working set
+  const volumeLoad = (reps * weight * intensityProxy * repRangeMod) / 600;
   
   // Diminishing returns on very high volume (prevents absurd stress from ultra-high reps/weight)
-  const volumeFactor = Math.min(volumeLoad, 2.5); // Cap at 2.5x baseline stress
+  const volumeFactor = Math.min(volumeLoad, 2.5);
   
-  // Near-failure effort assumption (most lifters train 1-3 reps from failure)
-  const effortFactor = 0.9; // Slightly reduced from 0.95 for more realistic training
+  // ==== EFFORT FACTOR (RPE-BASED) ====
+  // Use actual RPE if recorded, otherwise assume ~2 RIR (RPE 8)
+  const effortFactor = rpeToEffort(set.rpe);
   
-  // Isolation exercises cause less systemic fatigue
-  const isolationAdj = ISOLATION_KEYWORDS.test(exercise.name) ? 0.7 : 1;
+  // ==== EXERCISE TYPE MODIFIERS ====
+  const exerciseModifiers = classifyExercise(exercise.name);
+  const stressMult = exerciseModifiers.stressMultiplier;
+  
+  // ==== ECCENTRIC STRESS MODIFIER ====
+  // Exercises with high eccentric component cause more muscle damage
+  const eccentricMod = hasHighEccentric(exercise.name) ? 1.15 : 1.0;
 
   const muscles: MuscleGroup[] = [primary, ...(exercise.secondaryMuscles || []).filter(Boolean) as MuscleGroup[]];
   
-  // Secondary muscles contribute 35% of primary fatigue (realistic synergist involvement)
+  // Secondary muscles use exercise-specific contribution rate
   return muscles.map((m, idx) => {
-    const base = volumeFactor * effortFactor * isolationAdj;
-    const mod = MUSCLE_MOD[m] * (idx === 0 ? 1 : 0.35);
+    const isPrimary = idx === 0;
+    const base = volumeFactor * effortFactor * stressMult * eccentricMod;
+    const secondaryContrib = isPrimary ? 1 : exerciseModifiers.secondaryContribution;
+    const mod = MUSCLE_MOD[m] * secondaryContrib;
     const s0 = base * mod;
     return { muscle: m, startMs: whenMs, s0 };
   });
@@ -161,13 +268,35 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     const fullRecoveryHours = BASELINE_HOURS[m];
     const tau = (fullRecoveryHours * 3600 * 1000) / 4.6; // 4.6 = -ln(0.01) for 99% recovery
     
+    // ==== TRAINING FREQUENCY ANALYSIS ====
+    // Count distinct training sessions in last 72h for this muscle
+    const last72h = now - (72 * 3600 * 1000);
+    const recentSessionTimes = new Set<number>();
+    list.forEach(rec => {
+      if (rec.startMs > last72h) {
+        // Group into 2h windows to count distinct sessions
+        recentSessionTimes.add(Math.floor(rec.startMs / (2 * 3600 * 1000)));
+      }
+    });
+    const recentSessions = recentSessionTimes.size;
+    
+    // Frequency fatigue multiplier - training same muscle frequently accumulates fatigue
+    // 1 session = 1.0x, 2 sessions = 1.15x, 3+ sessions = 1.35x
+    let frequencyMod = 1.0;
+    if (recentSessions >= 3) {
+      frequencyMod = 1.35; // High frequency - significant accumulated fatigue
+    } else if (recentSessions >= 2) {
+      frequencyMod = 1.15; // Moderate frequency
+    }
+    
     let remaining = 0;
     let mostRecentWorkout = 0; // Track most recent training session
     
     for (const rec of list) {
       const age = now - rec.startMs;
       if (age < 0) continue; // Future timestamp, ignore
-      const rem = rec.s0 * Math.exp(-age / tau);
+      // Apply frequency modifier to stress decay
+      const rem = rec.s0 * frequencyMod * Math.exp(-age / tau);
       remaining += rem;
       if (rec.startMs > mostRecentWorkout) mostRecentWorkout = rec.startMs;
     }
