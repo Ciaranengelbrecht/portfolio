@@ -61,6 +61,17 @@ export const MUSCLE_MOD: Record<MuscleGroup, number> = {
   legs: 1.2,
 };
 
+// ==== MUSCLE GROUP NORMALIZATION ====
+// Normalize legacy muscle group names to new specific groups
+function normalizeMuscleGroupInternal(group: string): MuscleGroup {
+  const lower = group.toLowerCase();
+  // Map legacy names to specific groups
+  if (lower === 'back') return 'lats';  // Default back exercises to lats
+  if (lower === 'shoulders') return 'delts';  // Default shoulders to delts
+  if (lower === 'legs') return 'quads';  // Default legs to quads
+  return lower as MuscleGroup;
+}
+
 // ==== EXERCISE CLASSIFICATION ====
 
 // Isolation exercises - reduced systemic stress (0.65x modifier)
@@ -221,14 +232,20 @@ function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGrou
   // Exercises with high eccentric component cause more muscle damage
   const eccentricMod = hasHighEccentric(exercise.name) ? 1.15 : 1.0;
 
-  const muscles: MuscleGroup[] = [primary, ...(exercise.secondaryMuscles || []).filter(Boolean) as MuscleGroup[]];
+  // Normalize secondary muscles to new specific groups
+  const secondaryMuscles = (exercise.secondaryMuscles || [])
+    .filter(Boolean)
+    .map(m => normalizeMuscleGroupInternal(m as string));
+  
+  const muscles: MuscleGroup[] = [primary, ...secondaryMuscles];
   
   // Secondary muscles use exercise-specific contribution rate
   return muscles.map((m, idx) => {
     const isPrimary = idx === 0;
     const base = volumeFactor * effortFactor * stressMult * eccentricMod;
     const secondaryContrib = isPrimary ? 1 : exerciseModifiers.secondaryContribution;
-    const mod = MUSCLE_MOD[m] * secondaryContrib;
+    // Handle case where MUSCLE_MOD might not have the muscle (fallback to 1.0)
+    const mod = (MUSCLE_MOD[m] ?? 1.0) * secondaryContrib;
     const s0 = base * mod;
     return { muscle: m, startMs: whenMs, s0 };
   });
@@ -250,7 +267,8 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     for (const entry of s.entries) {
       const ex = exerciseMap.get(entry.exerciseId);
       if (!ex) continue;
-      const primary = (ex.muscleGroup as MuscleGroup) || 'other';
+      // Normalize legacy muscle group names (back->lats, shoulders->delts)
+      const primary = normalizeMuscleGroupInternal(ex.muscleGroup || 'other');
       for (const set of entry.sets) {
         const ts = set.completedAt ? Date.parse(set.completedAt) : (s.loggedEndAt ? Date.parse(s.loggedEndAt) : Date.parse(s.dateISO));
         if (!ts || isNaN(ts)) continue;
@@ -353,9 +371,13 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     muscles.push({ muscle: m, percent, remaining, threshold, etaFull, status });
   });
 
-  muscles.sort((a, b) => a.muscle.localeCompare(b.muscle));
-  const byMuscle = muscles.reduce((acc, m) => { acc[m.muscle] = m; return acc; }, {} as Record<MuscleGroup, MuscleRecoveryState>);
-  return { updatedAt: now, muscles, byMuscle };
+  // Filter out legacy aliases (back, shoulders, legs) as data now flows to specific groups
+  const LEGACY_ALIASES = ['back', 'shoulders', 'legs'];
+  const filteredMuscles = muscles.filter(m => !LEGACY_ALIASES.includes(m.muscle));
+  
+  filteredMuscles.sort((a, b) => a.muscle.localeCompare(b.muscle));
+  const byMuscle = filteredMuscles.reduce((acc, m) => { acc[m.muscle] = m; return acc; }, {} as Record<MuscleGroup, MuscleRecoveryState>);
+  return { updatedAt: now, muscles: filteredMuscles, byMuscle };
 }
 
 // Simple in-memory cache + interval recomputation

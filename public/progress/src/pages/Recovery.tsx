@@ -12,8 +12,10 @@ interface ViewState {
 
 const ORDER: (keyof typeof MUSCLE_ICON_PATHS)[] = [
   "chest",
-  "back",
-  "shoulders",
+  "lats",
+  "traps",
+  "delts",
+  "reardelts",
   "biceps",
   "triceps",
   "forearms",
