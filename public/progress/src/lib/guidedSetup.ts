@@ -116,18 +116,23 @@ const DAY_TYPE_OPTIONS: DayLabel[] = [
 
 const BASE_VOLUME: Record<MuscleGroup, number> = {
   chest: 12,
-  back: 14,
-  shoulders: 10,
+  lats: 10,
+  traps: 4,
+  delts: 8,
+  reardelts: 4,
   triceps: 8,
   biceps: 8,
   forearms: 4,
-  legs: 0,
   hamstrings: 10,
   quads: 10,
   glutes: 10,
   calves: 6,
   core: 6,
   other: 0,
+  // Legacy aliases (mapped to 0 as they're handled by specific groups above)
+  back: 0,
+  shoulders: 0,
+  legs: 0,
 };
 
 const ALL_MUSCLE_GROUPS = Object.keys(BASE_VOLUME) as MuscleGroup[];

@@ -12,7 +12,7 @@
 import type { Session, SessionEntry, SetEntry, Exercise } from './types';
 import { getAllCached } from './dataCache';
 
-export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'forearms' | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'core' | 'other';
+export type MuscleGroup = 'chest' | 'lats' | 'traps' | 'delts' | 'reardelts' | 'biceps' | 'triceps' | 'forearms' | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'core' | 'other' | 'back' | 'shoulders' | 'legs';
 
 // Baseline recovery time hours (time to full recovery from a single hard session) per muscle group.
 // Based on research: smaller muscles 24-48h, larger muscles 48-72h for full recovery.
@@ -21,15 +21,21 @@ export const BASELINE_HOURS: Record<MuscleGroup, number> = {
   forearms: 24,    // Small muscles, recover quickly
   biceps: 36,      // Small muscles
   triceps: 36,     // Small muscles
-  shoulders: 48,   // Medium muscles, complex joint
+  delts: 48,       // Medium muscles, complex joint (front/lateral delts)
+  reardelts: 48,   // Medium muscles
+  traps: 48,       // Upper back, moderate recovery
   calves: 48,      // Stubborn but small
   core: 48,        // Used daily, adapts well
   chest: 48,       // Large muscle, but simpler movement
-  back: 60,        // Large, complex muscle group
+  lats: 60,        // Large back muscle group
   quads: 72,       // Very large muscle group
   hamstrings: 72,  // Large muscle group, high eccentric stress
   glutes: 72,      // Large muscle group
   other: 48,
+  // Legacy aliases
+  back: 60,
+  shoulders: 48,
+  legs: 72,
 };
 
 // Training intensity modifier - affects how much stress a workout induces
@@ -38,15 +44,21 @@ export const MUSCLE_MOD: Record<MuscleGroup, number> = {
   forearms: 0.7,
   biceps: 0.8,
   triceps: 0.8,
-  shoulders: 0.9,
+  delts: 0.9,
+  reardelts: 0.85,
+  traps: 0.85,
   calves: 0.9,
   core: 0.85,
   chest: 1.0,
-  back: 1.1,
+  lats: 1.1,
   quads: 1.2,
   hamstrings: 1.15,
   glutes: 1.15,
   other: 1.0,
+  // Legacy aliases
+  back: 1.1,
+  shoulders: 0.9,
+  legs: 1.2,
 };
 
 // ==== EXERCISE CLASSIFICATION ====
@@ -249,7 +261,9 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
   }
 
   const groups: Record<MuscleGroup, SetStressRecord[]> = {
-    chest: [], back: [], shoulders: [], biceps: [], triceps: [], forearms: [], quads: [], hamstrings: [], glutes: [], calves: [], core: [], other: []
+    chest: [], lats: [], traps: [], delts: [], reardelts: [], biceps: [], triceps: [], forearms: [], quads: [], hamstrings: [], glutes: [], calves: [], core: [], other: [],
+    // Legacy aliases
+    back: [], shoulders: [], legs: []
   };
   records.forEach(r => { groups[r.muscle].push(r); });
 
