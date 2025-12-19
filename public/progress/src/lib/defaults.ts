@@ -37,17 +37,22 @@ export const defaultSettings: Settings = {
   },
   volumeTargets: {
     chest: 12,
-    back: 14,
+    lats: 12,
+    traps: 6,
+    delts: 10,
+    reardelts: 8,
     quads: 12,
     hamstrings: 10,
     glutes: 10,
-    shoulders: 10,
     biceps: 8,
     triceps: 8,
     forearms: 6,
     calves: 6,
     core: 6,
-    legs: 0, // legacy placeholder (should migrate to quads/hamstrings)
+    // Legacy aliases (will be migrated)
+    back: 0,
+    shoulders: 0,
+    legs: 0,
     other: 0,
   },
   ecg: {
@@ -73,10 +78,12 @@ export const defaultSettings: Settings = {
 };
 
 export const defaultExercises: Exercise[] = [
+  // CHEST
   {
     id: nanoid(),
     name: "Incline DB Press",
     muscleGroup: "chest",
+    secondaryMuscles: ["delts", "triceps"],
     defaults: { sets: 3, targetRepRange: "8-12" },
   },
   {
@@ -85,18 +92,22 @@ export const defaultExercises: Exercise[] = [
     muscleGroup: "chest",
     defaults: { sets: 3, targetRepRange: "10-15" },
   },
+  // LATS (Back Width)
   {
     id: nanoid(),
     name: "Cable Row",
-    muscleGroup: "back",
+    muscleGroup: "lats",
+    secondaryMuscles: ["biceps", "reardelts"],
     defaults: { sets: 3, targetRepRange: "8-12" },
   },
   {
     id: nanoid(),
     name: "Lat Pulldown/Pull-ups",
-    muscleGroup: "back",
+    muscleGroup: "lats",
+    secondaryMuscles: ["biceps", "reardelts"],
     defaults: { sets: 3, targetRepRange: "8-12" },
   },
+  // TRICEPS
   {
     id: nanoid(),
     name: "Triceps Pushdown",
@@ -109,42 +120,50 @@ export const defaultExercises: Exercise[] = [
     muscleGroup: "triceps",
     defaults: { sets: 3, targetRepRange: "10-15" },
   },
+  // BICEPS
   {
     id: nanoid(),
     name: "Bayesian Curl",
     muscleGroup: "biceps",
     defaults: { sets: 3, targetRepRange: "10-15" },
   },
+  // DELTS (Front/Lateral)
   {
     id: nanoid(),
-    name: "Lateral Raise/Upright Row",
-    muscleGroup: "shoulders",
+    name: "Lateral Raise",
+    muscleGroup: "delts",
     defaults: { sets: 3, targetRepRange: "12-20" },
   },
+  // HAMSTRINGS
   {
     id: nanoid(),
     name: "Seated Leg Curl",
-    muscleGroup: "legs",
+    muscleGroup: "hamstrings",
     defaults: { sets: 3, targetRepRange: "10-15" },
   },
+  // QUADS
   {
     id: nanoid(),
     name: "Leg Press/Hack Squat",
-    muscleGroup: "legs",
+    muscleGroup: "quads",
+    secondaryMuscles: ["glutes"],
     defaults: { sets: 3, targetRepRange: "8-12" },
   },
+  // CALVES
   {
     id: nanoid(),
     name: "Leg Press Calf Raise",
     muscleGroup: "calves",
     defaults: { sets: 3, targetRepRange: "10-15" },
   },
+  // QUADS
   {
     id: nanoid(),
     name: "Leg Extension",
-    muscleGroup: "legs",
+    muscleGroup: "quads",
     defaults: { sets: 3, targetRepRange: "12-15" },
   },
+  // CORE
   {
     id: nanoid(),
     name: "Abs (Cable Crunch or Leg Raises)",

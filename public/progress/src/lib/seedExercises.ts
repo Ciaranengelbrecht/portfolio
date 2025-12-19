@@ -1,6 +1,7 @@
 import { db } from './db';
 import { Exercise, MuscleGroup } from './types';
 import { nanoid } from 'nanoid';
+import { getMuscleGroupFromName } from './exerciseMuscleMap';
 
 // Massive seed catalogue (subset shown conceptually; extendable). Ensure names are unique (case-insensitive trimmed)
 // Each entry: name, primary muscleGroup, secondaryMuscles (optional)
@@ -658,5 +659,38 @@ export async function seedExercises() {
       try { localStorage.setItem('exerciseSeedV3','1'); } catch {}
       try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
     }
+  }
+
+  // Phase 4: Muscle group specificity migration (back->lats, shoulders->delts/reardelts/traps)
+  // Uses pattern matching to auto-correct muscle groups based on exercise names
+  if(!localStorage.getItem('exerciseSeedV4')){
+    const allExercises = await db.getAll<Exercise>('exercises');
+    let updatedCount = 0;
+    for(const ex of allExercises){
+      const mapping = getMuscleGroupFromName(ex.name);
+      // Only update if pattern matched something specific (not 'other' fallback)
+      if(mapping.primary !== 'other'){
+        const needsUpdate = 
+          ex.muscleGroup !== mapping.primary ||
+          JSON.stringify(ex.secondaryMuscles?.sort()) !== JSON.stringify(mapping.secondary?.sort());
+        
+        if(needsUpdate){
+          const updated: Exercise = {
+            ...ex,
+            muscleGroup: mapping.primary,
+            secondaryMuscles: mapping.secondary,
+            // Re-infer tags with new muscle group
+            tags: inferTags(ex.name, mapping.primary, mapping.secondary),
+          };
+          await db.put('exercises', updated);
+          updatedCount++;
+        }
+      }
+    }
+    if(updatedCount > 0){
+      console.log(`[seedExercises] V4 migration: Updated ${updatedCount} exercises with specific muscle groups`);
+      try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
+    }
+    try { localStorage.setItem('exerciseSeedV4','1'); } catch {}
   }
 }

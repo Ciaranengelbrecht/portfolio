@@ -55,7 +55,7 @@ export default function Store() {
     })();
   },[]);
 
-  const musclesOrder = ['chest','back','quads','hamstrings','glutes','shoulders','biceps','triceps','calves','core'];
+  const musclesOrder = ['chest','lats','traps','delts','reardelts','quads','hamstrings','glutes','biceps','triceps','calves','core'];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">

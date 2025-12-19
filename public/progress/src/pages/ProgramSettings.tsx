@@ -51,7 +51,7 @@ export default function ProgramSettings() {
   const [showAllocator, setShowAllocator] = useState(false);
   const [weeklySetTargets, setWeeklySetTargets] = useState<
     Record<string, number>
-  >({ chest: 10, back: 12, legs: 12, shoulders: 8, arms: 6, core: 6 });
+  >({ chest: 12, lats: 12, traps: 6, delts: 10, reardelts: 8, quads: 12, hamstrings: 10, glutes: 10, biceps: 8, triceps: 8, calves: 6, core: 6 });
   const [allocatorData, setAllocatorData] = useState<{
     current: Record<string, number>;
     diff: Record<string, number>;

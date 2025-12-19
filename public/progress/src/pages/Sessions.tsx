@@ -85,8 +85,10 @@ function TopMuscleAndContents({
     const counts = computeMuscleCounts(session, exMap);
     const order = [
       "chest",
-      "back",
-      "shoulders",
+      "lats",
+      "traps",
+      "delts",
+      "reardelts",
       "biceps",
       "triceps",
       "forearms",
@@ -95,6 +97,10 @@ function TopMuscleAndContents({
       "glutes",
       "calves",
       "core",
+      // Legacy aliases (still supported)
+      "back",
+      "shoulders",
+      "legs",
       "other",
     ];
     return Object.entries(counts)

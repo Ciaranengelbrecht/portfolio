@@ -2,18 +2,23 @@ export type UUID = string;
 
 export type MuscleGroup =
   | "chest"
-  | "back"
-  | "shoulders"
+  | "lats"        // back width (lat pulldowns, pull-ups, rows)
+  | "traps"       // upper back (shrugs, upright rows, face pulls)
+  | "delts"       // front/lateral delts (overhead press, lateral raises, front raises)
+  | "reardelts"   // rear delts (rear delt fly, face pulls, reverse pec deck)
   | "triceps"
   | "biceps"
   | "forearms"
-  | "legs"
   | "hamstrings"
   | "quads"
   | "glutes"
   | "calves"
   | "core"
-  | "other";
+  | "other"
+  // Legacy aliases (for backwards compatibility)
+  | "back"        // maps to lats
+  | "shoulders"   // maps to delts
+  | "legs";       // maps to quads
 
 export interface ExerciseDefaults {
   sets: number;

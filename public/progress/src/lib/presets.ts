@@ -43,7 +43,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'last-week',
     weekLengthDays: 7,
     weeklySplit: split(['Upper','Lower','Upper','Lower','Upper','Lower','Rest']),
-    volumeTargets: { chest: 12, back: 14, quads: 12, hamstrings: 10, glutes: 10, shoulders: 10, biceps: 8, triceps: 8, calves: 6, core: 6 },
+    volumeTargets: { chest: 12, lats: 10, traps: 4, quads: 12, hamstrings: 10, glutes: 10, delts: 8, reardelts: 4, biceps: 8, triceps: 8, calves: 6, core: 6 },
     templateBlueprints: [
       { name: 'Upper Balanced', exercises: [
         'Incline DB Press','Flat Barbell Bench','Chest Fly','Cable Row','Lat Pulldown','Rear Delt Fly','Lateral Raise','Triceps Pushdown','Overhead Extension','Bayesian Curl'
@@ -63,7 +63,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'last-week',
     weekLengthDays: 7,
     weeklySplit: split(['Push','Pull','Legs','Push','Pull','Legs','Rest']),
-    volumeTargets: { chest: 14, shoulders: 12, triceps: 10, back: 16, biceps: 10, quads: 12, hamstrings: 10, glutes: 10, calves: 6, core: 6 },
+    volumeTargets: { chest: 14, delts: 10, reardelts: 4, triceps: 10, lats: 12, traps: 4, biceps: 10, quads: 12, hamstrings: 10, glutes: 10, calves: 6, core: 6 },
     templateBlueprints: [
       { name: 'Push Day', exercises: [
         'Incline DB Press','Flat Barbell Bench','Chest Fly','Overhead Press','Lateral Raise','Triceps Pushdown','Overhead Extension'
@@ -86,7 +86,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'last-week',
     weekLengthDays: 7,
     weeklySplit: split(['Push','Pull','Rest','Legs','Upper','Lower','Rest']),
-    volumeTargets: { chest: 12, shoulders: 10, triceps: 9, back: 14, biceps: 9, quads: 10, hamstrings: 8, glutes: 8, calves: 6, core: 6 },
+    volumeTargets: { chest: 12, delts: 8, reardelts: 4, triceps: 9, lats: 10, traps: 4, biceps: 9, quads: 10, hamstrings: 8, glutes: 8, calves: 6, core: 6 },
     templateBlueprints: [
       { name: 'Push (Condensed)', exercises: [
         'Incline DB Press','Flat Barbell Bench','Cable Fly','Overhead Press','Lateral Raise','Triceps Pushdown'
@@ -115,7 +115,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'interval-5w',
     weekLengthDays: 7,
     weeklySplit: split(['Full Body','Rest','Full Body','Rest','Full Body','Rest','Rest']),
-    volumeTargets: { chest: 9, back: 12, quads: 9, hamstrings: 7, glutes: 7, shoulders: 8, biceps: 6, triceps: 6, calves: 4, core: 6 },
+    volumeTargets: { chest: 9, lats: 9, traps: 3, quads: 9, hamstrings: 7, glutes: 7, delts: 6, reardelts: 3, biceps: 6, triceps: 6, calves: 4, core: 6 },
     templateBlueprints: [
       { name: 'Full Body A', exercises: [
         'Back Squat','Flat Barbell Bench','Chest Supported Row','Lat Pulldown','RDL','Calf Raise','Hanging Leg Raise'
@@ -138,7 +138,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'last-week',
     weekLengthDays: 7,
     weeklySplit: split(['Full Body','Rest','Full Body','Rest','Full Body','Full Body','Rest']),
-    volumeTargets: { chest: 10, back: 14, quads: 10, hamstrings: 8, glutes: 8, shoulders: 9, biceps: 7, triceps: 7, calves: 5, core: 6 },
+    volumeTargets: { chest: 10, lats: 10, traps: 4, quads: 10, hamstrings: 8, glutes: 8, delts: 7, reardelts: 4, biceps: 7, triceps: 7, calves: 5, core: 6 },
     templateBlueprints: [
       { name: 'Full Body 1', exercises: [ 'Back Squat','Incline DB Press','Cable Row','Leg Curl','Calf Raise','Plank' ]},
       { name: 'Full Body 2', exercises: [ 'Front Squat','Flat Barbell Bench','Lat Pulldown','RDL','Lateral Raise','Ab Wheel' ]},
@@ -156,7 +156,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'last-week',
     weekLengthDays: 7,
     weeklySplit: split(['Upper','Lower','Arms','Upper','Lower','Arms','Rest']),
-    volumeTargets: { chest: 12, back: 14, quads: 10, hamstrings: 8, glutes: 8, shoulders: 14, biceps: 14, triceps: 14, calves: 6, core: 6 },
+    volumeTargets: { chest: 12, lats: 10, traps: 4, quads: 10, hamstrings: 8, glutes: 8, delts: 12, reardelts: 6, biceps: 14, triceps: 14, calves: 6, core: 6 },
     templateBlueprints: [
       { name: 'Upper (Base)', exercises: [ 'Incline DB Press','Flat Barbell Bench','Cable Row','Lat Pulldown','Rear Delt Fly','Triceps Pushdown','Barbell Curl','Lateral Raise' ]},
       { name: 'Lower (Base)', exercises: [ 'Back Squat','RDL','Leg Press','Seated Leg Curl','Leg Extension','Calf Raise','Hanging Leg Raise' ]},
@@ -173,7 +173,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'interval-5w',
     weekLengthDays: 7,
     weeklySplit: split(['Push','Pull','Legs','Upper','Lower','Full Body','Rest']),
-    volumeTargets: { chest: 18, back: 20, quads: 16, hamstrings: 14, glutes: 14, shoulders: 16, biceps: 14, triceps: 14, calves: 10, core: 8 },
+    volumeTargets: { chest: 18, lats: 14, traps: 6, quads: 16, hamstrings: 14, glutes: 14, delts: 12, reardelts: 6, biceps: 14, triceps: 14, calves: 10, core: 8 },
     templateBlueprints: [
       { name: 'Push HV', exercises: [ 'Incline DB Press','Flat Barbell Bench','Chest Fly','Overhead Press','Lateral Raise','Cable Fly','Triceps Pushdown','Overhead Extension' ]},
       { name: 'Pull HV', exercises: [ 'Chest Supported Row','Lat Pulldown','Single Arm Row','Face Pull','Rear Delt Fly','Barbell Curl','Bayesian Curl','Hammer Curl' ]},
@@ -193,7 +193,7 @@ export const PRESET_PROGRAMS: PresetProgramDefinition[] = [
     deload: 'interval-5w',
     weekLengthDays: 7,
     weeklySplit: split(['Full Body','Full Body','Upper','Lower','Full Body','Arms','Active Recovery']),
-    volumeTargets: { chest: 16, back: 18, quads: 14, hamstrings: 12, glutes: 12, shoulders: 14, biceps: 12, triceps: 12, calves: 8, core: 8 },
+    volumeTargets: { chest: 16, lats: 12, traps: 6, quads: 14, hamstrings: 12, glutes: 12, delts: 10, reardelts: 6, biceps: 12, triceps: 12, calves: 8, core: 8 },
     templateBlueprints: [
       { name: 'Full Body Heavy', exercises: [ 'Back Squat','Flat Barbell Bench','Chest Supported Row','RDL','Lat Pulldown','Calf Raise' ]},
       { name: 'Full Body Power', exercises: [ 'Front Squat','Incline DB Press','Cable Row','Hip Thrust','Rear Delt Fly','Ab Wheel' ]},
