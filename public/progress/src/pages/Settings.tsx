@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useTheme, THEME_PRESETS } from "../lib/theme";
 import { useAppTheme } from "../theme/ThemeProvider";
-import { THEMES, ThemeKey } from "../theme/themes";
+import { THEMES, ThemeKey, THEME_META, THEME_CATEGORIES } from "../theme/themes";
 import { useNavigate } from "react-router-dom";
 import BigFlash from "../components/BigFlash";
 import { db } from "../lib/db";
@@ -1328,63 +1328,86 @@ export default function SettingsPage() {
             className={`transition-all duration-400 ease-out ${
               themesCollapsed
                 ? "max-h-0 opacity-0 pointer-events-none"
-                : "max-h-[900px] opacity-100"
+                : "max-h-[1400px] opacity-100"
             }`}
             aria-hidden={themesCollapsed}
           >
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2 px-1 pb-1">
-              {(Object.keys(THEMES) as ThemeKey[]).map((k) => {
-                const customPreview =
-                  k === "custom" && s.themeV2?.customVars
-                    ? ({ ...THEMES[k], ...s.themeV2.customVars } as Record<
-                        string,
-                        string
-                      >)
-                    : THEMES[k];
+            <div className="mt-3 space-y-4 px-1 pb-1">
+              {THEME_CATEGORIES.map((category) => {
+                const themesInCategory = (Object.keys(THEMES) as ThemeKey[]).filter(
+                  (k) => THEME_META[k]?.category === category
+                );
+                if (themesInCategory.length === 0) return null;
                 return (
-                  <button
-                    key={k}
-                    className={`rounded-xl p-3 text-left border border-card ${
-                      themeKey === k
-                        ? "btn-primary"
-                        : "card-surface hover:opacity-90"
-                    }`}
-                    onClick={async () => {
-                      const cur = await db.get("settings", "app");
-                      await db.put("settings", {
-                        ...(cur || {}),
-                        id: "app",
-                        themeV2: { ...((cur as any)?.themeV2 || {}), key: k },
-                      });
-                      // apply live
-                      setThemeKey(k);
-                    }}
-                  >
-                    <div className="font-medium text-sm capitalize">
-                      {k.replace(/-/g, " ")}
+                  <div key={category}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-accent uppercase tracking-wider">
+                        {category}
+                      </span>
+                      <span className="flex-1 h-px bg-card-border/30" />
                     </div>
-                    <div className="mt-2 grid grid-cols-6 gap-1 items-center">
-                      <span
-                        className="col-span-3 h-6 rounded"
-                        style={{ background: customPreview["--bg-muted"] }}
-                      />
-                      <span
-                        className="h-6 rounded border"
-                        style={{
-                          background: customPreview["--card"],
-                          borderColor: customPreview["--card-border"],
-                        }}
-                      />
-                      <span
-                        className="h-6 rounded"
-                        style={{ background: customPreview["--chart-1"] }}
-                      />
-                      <span
-                        className="h-6 rounded"
-                        style={{ background: customPreview["--chart-2"] }}
-                      />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {themesInCategory.map((k) => {
+                        const customPreview =
+                          k === "custom" && s.themeV2?.customVars
+                            ? ({ ...THEMES[k], ...s.themeV2.customVars } as Record<string, string>)
+                            : THEMES[k];
+                        const meta = THEME_META[k];
+                        return (
+                          <button
+                            key={k}
+                            className={`rounded-xl p-3 text-left border transition-all duration-200 ${
+                              themeKey === k
+                                ? "border-accent bg-accent/10 ring-1 ring-accent/50"
+                                : "border-card card-surface hover:border-accent/40 hover:scale-[1.02]"
+                            }`}
+                            onClick={async () => {
+                              const cur = await db.get("settings", "app");
+                              await db.put("settings", {
+                                ...(cur || {}),
+                                id: "app",
+                                themeV2: { ...((cur as any)?.themeV2 || {}), key: k },
+                              });
+                              setThemeKey(k);
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-medium text-sm capitalize truncate">
+                                {k.replace(/-/g, " ")}
+                              </span>
+                              {themeKey === k && (
+                                <span className="text-accent text-xs">✓</span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted truncate mb-2">
+                              {meta?.description || ""}
+                            </div>
+                            <div className="flex gap-1 items-center">
+                              <span
+                                className="flex-1 h-5 rounded-l"
+                                style={{ background: customPreview["--bg-muted"] }}
+                              />
+                              <span
+                                className="w-5 h-5 rounded border"
+                                style={{
+                                  background: customPreview["--card"],
+                                  borderColor: customPreview["--card-border"],
+                                }}
+                              />
+                              <span
+                                className="w-5 h-5 rounded"
+                                style={{ background: customPreview["--accent"] }}
+                              />
+                              <span
+                                className="w-5 h-5 rounded-r"
+                                style={{ background: customPreview["--chart-2"] }}
+                              />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

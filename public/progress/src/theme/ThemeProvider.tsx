@@ -11,7 +11,7 @@ type Ctx = {
 };
 
 const ThemeCtx = createContext<Ctx>({
-  themeKey: "default-glass",
+  themeKey: "midnight",
   setThemeKey: () => {},
   applyVars: () => {},
 });
@@ -26,7 +26,7 @@ function setMetaTheme(bg: string) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [themeKey, setThemeKeyState] = useState<ThemeKey>("default-glass");
+  const [themeKey, setThemeKeyState] = useState<ThemeKey>("midnight");
   const applyVars = (vars: ThemeVars) => {
     const root = document.documentElement;
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
@@ -157,12 +157,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const s = await db.get<Settings>("settings", "app");
-        // prefer v2, fallback to earlier experimental theme object, otherwise default to 'default-glass'
+        // prefer v2, fallback to earlier experimental theme object, otherwise default to 'midnight'
         let key = ((s as any)?.themeV2?.key || (s as any)?.theme?.key) as
           | ThemeKey
           | undefined;
         if (!key || !THEMES[key as ThemeKey]) {
-          key = "default-glass";
+          key = "midnight";
           // self-heal persisted invalid/removed keys while preserving other themeV2 fields
           try {
             await db.put("settings", {
@@ -214,7 +214,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           );
         } catch {}
       } catch {
-        applyVars(THEMES["default-glass"]);
+        applyVars(THEMES["midnight"]);
       }
     })();
   }, []);
