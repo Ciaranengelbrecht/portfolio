@@ -140,11 +140,11 @@ function TopMuscleAndContents({
                 title={`${isActive ? "Click to clear filter" : "Click to filter by"} ${k}`}
               >
                 {src ? (
-                  <img src={src} alt={k} className="w-5 h-5 object-contain" />
+                  <img src={src} alt={k} className="w-4 h-4 object-contain flex-shrink-0" />
                 ) : (
-                  <span className="w-5 h-5" />
+                  <span className="w-4 h-4 flex-shrink-0" />
                 )}
-                <span className="tabular-nums leading-none text-[10px]">{c}</span>
+                <span className="text-[11px] font-semibold">{c}</span>
               </button>
             );
           })}
@@ -6993,15 +6993,19 @@ function MobileSessionMetrics({
         <span className="display-number-sm text-emerald-400">{stats.prs}</span>
       </span>
       {muscleCounts.length > 0 && (
-        <div className="flex items-center gap-2">
-          {muscleCounts.map(([k, n]) => (
-            <span
-              key={k}
-              className="px-2 py-0.5 rounded bg-slate-800/80 border border-white/10 whitespace-nowrap"
-            >
-              {k.charAt(0).toUpperCase() + k.slice(1)} {n}
-            </span>
-          ))}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          {muscleCounts.slice(0, 4).map(([k, n]) => {
+            const src = getMuscleIconPath(k);
+            return (
+              <span
+                key={k}
+                className="badge-muscle"
+              >
+                {src && <img src={src} alt={k} className="w-4 h-4 object-contain flex-shrink-0" />}
+                <span className="text-[11px] font-semibold">{n}</span>
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

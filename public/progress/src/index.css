@@ -659,12 +659,13 @@ input[type="number"] {
   }
 
   .badge-muscle {
-    @apply inline-flex items-center gap-2 px-3 py-2 rounded-xl;
+    @apply inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg;
     @apply bg-gradient-to-br from-slate-700/70 to-slate-800/70;
-    @apply border border-white/5 shadow-md;
-    @apply text-sm font-semibold text-slate-100;
+    @apply border border-white/10 shadow-sm;
+    @apply text-xs font-medium text-slate-200 tabular-nums;
     @apply transition-all duration-200;
     @apply hover:from-slate-700/80 hover:to-slate-800/80;
+    @apply min-w-[44px] h-8;
   }
 
   /* Number Display System */

@@ -693,4 +693,37 @@ export async function seedExercises() {
     }
     try { localStorage.setItem('exerciseSeedV4','1'); } catch {}
   }
+
+  // Phase 5: CORRECTED muscle group mappings - re-run pattern matching with fixed patterns
+  // Key fix: Triceps patterns now checked BEFORE lats patterns to prevent pushdowns from matching pulldowns
+  if(!localStorage.getItem('exerciseSeedV5')){
+    const allExercises = await db.getAll<Exercise>('exercises');
+    let updatedCount = 0;
+    for(const ex of allExercises){
+      const mapping = getMuscleGroupFromName(ex.name);
+      // Only update if pattern matched something specific (not 'other' fallback)
+      if(mapping.primary !== 'other'){
+        const needsUpdate = 
+          ex.muscleGroup !== mapping.primary ||
+          JSON.stringify(ex.secondaryMuscles?.sort()) !== JSON.stringify(mapping.secondary?.sort());
+        
+        if(needsUpdate){
+          const updated: Exercise = {
+            ...ex,
+            muscleGroup: mapping.primary,
+            secondaryMuscles: mapping.secondary,
+            // Re-infer tags with new muscle group
+            tags: inferTags(ex.name, mapping.primary, mapping.secondary),
+          };
+          await db.put('exercises', updated);
+          updatedCount++;
+        }
+      }
+    }
+    if(updatedCount > 0){
+      console.log(`[seedExercises] V5 migration: Corrected ${updatedCount} exercises with fixed muscle group patterns`);
+      try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
+    }
+    try { localStorage.setItem('exerciseSeedV5','1'); } catch {}
+  }
 }

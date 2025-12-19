@@ -2,10 +2,13 @@
  * Comprehensive exercise -> muscle group mapping
  * Uses pattern matching to auto-assign muscle groups based on exercise names
  * 
+ * ISOLATION exercises = PRIMARY MUSCLE ONLY (no secondary)
+ * COMPOUND exercises = PRIMARY + SECONDARY muscles
+ * 
  * Muscle Groups:
  * - chest: Pec major/minor exercises
  * - lats: Back width exercises (pulldowns, rows, pull-ups)
- * - traps: Upper back/neck (shrugs, upright rows, face pulls partial)
+ * - traps: Upper back/neck (shrugs, upright rows)
  * - delts: Front & lateral deltoids (overhead press, lateral raises, front raises)
  * - reardelts: Rear deltoids (rear delt fly, face pulls, reverse pec deck)
  * - triceps: All tricep isolation and pressing assistance
@@ -27,78 +30,164 @@ interface MuscleMapping {
 
 type PatternMapping = [RegExp, MuscleMapping];
 
-// Order matters - more specific patterns should come first
+// Order matters - more specific patterns MUST come first
+// IMPORTANT: Triceps patterns must come BEFORE any patterns containing "down"
 const EXERCISE_PATTERNS: PatternMapping[] = [
-  // === CHEST ===
-  [/bench\s*press|chest\s*press|push.?up/i, { primary: 'chest', secondary: ['triceps', 'delts'] }],
-  [/incline.*press|incline.*db|incline.*dumbbell/i, { primary: 'chest', secondary: ['triceps', 'delts'] }],
-  [/decline.*press/i, { primary: 'chest', secondary: ['triceps'] }],
-  [/pec\s*deck|pec\s*fly|chest\s*fly|cable\s*fly|fly\s*machine/i, { primary: 'chest' }],
-  [/dip(?!.*tricep)/i, { primary: 'chest', secondary: ['triceps', 'delts'] }],
+  // ========================================
+  // === TRICEPS (ISOLATION - must be first to catch pushdown before lats patterns) ===
+  // ========================================
+  [/tricep.*pushdown|triceps.*pushdown|pushdown.*tricep/i, { primary: 'triceps' }], // Specific tricep pushdowns
+  [/cable.*pushdown|rope.*pushdown|bar.*pushdown|v.?bar.*pushdown/i, { primary: 'triceps' }], // Cable pushdowns
+  [/pushdown|push.?down/i, { primary: 'triceps' }], // Generic pushdowns = triceps isolation
+  [/tricep.*extension|triceps.*extension|overhead.*extension/i, { primary: 'triceps' }], // Tricep extensions
+  [/skull\s*crush|skullcrusher/i, { primary: 'triceps' }], // Skull crushers
+  [/tricep.*kickback|kickback/i, { primary: 'triceps' }], // Kickbacks
+  [/close\s*grip.*bench|cgbp/i, { primary: 'triceps', secondary: ['chest'] }], // Close grip bench (compound)
+  [/tricep.*dip|dip.*tricep/i, { primary: 'triceps', secondary: ['chest'] }], // Tricep focused dips
+  [/french\s*press/i, { primary: 'triceps' }], // French press
+  [/jm\s*press/i, { primary: 'triceps', secondary: ['chest'] }], // JM Press
   
-  // === TRAPS (must come before general back patterns) ===
-  [/shrug/i, { primary: 'traps' }],
-  [/upright\s*row/i, { primary: 'traps', secondary: ['delts'] }],
+  // ========================================
+  // === BICEPS (ISOLATION) ===
+  // ========================================
+  [/bicep|biceps/i, { primary: 'biceps' }], // Anything with bicep in name
+  [/curl(?!.*leg|.*ham|.*nordic|.*wrist)/i, { primary: 'biceps' }], // Curls (not leg/ham/wrist curls)
+  [/bayesian/i, { primary: 'biceps' }], // Bayesian curl
+  [/preacher/i, { primary: 'biceps' }], // Preacher curl
+  [/concentration/i, { primary: 'biceps' }], // Concentration curl
+  [/hammer.*curl|hammer\s*curl/i, { primary: 'biceps' }], // Hammer curls
+  [/ez.*curl|ez\s*bar/i, { primary: 'biceps' }], // EZ bar curls
+  [/spider.*curl/i, { primary: 'biceps' }], // Spider curls
+  [/incline.*curl/i, { primary: 'biceps' }], // Incline curls
   
-  // === REAR DELTS (must come before general back/shoulder patterns) ===
-  [/rear\s*delt|reverse\s*fly|reverse\s*pec/i, { primary: 'reardelts' }],
-  [/face\s*pull/i, { primary: 'reardelts', secondary: ['traps'] }],
+  // ========================================
+  // === FOREARMS (ISOLATION) ===
+  // ========================================
+  [/wrist\s*curl|wrist.*curl/i, { primary: 'forearms' }], // Wrist curls
+  [/reverse\s*curl/i, { primary: 'forearms' }], // Reverse curls
+  [/forearm/i, { primary: 'forearms' }], // Forearm exercises
+  [/grip.*strength|grip.*train/i, { primary: 'forearms' }], // Grip training
   
-  // === LATS (Back Width) ===
-  [/lat\s*pulldown|pull.?down|pulldown/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }],
-  [/pull.?up|chin.?up/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }],
-  [/row(?!.*upright)/i, { primary: 'lats', secondary: ['biceps', 'reardelts', 'traps'] }],
-  [/cable\s*row|seated\s*row|chest\s*supported\s*row|single\s*arm\s*row|t.?bar|barbell\s*row/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }],
-  [/deadlift(?!.*romanian|.*rdl|.*stiff)/i, { primary: 'lats', secondary: ['hamstrings', 'glutes', 'traps'] }],
+  // ========================================
+  // === TRAPS (ISOLATION - must come before back patterns) ===
+  // ========================================
+  [/shrug/i, { primary: 'traps' }], // All shrugs = traps isolation
+  [/upright\s*row/i, { primary: 'traps', secondary: ['delts'] }], // Upright rows (compound)
   
-  // === DELTS (Front & Lateral) ===
-  [/lateral\s*raise|side\s*raise|lat\s*raise/i, { primary: 'delts' }],
-  [/front\s*raise/i, { primary: 'delts' }],
-  [/overhead\s*press|ohp|military\s*press|shoulder\s*press|arnold\s*press/i, { primary: 'delts', secondary: ['triceps', 'traps'] }],
-  [/db\s*press.*shoulder|dumbbell\s*press.*shoulder/i, { primary: 'delts', secondary: ['triceps'] }],
+  // ========================================
+  // === REAR DELTS (ISOLATION - must come before back/shoulder patterns) ===
+  // ========================================
+  [/rear\s*delt|reverse.*fly|reverse.*pec/i, { primary: 'reardelts' }], // Rear delt isolation
+  [/face\s*pull/i, { primary: 'reardelts', secondary: ['traps'] }], // Face pulls
+  [/band\s*pull.?apart/i, { primary: 'reardelts' }], // Band pull aparts
   
-  // === TRICEPS ===
-  [/tricep|pushdown|push.?down|skull\s*crush|close\s*grip|cgbp|overhead\s*extension|triceps/i, { primary: 'triceps' }],
-  [/dip.*tricep/i, { primary: 'triceps', secondary: ['chest'] }],
-  [/kickback/i, { primary: 'triceps' }],
+  // ========================================
+  // === DELTS - LATERAL/FRONT (ISOLATION) ===
+  // ========================================
+  [/lateral\s*raise|side\s*raise|lat\s*raise/i, { primary: 'delts' }], // Lateral raises = isolation
+  [/front\s*raise/i, { primary: 'delts' }], // Front raises = isolation
+  [/y\s*raise|cable.*y.*raise/i, { primary: 'delts' }], // Y raises
   
-  // === BICEPS ===
-  [/curl(?!.*leg|.*ham|.*nordic)/i, { primary: 'biceps' }],
-  [/bicep|bayesian|preacher|concentration|incline.*curl|hammer.*curl|ez.*curl|barbell.*curl/i, { primary: 'biceps' }],
+  // ========================================
+  // === DELTS - PRESSING (COMPOUND) ===
+  // ========================================
+  [/overhead\s*press|ohp|military\s*press|shoulder\s*press/i, { primary: 'delts', secondary: ['triceps'] }],
+  [/arnold\s*press/i, { primary: 'delts', secondary: ['triceps'] }],
+  [/db\s*press.*shoulder|dumbbell.*shoulder.*press/i, { primary: 'delts', secondary: ['triceps'] }],
+  [/seated.*press(?!.*chest|.*bench)/i, { primary: 'delts', secondary: ['triceps'] }], // Seated press (not chest)
   
-  // === FOREARMS ===
-  [/wrist\s*curl|forearm|reverse\s*curl|grip/i, { primary: 'forearms' }],
+  // ========================================
+  // === LATS (Back Width - COMPOUND) ===
+  // ========================================
+  [/lat\s*pulldown|lat\s*pull/i, { primary: 'lats', secondary: ['biceps'] }], // Lat pulldowns
+  [/pull.?up|chin.?up/i, { primary: 'lats', secondary: ['biceps'] }], // Pull-ups/chin-ups
+  [/pulldown(?!.*tricep|.*push)/i, { primary: 'lats', secondary: ['biceps'] }], // Generic pulldowns (NOT pushdowns)
+  [/row(?!.*upright)/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }], // All rows except upright
+  [/t.?bar/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }], // T-bar rows
+  [/cable.*row|seated.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Cable/seated rows
+  [/chest.*supported.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Chest supported rows
+  [/single\s*arm.*row|one\s*arm.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Single arm rows
+  [/straight\s*arm.*pulldown|pullover/i, { primary: 'lats' }], // Straight arm pulldown (isolation-ish)
   
-  // === QUADS ===
+  // ========================================
+  // === CHEST - ISOLATION ===
+  // ========================================
+  [/pec\s*deck|pec\s*fly/i, { primary: 'chest' }], // Pec deck = isolation
+  [/chest\s*fly|cable\s*fly|fly\s*machine|dumbbell\s*fly/i, { primary: 'chest' }], // Flyes = isolation
+  [/cable\s*crossover|cable\s*cross/i, { primary: 'chest' }], // Cable crossovers
+  
+  // ========================================
+  // === CHEST - PRESSING (COMPOUND) ===
+  // ========================================
+  [/bench\s*press|chest\s*press/i, { primary: 'chest', secondary: ['triceps', 'delts'] }],
+  [/incline.*press|incline.*bench/i, { primary: 'chest', secondary: ['triceps', 'delts'] }],
+  [/decline.*press|decline.*bench/i, { primary: 'chest', secondary: ['triceps'] }],
+  [/push.?up/i, { primary: 'chest', secondary: ['triceps', 'delts'] }], // Push-ups
+  [/dip(?!.*tricep)/i, { primary: 'chest', secondary: ['triceps', 'delts'] }], // Dips (chest focused)
+  [/floor\s*press/i, { primary: 'chest', secondary: ['triceps'] }],
+  
+  // ========================================
+  // === QUADS - ISOLATION ===
+  // ========================================
+  [/leg\s*extension|quad\s*extension/i, { primary: 'quads' }], // Leg extension = isolation
+  [/sissy\s*squat/i, { primary: 'quads' }], // Sissy squat = isolation
+  
+  // ========================================
+  // === QUADS - COMPOUND ===
+  // ========================================
   [/squat(?!.*split)/i, { primary: 'quads', secondary: ['glutes', 'hamstrings'] }],
   [/leg\s*press/i, { primary: 'quads', secondary: ['glutes'] }],
   [/hack\s*squat/i, { primary: 'quads', secondary: ['glutes'] }],
-  [/leg\s*extension|quad\s*extension/i, { primary: 'quads' }],
   [/lunge|split\s*squat|bulgarian/i, { primary: 'quads', secondary: ['glutes', 'hamstrings'] }],
   [/step.?up/i, { primary: 'quads', secondary: ['glutes'] }],
-  [/sissy\s*squat/i, { primary: 'quads' }],
+  [/front\s*squat/i, { primary: 'quads', secondary: ['glutes', 'core'] }],
   
-  // === HAMSTRINGS ===
-  [/leg\s*curl|ham.*curl|seated.*curl|lying.*curl|nordic/i, { primary: 'hamstrings' }],
-  [/rdl|romanian|stiff.?leg/i, { primary: 'hamstrings', secondary: ['glutes', 'lats'] }],
-  [/good\s*morning/i, { primary: 'hamstrings', secondary: ['glutes', 'lats'] }],
+  // ========================================
+  // === HAMSTRINGS - ISOLATION ===
+  // ========================================
+  [/leg\s*curl|ham.*curl|seated.*curl|lying.*curl/i, { primary: 'hamstrings' }], // Leg curls = isolation
+  [/nordic/i, { primary: 'hamstrings' }], // Nordic curls
+  [/glute.?ham.*raise|ghr/i, { primary: 'hamstrings', secondary: ['glutes'] }],
   
-  // === GLUTES ===
+  // ========================================
+  // === HAMSTRINGS - COMPOUND ===
+  // ========================================
+  [/rdl|romanian.*deadlift/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/stiff.?leg/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/good\s*morning/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/deadlift(?!.*romanian|.*rdl|.*stiff)/i, { primary: 'hamstrings', secondary: ['glutes', 'lats', 'traps'] }], // Conventional deadlift
+  
+  // ========================================
+  // === GLUTES - ISOLATION ===
+  // ========================================
   [/hip\s*thrust|glute\s*bridge|glute\s*drive/i, { primary: 'glutes', secondary: ['hamstrings'] }],
-  [/kickback.*glute|glute.*kickback|cable\s*pull.?through/i, { primary: 'glutes' }],
+  [/glute.*kickback|cable.*kickback.*glute/i, { primary: 'glutes' }],
   [/hip\s*abduct|abductor/i, { primary: 'glutes' }],
   [/hip\s*adduct|adductor/i, { primary: 'glutes' }],
+  [/cable\s*pull.?through/i, { primary: 'glutes', secondary: ['hamstrings'] }],
+  [/frog\s*pump/i, { primary: 'glutes' }],
   
-  // === CALVES ===
-  [/calf|calve|gastrocnemius|soleus/i, { primary: 'calves' }],
+  // ========================================
+  // === CALVES (ISOLATION) ===
+  // ========================================
+  [/calf|calve|calf\s*raise/i, { primary: 'calves' }],
   [/toe\s*raise|toe\s*press/i, { primary: 'calves' }],
+  [/donkey.*calf/i, { primary: 'calves' }],
+  [/seated.*calf|standing.*calf/i, { primary: 'calves' }],
   
-  // === CORE ===
+  // ========================================
+  // === CORE (mostly isolation) ===
+  // ========================================
   [/ab\s*wheel|ab.*roll/i, { primary: 'core' }],
-  [/crunch|sit.?up|leg\s*raise|hanging.*raise|plank|dead\s*bug|pallof|wood\s*chop/i, { primary: 'core' }],
-  [/cable\s*crunch|decline.*crunch|reverse\s*crunch/i, { primary: 'core' }],
+  [/crunch|sit.?up/i, { primary: 'core' }],
+  [/leg\s*raise|hanging.*raise|knee.*raise/i, { primary: 'core' }],
+  [/plank/i, { primary: 'core' }],
+  [/dead\s*bug/i, { primary: 'core' }],
+  [/pallof/i, { primary: 'core' }],
+  [/wood\s*chop/i, { primary: 'core' }],
   [/oblique|side\s*bend|russian\s*twist/i, { primary: 'core' }],
   [/back\s*extension|hyper.*extension/i, { primary: 'core', secondary: ['hamstrings', 'glutes'] }],
+  [/hollow.*hold/i, { primary: 'core' }],
 ];
 
 /**
