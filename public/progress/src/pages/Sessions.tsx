@@ -60,10 +60,14 @@ function TopMuscleAndContents({
   session,
   exMap,
   exNameCache,
+  muscleFilter,
+  onMuscleFilter,
 }: {
   session: Session;
   exMap: Map<string, Exercise>;
   exNameCache: Record<string, string>;
+  muscleFilter: string | null;
+  onMuscleFilter: (muscle: string | null) => void;
 }) {
   // Create a stable key that changes when working sets change
   const workingSetCount = useMemo(
@@ -98,6 +102,15 @@ function TopMuscleAndContents({
       .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
   }, [session, exMap, workingSetCount]); // Recompute when session changes, exercises change, or working set count changes
 
+  // Handle muscle icon click - toggle filter
+  const handleMuscleClick = (muscle: string) => {
+    if (muscleFilter === muscle) {
+      onMuscleFilter(null); // Clear filter if clicking the same muscle
+    } else {
+      onMuscleFilter(muscle); // Set filter to this muscle
+    }
+  };
+
   if (session.entries.length === 0) return null;
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1 px-2.5 sm:px-1">
@@ -105,11 +118,20 @@ function TopMuscleAndContents({
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
           {muscleCounts.map(([k, c]) => {
             const src = getMuscleIconPath(k);
+            const isActive = muscleFilter === k;
             return (
-              <div
+              <button
                 key={k}
-                className="badge-muscle icon-glow"
-                aria-label={`${k} working sets ${c}`}
+                onClick={() => handleMuscleClick(k)}
+                className={`badge-muscle icon-glow transition-all ${
+                  isActive
+                    ? "ring-2 ring-emerald-400 bg-emerald-500/20 scale-105"
+                    : muscleFilter && !isActive
+                    ? "opacity-50"
+                    : ""
+                }`}
+                aria-label={`${isActive ? "Clear filter" : "Filter by"} ${k} (${c} sets)`}
+                title={`${isActive ? "Click to clear filter" : "Click to filter by"} ${k}`}
               >
                 {src ? (
                   <img src={src} alt={k} className="w-5 h-5 object-contain" />
@@ -117,30 +139,63 @@ function TopMuscleAndContents({
                   <span className="w-5 h-5" />
                 )}
                 <span className="tabular-nums leading-none text-[10px]">{c}</span>
-              </div>
+              </button>
             );
           })}
+          {muscleFilter && (
+            <button
+              onClick={() => onMuscleFilter(null)}
+              className="text-[9px] px-2 py-1 rounded-md bg-red-500/20 text-red-300 hover:bg-red-500/30 transition whitespace-nowrap"
+              aria-label="Clear muscle filter"
+            >
+              ✕ Clear
+            </button>
+          )}
         </div>
       )}
       <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
-        {session.entries.map((en, i) => {
-          const ex = exMap.get(en.exerciseId);
-          const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i + 1}`;
-          const short = name.length > 16 ? name.slice(0, 14) + "…" : name;
-          return (
-            <button
-              key={en.id}
-              onClick={() => {
-                const el = document.getElementById(`exercise-${en.id}`);
-                if (el)
-                  el.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}
-              className="text-[9px] leading-none px-1.5 py-1 rounded-md bg-slate-700/50 hover:bg-slate-600/60 active:scale-95 transition text-slate-300 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-            >
-              {short}
-            </button>
-          );
-        })}
+        {session.entries
+          .filter((en) => {
+            // If no filter, show all
+            if (!muscleFilter) return true;
+            const ex = exMap.get(en.exerciseId);
+            if (!ex) return false;
+            // Check primary or secondary muscle
+            if (ex.muscleGroup === muscleFilter) return true;
+            if (ex.secondaryMuscles?.includes(muscleFilter as any)) return true;
+            return false;
+          })
+          .map((en, i) => {
+            const ex = exMap.get(en.exerciseId);
+            const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i + 1}`;
+            const short = name.length > 16 ? name.slice(0, 14) + "…" : name;
+            // Indicate if this is a secondary muscle contribution
+            const isSecondary = muscleFilter && ex?.muscleGroup !== muscleFilter;
+            return (
+              <button
+                key={en.id}
+                onClick={() => {
+                  const el = document.getElementById(`exercise-${en.id}`);
+                  if (el)
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className={`text-[9px] leading-none px-1.5 py-1 rounded-md hover:bg-slate-600/60 active:scale-95 transition text-slate-300 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${
+                  isSecondary
+                    ? "bg-slate-700/30 border border-dashed border-slate-500/50"
+                    : "bg-slate-700/50"
+                }`}
+                title={isSecondary ? `Secondary: ${muscleFilter}` : undefined}
+              >
+                {short}
+                {isSecondary && <span className="ml-0.5 opacity-60">*</span>}
+              </button>
+            );
+          })}
+        {muscleFilter && (
+          <span className="text-[8px] text-slate-500 self-center ml-1 whitespace-nowrap">
+            * = secondary
+          </span>
+        )}
       </div>
     </div>
   );
@@ -600,6 +655,8 @@ export default function Sessions() {
   const [focusMode, setFocusMode] = useState(false);
   const [focusedEntryId, setFocusedEntryId] = useState<string | null>(null);
   const focusPrevCollapsedRef = useRef<Record<string, boolean> | null>(null);
+  // Muscle group filter - when set, only show exercises that work this muscle
+  const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
   const toggleEntryCollapsed = (id: string) =>
     setCollapsedEntries((prev) => ({ ...prev, [id]: !prev[id] }));
   // Cache of day labels to avoid flicker before program loads
@@ -4803,11 +4860,26 @@ export default function Sessions() {
             session={session}
             exMap={exMap}
             exNameCache={exNameCache}
+            muscleFilter={muscleFilter}
+            onMuscleFilter={setMuscleFilter}
           />
         )}
         {!initialLoading &&
           session &&
-          session.entries.map((entry, entryIdx) => {
+          session.entries
+            .filter((entry) => {
+              // If no muscle filter, show all entries
+              if (!muscleFilter) return true;
+              // Check if this exercise works the filtered muscle (primary or secondary)
+              const ex = exMap.get(entry.exerciseId);
+              if (!ex) return false;
+              // Check primary muscle
+              if (ex.muscleGroup === muscleFilter) return true;
+              // Check secondary muscles
+              if (ex.secondaryMuscles?.includes(muscleFilter as any)) return true;
+              return false;
+            })
+            .map((entry, entryIdx) => {
             const ex = exMap.get(entry.exerciseId) || undefined;
             // derive previous best + nudge
             const prev = prevBestMap
