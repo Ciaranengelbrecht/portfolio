@@ -418,7 +418,9 @@ export default function ProgramSettings() {
           t.exerciseIds.forEach((eid) => {
             const ex = exMap.get(eid);
             if (!ex) return;
-            const sets = ex.defaults.sets || 0;
+            // Use template's planned sets if available, otherwise fall back to exercise defaults
+            const planEntry = t.plan?.find((p) => p.exerciseId === eid);
+            const sets = planEntry?.plannedSets ?? ex.defaults?.sets ?? 3;
             const m = ex.muscleGroup || "other";
             current[m] = (current[m] || 0) + sets;
             mv[m] = (mv[m] || 0) + sets;
@@ -460,7 +462,7 @@ export default function ProgramSettings() {
     })();
   }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
 
-  // Live projected weekly muscle volume from current working split + templates (defaults + secondary weighting)
+  // Live projected weekly muscle volume from current working split + templates (using planned sets from template)
   useEffect(() => {
     (async () => {
       const exercises = await db.getAll<Exercise>("exercises");
@@ -476,7 +478,9 @@ export default function ProgramSettings() {
           tpl.exerciseIds.forEach((eid) => {
             const ex = exMap.get(eid);
             if (!ex) return;
-            const sets = ex.defaults.sets || 0;
+            // Use template's planned sets if available, otherwise fall back to exercise defaults
+            const planEntry = tpl.plan?.find((p) => p.exerciseId === eid);
+            const sets = planEntry?.plannedSets ?? ex.defaults?.sets ?? 3;
             const mg = ex.muscleGroup || "other";
             muscleTotals[mg] = (muscleTotals[mg] || 0) + sets;
             mv[mg] = (mv[mg] || 0) + sets;

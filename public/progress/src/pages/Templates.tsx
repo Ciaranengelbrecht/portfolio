@@ -2,10 +2,42 @@ import { useEffect, useState, useMemo, type MouseEvent } from "react";
 import { db } from "../lib/db";
 import { requestRealtime } from "../lib/supabaseSync";
 import { waitForSession } from "../lib/supabase";
-import { Exercise, Template } from "../lib/types";
+import { Exercise, Template, MuscleGroup } from "../lib/types";
 import { nanoid } from "nanoid";
 
 const TEMPLATE_COLLAPSE_KEY = "templates:collapsedState";
+const SECONDARY_FACTOR = 0.5;
+
+/** Compute sets per muscle group from a template's planned sets */
+function computeMuscleSets(
+  template: Template,
+  exerciseMap: Map<string, Exercise>
+): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const exId of template.exerciseIds) {
+    const ex = exerciseMap.get(exId);
+    if (!ex) continue;
+    const planEntry = template.plan?.find((p) => p.exerciseId === exId);
+    const sets = planEntry?.plannedSets ?? ex.defaults?.sets ?? 3;
+    const mg = ex.muscleGroup || "other";
+    result[mg] = (result[mg] || 0) + sets;
+    if (ex.secondaryMuscles) {
+      for (const sm of ex.secondaryMuscles) {
+        result[sm] = (result[sm] || 0) + sets * SECONDARY_FACTOR;
+      }
+    }
+  }
+  return result;
+}
+
+/** Format muscle counts for display (sorted by count desc) */
+function formatMuscleCounts(counts: Record<string, number>): string {
+  return Object.entries(counts)
+    .filter(([_, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([m, v]) => `${m}: ${Math.round(v * 10) / 10}`)
+    .join(" · ");
+}
 
 export default function Templates() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -113,6 +145,12 @@ export default function Templates() {
       return changed ? next : prev;
     });
   }, [templates]);
+
+  // Memoized exercise map for muscle calculations
+  const exerciseMap = useMemo(
+    () => new Map(exercises.map((e) => [e.id, e] as const)),
+    [exercises]
+  );
 
   const buildDefaultPlan = (ex: Exercise) => ({
     exerciseId: ex.id,
@@ -455,17 +493,70 @@ export default function Templates() {
               </div>
             </div>
             {collapsed[t.id] ? (
-              <div className="mt-2 text-[11px] text-gray-400 line-clamp-2">
-                {t.exerciseIds
-                  .map(
-                    (id) =>
-                      exercises.find((e) => e.id === id)?.name || "Unknown"
-                  )
-                  .filter(Boolean)
-                  .join(", ")}
+              <div className="mt-2 space-y-1.5">
+                {/* Muscle set counts */}
+                {(() => {
+                  const counts = computeMuscleSets(t, exerciseMap);
+                  const entries = Object.entries(counts)
+                    .filter(([_, v]) => v > 0)
+                    .sort((a, b) => b[1] - a[1]);
+                  if (!entries.length) return null;
+                  return (
+                    <div className="flex flex-wrap gap-1.5">
+                      {entries.slice(0, 6).map(([m, v]) => (
+                        <span
+                          key={m}
+                          className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md capitalize"
+                        >
+                          {m}: {Math.round(v * 10) / 10}
+                        </span>
+                      ))}
+                      {entries.length > 6 && (
+                        <span className="text-[10px] text-gray-500">
+                          +{entries.length - 6} more
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+                {/* Exercise list preview */}
+                <div className="text-[11px] text-gray-400 line-clamp-2">
+                  {t.exerciseIds
+                    .map(
+                      (id) =>
+                        exercises.find((e) => e.id === id)?.name || "Unknown"
+                    )
+                    .filter(Boolean)
+                    .join(", ")}
+                </div>
               </div>
             ) : (
               <>
+                {/* Muscle set counts in expanded view */}
+                {(() => {
+                  const counts = computeMuscleSets(t, exerciseMap);
+                  const entries = Object.entries(counts)
+                    .filter(([_, v]) => v > 0)
+                    .sort((a, b) => b[1] - a[1]);
+                  if (!entries.length) return null;
+                  return (
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[10px] uppercase tracking-wide text-gray-500">
+                        Projected Sets / Muscle
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {entries.map(([m, v]) => (
+                          <span
+                            key={m}
+                            className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md capitalize"
+                          >
+                            {m}: {Math.round(v * 10) / 10}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="mt-2 text-sm text-gray-300">
                   Exercises: {t.exerciseIds.length}
                 </div>
