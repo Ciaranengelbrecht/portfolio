@@ -2855,14 +2855,45 @@ export default function Sessions() {
 
   const addSet = (entry: SessionEntry) => {
     if (!session) return;
+    
+    // Check if there are any existing sets with actual work (weight or reps filled in)
+    const setsWithWork = entry.sets.filter(
+      (s) => (s.weightKg || 0) > 0 || (s.reps || 0) > 0
+    );
+    const hasExistingWork = setsWithWork.length > 0;
+    
+    // Get the last set for potential prefill
     const last = [...entry.sets]
       .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
       .slice(-1)[0];
+    
+    // Determine prefill values:
+    // - If there's existing work, use the last set's values (current behavior)
+    // - If no existing work, try to use previous session's best (from prevBestMap)
+    let prefillWeight: number | null = null;
+    let prefillReps: number | null = null;
+    let prefillRpe: number | undefined = undefined;
+    
+    if (hasExistingWork && last) {
+      // Use last set values from current entry
+      prefillWeight = last.weightKg ?? null;
+      prefillReps = last.reps ?? null;
+      prefillRpe = last.rpe;
+    } else if (prevBestMap) {
+      // First set with no work - use previous session's best
+      const prevBest = getPrevBest(prevBestMap, entry.exerciseId);
+      if (prevBest?.set) {
+        prefillWeight = prevBest.set.weightKg ?? null;
+        prefillReps = prevBest.set.reps ?? null;
+        prefillRpe = prevBest.set.rpe;
+      }
+    }
+    
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
-      weightKg: last?.weightKg ?? null,
-      reps: last?.reps ?? null,
-      rpe: last?.rpe,
+      weightKg: prefillWeight,
+      reps: prefillReps,
+      rpe: prefillRpe,
       addedAt: new Date().toISOString(),
     };
     const newEntry = { ...entry, sets: [...entry.sets, next] };
