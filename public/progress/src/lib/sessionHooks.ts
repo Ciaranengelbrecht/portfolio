@@ -53,6 +53,8 @@ export function useSessionReady(session: Session | null, exMap: Map<string, Exer
 
 /**
  * Extract muscle counts computation (heavy operation)
+ * Counts sets that have actual work (reps > 0 OR weight > 0)
+ * Primary muscle gets full credit, secondary muscles get 0.5x
  */
 export function computeMuscleCounts(
   session: Session | null,
@@ -65,22 +67,24 @@ export function computeMuscleCounts(
     const ex = exMap.get(entry.exerciseId);
     if (!ex) continue;
     
-    const completedSets = entry.sets.filter(
-      (s) => s.completedAt && (s.reps || 0) > 0
+    // Count sets with actual work (matches analytics criteria)
+    // Using OR logic: either reps > 0 OR weight > 0 constitutes a working set
+    const workingSets = entry.sets.filter(
+      (s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0
     ).length;
     
-    if (completedSets === 0) continue;
+    if (workingSets === 0) continue;
     
-    // Primary muscle
+    // Primary muscle gets full credit
     if (ex.muscleGroup) {
-      counts[ex.muscleGroup] = (counts[ex.muscleGroup] || 0) + completedSets;
+      counts[ex.muscleGroup] = (counts[ex.muscleGroup] || 0) + workingSets;
     }
     
-    // Secondary muscles (0.5x weighting for compounds)
+    // Secondary muscles get 0.5x weighting for compounds
     if (ex.secondaryMuscles?.length) {
       const weight = 0.5;
       for (const muscle of ex.secondaryMuscles) {
-        counts[muscle] = (counts[muscle] || 0) + completedSets * weight;
+        counts[muscle] = (counts[muscle] || 0) + workingSets * weight;
       }
     }
   }

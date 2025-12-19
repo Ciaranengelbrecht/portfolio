@@ -65,7 +65,18 @@ function TopMuscleAndContents({
   exMap: Map<string, Exercise>;
   exNameCache: Record<string, string>;
 }) {
-  // Optimized: Use extracted computeMuscleCounts with proper memoization
+  // Create a stable key that changes when working sets change
+  const workingSetCount = useMemo(
+    () =>
+      session.entries.reduce(
+        (sum, e) =>
+          sum + e.sets.filter((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0).length,
+        0
+      ),
+    [session.entries]
+  );
+
+  // Compute muscle counts - recompute when working set count changes
   const muscleCounts = useMemo(() => {
     const counts = computeMuscleCounts(session, exMap);
     const order = [
@@ -85,7 +96,7 @@ function TopMuscleAndContents({
     return Object.entries(counts)
       .filter(([, c]) => c > 0)
       .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-  }, [session.id, session.entries.length, exMap]); // Only recompute when session ID or entry count changes
+  }, [session, exMap, workingSetCount]); // Recompute when session changes, exercises change, or working set count changes
 
   if (session.entries.length === 0) return null;
   return (
