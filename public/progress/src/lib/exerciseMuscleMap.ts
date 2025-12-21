@@ -51,7 +51,7 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   // === BICEPS (ISOLATION) ===
   // ========================================
   [/bicep|biceps/i, { primary: 'biceps' }], // Anything with bicep in name
-  [/curl(?!.*leg|.*ham|.*nordic|.*wrist)/i, { primary: 'biceps' }], // Curls (not leg/ham/wrist curls)
+  [/(?<!leg.{0,20})(?<!ham.{0,20})(?<!nordic.{0,20})(?<!wrist.{0,20})curl(?!.*leg)(?!.*ham)(?!.*nordic)(?!.*wrist)/i, { primary: 'biceps' }], // Curls (not leg/ham/wrist curls)
   [/bayesian/i, { primary: 'biceps' }], // Bayesian curl
   [/preacher/i, { primary: 'biceps' }], // Preacher curl
   [/concentration/i, { primary: 'biceps' }], // Concentration curl
@@ -99,9 +99,9 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   // ========================================
   // === LATS (Back Width - COMPOUND) ===
   // ========================================
-  [/lat\s*pulldown|lat\s*pull/i, { primary: 'lats', secondary: ['biceps'] }], // Lat pulldowns
+  [/(?<!tricep.{0,20})(?<!triceps.{0,20})(?<!push.{0,20})(lat\s*pulldown|lat\s*pull)/i, { primary: 'lats', secondary: ['biceps'] }], // Lat pulldowns (not tricep-related)
   [/pull.?up|chin.?up/i, { primary: 'lats', secondary: ['biceps'] }], // Pull-ups/chin-ups
-  [/pulldown(?!.*tricep|.*push)/i, { primary: 'lats', secondary: ['biceps'] }], // Generic pulldowns (NOT pushdowns)
+  [/(?<!tricep.{0,20})(?<!triceps.{0,20})(?<!push.{0,20})pulldown(?!.*tricep)(?!.*push)/i, { primary: 'lats', secondary: ['biceps'] }], // Generic pulldowns (NOT pushdowns or tricep-related)
   [/row(?!.*upright)/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }], // All rows except upright
   [/t.?bar/i, { primary: 'lats', secondary: ['biceps', 'reardelts'] }], // T-bar rows
   [/cable.*row|seated.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Cable/seated rows
