@@ -10,7 +10,7 @@ import { getMuscleGroupFromName } from './exerciseMuscleMap';
 
 interface SeedItem { name: string; muscleGroup: MuscleGroup; secondaryMuscles?: MuscleGroup[] }
 
-export const EXERCISE_SEED: SeedItem[] = [
+const RAW_EXERCISE_SEED: SeedItem[] = [
   // Chest (pressing / fly variations)
   { name: 'Barbell Bench Press (Flat)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
   { name: 'Barbell Bench Press (Close Grip)', muscleGroup: 'triceps', secondaryMuscles: ['chest','shoulders'] },
@@ -208,7 +208,7 @@ export const EXERCISE_SEED: SeedItem[] = [
 
 const norm = (s:string)=> s.trim().toLowerCase();
 /** Additional expansion list (V2) bringing catalogue toward 400+ entries */
-const ADDITIONAL_EXERCISES_V2: SeedItem[] = [
+const RAW_ADDITIONAL_EXERCISES_V2: SeedItem[] = [
   // Olympic lift derivatives
   { name: 'Power Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','core'] },
   { name: 'Hang Power Clean', muscleGroup: 'legs', secondaryMuscles: ['glutes','back','core'] },
@@ -329,7 +329,7 @@ const ADDITIONAL_EXERCISES_V2: SeedItem[] = [
 ];
 
 /** Comprehensive expansion (V3) – broad coverage of common gym movements across equipment & variations */
-const ADDITIONAL_EXERCISES_V3: SeedItem[] = [
+const RAW_ADDITIONAL_EXERCISES_V3: SeedItem[] = [
   // Chest - additional presses
   { name: 'Barbell Bench Press (Touch and Go)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
   { name: 'Barbell Bench Press (2-Count Pause)', muscleGroup: 'chest', secondaryMuscles: ['triceps','shoulders'] },
@@ -536,6 +536,44 @@ const ADDITIONAL_EXERCISES_V3: SeedItem[] = [
   { name: 'Snatch Balance', muscleGroup: 'legs', secondaryMuscles: ['glutes','shoulders','core'] },
   { name: 'Push Press (Barbell)', muscleGroup: 'shoulders', secondaryMuscles: ['triceps','legs','core'] },
 ];
+
+// Normalize legacy muscle labels to the new specific groups
+const normalizeLegacyMuscle = (group?: string): MuscleGroup | undefined => {
+  if (!group) return undefined;
+  const lower = group.toLowerCase();
+  if (lower === 'back') return 'lats';
+  if (lower === 'shoulders') return 'delts';
+  if (lower === 'legs') return 'quads';
+  if (lower === 'forearm' || lower === 'forearms') return 'forearms';
+  if (lower === 'hip flexors') return 'core';
+  if (lower === 'arms') return 'biceps';
+  return lower as MuscleGroup;
+};
+
+// Use pattern-based mapping as source of truth for seed data
+const normalizeSeedItem = (item: SeedItem): SeedItem => {
+  const mapping = getMuscleGroupFromName(item.name);
+  if (mapping.primary !== 'other') {
+    return {
+      ...item,
+      muscleGroup: mapping.primary,
+      secondaryMuscles: mapping.secondary,
+    };
+  }
+
+  // Fallback: normalize legacy labels on provided data
+  const primary = normalizeLegacyMuscle(item.muscleGroup) ?? 'other';
+  const secondary = item.secondaryMuscles
+    ?.map(m => normalizeLegacyMuscle(m))
+    .filter((m): m is MuscleGroup => Boolean(m));
+
+  return { ...item, muscleGroup: primary, secondaryMuscles: secondary };
+};
+
+// Normalized exports consumed by seed routines
+export const EXERCISE_SEED: SeedItem[] = RAW_EXERCISE_SEED.map(normalizeSeedItem);
+const ADDITIONAL_EXERCISES_V2: SeedItem[] = RAW_ADDITIONAL_EXERCISES_V2.map(normalizeSeedItem);
+const ADDITIONAL_EXERCISES_V3: SeedItem[] = RAW_ADDITIONAL_EXERCISES_V3.map(normalizeSeedItem);
 
 // Basic tag inference (deterministic, idempotent)
 function inferTags(name: string, mg: MuscleGroup, secondary?: MuscleGroup[]): string[] {
