@@ -166,6 +166,7 @@ export interface SetStressRecord {
   muscle: MuscleGroup;
   startMs: number; // completion timestamp in ms
   s0: number; // initial stress value before decay
+  recoveryMult: number; // slows or speeds recovery decay per exercise type
 }
 
 export interface MuscleRecoveryState {
@@ -190,10 +191,37 @@ export interface RecoveryBundle {
 // - Effort (RPE-based or assumed)
 // - Exercise type (compound vs isolation, high-fatigue movements)
 // - Eccentric stress considerations
+const DEFAULT_WEIGHT_BY_MUSCLE: Record<MuscleGroup, number> = {
+  chest: 35,
+  lats: 35,
+  traps: 30,
+  delts: 25,
+  reardelts: 20,
+  biceps: 18,
+  triceps: 18,
+  forearms: 12,
+  quads: 55,
+  hamstrings: 50,
+  glutes: 50,
+  calves: 30,
+  core: 22,
+  other: 22,
+  back: 35,
+  shoulders: 25,
+  legs: 55,
+};
+
+function resolveEffectiveWeightKg(set: SetEntry, primary: MuscleGroup): number {
+  const w = set.weightKg;
+  if (w != null && w > 0) return w;
+  // Estimate a reasonable load when weight is missing (bodyweight/blank entries)
+  return DEFAULT_WEIGHT_BY_MUSCLE[primary] ?? 25;
+}
+
 function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGroup, whenMs: number): SetStressRecord[] {
-  if (!set.reps || !set.weightKg || set.reps <= 0 || set.weightKg <= 0) return [];
+  if (!set.reps || set.reps <= 0) return [];
   const reps = set.reps;
-  const weight = set.weightKg;
+  const weight = resolveEffectiveWeightKg(set, primary);
   
   // ==== INTENSITY CALCULATION ====
   // Smart intensity calculation - uses relative intensity zones
@@ -227,10 +255,13 @@ function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGrou
   // ==== EXERCISE TYPE MODIFIERS ====
   const exerciseModifiers = classifyExercise(exercise.name);
   const stressMult = exerciseModifiers.stressMultiplier;
+  const recoveryMult = exerciseModifiers.recoveryMultiplier;
   
   // ==== ECCENTRIC STRESS MODIFIER ====
   // Exercises with high eccentric component cause more muscle damage
-  const eccentricMod = hasHighEccentric(exercise.name) ? 1.15 : 1.0;
+  const highEccentric = hasHighEccentric(exercise.name);
+  const eccentricMod = highEccentric ? 1.15 : 1.0;
+  const decayMult = recoveryMult * (highEccentric ? 1.1 : 1.0);
 
   // Normalize secondary muscles to new specific groups
   const secondaryMuscles = (exercise.secondaryMuscles || [])
@@ -247,7 +278,7 @@ function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGrou
     // Handle case where MUSCLE_MOD might not have the muscle (fallback to 1.0)
     const mod = (MUSCLE_MOD[m] ?? 1.0) * secondaryContrib;
     const s0 = base * mod;
-    return { muscle: m, startMs: whenMs, s0 };
+    return { muscle: m, startMs: whenMs, s0, recoveryMult: decayMult };
   });
 }
 
@@ -327,8 +358,9 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     for (const rec of list) {
       const age = now - rec.startMs;
       if (age < 0) continue; // Future timestamp, ignore
+      const perSetTau = tau * (rec.recoveryMult || 1);
       // Apply frequency modifier to stress decay
-      const rem = rec.s0 * frequencyMod * Math.exp(-age / tau);
+      const rem = rec.s0 * frequencyMod * Math.exp(-age / perSetTau);
       remaining += rem;
       if (rec.startMs > mostRecentWorkout) mostRecentWorkout = rec.startMs;
     }
