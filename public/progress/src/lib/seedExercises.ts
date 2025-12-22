@@ -764,4 +764,33 @@ export async function seedExercises() {
     }
     try { localStorage.setItem('exerciseSeedV5','1'); } catch {}
   }
+
+  // Phase 6: Enhanced mappings (leg press foot placements, swings, Olympic lifts, overhead squat, straight-arm pulldown secondaries)
+  if(!localStorage.getItem('exerciseSeedV6')){
+    const allExercises = await db.getAll<Exercise>('exercises');
+    let updatedCount = 0;
+    for(const ex of allExercises){
+      const mapping = getMuscleGroupFromName(ex.name);
+      if(mapping.primary !== 'other'){
+        const needsUpdate = 
+          ex.muscleGroup !== mapping.primary ||
+          JSON.stringify(ex.secondaryMuscles?.sort()) !== JSON.stringify(mapping.secondary?.sort());
+        if(needsUpdate){
+          const updated: Exercise = {
+            ...ex,
+            muscleGroup: mapping.primary,
+            secondaryMuscles: mapping.secondary,
+            tags: inferTags(ex.name, mapping.primary, mapping.secondary),
+          };
+          await db.put('exercises', updated);
+          updatedCount++;
+        }
+      }
+    }
+    if(updatedCount > 0){
+      console.log(`[seedExercises] V6 migration: Updated ${updatedCount} exercises with enhanced mappings`);
+      try { window.dispatchEvent(new CustomEvent('sb-change',{ detail:{ table:'exercises' }})); } catch {}
+    }
+    try { localStorage.setItem('exerciseSeedV6','1'); } catch {}
+  }
 }

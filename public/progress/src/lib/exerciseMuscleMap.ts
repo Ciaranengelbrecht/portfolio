@@ -48,10 +48,48 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   [/jm\s*press/i, { primary: 'triceps', secondary: ['chest'] }], // JM Press
   
   // ========================================
+  // === HAMSTRINGS (ISOLATION) — placed early to avoid biceps curl collisions ===
+  // ========================================
+  [/leg\s*curl|ham.*curl|seated.*curl|lying.*curl|hamstring.*curl/i, { primary: 'hamstrings' }], // Leg/hamstring curls = isolation
+  [/nordic/i, { primary: 'hamstrings' }], // Nordic curls
+  [/glute.?ham.*raise|ghr/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+
+  // ========================================
+  // === HAMSTRINGS (COMPOUND) ===
+  // ========================================
+  [/rdl|romanian.*deadlift/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/stiff.?leg/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/good\s*morning/i, { primary: 'hamstrings', secondary: ['glutes'] }],
+  [/deadlift(?!.*romanian|.*rdl|.*stiff)/i, { primary: 'hamstrings', secondary: ['glutes', 'lats', 'traps'] }], // Conventional deadlift
+
+  // ========================================
+  // === OLYMPIC / POWER (COMPOUND) ===
+  // ========================================
+  [/clean(?!.*press)(?!.*jerk).*pull/i, { primary: 'quads', secondary: ['glutes', 'hamstrings', 'traps', 'core'] }], // Clean pulls
+  [/(power|hang|muscle)\s*clean|clean\s*(and\s*press)?(?!.*pull)/i, { primary: 'quads', secondary: ['glutes', 'hamstrings', 'traps', 'core'] }], // Cleans
+  [/snatch\s*balance|power\s*snatch|hang\s*snatch|muscle\s*snatch|\bsnatch\b/i, { primary: 'quads', secondary: ['glutes', 'hamstrings', 'delts', 'traps', 'core'] }], // Snatch family
+  [/jerk/i, { primary: 'delts', secondary: ['triceps', 'quads', 'glutes', 'core'] }], // Jerks
+  [/high\s*pull/i, { primary: 'traps', secondary: ['hamstrings', 'glutes'] }],
+
+  // ========================================
+  // === KETTLEBELL SWINGS (HINGE) ===
+  // ========================================
+  [/american\s*swing/i, { primary: 'hamstrings', secondary: ['glutes', 'delts', 'core'] }],
+  [/swing/i, { primary: 'hamstrings', secondary: ['glutes', 'core'] }],
+
+  // ========================================
+  // === FOREARMS (ISOLATION) — ahead of biceps to catch reverse/wrist curls ===
+  // ========================================
+  [/wrist\s*curl|wrist.*curl/i, { primary: 'forearms' }], // Wrist curls
+  [/reverse\s*curl/i, { primary: 'forearms' }], // Reverse curls
+  [/forearm/i, { primary: 'forearms' }], // Forearm exercises
+  [/grip.*strength|grip.*train/i, { primary: 'forearms' }], // Grip training
+
+  // ========================================
   // === BICEPS (ISOLATION) ===
   // ========================================
-  [/bicep|biceps/i, { primary: 'biceps' }], // Anything with bicep in name
-  [/curl(?!.*leg|.*ham|.*nordic|.*wrist)/i, { primary: 'biceps' }], // Curls (not leg/ham/wrist curls)
+  [/\bbiceps?/i, { primary: 'biceps' }], // Anything explicitly labelled biceps
+  [/^(?!.*(leg|ham|string|hamstring|nordic|wrist|forearm|reverse).*curl).*\bcurl\b/i, { primary: 'biceps' }], // Upper-body curls only (exclude leg/ham/wrist/reverse)
   [/bayesian/i, { primary: 'biceps' }], // Bayesian curl
   [/preacher/i, { primary: 'biceps' }], // Preacher curl
   [/concentration/i, { primary: 'biceps' }], // Concentration curl
@@ -59,14 +97,6 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   [/ez.*curl|ez\s*bar/i, { primary: 'biceps' }], // EZ bar curls
   [/spider.*curl/i, { primary: 'biceps' }], // Spider curls
   [/incline.*curl/i, { primary: 'biceps' }], // Incline curls
-  
-  // ========================================
-  // === FOREARMS (ISOLATION) ===
-  // ========================================
-  [/wrist\s*curl|wrist.*curl/i, { primary: 'forearms' }], // Wrist curls
-  [/reverse\s*curl/i, { primary: 'forearms' }], // Reverse curls
-  [/forearm/i, { primary: 'forearms' }], // Forearm exercises
-  [/grip.*strength|grip.*train/i, { primary: 'forearms' }], // Grip training
   
   // ========================================
   // === TRAPS (ISOLATION - must come before back patterns) ===
@@ -107,7 +137,7 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   [/cable.*row|seated.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Cable/seated rows
   [/chest.*supported.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Chest supported rows
   [/single\s*arm.*row|one\s*arm.*row/i, { primary: 'lats', secondary: ['biceps'] }], // Single arm rows
-  [/straight\s*arm.*pulldown|pullover/i, { primary: 'lats' }], // Straight arm pulldown (isolation-ish)
+  [/straight\s*arm.*pulldown|pullover/i, { primary: 'lats', secondary: ['triceps', 'delts'] }], // Straight arm pulldown (isolation-ish)
   
   // ========================================
   // === CHEST - ISOLATION ===
@@ -135,27 +165,17 @@ const EXERCISE_PATTERNS: PatternMapping[] = [
   // ========================================
   // === QUADS - COMPOUND ===
   // ========================================
+  [/leg\s*press.*(feet\s*high|high\s*foot|high\s*wide)/i, { primary: 'hamstrings', secondary: ['glutes', 'quads'] }], // Hamstring-biased leg press
+  [/leg\s*press.*(feet\s*low|low\s*narrow)/i, { primary: 'quads', secondary: ['glutes'] }], // Quad-biased leg press
+  [/leg\s*press.*calf/i, { primary: 'calves', secondary: ['quads'] }], // Calf press on leg press sled
+  [/vertical\s*leg\s*press/i, { primary: 'quads', secondary: ['glutes', 'hamstrings'] }],
+  [/overhead\s*squat/i, { primary: 'quads', secondary: ['glutes', 'core', 'delts'] }],
   [/squat(?!.*split)/i, { primary: 'quads', secondary: ['glutes', 'hamstrings'] }],
   [/leg\s*press/i, { primary: 'quads', secondary: ['glutes'] }],
   [/hack\s*squat/i, { primary: 'quads', secondary: ['glutes'] }],
   [/lunge|split\s*squat|bulgarian/i, { primary: 'quads', secondary: ['glutes', 'hamstrings'] }],
   [/step.?up/i, { primary: 'quads', secondary: ['glutes'] }],
   [/front\s*squat/i, { primary: 'quads', secondary: ['glutes', 'core'] }],
-  
-  // ========================================
-  // === HAMSTRINGS - ISOLATION ===
-  // ========================================
-  [/leg\s*curl|ham.*curl|seated.*curl|lying.*curl/i, { primary: 'hamstrings' }], // Leg curls = isolation
-  [/nordic/i, { primary: 'hamstrings' }], // Nordic curls
-  [/glute.?ham.*raise|ghr/i, { primary: 'hamstrings', secondary: ['glutes'] }],
-  
-  // ========================================
-  // === HAMSTRINGS - COMPOUND ===
-  // ========================================
-  [/rdl|romanian.*deadlift/i, { primary: 'hamstrings', secondary: ['glutes'] }],
-  [/stiff.?leg/i, { primary: 'hamstrings', secondary: ['glutes'] }],
-  [/good\s*morning/i, { primary: 'hamstrings', secondary: ['glutes'] }],
-  [/deadlift(?!.*romanian|.*rdl|.*stiff)/i, { primary: 'hamstrings', secondary: ['glutes', 'lats', 'traps'] }], // Conventional deadlift
   
   // ========================================
   // === GLUTES - ISOLATION ===
