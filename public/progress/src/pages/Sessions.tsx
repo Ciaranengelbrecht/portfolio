@@ -3331,9 +3331,8 @@ export default function Sessions() {
         reps: avgReps,
       }));
     } else {
-      sets = lastSets.length
-        ? lastSets
-        : [{ setNumber: 1, weightKg: null, reps: null }];
+      // Default to 0 sets; user can add sets as needed
+      sets = lastSets.length ? lastSets : [];
     }
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
     const updated = { ...session, entries: [...session.entries, entry] };
@@ -3419,17 +3418,9 @@ export default function Sessions() {
       );
       if (!ok) return;
     }
-    const base = entry.sets.length || newEx.defaults?.sets || 3;
-    const rows = Math.max(0, base);
-    const newSets: SetEntry[] =
-      rows === 0
-        ? []
-        : Array.from({ length: rows }, (_, i) => ({
-            setNumber: i + 1,
-            weightKg: null,
-            reps: null,
-            rpe: entry.sets[i]?.rpe,
-          }));
+    // Default to 0 sets when swapping; user can add sets as needed
+    const rows = 0;
+    const newSets: SetEntry[] = [];
     const newEntry: SessionEntry = {
       ...entry,
       exerciseId: newEx.id,
