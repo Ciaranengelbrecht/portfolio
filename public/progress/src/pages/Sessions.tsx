@@ -2046,6 +2046,11 @@ export default function Sessions() {
       (updated as any).loggedEndAt = now;
       changed = true;
     }
+    // Tag session with current training mode when it gets real work for the first time
+    if (hasDataAfter && !hadDataBefore && !updated.trainingMode && currentTrainingMode) {
+      (updated as any).trainingMode = currentTrainingMode;
+      changed = true;
+    }
     // Robust per-day work log tracking (local date key)
     try {
       const d = new Date();
@@ -3305,8 +3310,8 @@ export default function Sessions() {
     // Persist to settings for future sessions
     const s = await getSettings();
     await setSettings({ ...s, currentTrainingMode: mode });
-    // Update current session if it exists and doesn't have a mode yet
-    if (session && !session.trainingMode) {
+    // Always update current session's mode if it exists
+    if (session) {
       const updated = { ...session, trainingMode: mode, updatedAt: new Date().toISOString() };
       setSession(updated);
       await persistSession(updated);
@@ -4239,15 +4244,6 @@ export default function Sessions() {
                 </span>
               </div>
             )}
-            {/* Training mode badge - subtle indicator */}
-            {session?.trainingMode && (
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
-                  Mode
-                </span>
-                <TrainingModeBadge mode={session.trainingMode} size="sm" />
-              </div>
-            )}
             {/* Toggle for expanded controls */}
             <button
               type="button"
@@ -4332,9 +4328,14 @@ export default function Sessions() {
                   {/* Session date & quick actions */}
                   {session && (
                     <div className="flex min-w-[220px] flex-1 flex-col gap-1">
-                      <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
-                        Session Date
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                          Session Date
+                        </span>
+                        {session.trainingMode && (
+                          <TrainingModeBadge mode={session.trainingMode} size="xs" />
+                        )}
+                      </div>
                       <div
                         className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-slate-900/70 px-2.5 py-1.5 text-[11px] text-slate-100"
                         title="Current assigned date (edit or stamp)"
