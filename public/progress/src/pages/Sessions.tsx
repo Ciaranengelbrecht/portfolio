@@ -17,6 +17,7 @@ import {
   SetEntry,
   Template,
   Settings,
+  TrainingMode,
 } from "../lib/types";
 import { buildSuggestions } from "../lib/progression";
 import { useProgram } from "../state/program";
@@ -53,6 +54,8 @@ import { getMuscleIconPath } from "../lib/muscles";
 import { useExerciseMap, computeMuscleCounts } from "../lib/sessionHooks";
 import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
 import { fuzzySearch, highlightMatches } from "../lib/fuzzySearch";
+import TrainingModeBadge from "../components/TrainingModeBadge";
+import TrainingModeSelector from "../components/TrainingModeSelector";
 
 const KG_TO_LB = 2.2046226218;
 
@@ -642,6 +645,8 @@ export default function Sessions() {
   const [toolsOpen, setToolsOpen] = useState(false);
   // Top toolbar collapsed state (default collapsed to save space)
   const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
+  // Current training mode (bulk/cut/maintenance) - persisted in settings
+  const [currentTrainingMode, setCurrentTrainingMode] = useState<TrainingMode | undefined>(undefined);
   const [wipeSheetOpen, setWipeSheetOpen] = useState(false);
   const [wipeBusy, setWipeBusy] = useState(false);
   const [wipeCounts, setWipeCounts] = useState<WipeCounts | null>(null);
@@ -1162,6 +1167,21 @@ export default function Sessions() {
       }
     })();
   }, []);
+
+  // Load current training mode from settings on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await getSettings();
+        if (s.currentTrainingMode) {
+          setCurrentTrainingMode(s.currentTrainingMode);
+        }
+      } catch (err) {
+        console.warn("[Sessions] Failed to load training mode:", err);
+      }
+    })();
+  }, []);
+
   // Load exercise name cache on mount and persist updates
   useEffect(() => {
     try {
@@ -1858,6 +1878,9 @@ export default function Sessions() {
             now.getMonth() + 1
           ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
           const nowISO = new Date().toISOString();
+          // Get current training mode from settings to tag new session
+          const currentSettings = await getSettings();
+          const trainingMode = currentSettings.currentTrainingMode;
           s = {
             id,
             dateISO: (() => {
@@ -1873,6 +1896,7 @@ export default function Sessions() {
             entries: [],
             templateId: templateMeta?.templateId,
             programId: program?.id,
+            trainingMode, // Tag session with current training mode
             createdAt: nowISO,
             updatedAt: nowISO,
           } as Session;
@@ -1922,6 +1946,10 @@ export default function Sessions() {
           }
         }
         setSession(s);
+        // Sync training mode state with session's mode (if set)
+        if (s.trainingMode) {
+          setCurrentTrainingMode(s.trainingMode);
+        }
         // Persist lastLocation only when the session contains real logged work to avoid landing on empty templates
         try {
           if (sessionHasRealWork(s)) {
@@ -1963,6 +1991,7 @@ export default function Sessions() {
           now.getMonth() + 1
         ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         const nowISO = new Date().toISOString();
+        // Use current training mode state for fallback session
         const fallbackSession: Session = {
           id,
           dateISO: (() => {
@@ -1978,6 +2007,7 @@ export default function Sessions() {
           entries: [],
           templateId: templateMeta?.templateId,
           programId: program?.id,
+          trainingMode: currentTrainingMode, // Tag with current mode
           createdAt: nowISO,
           updatedAt: nowISO,
         } as Session;
@@ -2282,6 +2312,10 @@ export default function Sessions() {
           const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
           setSession(s);
+          // Sync training mode state with session's mode (if set)
+          if (s.trainingMode) {
+            setCurrentTrainingMode(s.trainingMode);
+          }
           setPrevBestLoading(true);
           getAllCached<Session>("sessions", {
             force: true,
@@ -3265,6 +3299,21 @@ export default function Sessions() {
     push({ message: "Exercise removed", actionLabel: "Undo", onAction: undo });
   };
 
+  // Handle training mode changes - persist to settings and update current session
+  const handleTrainingModeChange = async (mode: TrainingMode) => {
+    setCurrentTrainingMode(mode);
+    // Persist to settings for future sessions
+    const s = await getSettings();
+    await setSettings({ ...s, currentTrainingMode: mode });
+    // Update current session if it exists and doesn't have a mode yet
+    if (session && !session.trainingMode) {
+      const updated = { ...session, trainingMode: mode, updatedAt: new Date().toISOString() };
+      setSession(updated);
+      await persistSession(updated);
+    }
+    push({ message: `Training mode set to ${mode}` });
+  };
+
   const addExerciseToSession = async (ex: Exercise) => {
     if (!session) return;
     let sets: SetEntry[] = [];
@@ -4199,6 +4248,15 @@ export default function Sessions() {
                 </span>
               </div>
             )}
+            {/* Training mode badge - subtle indicator */}
+            {session?.trainingMode && (
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
+                  Mode
+                </span>
+                <TrainingModeBadge mode={session.trainingMode} size="sm" />
+              </div>
+            )}
             {/* Toggle for expanded controls */}
             <button
               type="button"
@@ -4395,6 +4453,11 @@ export default function Sessions() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
               >
+                {/* Training Mode Selector */}
+                <TrainingModeSelector
+                  value={currentTrainingMode}
+                  onChange={handleTrainingModeChange}
+                />
                 {session && (
                   <>
                     <button

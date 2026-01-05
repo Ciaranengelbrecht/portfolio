@@ -1,5 +1,8 @@
 export type UUID = string;
 
+/** Training mode for tracking bulk/cut/maintenance phases */
+export type TrainingMode = "bulk" | "cut" | "maintenance";
+
 export type MuscleGroup =
   | "chest"
   | "lats"        // back width (lat pulldowns, pull-ups, rows)
@@ -75,6 +78,8 @@ export interface Session {
   autoImportedTemplateId?: string; // if auto-imported at creation, record template id for provenance badge
   entries: SessionEntry[];
   deletedAt?: string | null;
+  /** Training mode active when this session was created (bulk/cut/maintenance) */
+  trainingMode?: TrainingMode;
   /** Timestamp when user first entered any non-zero weight or reps in this session */
   loggedStartAt?: string;
   /** Timestamp of most recent change to any set (non-zero edit) */
@@ -253,6 +258,8 @@ export interface Settings {
   restTimerBeepCount?: number;
   /** Beep volume as a percentage (50-300). 100 = default. Multiplies base volume. */
   restTimerBeepVolume?: number;
+  /** Current training mode (bulk/cut/maintenance) - applied to new sessions automatically */
+  currentTrainingMode?: TrainingMode;
 }
 
 export interface Template {

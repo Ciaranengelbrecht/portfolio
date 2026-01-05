@@ -72,7 +72,7 @@ export async function buildExportZip(opts: ExportOptions = {}){
   ].join('\n');
 
   const sessionSetsCsv = [
-    ['sessionId','dateISO','localDate','phaseNumber','weekNumber','dayName','exerciseOrder','exerciseId','exerciseName','muscleGroup','setNumber','weightKg','reps','rpe','completedAt','targetRepRange'].join(','),
+    ['sessionId','dateISO','localDate','phaseNumber','weekNumber','dayName','trainingMode','exerciseOrder','exerciseId','exerciseName','muscleGroup','setNumber','weightKg','reps','rpe','completedAt','targetRepRange'].join(','),
     ...filteredSessions.flatMap(sess => (sess.entries||[]).map((entry, ei)=> (entry.sets||[]).map(set => {
       const ex = exerciseMap.get(entry.exerciseId);
       return [
@@ -82,6 +82,7 @@ export async function buildExportZip(opts: ExportOptions = {}){
         sess.phaseNumber||sess.phase||'',
         sess.weekNumber,
         sess.dayName||'',
+        sess.trainingMode||'',
         ei+1,
         entry.exerciseId,
         ex?.name||'',
@@ -97,7 +98,7 @@ export async function buildExportZip(opts: ExportOptions = {}){
   ].join('\n');
 
   const sessionSummaryCsv = [
-    ['sessionId','dateISO','localDate','phaseNumber','weekNumber','dayName','exerciseCount','setCount','workLogDays','loggedStartAt','loggedEndAt','durationMinutes'].join(','),
+    ['sessionId','dateISO','localDate','phaseNumber','weekNumber','dayName','trainingMode','exerciseCount','setCount','workLogDays','loggedStartAt','loggedEndAt','durationMinutes'].join(','),
     ...filteredSessions.map(sess=> {
       const exerciseCount = (sess.entries||[]).length;
       const setCount = sess.entries.reduce((a,e)=> a + (e.sets?.length||0),0);
@@ -107,7 +108,7 @@ export async function buildExportZip(opts: ExportOptions = {}){
         const ms = new Date(sess.loggedEndAt).getTime() - new Date(sess.loggedStartAt).getTime();
         if(ms>0) durationMinutes = (ms/60000).toFixed(1);
       }
-      return [sess.id,sess.dateISO,sess.localDate||'',sess.phaseNumber||sess.phase||'',sess.weekNumber,sess.dayName||'',exerciseCount,setCount,workLogDays,sess.loggedStartAt||'',sess.loggedEndAt||'',durationMinutes].map(esc).join(',');
+      return [sess.id,sess.dateISO,sess.localDate||'',sess.phaseNumber||sess.phase||'',sess.weekNumber,sess.dayName||'',sess.trainingMode||'',exerciseCount,setCount,workLogDays,sess.loggedStartAt||'',sess.loggedEndAt||'',durationMinutes].map(esc).join(',');
     })
   ].join('\n');
 
