@@ -113,17 +113,18 @@ export default function OptionSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={(e) => {
+              // Close when clicking empty space anywhere in the modal area
+              if (e.target === e.currentTarget) onClose();
+            }}
           >
             <motion.div
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm cursor-pointer"
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
               onClick={onClose}
-              aria-label="Close dialog"
-              role="button"
-              tabIndex={-1}
             />
             <motion.div
               className="relative z-10 w-full max-h-[94vh] overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 backdrop-blur-sm shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] sm:max-w-2xl sm:rounded-3xl flex flex-col"
@@ -134,17 +135,25 @@ export default function OptionSheet({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
+              onClick={(e) => {
+                // Close when clicking empty space inside the modal panel
+                if (e.target === e.currentTarget) onClose();
+              }}
             >
-              {/* Drag handle / tap to close indicator - mobile only */}
-              <button
-                type="button"
+              {/* Minimal drag handle - tap to close on mobile */}
+              <div
                 onClick={onClose}
-                className="sm:hidden w-full py-3 flex justify-center items-center cursor-pointer touch-manipulation"
-                aria-label="Tap to close"
+                className="sm:hidden w-full py-2 flex justify-center items-center"
               >
-                <div className="w-10 h-1 rounded-full bg-white/30" />
-              </button>
-              <div className="flex flex-col gap-4 p-5 pt-0 sm:pt-5">
+                <div className="w-8 h-1 rounded-full bg-white/20" />
+              </div>
+              <div 
+                className="flex flex-col gap-4 p-5 pt-0 sm:pt-5"
+                onClick={(e) => {
+                  // Close when clicking empty space in the content area
+                  if (e.target === e.currentTarget) onClose();
+                }}
+              >
                 <header className="flex flex-col gap-2 pr-8">
                   <div className="flex items-center justify-between gap-4">
                     <div>
