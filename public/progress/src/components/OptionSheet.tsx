@@ -115,12 +115,15 @@ export default function OptionSheet({
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm cursor-pointer"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
               onClick={onClose}
+              aria-label="Close dialog"
+              role="button"
+              tabIndex={-1}
             />
             <motion.div
               className="relative z-10 w-full max-h-[94vh] overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 backdrop-blur-sm shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] sm:max-w-2xl sm:rounded-3xl flex flex-col"
@@ -132,7 +135,16 @@ export default function OptionSheet({
               exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
             >
-              <div className="flex flex-col gap-4 p-5">
+              {/* Drag handle / tap to close indicator - mobile only */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="sm:hidden w-full py-3 flex justify-center items-center cursor-pointer touch-manipulation"
+                aria-label="Tap to close"
+              >
+                <div className="w-10 h-1 rounded-full bg-white/30" />
+              </button>
+              <div className="flex flex-col gap-4 p-5 pt-0 sm:pt-5">
                 <header className="flex flex-col gap-2 pr-8">
                   <div className="flex items-center justify-between gap-4">
                     <div>
