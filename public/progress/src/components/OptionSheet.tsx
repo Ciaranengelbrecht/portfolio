@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Fragment, ReactNode, useEffect, useId, useMemo, useRef } from "react";
+import { Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export type OptionSheetOption = {
@@ -63,6 +63,26 @@ export default function OptionSheet({
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  // Check if click is on empty/background area (not interactive content)
+  const handleEmptySpaceClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    
+    // Don't close if clicking on interactive elements or their children
+    const isInteractive = target.closest('button, input, a, [data-option], [role="button"]');
+    if (isInteractive) return;
+    
+    // Don't close if clicking on actual content text
+    const isContentText = target.closest('h2, p, span, label');
+    if (isContentText) return;
+    
+    // Don't close if clicking on badges, icons, or trailing elements
+    const isDecoration = target.closest('[class*="badge"], [class*="icon"], svg');
+    if (isDecoration) return;
+    
+    // Close for everything else (empty space, containers, backgrounds)
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
     lastActive.current = document.activeElement as HTMLElement | null;
@@ -113,10 +133,7 @@ export default function OptionSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={(e) => {
-              // Close when clicking empty space anywhere in the modal area
-              if (e.target === e.currentTarget) onClose();
-            }}
+            onClick={handleEmptySpaceClick}
           >
             <motion.div
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
@@ -135,10 +152,7 @@ export default function OptionSheet({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              onClick={(e) => {
-                // Close when clicking empty space inside the modal panel
-                if (e.target === e.currentTarget) onClose();
-              }}
+              onClick={handleEmptySpaceClick}
             >
               {/* Minimal drag handle - tap to close on mobile */}
               <div
@@ -149,10 +163,7 @@ export default function OptionSheet({
               </div>
               <div 
                 className="flex flex-col gap-4 p-5 pt-0 sm:pt-5"
-                onClick={(e) => {
-                  // Close when clicking empty space in the content area
-                  if (e.target === e.currentTarget) onClose();
-                }}
+                onClick={handleEmptySpaceClick}
               >
                 <header className="flex flex-col gap-2 pr-8">
                   <div className="flex items-center justify-between gap-4">
@@ -203,10 +214,11 @@ export default function OptionSheet({
                     scrollbarWidth: "thin",
                     scrollbarColor: "rgba(255,255,255,0.15) transparent",
                   }}
+                  onClick={handleEmptySpaceClick}
                 >
                   <div className="pointer-events-none sticky top-0 z-10 h-4 -mb-4 bg-gradient-to-b from-slate-950/95 to-transparent" />
                   <div className="pointer-events-none sticky bottom-0 z-10 h-6 -mt-6 bg-gradient-to-t from-slate-950/95 to-transparent" />
-                  <div className="relative space-y-2 pb-4 pt-2">
+                  <div className="relative space-y-2 pb-4 pt-2" onClick={handleEmptySpaceClick}>
                     {options.length === 0 && emptyState}
                     {options.map((option) => (
                       <Fragment key={option.id}>
@@ -287,6 +299,7 @@ export default function OptionSheet({
   }, [
     open,
     onClose,
+    handleEmptySpaceClick,
     title,
     description,
     searchValue,
