@@ -843,7 +843,7 @@ export default function Sessions() {
       );
     } catch {}
   }, [collapsedEntries, session?.id, focusMode]);
-  const collapseAll = () => {
+  const collapseAll = useCallback(() => {
     if (!session) return;
     if (focusMode) {
       setFocusMode(false);
@@ -855,7 +855,14 @@ export default function Sessions() {
       next[e.id] = true;
     }
     setCollapsedEntries(next);
-  };
+  }, [session, focusMode]);
+
+  // Listen for collapse-all event from app header
+  useEffect(() => {
+    const handler = () => collapseAll();
+    window.addEventListener('sessions-collapse-all', handler);
+    return () => window.removeEventListener('sessions-collapse-all', handler);
+  }, [collapseAll]);
   const expandAll = () => {
     if (!session) return;
     if (focusMode) {

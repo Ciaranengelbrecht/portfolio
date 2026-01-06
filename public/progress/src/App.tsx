@@ -446,6 +446,16 @@ function Shell() {
                       >
                         ↓
                       </button>
+                      <button
+                        className="px-2 py-1 rounded-lg bg-slate-800 border border-white/10 text-[11px] leading-none"
+                        aria-label="Collapse all exercises"
+                        title="Collapse all"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('sessions-collapse-all'));
+                        }}
+                      >
+                        ⊟
+                      </button>
                     </div>
                   )}
                 </div>
