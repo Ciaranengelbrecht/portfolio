@@ -4157,6 +4157,15 @@ export default function Sessions() {
     return `${mins}m`;
   })();
 
+  // Broadcast session duration to app header for fixed display
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('sessions-duration-update', { detail: { duration: sessionDuration } }));
+    return () => {
+      // Clear duration when leaving page
+      window.dispatchEvent(new CustomEvent('sessions-duration-update', { detail: { duration: null } }));
+    };
+  }, [sessionDuration]);
+
   // Pacing metrics derived from completedAt stamps
   const pacing = useMemo(
     () => (session ? computeSessionPacing(session) : null),

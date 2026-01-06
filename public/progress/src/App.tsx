@@ -372,6 +372,15 @@ function Shell() {
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Session duration from Sessions page (broadcast via custom event)
+  const [sessionDuration, setSessionDuration] = useState<string | null>(null);
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ duration: string | null }>) => {
+      setSessionDuration(e.detail.duration);
+    };
+    window.addEventListener('sessions-duration-update', handler as EventListener);
+    return () => window.removeEventListener('sessions-duration-update', handler as EventListener);
+  }, []);
   return (
     <SnackProvider>
       <div
@@ -456,6 +465,15 @@ function Shell() {
                       >
                         ⊟
                       </button>
+                      {/* Session duration in fixed header */}
+                      {sessionDuration && (
+                        <span
+                          className="px-2 py-1 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-[11px] leading-none text-indigo-200 font-semibold tabular-nums"
+                          title="Session duration"
+                        >
+                          ⏱ {sessionDuration}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
