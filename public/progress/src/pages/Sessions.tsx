@@ -1832,10 +1832,14 @@ export default function Sessions() {
     const last = [...entry.sets].pop();
     if (!last) return;
     const { completedAt: _completed, addedAt: _added, ...rest } = last;
+    const nowIso = new Date().toISOString();
+    const hasWork = ((rest.weightKg || 0) > 0) || ((rest.reps || 0) > 0);
     const clone: SetEntry = {
       ...rest,
       setNumber: entry.sets.length + 1,
-      addedAt: new Date().toISOString(),
+      addedAt: nowIso,
+      // Stamp completedAt immediately if the duplicated set has work values
+      ...(hasWork ? { completedAt: nowIso } : {}),
     };
     updateEntry({ ...entry, sets: [...entry.sets, clone] });
   };
@@ -2998,12 +3002,16 @@ export default function Sessions() {
       }
     }
     
+    const nowIso = new Date().toISOString();
+    const hasPrefillWork = (prefillWeight || 0) > 0 || (prefillReps || 0) > 0;
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
       weightKg: prefillWeight,
       reps: prefillReps,
       rpe: prefillRpe,
-      addedAt: new Date().toISOString(),
+      addedAt: nowIso,
+      // Stamp completedAt immediately if the set has work values from prefill
+      ...(hasPrefillWork ? { completedAt: nowIso } : {}),
     };
     const newEntry = { ...entry, sets: [...entry.sets, next] };
     // Inline the updateEntry logic to immediately stamp and set lastLocalEditRef before any remote pull
@@ -3330,6 +3338,7 @@ export default function Sessions() {
     if (!session) return;
     let sets: SetEntry[] = [];
     const lastSets = await getLastWorkingSets(ex.id, week, phase);
+    const nowIsoSets = new Date().toISOString();
     if (isDeloadWeek) {
       const dl = await getDeloadPrescription(ex.id, week, { deloadWeeks });
       const avgReps = lastSets.length
@@ -3337,14 +3346,29 @@ export default function Sessions() {
             lastSets.reduce((a, b) => a + (b.reps || 8), 0) / lastSets.length
           )
         : 8;
-      sets = Array.from({ length: dl.targetSets }, (_, i) => ({
-        setNumber: i + 1,
-        weightKg: dl.targetWeight,
-        reps: avgReps,
-      }));
+      sets = Array.from({ length: dl.targetSets }, (_, i) => {
+        const hasWork = (dl.targetWeight || 0) > 0 || (avgReps || 0) > 0;
+        return {
+          setNumber: i + 1,
+          weightKg: dl.targetWeight,
+          reps: avgReps,
+          addedAt: nowIsoSets,
+          ...(hasWork ? { completedAt: nowIsoSets } : {}),
+        };
+      });
     } else {
       // Default to 0 sets; user can add sets as needed
-      sets = lastSets.length ? lastSets : [];
+      // Stamp timestamps for imported sets that have work values
+      sets = lastSets.length
+        ? lastSets.map((s) => {
+            const hasWork = (s.weightKg || 0) > 0 || (s.reps || 0) > 0;
+            return {
+              ...s,
+              addedAt: nowIsoSets,
+              ...(hasWork ? { completedAt: nowIsoSets } : {}),
+            };
+          })
+        : [];
     }
     const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
     const updated = { ...session, entries: [...session.entries, entry] };
