@@ -58,6 +58,8 @@ import TrainingModeBadge from "../components/TrainingModeBadge";
 import TrainingModeSelector from "../components/TrainingModeSelector";
 
 const KG_TO_LB = 2.2046226218;
+const SWAP_RECENTS_STORAGE_KEY = "sessions:swapRecents:v1";
+const MAX_SWAP_RECENTS_PER_SOURCE = 8;
 
 function TopMuscleAndContents({
   session,
@@ -478,6 +480,20 @@ const sessionHasRealWork = (session?: Session | null) => {
   }
   return sessionRealActivityMs(session) > 0;
 };
+
+const bestSetByLoad = (sets: SetEntry[]) => {
+  let best: SetEntry | undefined;
+  let bestScore = -1;
+  for (const set of sets) {
+    const score = (set.weightKg || 0) * (set.reps || 0);
+    if (score > bestScore) {
+      best = set;
+      bestScore = score;
+    }
+  }
+  return best;
+};
+
 export default function Sessions() {
   const { program } = useProgram();
   const [week, setWeek] = useState<any>(1);
@@ -497,6 +513,18 @@ export default function Sessions() {
     Map<string, { weightKg?: number; reps?: number }>
   >(new Map());
   const [session, setSession] = useState<Session | null>(null);
+  const activeSessionRef = useRef<Session | null>(null);
+  const viewStateRef = useRef<{ phase: number; week: number; day: number }>({
+    phase: 1,
+    week: 1,
+    day: 0,
+  });
+  useEffect(() => {
+    activeSessionRef.current = session;
+  }, [session]);
+  useEffect(() => {
+    viewStateRef.current = { phase, week, day };
+  }, [phase, week, day]);
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState("");
   const [addFilter, setAddFilter] = useState<string>("all");
@@ -537,6 +565,46 @@ export default function Sessions() {
   );
   const [switchQuery, setSwitchQuery] = useState("");
   const [switchScope, setSwitchScope] = useState<"group" | "all">("group");
+  const [swapRecentsBySource, setSwapRecentsBySource] = useState<
+    Record<string, string[]>
+  >({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SWAP_RECENTS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return;
+      const next: Record<string, string[]> = {};
+      for (const [sourceId, targets] of Object.entries(parsed as object)) {
+        if (!Array.isArray(targets)) continue;
+        const clean = targets
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+          .slice(0, MAX_SWAP_RECENTS_PER_SOURCE);
+        if (clean.length) next[sourceId] = clean;
+      }
+      setSwapRecentsBySource(next);
+    } catch {
+      // Ignore corrupted swap-recent cache and continue with empty state.
+    }
+  }, []);
+  const rememberSwapTarget = useCallback((sourceExerciseId: string, targetExerciseId: string) => {
+    if (!sourceExerciseId || !targetExerciseId) return;
+    if (sourceExerciseId === targetExerciseId) return;
+    setSwapRecentsBySource((prev) => {
+      const existing = prev[sourceExerciseId] || [];
+      const nextForSource = [
+        targetExerciseId,
+        ...existing.filter((id) => id !== targetExerciseId),
+      ].slice(0, MAX_SWAP_RECENTS_PER_SOURCE);
+      const next = { ...prev, [sourceExerciseId]: nextForSource };
+      try {
+        localStorage.setItem(SWAP_RECENTS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // Ignore storage write failures.
+      }
+      return next;
+    });
+  }, []);
   useEffect(() => {
     if (!switchTarget) {
       setSwitchScope("group");
@@ -2297,8 +2365,9 @@ export default function Sessions() {
         );
         setTemplates(t);
         setExercises(e);
-        if (session) {
-          const fresh = await db.get<Session>("sessions", session.id); // single fetch; not cached (ensure latest entry data)
+        const activeSession = activeSessionRef.current;
+        if (activeSession?.id) {
+          const fresh = await db.get<Session>("sessions", activeSession.id); // single fetch; not cached (ensure latest entry data)
           const remoteTs = fresh?.updatedAt ? Date.parse(fresh.updatedAt) : 0;
           console.log(
             "[Sessions] sb-auth: refreshed session entries",
@@ -2324,7 +2393,7 @@ export default function Sessions() {
     };
     window.addEventListener("sb-auth", onAuth as any);
     return () => window.removeEventListener("sb-auth", onAuth as any);
-  }, [session?.id]);
+  }, []);
 
   // Lightweight realtime auto-refresh: guarded to prevent clobbering in-progress typing
   useEffect(() => {
@@ -2334,13 +2403,14 @@ export default function Sessions() {
         getAllCached("templates", { force: true }).then(setTemplates);
       if (tbl === "exercises")
         getAllCached("exercises", { force: true }).then(setExercises);
-      if (tbl === "sessions" && session) {
+      const activeSession = activeSessionRef.current;
+      if (tbl === "sessions" && activeSession?.id) {
         if (
           pendingRef.current ||
           (editingFieldsRef.current && editingFieldsRef.current.size > 0)
         )
           return; // skip while user typing
-        db.get<Session>("sessions", session.id).then((s) => {
+        db.get<Session>("sessions", activeSession.id).then((s) => {
           if (!s) return;
           const remoteTs = s.updatedAt ? Date.parse(s.updatedAt) : 0;
           if (remoteTs <= (lastLocalEditRef.current || 0)) return; // ignore stale/echo
@@ -2350,11 +2420,15 @@ export default function Sessions() {
             setCurrentTrainingMode(s.trainingMode);
           }
           setPrevBestLoading(true);
-          getAllCached<Session>("sessions", {
-            force: true,
-            ttlMs: currentSessionsTtl(),
-          }).then((all) => {
-            const map = getPrevBestCached(all, phase, week, day, s?.templateId);
+          readSessions({ force: true, swr: false }).then((all) => {
+            const view = viewStateRef.current;
+            const map = getPrevBestCached(
+              all,
+              view.phase,
+              view.week,
+              view.day,
+              s?.templateId
+            );
             setPrevBestMap(map);
             setPrevBestLoading(false);
           });
@@ -2364,7 +2438,7 @@ export default function Sessions() {
     };
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
-  }, [session?.id]);
+  }, [readSessions, getPrevBestCached]);
 
   // Keep hints in sync when cache refreshes in background
   useEffect(() => {
@@ -2375,31 +2449,30 @@ export default function Sessions() {
           try {
             setPrevBestLoading(true);
             const all = await readSessions();
+            const view = viewStateRef.current;
+            const activeSession = activeSessionRef.current;
             const map = getPrevBestCached(
               all,
-              phase,
-              week,
-              day,
-              session?.templateId
+              view.phase,
+              view.week,
+              view.day,
+              activeSession?.templateId
             );
             setPrevBestMap(map);
             setPrevBestLoading(false);
           } catch {}
-          await recomputePrevWeekSets(session);
+          await recomputePrevWeekSets(activeSessionRef.current);
         })();
       }
     };
     window.addEventListener("cache-refresh", onCache);
     return () => window.removeEventListener("cache-refresh", onCache);
   }, [
-    session?.id,
-    week,
-    phase,
-    day,
     program?.id,
     program?.mesoWeeks,
     program?.deload,
     readSessions,
+    getPrevBestCached,
   ]);
 
   // Recompute prev best map whenever week, phase, or day changes
@@ -2453,8 +2526,8 @@ export default function Sessions() {
       const currentPhase = getPhaseNumber(sess);
       const currentWeek = getWeekNumber(sess);
 
-      // Prefer fresh DB to avoid stale cache during rapid edits
-      const all = await db.getAll<Session>("sessions");
+      // Prefer fresh list to avoid stale comparisons during rapid edits
+      const all = await readSessions({ force: true, swr: false });
       const candidates = (all as Session[])
         .filter((s) => s.id !== sess.id)
         .filter(identityMatches)
@@ -3463,6 +3536,7 @@ export default function Sessions() {
   // Switch exercise in a session entry (keep set rows; clear values unless none were logged)
   const switchExercise = async (entry: SessionEntry, newEx: Exercise) => {
     if (!session) return;
+    const sourceExerciseId = entry.exerciseId;
     const hadLogged = entry.sets.some(
       (s) => (s.weightKg || 0) > 0 || (s.reps || 0) > 0
     );
@@ -3484,6 +3558,7 @@ export default function Sessions() {
     };
     // Persist via existing update flow (stamps time, debounces write)
     updateEntry(newEntry);
+    rememberSwapTarget(sourceExerciseId, newEx.id);
     setSwitchTarget(null);
     try {
       (navigator as any).vibrate?.(10);
@@ -3683,6 +3758,12 @@ export default function Sessions() {
     if (!entry) return null;
     const currentEx = exMap.get(entry.exerciseId);
     const group = currentEx?.muscleGroup || null;
+    const sourceRecents = currentEx
+      ? swapRecentsBySource[currentEx.id] || []
+      : [];
+    const recentRank = new Map<string, number>(
+      sourceRecents.map((id, idx) => [id, idx])
+    );
     const q = switchQuery.trim().toLowerCase();
     const pool = exercises.filter((ex) => ex.id !== currentEx?.id);
     const scoped =
@@ -3691,7 +3772,16 @@ export default function Sessions() {
         : pool;
     const list = scoped
       .filter((ex) => (q ? ex.name.toLowerCase().includes(q) : true))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => {
+        const rankA = recentRank.has(a.id)
+          ? (recentRank.get(a.id) as number)
+          : Number.MAX_SAFE_INTEGER;
+        const rankB = recentRank.has(b.id)
+          ? (recentRank.get(b.id) as number)
+          : Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.name.localeCompare(b.name);
+      })
       .slice(0, 400); // Allow more results for smooth scrolling
     const options = list.map((ex) => {
       const secondary =
@@ -3700,11 +3790,13 @@ export default function Sessions() {
               .map((m) => formatMuscleLabel(m))
               .join(", ")}`
           : undefined;
+      const isRecent = recentRank.has(ex.id);
       return {
         id: ex.id,
         label: ex.name,
         description: formatMuscleLabel(ex.muscleGroup),
         hint: secondary,
+        trailing: isRecent ? "Recent" : undefined,
         onSelect: () => switchExercise(entry, ex),
       } satisfies OptionSheetOption;
     });
@@ -3724,6 +3816,7 @@ export default function Sessions() {
     switchQuery,
     switchScope,
     switchExercise,
+    swapRecentsBySource,
   ]);
 
   const switchSheetHighlight = switchModalContext && (
@@ -3760,6 +3853,46 @@ export default function Sessions() {
       ) : null}
     </div>
   );
+
+  const visibleEntries = useMemo(() => {
+    if (!session) return [] as SessionEntry[];
+    if (!muscleFilter) return session.entries;
+    return session.entries.filter((entry) => {
+      const ex = exMap.get(entry.exerciseId);
+      if (!ex) return false;
+      if (ex.muscleGroup === muscleFilter) return true;
+      if (ex.secondaryMuscles?.includes(muscleFilter as any)) return true;
+      return false;
+    });
+  }, [session?.entries, muscleFilter, exMap]);
+
+  const visibleEntryMetrics = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        setsLogged: SetEntry[];
+        tonnage: number;
+        bestSet: SetEntry | undefined;
+        currentBest: SetEntry | undefined;
+      }
+    >();
+    for (const entry of visibleEntries) {
+      const setsLogged = entry.sets.filter(
+        (s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0
+      );
+      const tonnage = setsLogged.reduce(
+        (sum, set) => sum + (set.weightKg || 0) * (set.reps || 0),
+        0
+      );
+      map.set(entry.id, {
+        setsLogged,
+        tonnage,
+        bestSet: bestSetByLoad(setsLogged),
+        currentBest: bestSetByLoad(entry.sets),
+      });
+    }
+    return map;
+  }, [visibleEntries]);
 
   const weightUnit = settingsState?.unit === "lb" ? "lb" : "kg";
 
@@ -4990,33 +5123,14 @@ export default function Sessions() {
         </p>
         {!initialLoading &&
           session &&
-          session.entries
-            .filter((entry) => {
-              // If no muscle filter, show all entries
-              if (!muscleFilter) return true;
-              // Check if this exercise works the filtered muscle (primary or secondary)
-              const ex = exMap.get(entry.exerciseId);
-              if (!ex) return false;
-              // Check primary muscle
-              if (ex.muscleGroup === muscleFilter) return true;
-              // Check secondary muscles
-              if (ex.secondaryMuscles?.includes(muscleFilter as any)) return true;
-              return false;
-            })
-            .map((entry, entryIdx) => {
+          visibleEntries.map((entry, entryIdx) => {
             const ex = exMap.get(entry.exerciseId) || undefined;
             // derive previous best + nudge
             const prev = prevBestMap
               ? getPrevBest(prevBestMap, entry.exerciseId)
               : undefined;
-            const currentBest = (() => {
-              const best = [...entry.sets].sort((a, b) => {
-                if ((b.weightKg ?? 0) !== (a.weightKg ?? 0))
-                  return (b.weightKg ?? 0) - (a.weightKg ?? 0);
-                return (b.reps || 0) - (a.reps || 0);
-              })[0];
-              return best;
-            })();
+            const metrics = visibleEntryMetrics.get(entry.id);
+            const currentBest = metrics?.currentBest;
             const showPrevHints =
               settingsState?.progress?.showPrevHints ?? true;
             const showNudge = !!(
@@ -5056,20 +5170,9 @@ export default function Sessions() {
               } | null;
             })();
             // quick metrics for collapsed overview
-            const setsLogged = entry.sets.filter(
-              (s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0
-            );
-            const tonnage = setsLogged.reduce(
-              (a, s) => a + (s.weightKg || 0) * (s.reps || 0),
-              0
-            );
-            const bestSet = setsLogged
-              .slice()
-              .sort(
-                (a, b) =>
-                  (b.weightKg || 0) * (b.reps || 0) -
-                  (a.weightKg || 0) * (a.reps || 0)
-              )[0];
+            const setsLogged = metrics?.setsLogged ?? [];
+            const tonnage = metrics?.tonnage ?? 0;
+            const bestSet = metrics?.bestSet;
             // Determine completion status for visual indicator
             const plannedSetCount = guide?.sets ?? entry.sets.length;
             const isFullyComplete = setsLogged.length >= plannedSetCount && setsLogged.length > 0;
