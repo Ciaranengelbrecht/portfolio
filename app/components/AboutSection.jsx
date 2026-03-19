@@ -7,10 +7,10 @@ import { useInView } from "react-intersection-observer";
 
 // Stats data
 const stats = [
-  { label: "Years Experience", value: "4+", icon: "YRS" },
-  { label: "Projects Completed", value: "23+", icon: "PRJ" },
-  { label: "Technologies", value: "20+", icon: "TECH" },
-  { label: "Certifications", value: "2", icon: "CERT" },
+  { label: "Years Experience", value: "4+" },
+  { label: "Projects Completed", value: "23+" },
+  { label: "Technologies", value: "20+" },
+  { label: "Certifications", value: "2" },
 ];
 
 // Personal interests/values
@@ -355,7 +355,6 @@ const AboutSection = () => {
                 variants={itemVariants}
                 className="glass-card p-3 sm:p-4 md:p-5 text-center hover:shadow-glow-sm transition-all duration-300 group"
               >
-                <span className="text-xl sm:text-2xl mb-1 sm:mb-2 block">{stat.icon}</span>
                 <div className="text-2xl sm:text-3xl font-bold gradient-text mb-0.5 sm:mb-1">{stat.value}</div>
                 <div className="text-slate-400 text-xs sm:text-sm">{stat.label}</div>
               </motion.div>

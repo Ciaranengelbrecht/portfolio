@@ -90,10 +90,10 @@ const skills = [
 ];
 
 const categories = [
-  { id: "all", name: "All Skills", icon: "ALL" },
-  { id: "languages", name: "Languages", icon: "DEV" },
-  { id: "frontend", name: "Frontend", icon: "UI" },
-  { id: "tools", name: "Tools", icon: "OPS" },
+  { id: "all", name: "All Skills" },
+  { id: "languages", name: "Languages" },
+  { id: "frontend", name: "Frontend" },
+  { id: "tools", name: "Tools" },
 ];
 
 // Circular progress component
@@ -302,7 +302,6 @@ const SkillsSection = () => {
                 }
               `}
             >
-              <span>{cat.icon}</span>
               {cat.name}
             </motion.button>
           ))}
@@ -330,17 +329,16 @@ const SkillsSection = () => {
           className="mt-10 sm:mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
         >
           {[
-            { label: "Languages", value: "7+", icon: "L" },
-            { label: "Frameworks", value: "5+", icon: "F" },
-            { label: "Years Experience", value: "5+", icon: "Y" },
-            { label: "Projects", value: "20+", icon: "P" },
+            { label: "Languages", value: "7+" },
+            { label: "Frameworks", value: "5+" },
+            { label: "Years Experience", value: "5+" },
+            { label: "Projects", value: "20+" },
           ].map((stat, index) => (
             <motion.div
               key={index}
               whileHover={{ y: -5 }}
               className="text-center glass-card p-6 hover:shadow-glow-sm transition-all duration-300"
             >
-              <span className="text-3xl mb-2 block">{stat.icon}</span>
               <div className="text-2xl font-bold gradient-text">{stat.value}</div>
               <div className="text-slate-400 text-sm mt-1">{stat.label}</div>
             </motion.div>

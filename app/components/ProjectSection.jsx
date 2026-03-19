@@ -5,18 +5,6 @@ import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import Link from "next/link";
 
-// Project icons by category
-const categoryIcons = {
-  All: "ALL",
-  Web: "WEB",
-  AI: "AI",
-  Security: "SEC",
-  Systems: "SYS",
-  Algorithms: "ALG",
-  Graphics: "GFX",
-  Utility: "UTIL",
-};
-
 const projectsData = [
   {
     id: 1,
@@ -200,7 +188,6 @@ const CategoryButton = ({ name, isSelected, onClick, count }) => (
       }
     `}
   >
-    <span>{categoryIcons[name]}</span>
     <span>{name}</span>
     {count !== undefined && (
       <span className={`text-xs px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-white/10'}`}>
@@ -247,16 +234,6 @@ const ProjectCard = ({ project, index, isVisible }) => {
       />
 
       <div className="relative z-10 p-4 sm:p-5 md:p-6 flex flex-col h-full">
-        {/* Category icon */}
-        <div className="flex items-start justify-between mb-3 sm:mb-4">
-          <motion.div
-            animate={{ rotate: isHovered ? 10 : 0 }}
-            className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-[10px] sm:text-xs font-semibold tracking-wide"
-          >
-            {categoryIcons[project.tag[1]] || "PRJ"}
-          </motion.div>
-        </div>
-
         {/* Title */}
         <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2 group-hover:text-primary-400 transition-colors">
           {project.title}
