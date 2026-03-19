@@ -90,10 +90,10 @@ const skills = [
 ];
 
 const categories = [
-  { id: "all", name: "All Skills", icon: "🎯" },
-  { id: "languages", name: "Languages", icon: "💻" },
-  { id: "frontend", name: "Frontend", icon: "🎨" },
-  { id: "tools", name: "Tools", icon: "🛠️" },
+  { id: "all", name: "All Skills", icon: "ALL" },
+  { id: "languages", name: "Languages", icon: "DEV" },
+  { id: "frontend", name: "Frontend", icon: "UI" },
+  { id: "tools", name: "Tools", icon: "OPS" },
 ];
 
 // Circular progress component
@@ -274,15 +274,15 @@ const SkillsSection = () => {
         <motion.div variants={itemVariants} className="text-center mb-10 sm:mb-12 md:mb-16">
           <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium mb-3 sm:mb-4 shadow-lg">
             <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
-            Technical Expertise
+            Skills Overview
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             My <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-400 via-primary-100 to-white">Skills</span>
           </h2>
           <div className="h-1 w-16 sm:w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-4 sm:mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base md:text-lg px-2 sm:px-0">
-            A comprehensive toolkit built through years of learning and hands-on experience.
-            From low-level systems programming to modern web development.
+            A practical toolkit built through hands-on project work,
+            from low-level systems programming to modern web development.
           </p>
         </motion.div>
 
@@ -330,10 +330,10 @@ const SkillsSection = () => {
           className="mt-10 sm:mt-12 md:mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6"
         >
           {[
-            { label: "Languages Mastered", value: "7+", icon: "📝" },
-            { label: "Frameworks Used", value: "5+", icon: "⚙️" },
-            { label: "Years Experience", value: "5+", icon: "📅" },
-            { label: "Projects Built", value: "20+", icon: "🚀" },
+            { label: "Languages", value: "7+", icon: "L" },
+            { label: "Frameworks", value: "5+", icon: "F" },
+            { label: "Years Experience", value: "5+", icon: "Y" },
+            { label: "Projects", value: "20+", icon: "P" },
           ].map((stat, index) => (
             <motion.div
               key={index}

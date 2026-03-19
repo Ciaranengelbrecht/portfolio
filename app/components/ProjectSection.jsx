@@ -7,14 +7,14 @@ import Link from "next/link";
 
 // Project icons by category
 const categoryIcons = {
-  All: "🎯",
-  Web: "🌐",
-  AI: "🤖",
-  Security: "🔒",
-  Systems: "⚙️",
-  Algorithms: "📊",
-  Graphics: "🎨",
-  Utility: "🔧",
+  All: "ALL",
+  Web: "WEB",
+  AI: "AI",
+  Security: "SEC",
+  Systems: "SYS",
+  Algorithms: "ALG",
+  Graphics: "GFX",
+  Utility: "UTIL",
 };
 
 const projectsData = [
@@ -251,9 +251,9 @@ const ProjectCard = ({ project, index, isVisible }) => {
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           <motion.div
             animate={{ rotate: isHovered ? 10 : 0 }}
-            className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-xl sm:text-2xl"
+            className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-[10px] sm:text-xs font-semibold tracking-wide"
           >
-            {categoryIcons[project.tag[1]] || "📁"}
+            {categoryIcons[project.tag[1]] || "PRJ"}
           </motion.div>
         </div>
 
@@ -399,7 +399,7 @@ const ProjectsSection = () => {
         <motion.div variants={itemVariants} className="text-center mb-10 sm:mb-12 md:mb-16">
           <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium mb-3 sm:mb-4 shadow-lg">
             <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
-            Portfolio Showcase
+            Selected Work
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
             Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-warm-400 via-primary-100 to-white">Projects</span>

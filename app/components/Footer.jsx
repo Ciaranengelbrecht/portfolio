@@ -97,9 +97,8 @@ const Footer = () => {
             </Link>
             
             <p className="text-slate-400 mt-4 sm:mt-6 leading-relaxed max-w-md text-sm sm:text-base">
-              Software engineer passionate about crafting elegant solutions, 
-              building innovative applications, and pushing the boundaries of 
-              what's possible with code.
+              Software engineer focused on building reliable applications,
+              improving workflows, and shipping practical solutions.
             </p>
 
             {/* Social Links */}
@@ -147,8 +146,8 @@ const Footer = () => {
             
             <div className="space-y-3 sm:space-y-4">
               <p className="text-slate-400 text-xs sm:text-sm">
-                Ready to start a project or just want to say hi? 
-                Feel free to reach out!
+                If you have a project in mind or a role to discuss,
+                feel free to reach out.
               </p>
               
               <a
@@ -186,7 +185,7 @@ const Footer = () => {
             transition={{ duration: 0.5 }}
             className="text-slate-500 text-xs sm:text-sm text-center md:text-left"
           >
-            © {currentYear} Ciaran Engelbrecht. Crafted with passion and code.
+            © {currentYear} Ciaran Engelbrecht.
           </motion.p>
           
           <motion.div
@@ -195,15 +194,7 @@ const Footer = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm"
           >
-            <span>Built with</span>
-            <motion.span
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="text-red-500"
-            >
-              ♥
-            </motion.span>
-            <span>using Next.js & Tailwind</span>
+            <span>Built with Next.js and Tailwind</span>
           </motion.div>
         </div>
       </div>

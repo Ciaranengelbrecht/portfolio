@@ -24,7 +24,7 @@ const CallToAction = () => {
             </h2>
             <p className="text-gray-300 text-lg mb-8">
               I'm currently available for freelance work and open to new
-              opportunities. Let's create something amazing together!
+              opportunities. If it feels like a fit, let's talk.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

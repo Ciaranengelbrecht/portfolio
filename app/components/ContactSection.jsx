@@ -149,7 +149,7 @@ const ContactSection = () => {
           <div className="h-0.5 sm:h-1 w-16 sm:w-24 bg-gradient-to-r from-warm-500 to-warm-400 mx-auto rounded-full mb-4 sm:mb-6 shadow-lg" />
           <p className="text-slate-400 max-w-2xl mx-auto text-sm sm:text-base md:text-lg px-2 sm:px-0">
             I&apos;m always interested in hearing about new projects and opportunities.
-            Whether you have a question or just want to say hi, feel free to reach out!
+            If you have a question or opportunity, feel free to reach out.
           </p>
         </motion.div>
 

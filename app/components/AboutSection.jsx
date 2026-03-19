@@ -7,18 +7,18 @@ import { useInView } from "react-intersection-observer";
 
 // Stats data
 const stats = [
-  { label: "Years Experience", value: "4+", icon: "⚡" },
-  { label: "Projects Completed", value: "23+", icon: "🚀" },
-  { label: "Technologies", value: "20+", icon: "💻" },
-  { label: "Certifications", value: "2", icon: "🏆" },
+  { label: "Years Experience", value: "4+", icon: "YRS" },
+  { label: "Projects Completed", value: "23+", icon: "PRJ" },
+  { label: "Technologies", value: "20+", icon: "TECH" },
+  { label: "Certifications", value: "2", icon: "CERT" },
 ];
 
 // Personal interests/values
 const interests = [
-  { name: "Software Development", icon: "💻" },
-  { name: "Full-Stack Engineering", icon: "🚀" },
-  { name: "Automation & Scripting", icon: "⚙️" },
-  { name: "Problem Solving", icon: "🧩" },
+  { name: "Software Development" },
+  { name: "Full-Stack Engineering" },
+  { name: "Automation & Scripting" },
+  { name: "Problem Solving" },
 ];
 
 const TAB_DATA = [
@@ -310,14 +310,14 @@ const AboutSection = () => {
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-accent-500" />
             
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-              Hello! I&apos;m Ciaran 👋
+              Hello, I&apos;m Ciaran
             </h3>
             
             <div className="space-y-3 sm:space-y-4 text-slate-300 leading-relaxed text-sm sm:text-base">
               <p>
                 I&apos;m a <span className="text-primary-400 font-medium">Software Developer</span> and 
                 <span className="text-primary-400 font-medium"> ICT Professional</span> based in Perth, Australia, 
-                passionate about building innovative solutions and solving complex technical challenges.
+                focused on building reliable software and solving practical technical challenges.
               </p>
               <p>
                 With a <span className="text-accent-400 font-medium">Bachelor of Computer Science from UWA</span> and 
@@ -341,7 +341,6 @@ const AboutSection = () => {
                   transition={{ delay: 0.5 + index * 0.1 }}
                   className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full glass border border-white/10 text-xs sm:text-sm text-slate-300 hover:border-primary-500/50 hover:text-primary-400 transition-all cursor-default"
                 >
-                  <span>{interest.icon}</span>
                   {interest.name}
                 </motion.span>
               ))}

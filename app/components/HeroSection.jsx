@@ -150,11 +150,9 @@ const HeroSection = () => {
                 2000,
                 "a Full-Stack Engineer",
                 2000,
-                "a Problem Solver",
-                2000,
                 "an ICT Professional",
                 2000,
-                "a Creative Builder",
+                "focused on practical solutions",
                 2000,
               ]}
               wrapper="span"
@@ -169,9 +167,9 @@ const HeroSection = () => {
             variants={itemVariants}
             className="text-slate-400 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0"
           >
-            Passionate about crafting elegant solutions to complex problems. 
-            I specialise in building modern web applications, exploring AI/ML, 
-            and creating impactful software that makes a difference.
+            I build modern web applications and internal tools with a focus on
+            reliability, usability, and clear outcomes. I also explore AI/ML
+            workflows and automation where they add practical value.
           </motion.p>
 
           {/* CTA Buttons */}
