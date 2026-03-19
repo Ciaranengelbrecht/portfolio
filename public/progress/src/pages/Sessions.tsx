@@ -2240,7 +2240,6 @@ export default function Sessions() {
         // Lazy subscribe to only needed tables
         requestRealtime("sessions");
         requestRealtime("exercises");
-        requestRealtime("templates");
       } catch (err) {
         console.error("[Sessions] Critical error during initialization:", err);
         // Set minimal state to prevent total freeze
@@ -2253,7 +2252,6 @@ export default function Sessions() {
         try {
           requestRealtime("sessions");
           requestRealtime("exercises");
-          requestRealtime("templates");
         } catch {}
       }
     })();

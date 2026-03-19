@@ -87,7 +87,6 @@ export default function Templates() {
       setExercises(await db.getAll("exercises"));
       setTemplates(await db.getAll("templates"));
       // subscribe only once needed
-      requestRealtime("exercises");
       requestRealtime("templates");
     })();
   }, []);
@@ -108,7 +107,6 @@ export default function Templates() {
   useEffect(() => {
     const onChange = (e: any) => {
       const tbl = e?.detail?.table;
-      if (tbl === "exercises") db.getAll("exercises").then(setExercises);
       if (tbl === "templates") db.getAll("templates").then(setTemplates);
     };
     window.addEventListener("sb-change", onChange as any);

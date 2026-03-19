@@ -86,7 +86,7 @@ export async function sbGet(table: Table, id: string) {
     // Try new namespaced key first
     let { data, error } = await supabase
       .from(table)
-      .select("id,data,owner,updated_at")
+      .select("id,data")
       .eq("id", sk)
       .eq("owner", owner)
       .maybeSingle();
@@ -95,7 +95,7 @@ export async function sbGet(table: Table, id: string) {
     // Fallback: legacy plain id, migrate if found
     const legacy = await supabase
       .from(table)
-      .select("id,data,owner,updated_at")
+      .select("id,data")
       .eq("id", id)
       .eq("owner", owner)
       .maybeSingle();
@@ -128,9 +128,8 @@ export async function sbList(table: Table) {
   const attempt = async () => {
     const { data, error } = await supabase
       .from(table)
-      .select("id,data,owner,updated_at")
-      .eq("owner", owner as any)
-      .order("updated_at", { ascending: true });
+      .select("id,data")
+      .eq("owner", owner as any);
     if (error) throw error;
     return data!;
   };

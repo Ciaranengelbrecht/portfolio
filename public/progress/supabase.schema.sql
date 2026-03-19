@@ -126,47 +126,23 @@ create policy "own upsert" on settings for insert with check (auth.uid() = owner
 create policy "own update" on settings for update using (auth.uid() = owner);
 
 -- ============================================================================
--- Monetization: purchases table (unified Stripe / PayPal entitlement store)
+-- Performance indexes for owner-scoped workloads
 -- ============================================================================
--- A purchase row represents a successfully paid transaction that unlocks either
--- a specific program pack (Stripe style) or global access (PayPal unlock-all).
--- Provider specific uniqueness guaranteed via (provider, external_id).
--- NOTE: Run this block after initial core tables. Safe & idempotent.
+-- These match the most common app queries:
+--   WHERE owner = auth.uid()
+-- and owner-scoped ordering by updated_at when needed.
 
-create table if not exists purchases (
-  id bigserial primary key,
-  user_id uuid references auth.users(id) on delete set null,
-  provider text not null,               -- 'stripe' | 'paypal' | future
-  external_id text not null,            -- provider's order/session id
-  status text not null default 'paid',  -- 'paid' | 'refunded' | 'revoked'
-  amount_cents integer,                 -- stored in smallest currency unit
-  currency text,                        -- e.g. 'usd'
-  pack_id text,                         -- nullable if unlock-all purchase
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+create index if not exists exercises_owner_idx on exercises(owner);
+create index if not exists exercises_owner_updated_idx on exercises(owner, updated_at);
 
--- Uniqueness for idempotent upserts per provider event
-do $$ begin
-  if not exists (
-    select 1 from pg_indexes where schemaname = 'public' and indexname = 'uniq_purchases_provider_external'
-  ) then
-    execute 'create unique index uniq_purchases_provider_external on purchases(provider, external_id)';
-  end if;
-end $$;
+create index if not exists sessions_owner_idx on sessions(owner);
+create index if not exists sessions_owner_updated_idx on sessions(owner, updated_at);
 
--- Fast lookup by user
-create index if not exists purchases_user_idx on purchases(user_id);
-create index if not exists purchases_pack_idx on purchases(pack_id);
+create index if not exists measurements_owner_idx on measurements(owner);
+create index if not exists measurements_owner_updated_idx on measurements(owner, updated_at);
 
--- Touch updated_at automatically
-create trigger purchases_updated before update on purchases for each row execute function extensions.moddatetime(updated_at);
+create index if not exists templates_owner_idx on templates(owner);
+create index if not exists templates_owner_updated_idx on templates(owner, updated_at);
 
-alter table purchases enable row level security;
--- Policies: users can view their own rows (by user_id). Inserts/updates handled by service role (bypass RLS).
-drop policy if exists "purchases own read" on purchases;
-drop policy if exists "purchases own update" on purchases;
-create policy "purchases own read" on purchases for select using (auth.uid() = user_id);
-create policy "purchases own update" on purchases for update using (auth.uid() = user_id);
-
--- (Optionally) If you later want non-authenticated PayPal flows tied by email, add a user_email column and adapt policies.
+create index if not exists settings_owner_idx on settings(owner);
+create index if not exists settings_owner_updated_idx on settings(owner, updated_at);

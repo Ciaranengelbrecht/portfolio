@@ -10,6 +10,42 @@ export interface DBSchema {
   templates: Template;
 }
 
+type StoreKey = keyof DBSchema;
+
+type CacheRecord = {
+  ts: number;
+  data: any[];
+};
+
+const READ_CACHE = new Map<StoreKey, CacheRecord>();
+const INFLIGHT_LIST = new Map<StoreKey, Promise<any[]>>();
+
+const READ_TTL_MS: Record<StoreKey, number> = {
+  exercises: 30_000,
+  templates: 30_000,
+  settings: 30_000,
+  sessions: 25_000,
+  measurements: 15_000,
+};
+
+function isFresh(store: StoreKey, ts: number) {
+  return Date.now() - ts < READ_TTL_MS[store];
+}
+
+function copyList<T = any>(rows: T[]): T[] {
+  return Array.isArray(rows) ? rows.slice() : [];
+}
+
+function invalidateStoreCache(store: StoreKey) {
+  READ_CACHE.delete(store);
+  INFLIGHT_LIST.delete(store);
+}
+
+function invalidateAllCache() {
+  READ_CACHE.clear();
+  INFLIGHT_LIST.clear();
+}
+
 function isTestEnv() {
   try {
     const node =
@@ -63,26 +99,55 @@ export const db = {
     if (isTestEnv()) {
       return Array.from(MEM[store].values()) as any;
     }
+    const cached = READ_CACHE.get(store);
+    if (cached && isFresh(store, cached.ts)) {
+      return copyList(cached.data) as T[];
+    }
+
+    const inflight = INFLIGHT_LIST.get(store);
+    if (inflight) {
+      return (await inflight).slice() as T[];
+    }
+
     const attempt = async () => {
       const rows = await sbList(store as any);
       return rows.map((r: any) =>
         store === "settings" ? { ...r.data, id: "app" } : r.data
       );
     };
-    try {
-      return await attempt();
-    } catch (e: any) {
-      const msg = String(e?.message || e);
-      const status = (e && (e.status || e.code)) || "";
-      if (
-        /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
-        String(status) === "401" ||
-        /Failed to fetch|TypeError|NetworkError/i.test(msg)
-      ) {
-        await forceRefreshSession();
-        await new Promise((r) => setTimeout(r, 500));
-        return await attempt();
+
+    const fetchPromise = (async () => {
+      try {
+        const result = await attempt();
+        READ_CACHE.set(store, { ts: Date.now(), data: copyList(result) });
+        return result;
+      } catch (e: any) {
+        const msg = String(e?.message || e);
+        const status = (e && (e.status || e.code)) || "";
+        if (
+          /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
+          String(status) === "401" ||
+          /Failed to fetch|TypeError|NetworkError/i.test(msg)
+        ) {
+          await forceRefreshSession();
+          await new Promise((r) => setTimeout(r, 500));
+          const retry = await attempt();
+          READ_CACHE.set(store, { ts: Date.now(), data: copyList(retry) });
+          return retry;
+        }
+        throw e;
+      } finally {
+        INFLIGHT_LIST.delete(store);
       }
+    })();
+
+    INFLIGHT_LIST.set(store, fetchPromise);
+
+    try {
+      const result = await fetchPromise;
+      return copyList(result) as T[];
+    } catch (e) {
+      invalidateStoreCache(store);
       throw e;
     }
   },
@@ -92,6 +157,15 @@ export const db = {
   ): Promise<T | undefined> {
     if (isTestEnv()) {
       return MEM[store].get(key);
+    }
+    const cached = READ_CACHE.get(store);
+    if (cached && isFresh(store, cached.ts)) {
+      const fromCache = cached.data.find((row: any) => row?.id === key);
+      if (fromCache) return fromCache as T;
+      if (store === "settings" && key === "app") {
+        const settingsRow = cached.data.find((row: any) => row?.id === "app");
+        if (settingsRow) return settingsRow as T;
+      }
     }
     const attempt = async () => {
       const row = await sbGet(store as any, key);
@@ -121,6 +195,7 @@ export const db = {
   async put<T extends any>(store: keyof DBSchema, value: any): Promise<void> {
     const id = value?.id ?? (store === "settings" ? "app" : undefined);
     if (!id) throw new Error("Missing id for put");
+    invalidateStoreCache(store);
     if (isTestEnv()) {
       // Enforce exercise name uniqueness (case-insensitive) in test mode
       if (store === "exercises") {
@@ -180,6 +255,7 @@ export const db = {
     }
   },
   async delete(store: keyof DBSchema, key: string) {
+    invalidateStoreCache(store);
     if (isTestEnv()) {
       MEM[store].delete(key);
       return;
@@ -207,3 +283,18 @@ export const db = {
     }
   },
 };
+
+if (typeof window !== "undefined") {
+  window.addEventListener("sb-change", (e: any) => {
+    const table = e?.detail?.table as StoreKey | undefined;
+    if (
+      table &&
+      ["sessions", "exercises", "measurements", "settings", "templates"].includes(
+        table
+      )
+    ) {
+      invalidateStoreCache(table);
+    }
+  });
+  window.addEventListener("sb-auth", () => invalidateAllCache());
+}

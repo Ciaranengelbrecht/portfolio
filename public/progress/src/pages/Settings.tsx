@@ -578,7 +578,7 @@ export default function SettingsPage() {
       } catch {}
       clearAuthStorage();
       alert(
-        "Your account data has been deleted. If purchases exist, Google may retain limited records as noted in the policy."
+        "Your account data has been deleted."
       );
       window.location.href =
         "https://ciaranengelbrecht.com/delete-account-liftlog.html";

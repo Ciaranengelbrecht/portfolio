@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
+  Navigate,
   NavLink,
   Route,
   Routes,
@@ -36,7 +37,6 @@ const Analytics = lazy(() => import("./features/analytics/Analytics"));
 const Sessions = lazy(() => import("./pages/Sessions"));
 const Measurements = lazy(() => import("./pages/Measurements"));
 const Templates = lazy(() => import("./pages/Templates"));
-const Store = lazy(() => import("./pages/Store"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Recovery = lazy(() => import("./pages/Recovery"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
@@ -77,13 +77,22 @@ function Shell() {
       setAuthChecked(true);
       // Seed global exercise catalogue once per device (idempotent if already present)
       seedExercises().catch(() => {});
-      // Preload core datasets (stale-while-revalidate) for snappier first navigation
-      warmPreload(
-        ["sessions", "exercises", "measurements", "templates", "settings"],
-        { swr: true }
-      );
-      // Kick off aggregate computation (non-blocking)
-      computeAggregates().catch(() => {});
+      // Delay heavier warmup work until browser idle to keep first route responsive.
+      const runDeferredWarmup = () => {
+        warmPreload(["exercises", "templates", "settings"], { swr: true });
+        // Sessions/measurements and aggregate computation can be expensive on bigger accounts.
+        // Let route-level pages drive those loads when needed.
+        setTimeout(() => {
+          computeAggregates().catch(() => {});
+        }, 1200);
+      };
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        (window as any).requestIdleCallback(runDeferredWarmup, {
+          timeout: 1200,
+        });
+      } else {
+        setTimeout(runDeferredWarmup, 300);
+      }
     })();
   }, []);
   useEffect(() => {
@@ -486,7 +495,6 @@ function Shell() {
                   <Tab to="/measurements" label="Measurements" />
                   <Tab to="/settings/program" label="Program" />
                   <Tab to="/templates" label="Templates" />
-                  <Tab to="/store" label="Store" />
                   <Tab to="/settings" label="Settings" />
                 </nav>
               </div>
@@ -613,7 +621,7 @@ function Shell() {
                   path="/store"
                   element={
                     <RequireAuth>
-                      <Store />
+                      <Navigate to="/templates" replace />
                     </RequireAuth>
                   }
                 />
@@ -646,14 +654,12 @@ function Shell() {
 
 export default function App() {
   return (
-    <SnackProvider>
-      <LegacyThemeProvider>
-        <VarsThemeProvider>
-          <ProgramProvider>
-            <Shell />
-          </ProgramProvider>
-        </VarsThemeProvider>
-      </LegacyThemeProvider>
-    </SnackProvider>
+    <LegacyThemeProvider>
+      <VarsThemeProvider>
+        <ProgramProvider>
+          <Shell />
+        </ProgramProvider>
+      </VarsThemeProvider>
+    </LegacyThemeProvider>
   );
 }
