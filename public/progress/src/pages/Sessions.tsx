@@ -132,6 +132,7 @@ function TopMuscleAndContents({
               <button
                 key={k}
                 onClick={() => handleMuscleClick(k)}
+                type="button"
                 className={`badge-muscle icon-glow transition-all ${
                   isActive
                     ? "ring-2 ring-emerald-400 bg-emerald-500/20 scale-105"
@@ -140,6 +141,7 @@ function TopMuscleAndContents({
                     : ""
                 }`}
                 aria-label={`${isActive ? "Clear filter" : "Filter by"} ${k} (${c} sets)`}
+                aria-pressed={isActive}
                 title={`${isActive ? "Click to clear filter" : "Click to filter by"} ${k}`}
               >
                 {src ? (
@@ -154,6 +156,7 @@ function TopMuscleAndContents({
           {muscleFilter && (
             <button
               onClick={() => onMuscleFilter(null)}
+              type="button"
               className="text-[9px] px-2 py-1 rounded-md bg-red-500/20 text-red-300 hover:bg-red-500/30 transition whitespace-nowrap"
               aria-label="Clear muscle filter"
             >
@@ -515,6 +518,15 @@ export default function Sessions() {
     () => computeSessionCacheTtl(editingFieldsRef.current.size),
     []
   );
+  const readSessions = useCallback(
+    async (options?: { force?: boolean; swr?: boolean }) =>
+      getAllCached<Session>("sessions", {
+        ttlMs: currentSessionsTtl(),
+        force: options?.force,
+        swr: options?.swr ?? true,
+      }),
+    [currentSessionsTtl]
+  );
   const persistSession = useCallback(async (value: Session) => {
     await db.put("sessions", value);
     invalidate("sessions");
@@ -701,7 +713,7 @@ export default function Sessions() {
     setWipeCounts(null);
     (async () => {
       try {
-        const all = await db.getAll<Session>("sessions");
+        const all = await readSessions();
         const unique = new Map<string, Session>();
         for (const item of all) {
           if (item?.id) unique.set(item.id, item);
@@ -772,7 +784,14 @@ export default function Sessions() {
     return () => {
       cancelled = true;
     };
-  }, [wipeSheetOpen, phaseNumber, weekNumber, session?.programId, session?.id]);
+  }, [
+    wipeSheetOpen,
+    phaseNumber,
+    weekNumber,
+    session?.programId,
+    session?.id,
+    readSessions,
+  ]);
   // Persist collapsed state per-session (mobile UX enhancement)
   useEffect(() => {
     setCollapsedInitialized(false);
@@ -1323,7 +1342,7 @@ export default function Sessions() {
     
     (async () => {
       try {
-        const all = await db.getAll<Session>("sessions");
+        const all = await readSessions();
         
         // Helper to extract calendar day as number for comparison
         const dayVal = (s: Session) => {
@@ -1396,7 +1415,7 @@ export default function Sessions() {
         lastRealSessionAppliedRef.current = true;
       }
     })();
-  }, [initialRouteReady]);
+  }, [initialRouteReady, readSessions]);
 
   // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
@@ -1407,7 +1426,7 @@ export default function Sessions() {
         setAutoNavDone(true);
         return;
       }
-      const all = await db.getAll<Session>("sessions");
+      const all = await readSessions();
       if (!all.length) {
         setAutoNavDone(true);
         return;
@@ -1494,7 +1513,7 @@ export default function Sessions() {
       }
       setAutoNavDone(true);
     })();
-  }, [phase, autoNavDone, week, day, initialRouteReady]);
+  }, [phase, autoNavDone, week, day, initialRouteReady, readSessions]);
 
   // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
   useEffect(() => {
@@ -1502,7 +1521,7 @@ export default function Sessions() {
       // If user explicitly selected this phase for editing/preview, don't auto-revert
       // until they leave the page or log a valid set (which will commit the phase).
       if (allowEmptyPhase) return;
-      const all = await db.getAll<Session>("sessions");
+      const all = await readSessions();
       const curPhaseSessions = all.filter(
         (s) => (s.phaseNumber || s.phase || 1) === phase
       );
@@ -1528,7 +1547,7 @@ export default function Sessions() {
         }
       }
     })();
-  }, [phase, allowEmptyPhase]);
+  }, [phase, allowEmptyPhase, readSessions]);
 
   // Phase readiness calculation
   useEffect(() => {
@@ -1537,7 +1556,7 @@ export default function Sessions() {
         setReadinessPct(0);
         return;
       }
-      const all = await db.getAll<Session>("sessions");
+      const all = await readSessions();
       const cur = all.filter((s) => (s.phaseNumber || s.phase || 1) === phase);
       const weeks = new Set<number>();
       for (const s of cur) {
@@ -1547,7 +1566,7 @@ export default function Sessions() {
         Math.min(100, Math.round((weeks.size / (program.mesoWeeks || 1)) * 100))
       );
     })();
-  }, [phase, week, session?.id, program]);
+  }, [phase, week, session?.id, program, readSessions]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1870,7 +1889,7 @@ export default function Sessions() {
         }
         if (!s) {
           // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
-          const allToday = (await db.getAll<Session>("sessions")).filter(
+          const allToday = (await readSessions()).filter(
             (x) =>
               x.dateISO?.slice(0, 10) === new Date().toISOString().slice(0, 10)
           );
@@ -2033,7 +2052,7 @@ export default function Sessions() {
         }, 1000);
       }
     })();
-  }, [phase, week, day, initialRouteReady]);
+  }, [phase, week, day, initialRouteReady, readSessions]);
 
   // Reset the transient allowEmptyPhase guard when leaving the page
   useEffect(() => {
@@ -2136,7 +2155,7 @@ export default function Sessions() {
       if (recoveryRunRef.current && exercises.length > 0) return;
       let allSessions: Session[] = [];
       try {
-        allSessions = await db.getAll<Session>("sessions");
+        allSessions = await readSessions();
       } catch {
         return;
       }
@@ -2303,8 +2322,8 @@ export default function Sessions() {
         }
       })();
     };
-    window.addEventListener("sb-auth", onAuth);
-    return () => window.removeEventListener("sb-auth", onAuth);
+    window.addEventListener("sb-auth", onAuth as any);
+    return () => window.removeEventListener("sb-auth", onAuth as any);
   }, [session?.id]);
 
   // Lightweight realtime auto-refresh: guarded to prevent clobbering in-progress typing
@@ -2355,7 +2374,7 @@ export default function Sessions() {
         (async () => {
           try {
             setPrevBestLoading(true);
-            const all = await db.getAll<Session>("sessions");
+            const all = await readSessions();
             const map = getPrevBestCached(
               all,
               phase,
@@ -2380,6 +2399,7 @@ export default function Sessions() {
     program?.id,
     program?.mesoWeeks,
     program?.deload,
+    readSessions,
   ]);
 
   // Recompute prev best map whenever week, phase, or day changes
@@ -2387,7 +2407,7 @@ export default function Sessions() {
     (async () => {
       setPrevBestLoading(true);
       try {
-        const allSessions = await db.getAll<Session>("sessions");
+        const allSessions = await readSessions();
         const map = getPrevBestCached(
           allSessions,
           phase,
@@ -2403,7 +2423,7 @@ export default function Sessions() {
         setPrevBestLoading(false);
       }
     })();
-  }, [week, phase, day]);
+  }, [week, phase, day, readSessions]);
 
   // Build previous week (or nearest past week) per-set lookup whenever active session context changes
   const recomputePrevWeekSets = async (sess: Session | null) => {
@@ -2657,7 +2677,7 @@ export default function Sessions() {
       if (latestSessionRef.current) return [latestSessionRef.current];
       return [session];
     }
-    const all = await db.getAll<Session>("sessions");
+    const all = await readSessions({ force: true, swr: false });
     const programId = session.programId ?? null;
     const targetPhase = getSessionPhaseNumber(session) ?? phaseNumber ?? null;
     const targetWeek = getSessionWeekNumber(session) ?? weekNumber ?? null;
@@ -2741,7 +2761,7 @@ export default function Sessions() {
         await recomputePrevWeekSets(session);
       }
       setPrevBestLoading(true);
-      const allSessions = await db.getAll<Session>("sessions");
+      const allSessions = await readSessions({ force: true, swr: false });
       const templateForCache =
         updatedCurrent?.templateId ?? session?.templateId;
       const map = getPrevBestCached(
@@ -4834,7 +4854,7 @@ export default function Sessions() {
             className="bg-emerald-700 px-3 py-2 rounded-xl"
             title="Start next 9-week phase"
             onClick={async () => {
-              const all = await db.getAll<Session>("sessions");
+              const all = await readSessions({ force: true, swr: false });
               const curPhaseSessions = all.filter(
                 (s) => (s.phaseNumber || s.phase || 1) === phase
               );
@@ -4963,6 +4983,11 @@ export default function Sessions() {
             onMuscleFilter={setMuscleFilter}
           />
         )}
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          {muscleFilter
+            ? `Filtering exercises by ${muscleFilter}`
+            : "Showing exercises for all muscles"}
+        </p>
         {!initialLoading &&
           session &&
           session.entries
