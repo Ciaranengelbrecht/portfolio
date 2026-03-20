@@ -4460,13 +4460,13 @@ export default function Sessions() {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.32, 0.72, 0.33, 1] }}
               >
-                <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-end">
                   {/* Week & Phase */}
-                  <div className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[200px]">
+                  <div className="flex min-w-0 flex-col gap-1">
                     <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                       Week & Phase
                     </span>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex max-w-full flex-wrap items-center gap-2">
                       <WeekSelector
                         value={Number(week) || 1}
                         totalWeeks={
@@ -4508,7 +4508,7 @@ export default function Sessions() {
                   </div>
                   {/* Session date & quick actions */}
                   {session && (
-                    <div className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[220px]">
+                    <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                           Session Date
@@ -4518,7 +4518,7 @@ export default function Sessions() {
                         )}
                       </div>
                       <div
-                        className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-slate-900/70 px-2.5 py-1.5 text-[11px] text-slate-100"
+                        className="flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-slate-900/70 px-2.5 py-1.5 text-[11px] text-slate-100"
                         title="Current assigned date (edit or stamp)"
                       >
                         {editingDate ? (
@@ -4546,7 +4546,7 @@ export default function Sessions() {
                           </div>
                         ) : (
                           <span
-                            className="font-mono tracking-tight"
+                            className="min-w-0 font-mono tracking-tight"
                             title={session.localDate || session.dateISO.slice(0, 10)}
                           >
                             {displayDate(
@@ -4554,7 +4554,7 @@ export default function Sessions() {
                             )}
                           </span>
                         )}
-                        <div className="flex items-center gap-1.5 sm:ml-auto">
+                        <div className="flex flex-wrap items-center gap-1.5 lg:ml-auto">
                           {!editingDate && (
                             <button
                               type="button"
