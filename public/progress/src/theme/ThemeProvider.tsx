@@ -3,6 +3,7 @@ import { THEMES, ThemeKey, ThemeVars } from "./themes";
 import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
+import { getSettings } from "../lib/helpers";
 
 type Ctx = {
   themeKey: ThemeKey;
@@ -111,17 +112,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         root.style.transition = "";
       }, 220);
     }
-    const s = await db.get<Settings>("settings", "app");
-      await db.put("settings", {
-        ...(s ||
-          ({
-            unit: "kg",
-            deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
-          } as any)),
-        id: "app",
-        // Preserve existing themeV2 fields (e.g., customVars, intensity, glowStrength) and only update the key
-        themeV2: { ...((s as any)?.themeV2 || {}), key },
-      } as any);
+    const s = (await db.get<Settings>("settings", "app")) || (await getSettings());
+    await db.put("settings", {
+      ...s,
+      id: "app",
+      // Preserve existing themeV2 fields (e.g., customVars, intensity, glowStrength) and only update the key
+      themeV2: { ...((s as any)?.themeV2 || {}), key },
+    } as any);
   };
 
   function tweakHslLightness(hsl: string, delta: number, minL = 15, maxL = 85) {
@@ -165,10 +162,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           key = "midnight";
           // self-heal persisted invalid/removed keys while preserving other themeV2 fields
           try {
+            const complete = (s as Settings | undefined) || (await getSettings());
             await db.put("settings", {
-              ...(s || ({} as any)),
+              ...complete,
               id: "app",
-              themeV2: { ...((s as any)?.themeV2 || {}), key },
+              themeV2: { ...((complete as any)?.themeV2 || {}), key },
             } as any);
           } catch {}
         }

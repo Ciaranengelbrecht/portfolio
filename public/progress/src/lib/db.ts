@@ -217,6 +217,12 @@ export const db = {
     }
     const attempt = async () => {
       const owner = await getOwnerId();
+      let payload = value;
+      if (store === "settings") {
+        // Defensive merge: preserve unrelated preferences when a caller writes a partial settings object.
+        const current = await sbGet("settings" as any, id);
+        payload = { ...(current?.data || {}), ...(value || {}), id };
+      }
       // Enforce exercise name uniqueness (case-insensitive) at app layer before upsert
       if (store === "exercises") {
         const existing = await sbList("exercises" as any);
@@ -234,7 +240,7 @@ export const db = {
           return;
         }
       }
-      await sbUpsert(store as any, owner, id, value);
+      await sbUpsert(store as any, owner, id, payload);
     };
     try {
       await attempt();

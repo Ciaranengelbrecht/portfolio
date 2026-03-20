@@ -49,15 +49,16 @@ export async function getLastWorkingSets(
 }
 
 export async function getSettings(): Promise<Settings> {
+  const stored = await db.get<Settings>("settings", "app");
   let base: Settings =
-    (await db.get<Settings>("settings", "app")) ||
+    stored ||
     ({
       unit: "kg",
       deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
       theme: "dark",
       themeV2: { key: "default-glass" },
     } as any);
-  let mutated = false;
+  let mutated = !stored;
   if (!base.theme || base.theme !== "dark") {
     base = { ...base, theme: "dark" };
     mutated = true;
@@ -67,9 +68,38 @@ export async function getSettings(): Promise<Settings> {
     mutated = true;
   }
   // Backfill new fields if missing
-  if (base.reducedMotion == null) (base as any).reducedMotion = false;
-  if ((base as any).restTimerTargetSeconds == null)
+  if (base.reducedMotion == null) {
+    (base as any).reducedMotion = false;
+    mutated = true;
+  }
+  if ((base as any).restTimerTargetSeconds == null) {
     (base as any).restTimerTargetSeconds = 90;
+    mutated = true;
+  }
+  if ((base as any).restTimerStrongAlert == null) {
+    (base as any).restTimerStrongAlert = true;
+    mutated = true;
+  }
+  if ((base as any).restTimerScreenFlash == null) {
+    (base as any).restTimerScreenFlash = false;
+    mutated = true;
+  }
+  if ((base as any).restTimerBeep == null) {
+    (base as any).restTimerBeep = true;
+    mutated = true;
+  }
+  if ((base as any).restTimerBeepStyle == null) {
+    (base as any).restTimerBeepStyle = "gentle";
+    mutated = true;
+  }
+  if ((base as any).restTimerBeepCount == null) {
+    (base as any).restTimerBeepCount = 2;
+    mutated = true;
+  }
+  if ((base as any).restTimerBeepVolume == null) {
+    (base as any).restTimerBeepVolume = 140;
+    mutated = true;
+  }
   if (!base.progress?.guidedSetup) {
     base = {
       ...base,
