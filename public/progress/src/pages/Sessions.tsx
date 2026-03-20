@@ -126,7 +126,7 @@ function TopMuscleAndContents({
   return (
     <div className="sticky top-0 z-20 -mt-1 mb-1 pt-1 space-y-1 px-2.5 sm:px-1">
       {muscleCounts.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
+        <div className="flex max-w-full gap-1.5 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/50 border border-white/5">
           {muscleCounts.map(([k, c]) => {
             const src = getMuscleIconPath(k);
             const isActive = muscleFilter === k;
@@ -137,7 +137,7 @@ function TopMuscleAndContents({
                 type="button"
                 className={`badge-muscle icon-glow transition-all ${
                   isActive
-                    ? "ring-2 ring-emerald-400 bg-emerald-500/20 scale-105"
+                    ? "ring-2 ring-emerald-400 bg-emerald-500/20"
                     : muscleFilter && !isActive
                     ? "opacity-50"
                     : ""
@@ -167,7 +167,7 @@ function TopMuscleAndContents({
           )}
         </div>
       )}
-      <div className="flex gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
+      <div className="flex max-w-full gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
         {session.entries
           .filter((en) => {
             // If no filter, show all
@@ -7204,7 +7204,7 @@ function MobileSessionMetrics({
         <span className="display-number-sm text-emerald-400">{stats.prs}</span>
       </span>
       {muscleCounts.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto scrollbar-none">
           {muscleCounts.slice(0, 4).map(([k, n]) => {
             const src = getMuscleIconPath(k);
             return (

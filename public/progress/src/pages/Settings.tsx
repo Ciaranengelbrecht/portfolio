@@ -2601,7 +2601,7 @@ function ExerciseLibraryManager({
         </div>
       </div>
       {/* Muscle filter chips */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-none -mx-1 px-1 pt-1 pb-1 flex-wrap">
+      <div className="flex flex-wrap gap-1 pt-1 pb-1">
         <button
           onClick={() => setMuscleFilter("")}
           className={`text-[11px] px-2 py-1 rounded-lg border transition whitespace-nowrap ${

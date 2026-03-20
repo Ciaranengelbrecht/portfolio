@@ -369,7 +369,7 @@ function Shell() {
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${
+        `shrink-0 px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${
           isActive ? "bg-card text-white" : "text-gray-300"
         }`
       }
@@ -489,7 +489,7 @@ function Shell() {
                 <h1 className="hidden md:block text-base sm:text-lg font-semibold shrink-0">
                   LiftLog
                 </h1>
-                <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1">
+                <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1 pr-1">
                   <Tab to="/" label="Dashboard" />
                   <Tab to="/sessions" label="Sessions" />
                   <Tab to="/measurements" label="Measurements" />

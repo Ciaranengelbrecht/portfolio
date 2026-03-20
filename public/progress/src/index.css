@@ -665,7 +665,7 @@ input[type="number"] {
     @apply text-xs font-medium text-slate-200 tabular-nums;
     @apply transition-all duration-200;
     @apply hover:from-slate-700/80 hover:to-slate-800/80;
-    @apply min-w-[44px] h-8;
+    @apply min-w-[44px] h-8 shrink-0;
   }
 
   /* Number Display System */

@@ -735,11 +735,11 @@ export default function ProgramSettings() {
           <div className="text-xs uppercase tracking-wide text-gray-400">
             Weekly Split
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {working.weeklySplit.map((d, i) => (
               <div
                 key={i}
-                className="min-w-[170px] rounded-xl p-3 bg-white/5 border border-white/10 space-y-2"
+                className="min-w-0 rounded-xl p-3 bg-white/5 border border-white/10 space-y-2"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", String(i));
