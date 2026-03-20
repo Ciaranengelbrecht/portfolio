@@ -349,14 +349,14 @@ function Shell() {
       const loc = locationRef.pathname;
       // Only auto-navigate on first load when at root path
       if (loc === "/" || loc === "") {
-        if (
-          start === "last" &&
-          s.dashboardPrefs?.openToLast !== false &&
-          s.dashboardPrefs?.lastLocation
-        ) {
-          try {
-            sessionStorage.setItem("lastLocationIntent", "1");
-          } catch {}
+        if (start === "last" && s.dashboardPrefs?.openToLast !== false) {
+          // Always open Sessions for "Last Session" start page.
+          // If we have a concrete prior location, signal Sessions to apply it.
+          if (s.dashboardPrefs?.lastLocation) {
+            try {
+              sessionStorage.setItem("lastLocationIntent", "1");
+            } catch {}
+          }
           navigate("/sessions");
         } else if (start === "sessions") navigate("/sessions");
         else if (start === "measurements") navigate("/measurements");
