@@ -114,6 +114,8 @@ export default function SettingsPage() {
   const [sectionCollapsed, setSectionCollapsed] = useState<
     Record<SettingsSectionId, boolean>
   >(DEFAULT_SETTINGS_SECTION_STATE);
+  const [settingsHydrated, setSettingsHydrated] = useState(false);
+  const lastSavedSettingsRef = useRef<string>("");
 
   useEffect(() => {
     try {
@@ -383,15 +385,36 @@ export default function SettingsPage() {
       const current = await db.get<Settings>("settings", "app");
       if (!current) {
         // seed
-        await db.put("settings", { ...defaultSettings, id: "app" } as any);
+        const seeded = { ...defaultSettings, id: "app" } as any;
+        await db.put("settings", seeded);
         for (const e of defaultExercises) await db.put("exercises", e);
         for (const t of defaultTemplates) await db.put("templates", t);
         setS(defaultSettings);
+        lastSavedSettingsRef.current = JSON.stringify(defaultSettings);
       } else {
         setS(current);
+        lastSavedSettingsRef.current = JSON.stringify(current);
       }
+      setSettingsHydrated(true);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    const serialized = JSON.stringify(s);
+    if (serialized === lastSavedSettingsRef.current) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await db.put("settings", { ...s, id: "app" } as any);
+        lastSavedSettingsRef.current = serialized;
+      } catch (err) {
+        console.warn("[settings] autosave failed", err);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [s, settingsHydrated]);
 
   useEffect(() => {
     // Track supabase auth state
@@ -453,6 +476,7 @@ export default function SettingsPage() {
 
   const save = async () => {
     await db.put("settings", { ...s, id: "app" } as any);
+    lastSavedSettingsRef.current = JSON.stringify(s);
   };
 
   // testSync removed with Gist sync
