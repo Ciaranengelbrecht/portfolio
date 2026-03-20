@@ -17,9 +17,15 @@ type CacheRecord = {
   data: any[];
 };
 
+type LocalSettingsCacheRecord = {
+  data: any;
+  updatedAt: number;
+};
+
 const READ_CACHE = new Map<StoreKey, CacheRecord>();
 const INFLIGHT_LIST = new Map<StoreKey, Promise<any[]>>();
 const SETTINGS_LOCAL_CACHE_KEY = "liftlog:settings-cache:v1";
+let INFLIGHT_SETTINGS_SYNC: Promise<void> | null = null;
 
 const READ_TTL_MS: Record<StoreKey, number> = {
   exercises: 30_000,
@@ -47,14 +53,42 @@ function invalidateAllCache() {
   INFLIGHT_LIST.clear();
 }
 
-function readLocalSettingsCache(): any | undefined {
+function extractSettingsUpdatedAt(value: any): number {
+  if (!value || typeof value !== "object") return 0;
+  const raw =
+    value.settingsUpdatedAt ||
+    value.updatedAt ||
+    value.lastUpdatedAt ||
+    value.modifiedAt;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string") {
+    const ms = Date.parse(raw);
+    if (Number.isFinite(ms)) return ms;
+  }
+  return 0;
+}
+
+function readLocalSettingsCache(): LocalSettingsCacheRecord | undefined {
   if (typeof window === "undefined") return undefined;
   try {
     const raw = localStorage.getItem(SETTINGS_LOCAL_CACHE_KEY);
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return undefined;
-    return parsed;
+    // Backward compatibility with previous cache format that stored plain settings object.
+    if (parsed.data && typeof parsed.data === "object") {
+      return {
+        data: parsed.data,
+        updatedAt:
+          typeof parsed.updatedAt === "number"
+            ? parsed.updatedAt
+            : extractSettingsUpdatedAt(parsed.data) || Date.now(),
+      };
+    }
+    return {
+      data: parsed,
+      updatedAt: extractSettingsUpdatedAt(parsed) || Date.now(),
+    };
   } catch {
     return undefined;
   }
@@ -65,8 +99,40 @@ function writeLocalSettingsCache(value: any) {
   try {
     if (!value || typeof value !== "object") return;
     const { id: _id, ...rest } = value;
-    localStorage.setItem(SETTINGS_LOCAL_CACHE_KEY, JSON.stringify(rest));
+    const updatedAt = extractSettingsUpdatedAt(rest) || Date.now();
+    localStorage.setItem(
+      SETTINGS_LOCAL_CACHE_KEY,
+      JSON.stringify({ data: rest, updatedAt })
+    );
   } catch {}
+}
+
+async function syncLocalSettingsToRemote() {
+  if (INFLIGHT_SETTINGS_SYNC) return INFLIGHT_SETTINGS_SYNC;
+  INFLIGHT_SETTINGS_SYNC = (async () => {
+    try {
+      const local = readLocalSettingsCache();
+      if (!local?.data) return;
+      const owner = await getOwnerIdFast({ timeoutMs: 1200 });
+      const remote = await sbGet("settings", "app");
+      const remoteData = remote?.data || {};
+      const remoteTs = extractSettingsUpdatedAt(remoteData);
+      if (local.updatedAt <= remoteTs) return;
+      const payload = {
+        ...remoteData,
+        ...local.data,
+        id: "app",
+        settingsUpdatedAt:
+          local.data.settingsUpdatedAt || new Date(local.updatedAt).toISOString(),
+      };
+      await sbUpsert("settings", owner, "app", payload);
+    } catch {
+      // Best effort: keep local cache and retry on future auth events or writes.
+    }
+  })().finally(() => {
+    INFLIGHT_SETTINGS_SYNC = null;
+  });
+  return INFLIGHT_SETTINGS_SYNC;
 }
 
 function isTestEnv() {
@@ -134,11 +200,25 @@ export const db = {
 
     const attempt = async () => {
       const rows = await sbList(store as any);
-      const mapped = rows.map((r: any) =>
+      let mapped = rows.map((r: any) =>
         store === "settings" ? { ...r.data, id: "app" } : r.data
       );
-      if (store === "settings" && mapped[0]) {
-        writeLocalSettingsCache(mapped[0]);
+      if (store === "settings") {
+        const local = readLocalSettingsCache();
+        const remote = mapped[0];
+        if (!remote && local?.data) {
+          mapped = [{ ...local.data, id: "app" }];
+        } else if (remote && local?.data) {
+          const remoteTs = extractSettingsUpdatedAt(remote);
+          if (local.updatedAt > remoteTs) {
+            mapped = [{ ...local.data, id: "app" }];
+            void syncLocalSettingsToRemote();
+          } else {
+            writeLocalSettingsCache(remote);
+          }
+        } else if (remote) {
+          writeLocalSettingsCache(remote);
+        }
       }
       return mapped;
     };
@@ -176,8 +256,8 @@ export const db = {
     } catch (e) {
       if (store === "settings") {
         const local = readLocalSettingsCache();
-        if (local) {
-          const fallback = [{ ...local, id: "app" }] as T[];
+        if (local?.data) {
+          const fallback = [{ ...local.data, id: "app" }] as T[];
           READ_CACHE.set(store, {
             ts: Date.now(),
             data: copyList(fallback as any[]),
@@ -207,13 +287,26 @@ export const db = {
     }
     const attempt = async () => {
       const row = await sbGet(store as any, key);
-      const mapped = row
+      let mapped = row
         ? store === "settings"
           ? ({ ...row.data, id: "app" } as any)
           : row.data
         : undefined;
-      if (store === "settings" && mapped) {
-        writeLocalSettingsCache(mapped as any);
+      if (store === "settings" && key === "app") {
+        const local = readLocalSettingsCache();
+        if (!mapped && local?.data) {
+          mapped = { ...local.data, id: "app" } as any;
+        } else if (mapped && local?.data) {
+          const remoteTs = extractSettingsUpdatedAt(mapped);
+          if (local.updatedAt > remoteTs) {
+            mapped = { ...local.data, id: "app" } as any;
+            void syncLocalSettingsToRemote();
+          } else {
+            writeLocalSettingsCache(mapped as any);
+          }
+        } else if (mapped) {
+          writeLocalSettingsCache(mapped as any);
+        }
       }
       return mapped;
     };
@@ -222,7 +315,7 @@ export const db = {
       if (store === "settings" && key === "app") {
         if (found) return found;
         const local = readLocalSettingsCache();
-        if (local) return { ...local, id: "app" } as T;
+        if (local?.data) return { ...local.data, id: "app" } as T;
       }
       return found;
     } catch (e: any) {
@@ -240,20 +333,20 @@ export const db = {
           if (store === "settings" && key === "app") {
             if (retried) return retried;
             const local = readLocalSettingsCache();
-            if (local) return { ...local, id: "app" } as T;
+            if (local?.data) return { ...local.data, id: "app" } as T;
           }
           return retried;
         } catch (retryErr) {
           if (store === "settings" && key === "app") {
             const local = readLocalSettingsCache();
-            if (local) return { ...local, id: "app" } as T;
+            if (local?.data) return { ...local.data, id: "app" } as T;
           }
           throw retryErr;
         }
       }
       if (store === "settings" && key === "app") {
         const local = readLocalSettingsCache();
-        if (local) return { ...local, id: "app" } as T;
+        if (local?.data) return { ...local.data, id: "app" } as T;
       }
       throw e;
     }
@@ -261,6 +354,15 @@ export const db = {
   async put<T extends any>(store: keyof DBSchema, value: any): Promise<void> {
     const id = value?.id ?? (store === "settings" ? "app" : undefined);
     if (!id) throw new Error("Missing id for put");
+    let nextValue = value;
+    if (store === "settings") {
+      nextValue = {
+        ...(value || {}),
+        id,
+        settingsUpdatedAt: value?.settingsUpdatedAt || new Date().toISOString(),
+      };
+      writeLocalSettingsCache(nextValue);
+    }
     invalidateStoreCache(store);
     if (isTestEnv()) {
       // Enforce exercise name uniqueness (case-insensitive) in test mode
@@ -278,17 +380,22 @@ export const db = {
           }
         }
       }
-      MEM[store].set(id, value);
+      MEM[store].set(id, nextValue);
       return;
     }
     const attempt = async () => {
       const owner = await getOwnerId();
-      let payload = value;
+      let payload = nextValue;
       if (store === "settings") {
-        writeLocalSettingsCache(value);
         // Defensive merge: preserve unrelated preferences when a caller writes a partial settings object.
         const current = await sbGet("settings" as any, id);
-        payload = { ...(current?.data || {}), ...(value || {}), id };
+        payload = {
+          ...(current?.data || {}),
+          ...(nextValue || {}),
+          id,
+          settingsUpdatedAt:
+            (nextValue as any)?.settingsUpdatedAt || new Date().toISOString(),
+        };
         writeLocalSettingsCache(payload);
       }
       // Enforce exercise name uniqueness (case-insensitive) at app layer before upsert
@@ -383,4 +490,7 @@ if (typeof window !== "undefined") {
     }
   });
   window.addEventListener("sb-auth", () => invalidateAllCache());
+  window.addEventListener("sb-auth", () => {
+    void syncLocalSettingsToRemote();
+  });
 }

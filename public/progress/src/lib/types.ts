@@ -260,6 +260,8 @@ export interface Settings {
   restTimerBeepVolume?: number;
   /** Current training mode (bulk/cut/maintenance) - applied to new sessions automatically */
   currentTrainingMode?: TrainingMode;
+  /** Last settings mutation timestamp (ISO) used for conflict resolution across local/remote cache. */
+  settingsUpdatedAt?: string;
 }
 
 export interface Template {

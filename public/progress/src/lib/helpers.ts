@@ -6,6 +6,7 @@ import {
   Settings,
   Measurement,
 } from "./types";
+import { defaultSettings } from "./defaults";
 import { addDays, subDays, isAfter, parseISO } from "date-fns";
 
 // Optionally inject pre-fetched sessions to avoid repeated full-table reads (prevents N+1)
@@ -50,15 +51,43 @@ export async function getLastWorkingSets(
 
 export async function getSettings(): Promise<Settings> {
   const stored = await db.get<Settings>("settings", "app");
-  let base: Settings =
-    stored ||
-    ({
-      unit: "kg",
-      deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
-      theme: "dark",
-      themeV2: { key: "default-glass" },
-    } as any);
-  let mutated = !stored;
+  let base: Settings = {
+    ...defaultSettings,
+    ...(stored || {}),
+    deloadDefaults: {
+      ...defaultSettings.deloadDefaults,
+      ...(stored?.deloadDefaults || {}),
+    },
+    dashboardPrefs: {
+      ...(defaultSettings.dashboardPrefs || {}),
+      ...(stored?.dashboardPrefs || {}),
+      hidden: {
+        ...(defaultSettings.dashboardPrefs?.hidden || {}),
+        ...(stored?.dashboardPrefs?.hidden || {}),
+      },
+    },
+    progress: {
+      ...(defaultSettings.progress || {}),
+      ...(stored?.progress || {}),
+      guidedSetup: {
+        ...(defaultSettings.progress?.guidedSetup || {}),
+        ...(stored?.progress?.guidedSetup || {}),
+      },
+    },
+    ui: {
+      ...(defaultSettings.ui || {}),
+      ...(stored?.ui || {}),
+    },
+    ecg: {
+      ...(defaultSettings.ecg || {}),
+      ...(stored?.ecg || {}),
+    },
+    volumeTargets: {
+      ...(defaultSettings.volumeTargets || {}),
+      ...(stored?.volumeTargets || {}),
+    },
+  };
+  let mutated = !stored || JSON.stringify(base) !== JSON.stringify(stored);
   if (!base.theme || base.theme !== "dark") {
     base = { ...base, theme: "dark" };
     mutated = true;
@@ -110,6 +139,10 @@ export async function getSettings(): Promise<Settings> {
     };
     mutated = true;
   }
+  if (!(base as any).settingsUpdatedAt) {
+    (base as any).settingsUpdatedAt = new Date().toISOString();
+    mutated = true;
+  }
   if (mutated) {
     await db.put("settings", { ...base, id: "app" } as any);
   }
@@ -121,6 +154,7 @@ export async function setSettings(s: Settings) {
     ...s,
     theme: "dark",
     ui: { ...(s.ui || {}), themeMode: "dark" },
+    settingsUpdatedAt: new Date().toISOString(),
   } as Settings;
   await db.put("settings", { ...enforced, id: "app" } as any);
 }
