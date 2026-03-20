@@ -48,14 +48,7 @@ export async function getLastWorkingSets(
   }));
 }
 
-// Lightweight in-memory cache for settings to avoid repeated IndexedDB reads within a short interval
-let _settingsCache: { value: Settings; ts: number } | null = null;
-const SETTINGS_TTL_MS = 10_000; // safe short TTL; settings seldom change
 export async function getSettings(): Promise<Settings> {
-  const now = Date.now();
-  if (_settingsCache && now - _settingsCache.ts < SETTINGS_TTL_MS) {
-    return _settingsCache.value;
-  }
   let base: Settings =
     (await db.get<Settings>("settings", "app")) ||
     ({
@@ -90,7 +83,6 @@ export async function getSettings(): Promise<Settings> {
   if (mutated) {
     await db.put("settings", { ...base, id: "app" } as any);
   }
-  _settingsCache = { value: base, ts: now };
   return base;
 }
 
@@ -101,7 +93,6 @@ export async function setSettings(s: Settings) {
     ui: { ...(s.ui || {}), themeMode: "dark" },
   } as Settings;
   await db.put("settings", { ...enforced, id: "app" } as any);
-  _settingsCache = { value: enforced, ts: Date.now() }; // update cache immediately
 }
 
 // Accept optional injected datasets to remove N+1 patterns (sessions/exercises/settings)
