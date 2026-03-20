@@ -25,6 +25,7 @@ import {
 import { playRestBeep, unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
+import { getSettings, setSettings } from "../lib/helpers";
 
 const SETTINGS_SECTION_COLLAPSE_KEY = "settings:sectionCollapsed";
 const INTERACTIVE_ELEMENT_SELECTOR =
@@ -116,6 +117,7 @@ export default function SettingsPage() {
   >(DEFAULT_SETTINGS_SECTION_STATE);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const lastSavedSettingsRef = useRef<string>("");
+  const pendingSaveRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -382,20 +384,24 @@ export default function SettingsPage() {
 
   useEffect(() => {
     (async () => {
-      const current = await db.get<Settings>("settings", "app");
-      if (!current) {
-        // seed
-        const seeded = { ...defaultSettings, id: "app" } as any;
-        await db.put("settings", seeded);
-        for (const e of defaultExercises) await db.put("exercises", e);
-        for (const t of defaultTemplates) await db.put("templates", t);
-        setS(defaultSettings);
-        lastSavedSettingsRef.current = JSON.stringify(defaultSettings);
-      } else {
+      try {
+        const current = await getSettings();
+        const hadExisting = await db.get<Settings>("settings", "app");
+        if (!hadExisting) {
+          // seed default catalogue once for first-run accounts
+          for (const e of defaultExercises) await db.put("exercises", e);
+          for (const t of defaultTemplates) await db.put("templates", t);
+        }
         setS(current);
         lastSavedSettingsRef.current = JSON.stringify(current);
+      } catch (err) {
+        // Keep app usable even if remote read fails; autosave will write back when available.
+        setS(defaultSettings);
+        lastSavedSettingsRef.current = JSON.stringify(defaultSettings);
+        console.warn("[settings] initial hydrate failed; using defaults", err);
+      } finally {
+        setSettingsHydrated(true);
       }
-      setSettingsHydrated(true);
     })();
   }, []);
 
@@ -404,16 +410,52 @@ export default function SettingsPage() {
     const serialized = JSON.stringify(s);
     if (serialized === lastSavedSettingsRef.current) return;
 
-    const timer = setTimeout(async () => {
+    const timer = window.setTimeout(async () => {
       try {
-        await db.put("settings", { ...s, id: "app" } as any);
+        await setSettings(s);
         lastSavedSettingsRef.current = serialized;
       } catch (err) {
         console.warn("[settings] autosave failed", err);
       }
     }, 250);
+    pendingSaveRef.current = timer;
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (pendingSaveRef.current != null) {
+        clearTimeout(pendingSaveRef.current);
+        pendingSaveRef.current = null;
+      }
+    };
+  }, [s, settingsHydrated]);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    const flushSettingsNow = async () => {
+      const serialized = JSON.stringify(s);
+      if (serialized === lastSavedSettingsRef.current) return;
+      try {
+        await setSettings(s);
+        lastSavedSettingsRef.current = serialized;
+      } catch (err) {
+        console.warn("[settings] flush save failed", err);
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        void flushSettingsNow();
+      }
+    };
+    const onPageHide = () => {
+      void flushSettingsNow();
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [s, settingsHydrated]);
 
   useEffect(() => {
@@ -475,7 +517,7 @@ export default function SettingsPage() {
   }, []);
 
   const save = async () => {
-    await db.put("settings", { ...s, id: "app" } as any);
+    await setSettings(s);
     lastSavedSettingsRef.current = JSON.stringify(s);
   };
 

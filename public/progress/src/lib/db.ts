@@ -19,6 +19,7 @@ type CacheRecord = {
 
 const READ_CACHE = new Map<StoreKey, CacheRecord>();
 const INFLIGHT_LIST = new Map<StoreKey, Promise<any[]>>();
+const SETTINGS_LOCAL_CACHE_KEY = "liftlog:settings-cache:v1";
 
 const READ_TTL_MS: Record<StoreKey, number> = {
   exercises: 30_000,
@@ -44,6 +45,28 @@ function invalidateStoreCache(store: StoreKey) {
 function invalidateAllCache() {
   READ_CACHE.clear();
   INFLIGHT_LIST.clear();
+}
+
+function readLocalSettingsCache(): any | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = localStorage.getItem(SETTINGS_LOCAL_CACHE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeLocalSettingsCache(value: any) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!value || typeof value !== "object") return;
+    const { id: _id, ...rest } = value;
+    localStorage.setItem(SETTINGS_LOCAL_CACHE_KEY, JSON.stringify(rest));
+  } catch {}
 }
 
 function isTestEnv() {
@@ -111,9 +134,13 @@ export const db = {
 
     const attempt = async () => {
       const rows = await sbList(store as any);
-      return rows.map((r: any) =>
+      const mapped = rows.map((r: any) =>
         store === "settings" ? { ...r.data, id: "app" } : r.data
       );
+      if (store === "settings" && mapped[0]) {
+        writeLocalSettingsCache(mapped[0]);
+      }
+      return mapped;
     };
 
     const fetchPromise = (async () => {
@@ -147,6 +174,17 @@ export const db = {
       const result = await fetchPromise;
       return copyList(result) as T[];
     } catch (e) {
+      if (store === "settings") {
+        const local = readLocalSettingsCache();
+        if (local) {
+          const fallback = [{ ...local, id: "app" }] as T[];
+          READ_CACHE.set(store, {
+            ts: Date.now(),
+            data: copyList(fallback as any[]),
+          });
+          return fallback;
+        }
+      }
       invalidateStoreCache(store);
       throw e;
     }
@@ -169,14 +207,24 @@ export const db = {
     }
     const attempt = async () => {
       const row = await sbGet(store as any, key);
-      return row
+      const mapped = row
         ? store === "settings"
           ? ({ ...row.data, id: "app" } as any)
           : row.data
         : undefined;
+      if (store === "settings" && mapped) {
+        writeLocalSettingsCache(mapped as any);
+      }
+      return mapped;
     };
     try {
-      return await attempt();
+      const found = await attempt();
+      if (store === "settings" && key === "app") {
+        if (found) return found;
+        const local = readLocalSettingsCache();
+        if (local) return { ...local, id: "app" } as T;
+      }
+      return found;
     } catch (e: any) {
       const msg = String(e?.message || e);
       const status = (e && (e.status || e.code)) || "";
@@ -187,7 +235,25 @@ export const db = {
       ) {
         await forceRefreshSession();
         await new Promise((r) => setTimeout(r, 500));
-        return await attempt();
+        try {
+          const retried = await attempt();
+          if (store === "settings" && key === "app") {
+            if (retried) return retried;
+            const local = readLocalSettingsCache();
+            if (local) return { ...local, id: "app" } as T;
+          }
+          return retried;
+        } catch (retryErr) {
+          if (store === "settings" && key === "app") {
+            const local = readLocalSettingsCache();
+            if (local) return { ...local, id: "app" } as T;
+          }
+          throw retryErr;
+        }
+      }
+      if (store === "settings" && key === "app") {
+        const local = readLocalSettingsCache();
+        if (local) return { ...local, id: "app" } as T;
       }
       throw e;
     }
@@ -219,9 +285,11 @@ export const db = {
       const owner = await getOwnerId();
       let payload = value;
       if (store === "settings") {
+        writeLocalSettingsCache(value);
         // Defensive merge: preserve unrelated preferences when a caller writes a partial settings object.
         const current = await sbGet("settings" as any, id);
         payload = { ...(current?.data || {}), ...(value || {}), id };
+        writeLocalSettingsCache(payload);
       }
       // Enforce exercise name uniqueness (case-insensitive) at app layer before upsert
       if (store === "exercises") {
@@ -254,7 +322,19 @@ export const db = {
       ) {
         await forceRefreshSession();
         await new Promise((r) => setTimeout(r, 500));
-        await attempt();
+        try {
+          await attempt();
+          return;
+        } catch (retryErr: any) {
+          if (store === "settings") {
+            // Keep local cache as source of truth until auth/network recovers.
+            return;
+          }
+          throw retryErr;
+        }
+      }
+      if (store === "settings") {
+        // Settings are cached locally for eventual consistency.
         return;
       }
       throw e;
