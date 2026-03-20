@@ -1256,7 +1256,7 @@ export default function Measurements() {
                     body-fat calculator.
                   </p>
                 </div>
-                <div className="text-[11px] text-slate-400/80 whitespace-nowrap">
+                <div className="text-[11px] text-slate-400/80 sm:text-right">
                   {caliperSummary.count > 0 ? (
                     <span>
                       {caliperSummary.count} site
@@ -2058,14 +2058,14 @@ export default function Measurements() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
                     {row.bodyFatPct != null && (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-200">
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-200 whitespace-nowrap">
                         Body fat: {row.bodyFatPct.toFixed(1)}%
                       </span>
                     )}
                     {row.ffmi != null && (
-                      <span className="rounded-full bg-sky-500/10 px-2 py-1 text-[11px] font-medium text-sky-200">
+                      <span className="rounded-full bg-sky-500/10 px-2 py-1 text-[11px] font-medium text-sky-200 whitespace-nowrap">
                         FFMI: {row.ffmi.toFixed(2)}
                         {row.ffmiAdjusted != null
                           ? ` (adj ${row.ffmiAdjusted.toFixed(2)})`

@@ -4391,7 +4391,7 @@ export default function Sessions() {
           {/* Always visible row: Day selector + session timer + expand toggle */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
-            <div className="flex flex-col gap-0.5 min-w-[110px]">
+            <div className="flex min-w-0 flex-col gap-0.5 sm:min-w-[110px]">
               <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                 Day
               </span>
@@ -4462,7 +4462,7 @@ export default function Sessions() {
               >
                 <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
                   {/* Week & Phase */}
-                  <div className="flex flex-col gap-1 min-w-[200px]">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[200px]">
                     <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                       Week & Phase
                     </span>
@@ -4508,7 +4508,7 @@ export default function Sessions() {
                   </div>
                   {/* Session date & quick actions */}
                   {session && (
-                    <div className="flex min-w-[220px] flex-1 flex-col gap-1">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[220px]">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                           Session Date
@@ -4554,7 +4554,7 @@ export default function Sessions() {
                             )}
                           </span>
                         )}
-                        <div className="ml-auto flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 sm:ml-auto">
                           {!editingDate && (
                             <button
                               type="button"

@@ -1086,16 +1086,16 @@ export default function Dashboard() {
             {lifetimeHasData ? (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                 {lifetimeMetricBlocks.map((item) => (
-                  <div key={item.key} className="space-y-2">
+                  <div key={item.key} className="min-w-0 space-y-2">
                     <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
                       {item.label}
                     </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-semibold text-white/90">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+                      <span className="text-3xl font-semibold text-white/90 sm:text-4xl">
                         {item.value}
                       </span>
                       {item.caption && (
-                        <span className="text-xs uppercase tracking-[0.32em] text-white/50">
+                        <span className="text-[11px] uppercase tracking-[0.22em] text-white/50">
                           {item.caption}
                         </span>
                       )}
@@ -1126,17 +1126,17 @@ export default function Dashboard() {
                 {weeklyMetricBlocks.map((item) => (
                   <div
                     key={item.key}
-                    className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
+                    className="min-w-0 space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
                   >
                     <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">
                       {item.label}
                     </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-semibold text-white">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-2">
+                      <span className="text-2xl font-semibold text-white sm:text-3xl">
                         {item.value}
                       </span>
                       {item.caption && (
-                        <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                        <span className="text-[11px] uppercase tracking-[0.2em] text-white/50">
                           {item.caption}
                         </span>
                       )}
