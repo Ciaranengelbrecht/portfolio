@@ -503,6 +503,8 @@ export default function Sessions() {
   const [allowEmptyPhase, setAllowEmptyPhase] = useState<boolean>(false);
   const phaseCommitPendingRef = useRef<number | null>(null);
   const [day, setDay] = useState(0);
+  const routeLoadTokenRef = useRef(0);
+  const routeSessionId = `${phase}-${week}-${day}`;
   // Gate initial session load until we resolve navigation prefs (prevents brief Week 1 render)
   const [initialRouteReady, setInitialRouteReady] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -525,6 +527,20 @@ export default function Sessions() {
   useEffect(() => {
     viewStateRef.current = { phase, week, day };
   }, [phase, week, day]);
+  const isSessionInView = useCallback(
+    (candidate?: Session | null) =>
+      !!candidate && candidate.id === routeSessionId,
+    [routeSessionId]
+  );
+  const sessionLogDay = useCallback((candidate: Session) => {
+    if (candidate.localDate) return candidate.localDate;
+    if (candidate.dateISO?.slice(0, 10)) return candidate.dateISO.slice(0, 10);
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
   const [showAdd, setShowAdd] = useState(false);
   const [query, setQuery] = useState("");
   const [addFilter, setAddFilter] = useState<string>("all");
@@ -1942,8 +1958,11 @@ export default function Sessions() {
   useEffect(() => {
     (async () => {
       if (!initialRouteReady) return; // wait for lastLocation / intent resolution
+      const loadToken = ++routeLoadTokenRef.current;
+      const stale = () => loadToken !== routeLoadTokenRef.current;
       try {
         const id = `${phase}-${week}-${day}`;
+        setSession((prev) => (prev?.id === id ? prev : null));
         let s = await db.get<Session>("sessions", id);
         if (!s) {
           // fallback: try old id format (week-day) and migrate
@@ -1955,6 +1974,7 @@ export default function Sessions() {
             await persistSession(s);
           }
         }
+        if (stale()) return;
         if (!s) {
           // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
           const allToday = (await readSessions()).filter(
@@ -2043,6 +2063,7 @@ export default function Sessions() {
             }
           }
         }
+        if (stale()) return;
         setSession(s);
         // Sync training mode state with session's mode (if set)
         if (s.trainingMode) {
@@ -2109,6 +2130,7 @@ export default function Sessions() {
           createdAt: nowISO,
           updatedAt: nowISO,
         } as Session;
+        if (stale()) return;
         setSession(fallbackSession);
         // Try to save it in the background
         setTimeout(async () => {
@@ -2151,11 +2173,7 @@ export default function Sessions() {
     }
     // Robust per-day work log tracking (local date key)
     try {
-      const d = new Date();
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = sessionLogDay(updated);
       const log = { ...(updated.workLog || {}) } as NonNullable<
         Session["workLog"]
       >;
@@ -3058,7 +3076,7 @@ export default function Sessions() {
   ]);
 
   const addSet = (entry: SessionEntry) => {
-    if (!session) return;
+    if (!session || !isSessionInView(session)) return;
     
     // Check if there are any existing sets with actual work (weight or reps filled in)
     const setsWithWork = entry.sets.filter(
@@ -3106,7 +3124,6 @@ export default function Sessions() {
     };
     const newEntry = { ...entry, sets: [...entry.sets, next] };
     // Inline the updateEntry logic to immediately stamp and set lastLocalEditRef before any remote pull
-    const prevSession = session;
     const newEntries = session.entries.map((e) =>
       e.id === entry.id ? newEntry : e
     );
@@ -3121,11 +3138,7 @@ export default function Sessions() {
     if (hasWorkNow) {
       // Update per-day work log only when we have recorded work
       try {
-        const d = new Date();
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(d.getDate()).padStart(2, "0")}`;
+        const key = sessionLogDay(updated);
         const log = { ...(updated.workLog || {}) } as NonNullable<
           Session["workLog"]
         >;
@@ -3203,6 +3216,7 @@ export default function Sessions() {
   const flushSession = async () => {
     const sToWrite = latestSessionRef.current;
     if (!sToWrite) return;
+    if (!isSessionInView(sToWrite)) return;
     await persistSession(sToWrite);
     try {
       window.dispatchEvent(
@@ -3222,11 +3236,12 @@ export default function Sessions() {
             ttlMs: currentSessionsTtl(),
           });
           const templateForCache = fresh?.templateId ?? sToWrite?.templateId;
+          const view = viewStateRef.current;
           const map = getPrevBestCached(
             all,
-            phase,
-            week,
-            day,
+            view.phase,
+            view.week,
+            view.day,
             templateForCache
           );
           setPrevBestMap(map);
@@ -3236,14 +3251,15 @@ export default function Sessions() {
     }
     if (sessionHasRealWork(sToWrite)) {
       const s = await getSettings();
+      const view = viewStateRef.current;
       await setSettings({
         ...s,
         dashboardPrefs: {
           ...(s.dashboardPrefs || {}),
           lastLocation: {
-            phaseNumber: phase,
-            weekNumber: week,
-            dayId: day,
+            phaseNumber: view.phase,
+            weekNumber: view.week,
+            dayId: view.day,
             sessionId: sToWrite.id,
           },
         },
@@ -3291,8 +3307,7 @@ export default function Sessions() {
   };
 
   const updateEntry = (entry: SessionEntry) => {
-    if (!session) return;
-    const prevSession = session;
+    if (!session || !isSessionInView(session)) return;
     const prevEntry = session.entries.find((e) => e.id === entry.id);
     // Stamp completedAt on any set that now has work and didn't before
     const nowIso = new Date().toISOString();
@@ -3313,26 +3328,8 @@ export default function Sessions() {
       e.id === entry.id ? stamped : e
     );
     let updated = { ...session, entries: newEntries } as Session;
-    // If session previously had no working sets and now has at least one, re-stamp date to today
-    const hadWorkBefore = sessionHasRealWork(prevSession);
+    // Preserve the session's calendar day; only stamp activity fields/work logs.
     const hasWorkNow = sessionHasRealWork(updated);
-    if (!hadWorkBefore && hasWorkNow) {
-      const today = new Date();
-      const localDayStr = `${today.getFullYear()}-${String(
-        today.getMonth() + 1
-      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      const prevLocal =
-        prevSession.localDate || prevSession.dateISO.slice(0, 10);
-      if (prevLocal !== localDayStr) {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        updated = {
-          ...updated,
-          dateISO: startOfDay.toISOString(),
-          localDate: localDayStr,
-        };
-      }
-    }
     // Stamp activity (debounced write later)
     if (hasWorkNow) {
       const nowIso = new Date().toISOString();
@@ -3343,11 +3340,7 @@ export default function Sessions() {
     if (hasWorkNow) {
       // Update per-day work log
       try {
-        const d = new Date();
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0"
-        )}-${String(d.getDate()).padStart(2, "0")}`;
+        const key = sessionLogDay(updated);
         const log = { ...(updated.workLog || {}) } as NonNullable<
           Session["workLog"]
         >;
@@ -3385,7 +3378,7 @@ export default function Sessions() {
   };
 
   const removeEntry = async (entryId: string) => {
-    if (!session) return;
+    if (!session || !isSessionInView(session)) return;
     const cfg = await getSettings();
     if (cfg.confirmDestructive) {
       const exName =
@@ -3426,7 +3419,7 @@ export default function Sessions() {
   };
 
   const addExerciseToSession = async (ex: Exercise) => {
-    if (!session) return;
+    if (!session || !isSessionInView(session)) return;
     let sets: SetEntry[] = [];
     const lastSets = await getLastWorkingSets(ex.id, week, phase);
     const nowIsoSets = new Date().toISOString();
@@ -3473,11 +3466,7 @@ export default function Sessions() {
     (updated as any).updatedAt = new Date().toISOString();
     // Update per-day work log
     try {
-      const d = new Date();
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-        2,
-        "0"
-      )}-${String(d.getDate()).padStart(2, "0")}`;
+      const key = sessionLogDay(updated);
       const log = { ...(updated.workLog || {}) } as NonNullable<
         Session["workLog"]
       >;
@@ -3535,7 +3524,7 @@ export default function Sessions() {
 
   // Switch exercise in a session entry (keep set rows; clear values unless none were logged)
   const switchExercise = async (entry: SessionEntry, newEx: Exercise) => {
-    if (!session) return;
+    if (!session || !isSessionInView(session)) return;
     const sourceExerciseId = entry.exerciseId;
     const hadLogged = entry.sets.some(
       (s) => (s.weightKg || 0) > 0 || (s.reps || 0) > 0
@@ -3893,6 +3882,7 @@ export default function Sessions() {
     }
     return map;
   }, [visibleEntries]);
+  const sessionRouteReady = !!session && session.id === routeSessionId;
 
   const weightUnit = settingsState?.unit === "lb" ? "lb" : "kg";
 
@@ -5107,7 +5097,7 @@ export default function Sessions() {
           </div>
         )}
         {/* Top sticky: live muscle counts + contents navigator */}
-        {!initialLoading && session && session.entries.length > 0 && (
+        {!initialLoading && sessionRouteReady && session.entries.length > 0 && (
           <TopMuscleAndContents
             session={session}
             exMap={exMap}
@@ -5122,7 +5112,7 @@ export default function Sessions() {
             : "Showing exercises for all muscles"}
         </p>
         {!initialLoading &&
-          session &&
+          sessionRouteReady &&
           visibleEntries.map((entry, entryIdx) => {
             const ex = exMap.get(entry.exerciseId) || undefined;
             // derive previous best + nudge
