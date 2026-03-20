@@ -1105,20 +1105,20 @@ export default function Analytics() {
             </h3>
           </div>
         </div>
-        <div className="overflow-x-auto pb-2">
-          <div className="flex gap-2 min-w-max">
+        <div className="pb-1">
+          <div className="flex flex-wrap gap-2">
             {analytics.muscles.slice(0, 12).map((muscle) => (
               <button
                 key={muscle.muscle}
                 onClick={() => setSelectedMuscle(muscle.muscle)}
-                className={`rounded-2xl px-3 py-2 text-sm font-medium transition-colors ${
+                className={`min-w-[8.25rem] max-w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition-colors ${
                   selectedMuscle === muscle.muscle
-                    ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
-                    : "bg-white/5 text-white/70 border border-white/10 hover:border-white/20"
+                    ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40"
+                    : "bg-white/5 text-white/70 border-white/10 hover:border-white/20"
                 }`}
               >
-                <span className="block capitalize">{muscle.muscle}</span>
-                <span className="block text-[11px] text-white/50">
+                <span className="block truncate capitalize">{muscle.muscle}</span>
+                <span className="block truncate text-[11px] text-white/50">
                   {formatCount(Math.round(muscle.sets))} sets
                 </span>
               </button>
@@ -1562,43 +1562,49 @@ export default function Analytics() {
             </p>
           </div>
         </div>
-        <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-white/10 bg-slate-950/70 p-1 shadow-[0_8px_30px_-12px_rgba(16,185,129,0.55)]">
-          {MODES.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setMode(item.key)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                mode === item.key
-                  ? "bg-emerald-500/20 text-emerald-200 shadow-inner shadow-emerald-500/30"
-                  : "text-white/60 hover:text-white"
-              }`}
-            >
-              <svg
-                aria-hidden
-                className={`h-4 w-4 ${
-                  mode === item.key ? "fill-emerald-300" : "fill-white/50"
+        <div className="w-full max-w-full rounded-2xl border border-white/10 bg-slate-950/70 p-1.5 shadow-[0_8px_30px_-12px_rgba(16,185,129,0.55)]">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {MODES.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setMode(item.key)}
+                className={`shrink-0 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  mode === item.key
+                    ? "bg-emerald-500/20 text-emerald-200 shadow-inner shadow-emerald-500/30"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
-                viewBox="0 0 24 24"
               >
-                <path d={item.icon} />
-              </svg>
-              {item.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => navigate("/measurements")}
-            className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <svg
-              aria-hidden
-              className="h-4 w-4 fill-white/50"
-              viewBox="0 0 24 24"
+                <span className="flex items-center gap-2">
+                  <svg
+                    aria-hidden
+                    className={`h-4 w-4 ${
+                      mode === item.key ? "fill-emerald-300" : "fill-white/50"
+                    }`}
+                    viewBox="0 0 24 24"
+                  >
+                    <path d={item.icon} />
+                  </svg>
+                  {item.label}
+                </span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => navigate("/measurements")}
+              className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14v-2H5V5h14V3H5Zm6 4c-1.1 0-2 .9-2 2v2h2v-2h2v2h2V9c0-1.1-.9-2-2-2h-2Zm-4 6h12v2H7v-2Zm0 4h8v2H7v-2Z" />
-            </svg>
-            Measurements
-          </button>
+              <span className="flex items-center gap-2">
+                <svg
+                  aria-hidden
+                  className="h-4 w-4 fill-white/50"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M5 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14v-2H5V5h14V3H5Zm6 4c-1.1 0-2 .9-2 2v2h2v-2h2v2h2V9c0-1.1-.9-2-2-2h-2Zm-4 6h12v2H7v-2Zm0 4h8v2H7v-2Z" />
+                </svg>
+                Measurements
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
