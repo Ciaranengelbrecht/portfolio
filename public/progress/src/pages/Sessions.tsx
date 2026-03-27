@@ -24,6 +24,7 @@ import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
 import { nanoid } from "nanoid";
+import { saveProfileProgram } from "../lib/profile";
 import {
   getDeloadPrescription,
   getDeloadPrescriptionsBulk,
@@ -56,6 +57,10 @@ import OptionSheet, { OptionSheetOption } from "../components/OptionSheet";
 import { fuzzySearch, highlightMatches } from "../lib/fuzzySearch";
 import TrainingModeBadge from "../components/TrainingModeBadge";
 import TrainingModeSelector from "../components/TrainingModeSelector";
+import {
+  applyExerciseSwapToCurrentAndFutureSessions,
+  prepareFutureTemplateSwap,
+} from "../lib/sessionExerciseSwap";
 
 const KG_TO_LB = 2.2046226218;
 const SWAP_RECENTS_STORAGE_KEY = "sessions:swapRecents:v1";
@@ -510,7 +515,7 @@ const bestSetByLoad = (sets: SetEntry[]) => {
 };
 
 export default function Sessions() {
-  const { program } = useProgram();
+  const { program, setProgram } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
   // When user selects a new phase (e.g., Phase 2) without any logged sets yet,
@@ -594,6 +599,10 @@ export default function Sessions() {
   const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(
     null
   );
+  const [switchConfirmTarget, setSwitchConfirmTarget] = useState<{
+    entryId: string;
+    nextExerciseId: string;
+  } | null>(null);
   const [switchQuery, setSwitchQuery] = useState("");
   const [switchScope, setSwitchScope] = useState<"group" | "all">("group");
   const [swapRecentsBySource, setSwapRecentsBySource] = useState<
@@ -640,6 +649,7 @@ export default function Sessions() {
     if (!switchTarget) {
       setSwitchScope("group");
       setSwitchQuery("");
+      setSwitchConfirmTarget(null);
       return;
     }
     setSwitchScope("group");
@@ -2544,10 +2554,12 @@ export default function Sessions() {
       const getPhaseNumber = (s: Session) => s.phaseNumber ?? s.phase ?? 1;
       const getWeekNumber = (s: Session) => s.weekNumber ?? 0;
       const identityMatches = (s: Session) => {
-        if (sess.templateId && s.templateId)
-          return s.templateId === sess.templateId;
-        if (!sess.templateId && sess.dayName && s.dayName)
-          return s.dayName === sess.dayName;
+        if (sess.templateId && s.templateId && s.templateId === sess.templateId) {
+          return true;
+        }
+        if (sess.dayName && s.dayName && s.dayName === sess.dayName) {
+          return true;
+        }
         return false;
       };
       const programMatches = (s: Session) => {
@@ -3538,7 +3550,33 @@ export default function Sessions() {
     await addExerciseToSession(ex);
   };
 
-  // Switch exercise in a session entry (keep set rows; clear values unless none were logged)
+  const closeSwitchFlows = () => {
+    setSwitchTarget(null);
+    setSwitchConfirmTarget(null);
+  };
+
+  const finalizeSwitchRefresh = async (updatedCurrent: Session) => {
+    latestSessionRef.current = updatedCurrent;
+    lastLocalEditRef.current = Date.now();
+    setSession(updatedCurrent);
+    await recomputePrevWeekSets(updatedCurrent);
+    setPrevBestLoading(true);
+    try {
+      const allSessions = await readSessions({ force: true, swr: false });
+      const map = getPrevBestCached(
+        allSessions,
+        phase,
+        week,
+        day,
+        updatedCurrent.templateId ?? session?.templateId
+      );
+      setPrevBestMap(map);
+    } finally {
+      setPrevBestLoading(false);
+    }
+  };
+
+  // Switch exercise in the current session only.
   const switchExercise = async (entry: SessionEntry, newEx: Exercise) => {
     if (!session || !isSessionInView(session)) return;
     const sourceExerciseId = entry.exerciseId;
@@ -3551,24 +3589,137 @@ export default function Sessions() {
       );
       if (!ok) return;
     }
-    // Default to 0 sets when swapping; user can add sets as needed
-    const rows = 0;
-    const newSets: SetEntry[] = [];
     const newEntry: SessionEntry = {
       ...entry,
       exerciseId: newEx.id,
       targetRepRange:
         (newEx as any)?.defaults?.targetRepRange ?? entry.targetRepRange,
-      sets: newSets,
+      sets: entry.sets.map((_, index) => ({
+        setNumber: index + 1,
+        weightKg: null,
+        reps: null,
+      })),
     };
     // Persist via existing update flow (stamps time, debounces write)
     updateEntry(newEntry);
     rememberSwapTarget(sourceExerciseId, newEx.id);
-    setSwitchTarget(null);
+    closeSwitchFlows();
     try {
       (navigator as any).vibrate?.(10);
     } catch {}
     push({ message: `Switched to ${newEx.name}` });
+  };
+
+  const switchExerciseInFutureSessions = async (
+    entry: SessionEntry,
+    newEx: Exercise
+  ) => {
+    if (!session || !program || !isSessionInView(session)) return;
+
+    const sourceExerciseId = entry.exerciseId;
+    const hadLogged = entry.sets.some(
+      (set) => (set.weightKg || 0) > 0 || (set.reps || 0) > 0
+    );
+    if (hadLogged) {
+      const ok = window.confirm(
+        "This exercise has logged sets in the current session. Switching will clear these set values here before updating future occurrences. Continue?"
+      );
+      if (!ok) return;
+    }
+
+    if (pendingRef.current) {
+      window.clearTimeout(pendingRef.current);
+      pendingRef.current = null;
+      await flushSession();
+    }
+
+    try {
+      const allSessions = await readSessions({ force: true, swr: false });
+      const templateUpdate = prepareFutureTemplateSwap({
+        program,
+        templates,
+        dayIndex: day,
+        sourceExerciseId,
+        nextExercise: newEx,
+      });
+      const swapResult = applyExerciseSwapToCurrentAndFutureSessions({
+        sessions: allSessions,
+        currentSession: session,
+        currentEntryId: entry.id,
+        sourceExerciseId,
+        nextExercise: newEx,
+        templateIdForFuture: templateUpdate.templateIdForFuture,
+      });
+
+      const timestamp = new Date().toISOString();
+      const sessionsToPersist = [
+        swapResult.updatedCurrentSession,
+        ...swapResult.updatedSessions,
+      ].map((candidate) => ({
+        ...candidate,
+        updatedAt: timestamp,
+      }));
+
+      for (const candidate of sessionsToPersist) {
+        await persistSession(candidate);
+      }
+
+      if (templateUpdate.templateChanged) {
+        for (const template of templateUpdate.nextTemplates) {
+          await db.put("templates", template);
+        }
+        invalidate("templates");
+        setTemplates(templateUpdate.nextTemplates);
+      }
+
+      if (templateUpdate.nextProgram) {
+        setProgram(templateUpdate.nextProgram);
+        const saved = await saveProfileProgram(templateUpdate.nextProgram);
+        if (!saved) {
+          push({
+            message:
+              "Future exercise swap applied locally, but program sync did not save to profile.",
+          });
+        }
+      }
+
+      await finalizeSwitchRefresh(swapResult.updatedCurrentSession);
+      rememberSwapTarget(sourceExerciseId, newEx.id);
+      closeSwitchFlows();
+
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "sessions" } })
+        );
+        if (templateUpdate.templateChanged) {
+          window.dispatchEvent(
+            new CustomEvent("sb-change", { detail: { table: "templates" } })
+          );
+        }
+      } catch {}
+
+      const skippedLogged = swapResult.skippedLoggedSessionIds.length;
+      const changedFuture = swapResult.futureSessionsChanged;
+      const summary =
+        changedFuture > 0
+          ? `Switched to ${newEx.name} for this session and ${changedFuture} future occurrence${
+              changedFuture === 1 ? "" : "s"
+            }`
+          : `Switched to ${newEx.name} for this session`;
+      push({
+        message: skippedLogged
+          ? `${summary}. Skipped ${skippedLogged} logged future session${
+              skippedLogged === 1 ? "" : "s"
+            }.`
+          : summary,
+      });
+      try {
+        (navigator as any).vibrate?.([10, 30, 12]);
+      } catch {}
+    } catch (err) {
+      console.error("[Sessions] Failed future exercise swap", err);
+      push({ message: "Could not switch future occurrences right now." });
+    }
   };
 
   const sessionExerciseIds = useMemo(() => {
@@ -3802,7 +3953,11 @@ export default function Sessions() {
         description: formatMuscleLabel(ex.muscleGroup),
         hint: secondary,
         trailing: isRecent ? "Recent" : undefined,
-        onSelect: () => switchExercise(entry, ex),
+        onSelect: () =>
+          setSwitchConfirmTarget({
+            entryId: entry.id,
+            nextExerciseId: ex.id,
+          }),
       } satisfies OptionSheetOption;
     });
     return {
@@ -3820,8 +3975,38 @@ export default function Sessions() {
     exercises,
     switchQuery,
     switchScope,
-    switchExercise,
     swapRecentsBySource,
+  ]);
+
+  const switchConfirmContext = useMemo(() => {
+    if (!switchConfirmTarget || !session) return null;
+    const entry = session.entries.find(
+      (candidate) => candidate.id === switchConfirmTarget.entryId
+    );
+    if (!entry) return null;
+    const currentEx = exMap.get(entry.exerciseId);
+    const nextEx = exercises.find(
+      (candidate) => candidate.id === switchConfirmTarget.nextExerciseId
+    );
+    if (!nextEx) return null;
+    const currentLocDay =
+      program?.weeklySplit?.[day]?.customLabel ||
+      program?.weeklySplit?.[day]?.type ||
+      session.dayName ||
+      `Day ${day + 1}`;
+    return {
+      entry,
+      currentEx,
+      nextEx,
+      currentLocDay,
+    };
+  }, [
+    day,
+    exercises,
+    exMap,
+    program?.weeklySplit,
+    session,
+    switchConfirmTarget,
   ]);
 
   const switchSheetHighlight = switchModalContext && (
@@ -6407,6 +6592,89 @@ export default function Sessions() {
         }
         maxListHeight={640}
       />
+
+      {switchConfirmContext ? (
+        <div
+          className="fixed inset-0 z-[120] bg-slate-950/70 px-4 backdrop-blur-sm"
+          onClick={() => setSwitchConfirmTarget(null)}
+        >
+          <div className="grid min-h-full place-items-center py-8">
+            <div
+              className="w-full max-w-md rounded-[28px] border border-white/10 bg-slate-950/95 p-5 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="space-y-2">
+                <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
+                  Swap scope
+                </p>
+                <h3 className="text-xl font-semibold text-white">
+                  Replace {switchConfirmContext.currentEx?.name || "exercise"} with{" "}
+                  {switchConfirmContext.nextEx.name}?
+                </h3>
+                <p className="text-sm text-white/65">
+                  Choose whether this change should only affect the current session
+                  or all future occurrences for {switchConfirmContext.currentLocDay}.
+                </p>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <button
+                  type="button"
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:border-emerald-400/40 hover:bg-emerald-500/10"
+                  onClick={() =>
+                    switchExercise(
+                      switchConfirmContext.entry,
+                      switchConfirmContext.nextEx
+                    )
+                  }
+                >
+                  <div className="text-sm font-semibold text-white">
+                    Just this session
+                  </div>
+                  <div className="mt-1 text-xs text-white/60">
+                    Good for a one-off variation today.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!program}
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${
+                    program
+                      ? "border-emerald-400/25 bg-emerald-500/10 hover:border-emerald-300/60 hover:bg-emerald-500/15"
+                      : "cursor-not-allowed border-white/10 bg-white/5 opacity-50"
+                  }`}
+                  onClick={() =>
+                    switchExerciseInFutureSessions(
+                      switchConfirmContext.entry,
+                      switchConfirmContext.nextEx
+                    )
+                  }
+                >
+                  <div className="text-sm font-semibold text-white">
+                    This session + future occurrences
+                  </div>
+                  <div className="mt-1 text-xs text-white/60">
+                    {program
+                      ? "Updates the same day going forward and leaves already-logged future sessions untouched."
+                      : "Unavailable until a program/day template is active for this session."}
+                  </div>
+                </button>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:border-white/20 hover:text-white"
+                  onClick={() => setSwitchConfirmTarget(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <OptionSheet
         open={wipeSheetOpen}

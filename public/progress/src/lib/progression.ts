@@ -178,7 +178,11 @@ export function buildSuggestions(
 
   let filtered = sessions.filter((s) => !s.deletedAt);
   if (opts.matchTemplateId) {
-    filtered = filtered.filter((s) => s.templateId === opts.matchTemplateId);
+    filtered = filtered.filter((s) => {
+      if (s.templateId === opts.matchTemplateId) return true;
+      if (opts.matchDayName && s.dayName === opts.matchDayName) return true;
+      return false;
+    });
   } else if (opts.matchDayName) {
     filtered = filtered.filter((s) => s.dayName === opts.matchDayName);
   }
