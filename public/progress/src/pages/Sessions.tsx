@@ -649,7 +649,6 @@ export default function Sessions() {
     if (!switchTarget) {
       setSwitchScope("group");
       setSwitchQuery("");
-      setSwitchConfirmTarget(null);
       return;
     }
     setSwitchScope("group");
@@ -3953,11 +3952,13 @@ export default function Sessions() {
         description: formatMuscleLabel(ex.muscleGroup),
         hint: secondary,
         trailing: isRecent ? "Recent" : undefined,
-        onSelect: () =>
+        onSelect: () => {
+          setSwitchTarget(null);
           setSwitchConfirmTarget({
             entryId: entry.id,
             nextExerciseId: ex.id,
-          }),
+          });
+        },
       } satisfies OptionSheetOption;
     });
     return {
@@ -6595,7 +6596,7 @@ export default function Sessions() {
 
       {switchConfirmContext ? (
         <div
-          className="fixed inset-0 z-[120] bg-slate-950/70 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[1300] bg-slate-950/70 px-4 backdrop-blur-sm"
           onClick={() => setSwitchConfirmTarget(null)}
         >
           <div className="grid min-h-full place-items-center py-8">
