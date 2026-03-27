@@ -351,12 +351,9 @@ function Shell() {
       if (loc === "/" || loc === "") {
         if (start === "last" && s.dashboardPrefs?.openToLast !== false) {
           // Always open Sessions for "Last Session" start page.
-          // If we have a concrete prior location, signal Sessions to apply it.
-          if (s.dashboardPrefs?.lastLocation) {
-            try {
-              sessionStorage.setItem("lastLocationIntent", "1");
-            } catch {}
-          }
+          // Do not mark this as an explicit navigation intent: Sessions should
+          // still validate any stored location and fall back to the latest
+          // real training data when the stored target is stale.
           navigate("/sessions");
         } else if (start === "sessions") navigate("/sessions");
         else if (start === "measurements") navigate("/measurements");

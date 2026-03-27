@@ -284,6 +284,21 @@ const getSessionDayIndex = (session: Session): number | null => {
   return Number.isFinite(fallback) ? fallback : null;
 };
 
+const getSessionViewLocation = (session: Session) => ({
+  phase: getSessionPhaseNumber(session) ?? 1,
+  week: getSessionWeekNumber(session) ?? 1,
+  day: getSessionDayIndex(session) ?? 0,
+});
+
+const compareSessionProgressDesc = (a: Session, b: Session) => {
+  const aLoc = getSessionViewLocation(a);
+  const bLoc = getSessionViewLocation(b);
+  if (bLoc.phase !== aLoc.phase) return bLoc.phase - aLoc.phase;
+  if (bLoc.week !== aLoc.week) return bLoc.week - aLoc.week;
+  if (bLoc.day !== aLoc.day) return bLoc.day - aLoc.day;
+  return 0;
+};
+
 const MAX_CACHE_ENTRIES = 24;
 const SESSION_TTL_IDLE_MS = 45_000;
 const SESSION_TTL_EDITING_MS = 12_000;
@@ -1218,19 +1233,6 @@ export default function Sessions() {
           sessionStorage.removeItem("lastLocationIntent");
         } catch {}
         
-        // If explicit navigation, apply immediately and skip other logic
-        if (hadIntent && s.dashboardPrefs?.lastLocation) {
-          const loc = s.dashboardPrefs.lastLocation;
-          setPhase(loc.phaseNumber || s.currentPhase || 1);
-          setWeek(loc.weekNumber as any);
-          setDay(loc.dayId);
-          skipAutoNavRef.current = true;
-          pickedLatestRef.current = true;
-          setInitialRouteReady(true);
-          return;
-        }
-        
-        // Otherwise, validate lastLocation before applying
         let last = s.dashboardPrefs?.lastLocation;
         if (last) {
           let candidate: Session | null = null;
@@ -1243,6 +1245,19 @@ export default function Sessions() {
             last = undefined;
           }
         }
+        
+        // Only explicit in-app navigation should bypass the rest of startup
+        // routing, and only after the target has been validated.
+        if (hadIntent && last) {
+          setPhase(last.phaseNumber || s.currentPhase || 1);
+          setWeek(last.weekNumber as any);
+          setDay(last.dayId);
+          skipAutoNavRef.current = true;
+          pickedLatestRef.current = true;
+          setInitialRouteReady(true);
+          return;
+        }
+
         if (!pickedLatestRef.current) {
           setPhase(s.currentPhase || 1);
           if (last) {
@@ -1440,18 +1455,17 @@ export default function Sessions() {
           return;
         }
         
-        // Sort by most recent activity (primary), then calendar date, then week/day
+        // Prefer the furthest progressed real-work session, then use activity as
+        // a tiebreaker for duplicate positions.
         withData.sort((a, b) => {
+          const progressCmp = compareSessionProgressDesc(a, b);
+          if (progressCmp !== 0) return progressCmp;
           const realA = sessionRealActivityMs(a);
           const realB = sessionRealActivityMs(b);
           if (realA !== realB) return realB - realA;
           const dv = dayVal(b) - dayVal(a);
           if (dv !== 0) return dv;
-          if ((b.weekNumber || 0) !== (a.weekNumber || 0))
-            return (b.weekNumber || 0) - (a.weekNumber || 0);
-          const ad = Number(a.id.split("-")[2] || 0);
-          const bd = Number(b.id.split("-")[2] || 0);
-          return bd - ad;
+          return 0;
         });
         
         const chosen = withData[0];
@@ -1501,7 +1515,8 @@ export default function Sessions() {
     })();
   }, [initialRouteReady, readSessions]);
 
-  // Auto navigation logic: stay on the most recent week within current phase that has ANY real data (weight or reps > 0).
+  // Auto navigation logic: stay on the furthest progressed week within the
+  // current phase that has any real data (weight or reps > 0).
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
   useEffect(() => {
     (async () => {
@@ -1571,18 +1586,19 @@ export default function Sessions() {
           best = info;
           continue;
         }
-        if (info.activity > best.activity) {
+        if (info.week > best.week) {
           best = info;
           continue;
         }
-        if (info.activity === best.activity && info.calendar > best.calendar) {
+        if (info.week === best.week && info.activity > best.activity) {
           best = info;
           continue;
         }
         if (
+          info.week === best.week &&
           info.activity === best.activity &&
           info.calendar === best.calendar &&
-          info.week > best.week
+          info.updated > best.updated
         ) {
           best = info;
         }
