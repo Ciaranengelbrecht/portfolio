@@ -77,9 +77,9 @@ export default function IntroAuthPage() {
           }}
           onForgot={() => setForgotOpen(true)}
         />
-        <p className="mt-6 text-center text-[11px] text-gray-500">
-          By continuing you agree to the implicit terms of using a hobby
-          project. Keep local backups.
+        <p className="mt-6 text-center text-xs text-gray-400/90 leading-relaxed">
+          By continuing, you agree to this app&apos;s terms and privacy settings.
+          Keep regular backups of your training data.
         </p>
       </div>
       <ForgotPasswordDialog

@@ -19,6 +19,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   const emailValid = /.+@.+/.test(email);
   const pwStrength =
     password.length >= 12 ? "strong" : password.length >= 8 ? "ok" : "weak";
+  const confirmMismatch = mode === "signup" && password2.length > 0 && password !== password2;
   const canSubmit =
     emailValid &&
     password.length >= 6 &&
@@ -92,8 +93,17 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-app w-full rounded-xl px-3 py-3 bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+              email.length === 0
+                ? "border-white/10"
+                : emailValid
+                ? "border-emerald-500/40"
+                : "border-rose-500/45"
+            }`}
           />
+          {email.length > 0 && !emailValid && (
+            <span className="text-[10px] text-rose-300">Enter a valid email address.</span>
+          )}
         </label>
         <label className="block space-y-1">
           <span className="text-xs uppercase tracking-wide text-gray-400">
@@ -107,7 +117,11 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input-app w-full rounded-xl px-3 py-3 bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+              mode === "signup" && password.length > 0 && password.length < 8
+                ? "border-amber-500/45"
+                : "border-white/10"
+            }`}
           />
           {mode === "signup" && (
             <div className="text-[10px] mt-1 flex items-center gap-2">
@@ -138,8 +152,13 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
               required
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
-              className="input-app w-full rounded-xl px-3 py-3 bg-white/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+                confirmMismatch ? "border-rose-500/45" : "border-white/10"
+              }`}
             />
+            {confirmMismatch && (
+              <span className="text-[10px] text-rose-300">Passwords do not match yet.</span>
+            )}
           </label>
         )}
         {error && <div className="text-xs text-red-400">{error}</div>}
@@ -148,7 +167,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="btn-primary rounded-xl px-4 py-3 text-sm font-medium transition-transform disabled:opacity-40 hover:translate-y-[-2px] active:translate-y-[0]"
+            className="btn-primary min-h-[44px] rounded-xl px-4 py-3 text-sm font-medium transition-transform disabled:opacity-40 hover:translate-y-[-2px] active:translate-y-[0]"
           >
             {busy ? "..." : mode === "login" ? "Sign In" : "Create Account"}
           </button>

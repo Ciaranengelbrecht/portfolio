@@ -75,12 +75,22 @@ const STATUS_META: Record<
 };
 
 function recommendation(pct: number) {
-  if (pct >= 99) return "Full session ready";
-  if (pct >= 90) return "Normal volume OK";
-  if (pct >= 75) return "Light work only";
-  if (pct >= 50) return "Technique / isolation";
-  return "Prioritise rest";
+  if (pct >= 99) return "Full session ready - normal load is fine.";
+  if (pct >= 90) return "Near ready - run normal work with controlled top sets.";
+  if (pct >= 75) return "Use reduced volume or easier accessory work today.";
+  if (pct >= 50) return "Technique and pump work only - skip heavy compounds.";
+  return "Prioritise rest and sleep before hard loading.";
 }
+
+const STATUS_LEGEND: Array<{
+  key: MuscleRecoveryState["status"];
+  label: string;
+}> = [
+  { key: "Ready", label: "Recovered" },
+  { key: "Near", label: "Almost ready" },
+  { key: "Caution", label: "Manage fatigue" },
+  { key: "Not Ready", label: "High fatigue" },
+];
 
 export default function RecoveryPage() {
   const [view, setView] = useState<ViewState>({ loading: true, muscles: [] });
@@ -138,6 +148,21 @@ export default function RecoveryPage() {
         >
           Refresh
         </button>
+        <div className="w-full flex flex-wrap items-center gap-1.5 pt-1">
+          {STATUS_LEGEND.map((item) => {
+            const meta = STATUS_META[item.key];
+            return (
+              <span
+                key={item.key}
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.badge}`}
+                title={`${item.key}: ${item.label}`}
+              >
+                <span>{item.key}</span>
+                <span className="opacity-70">· {item.label}</span>
+              </span>
+            );
+          })}
+        </div>
       </header>
       {view.error && <div className="text-sm text-red-400">{view.error}</div>}
       {view.loading ? (

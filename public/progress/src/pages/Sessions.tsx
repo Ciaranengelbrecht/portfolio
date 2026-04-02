@@ -738,8 +738,8 @@ export default function Sessions() {
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  // Top toolbar collapsed state (default collapsed to save space)
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
+  // Top toolbar collapsed state (default expanded for better discoverability)
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
   // Current training mode (bulk/cut/maintenance) - persisted in settings
   const [currentTrainingMode, setCurrentTrainingMode] = useState<TrainingMode | undefined>(undefined);
   const [wipeSheetOpen, setWipeSheetOpen] = useState(false);
@@ -4505,12 +4505,7 @@ export default function Sessions() {
               onClick={() => setToolbarCollapsed((v) => !v)}
               aria-expanded={!toolbarCollapsed}
             >
-              <span className="hidden xs:inline">
-                {toolbarCollapsed ? "More" : "Less"}
-              </span>
-              <span className="xs:hidden">
-                {toolbarCollapsed ? "⋯" : "−"}
-              </span>
+              <span>{toolbarCollapsed ? "Show details" : "Hide details"}</span>
               <span
                 className={`text-[10px] leading-none transition-transform duration-150 ${
                   toolbarCollapsed ? "" : "rotate-180"
@@ -4685,6 +4680,31 @@ export default function Sessions() {
                 ▾
               </span>
             </button>
+            {session && (
+              <>
+                <button
+                  type="button"
+                  className="tool-btn !px-3 !py-1.5"
+                  onClick={() => setShowImport(true)}
+                  title="Import from template"
+                >
+                  Import Template
+                </button>
+                <button
+                  type="button"
+                  className="tool-btn !px-3 !py-1.5"
+                  disabled={!session.entries.length}
+                  onClick={() => setShowSaveTemplate(true)}
+                  title={
+                    session.entries.length
+                      ? "Save this session as template"
+                      : "No exercises to save"
+                  }
+                >
+                  Save Template
+                </button>
+              </>
+            )}
           </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
@@ -4725,27 +4745,6 @@ export default function Sessions() {
                       title="Stamp with today's date"
                     >
                       Stamp
-                    </button>
-                    <button
-                      type="button"
-                      className="tool-btn !px-3 !py-1.5"
-                      onClick={() => setShowImport(true)}
-                      title="Import from template"
-                    >
-                      Import
-                    </button>
-                    <button
-                      type="button"
-                      className="tool-btn !px-3 !py-1.5"
-                      disabled={!session.entries.length}
-                      onClick={() => setShowSaveTemplate(true)}
-                      title={
-                        session.entries.length
-                          ? "Save this session as template"
-                          : "No exercises to save"
-                      }
-                    >
-                      Save
                     </button>
                     <button
                       type="button"
@@ -5132,10 +5131,11 @@ export default function Sessions() {
       {/* Legacy floating more panel removed in favor of inline collapsible */}
       {isDeloadWeek && (
         <div
-          className="text-xs text-amber-300 fade-in inline-flex items-center gap-1"
+          className="fade-in inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-[11px] font-medium text-amber-100 shadow-[0_0_0_1px_rgba(251,191,36,0.15)]"
           data-shape="deload"
           aria-label="Deload week adjustments are active"
         >
+          <span aria-hidden="true">⚠</span>
           Deload adjustments active
         </div>
       )}
@@ -5238,13 +5238,31 @@ export default function Sessions() {
             const isFullyComplete = setsLogged.length >= plannedSetCount && setsLogged.length > 0;
             const isPartiallyComplete = setsLogged.length > 0 && setsLogged.length < plannedSetCount;
             const isNotStarted = setsLogged.length === 0;
+            const statusLabel = isFullyComplete
+              ? "Complete"
+              : isPartiallyComplete
+              ? "In progress"
+              : "Not started";
+            const statusClass = isFullyComplete
+              ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/40"
+              : isPartiallyComplete
+              ? "bg-amber-500/20 text-amber-100 border border-amber-400/40"
+              : "bg-slate-700/70 text-slate-200 border border-slate-500/40";
             const collapsedSummaryContent = (
-              <span className="font-medium text-slate-200 text-[10px]">
-                {setsLogged.length}/{entry.sets.length} sets
-              </span>
+              <>
+                <span className="font-medium text-slate-100 text-[10px]">
+                  {setsLogged.length}/{plannedSetCount} sets
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.02em] ${statusClass}`}
+                  aria-label={`Exercise status: ${statusLabel}`}
+                >
+                  {statusLabel}
+                </span>
+              </>
             );
             const collapsedSummaryClass =
-              "inline-flex items-center gap-1.5 rounded-lg bg-slate-800/60 px-2.5 py-0.5 text-[11px] text-slate-200 ring-1 ring-white/[0.05] shadow-sm";
+              "inline-flex items-center gap-1.5 rounded-lg bg-slate-800/75 px-2.5 py-1 text-[11px] text-slate-100 ring-1 ring-white/[0.08] shadow-sm";
             const displayName =
               ex?.name || exNameCache[entry.exerciseId] || "Deleted exercise";
             const nameButtonClass = `inline-flex items-center gap-2 min-w-0 ${
@@ -5409,18 +5427,18 @@ export default function Sessions() {
                         <span className={nameTextClass}>{displayName}</span>
                         {!ex && (exNameCache[entry.exerciseId] || true) && (
                           <span
-                            className="text-[9px] px-1 py-0.5 rounded bg-rose-700/40 text-rose-200 border border-rose-500/30"
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-rose-700/50 text-rose-100 border border-rose-500/40"
                             title="This exercise reference was missing and will be auto‑recovered. You can rename it in the exercise library."
                           >
-                            missing
+                            ⚠ missing
                           </span>
                         )}
                         {ex && recoveredIds.has(ex.id) && (
                           <span
-                            className="text-[9px] px-1 py-0.5 rounded bg-amber-700/40 text-amber-100 border border-amber-500/30"
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-amber-700/50 text-amber-100 border border-amber-500/40"
                             title="Auto‑recovered placeholder exercise (original was deleted). Rename or edit details if needed."
                           >
-                            recovered
+                            ✓ recovered
                           </span>
                         )}
                       </button>
@@ -5448,7 +5466,7 @@ export default function Sessions() {
                         <div className="flex sm:hidden items-center gap-0.5 ml-auto shrink-0">
                           <button
                             disabled={entryIdx === 0}
-                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] bg-slate-800/75 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/75 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
@@ -5458,7 +5476,7 @@ export default function Sessions() {
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] bg-slate-800/75 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/75 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,
@@ -5491,7 +5509,7 @@ export default function Sessions() {
                       <div className="flex items-center gap-1 justify-end w-full">
                         <button
                           aria-label="Switch exercise"
-                          className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-md sm:rounded-lg border border-white/[0.06] bg-slate-800/70 text-[11px] sm:text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.12] bg-slate-800/80 text-[12px] text-slate-100 transition-colors duration-150 hover:bg-slate-700/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSwitchTarget({ entryId: entry.id });
@@ -5504,7 +5522,7 @@ export default function Sessions() {
                         </button>
                         <button
                           aria-label="Remove exercise"
-                          className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-md sm:rounded-lg border border-rose-500/35 bg-rose-500/12 text-[11px] sm:text-[12px] text-rose-200 transition-colors duration-150 hover:bg-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-rose-500/45 bg-rose-500/15 text-[12px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                           onClick={() => removeEntry(entry.id)}
                           title="Remove exercise"
                         >
@@ -5516,7 +5534,7 @@ export default function Sessions() {
                         <div className="flex sm:hidden items-center gap-0.5 w-full justify-end mt-0.5">
                           <button
                             disabled={entryIdx === 0}
-                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] bg-slate-800/75 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/75 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(entryIdx, Math.max(0, entryIdx - 1))
                             }
@@ -5526,7 +5544,7 @@ export default function Sessions() {
                           </button>
                           <button
                             disabled={entryIdx === session.entries.length - 1}
-                            className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.04] bg-slate-800/60 text-[11px] text-slate-300 transition-colors duration-150 hover:bg-slate-700/60 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.08] bg-slate-800/75 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/75 disabled:cursor-not-allowed disabled:opacity-40"
                             onClick={() =>
                               reorderEntry(
                                 entryIdx,

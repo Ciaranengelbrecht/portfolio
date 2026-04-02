@@ -25,7 +25,7 @@ export default function MobileTabs(){
   return (
   <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-    <div className="relative mx-auto flex rounded-t-xl bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/55 border-t border-white/10 px-1 pt-0.5 pb-[calc(.25rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[46px]">
+    <div className="relative mx-auto flex rounded-t-xl bg-slate-950/85 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60 border-t border-white/10 px-1.5 pt-1 pb-[calc(.3rem+env(safe-area-inset-bottom))] shadow-[0_-3px_12px_-6px_rgba(0,0,0,.65)] min-h-[52px]">
         {tabs.map(t=> (
           <NavLink
             key={t.to}
@@ -33,7 +33,7 @@ export default function MobileTabs(){
             onMouseEnter={() => preloadRoute(t.to)}
             onFocus={() => preloadRoute(t.to)}
             onTouchStart={() => preloadRoute(t.to)}
-              className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
+              className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg border text-[10px] font-medium tracking-wide min-h-[44px] ${isActive? 'text-emerald-200 bg-emerald-500/12 border-emerald-400/35':'text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/5'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
               <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>
             <span className="leading-none">{t.label}</span>
