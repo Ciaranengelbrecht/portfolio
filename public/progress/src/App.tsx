@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Navigate,
   NavLink,
@@ -61,6 +61,11 @@ function Shell() {
   const [toast, setToast] = useState<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sessionDuration, setSessionDuration] = useState<string | null>(null);
+  const didApplyStartPage = useRef(false);
+  // Hide app shell (nav etc) on /auth route
+  const authRoute = locationRef.pathname.startsWith("/auth");
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -243,6 +248,55 @@ function Shell() {
     };
   }, []);
 
+  // Supabase sync handles online/visibility internally now
+  useEffect(() => {
+    if (didApplyStartPage.current) return;
+    if (boot.status !== "ready" || !boot.authed) return;
+    didApplyStartPage.current = true;
+
+    (async () => {
+      const s = await getSettings();
+      const start =
+        s.dashboardPrefs?.startPage ||
+        (s.dashboardPrefs?.openToLast ? "last" : "dashboard");
+      const loc = locationRef.pathname;
+      // Only auto-navigate on first load when at root path
+      if (loc === "/" || loc === "") {
+        if (start === "last" && s.dashboardPrefs?.openToLast !== false) {
+          // Always open Sessions for "Last Session" start page.
+          // Do not mark this as an explicit navigation intent: Sessions should
+          // still validate any stored location and fall back to the latest
+          // real training data when the stored target is stale.
+          navigate("/sessions");
+        } else if (start === "sessions") navigate("/sessions");
+        else if (start === "measurements") navigate("/measurements");
+        else if (start === "dashboard") navigate("/");
+      }
+    })();
+  }, [boot.status, boot.authed, locationRef.pathname, navigate]);
+
+  const Tab = ({ to, label }: { to: string; label: string }) => (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `shrink-0 px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${
+          isActive ? "bg-card text-white" : "text-gray-300"
+        }`
+      }
+    >
+      {label}
+    </NavLink>
+  );
+
+  // Session duration from Sessions page (broadcast via custom event)
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ duration: string | null }>) => {
+      setSessionDuration(e.detail.duration);
+    };
+    window.addEventListener('sessions-duration-update', handler as EventListener);
+    return () => window.removeEventListener('sessions-duration-update', handler as EventListener);
+  }, []);
+
   if (boot.status === "booting") {
     return <AppBootstrapScreen phase={boot.phase} />;
   }
@@ -264,54 +318,6 @@ function Shell() {
     return <AppBootstrapError message={program.error} onRetry={boot.retry} />;
   }
 
-  // Supabase sync handles online/visibility internally now
-  useEffect(() => {
-    (async () => {
-      const s = await getSettings();
-      const start =
-        s.dashboardPrefs?.startPage ||
-        (s.dashboardPrefs?.openToLast ? "last" : "dashboard");
-      const loc = locationRef.pathname;
-      // Only auto-navigate on first load when at root path
-      if (loc === "/" || loc === "") {
-        if (start === "last" && s.dashboardPrefs?.openToLast !== false) {
-          // Always open Sessions for "Last Session" start page.
-          // Do not mark this as an explicit navigation intent: Sessions should
-          // still validate any stored location and fall back to the latest
-          // real training data when the stored target is stale.
-          navigate("/sessions");
-        } else if (start === "sessions") navigate("/sessions");
-        else if (start === "measurements") navigate("/measurements");
-        else if (start === "dashboard") navigate("/");
-      }
-    })();
-  }, []);
-
-  const Tab = ({ to, label }: { to: string; label: string }) => (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `shrink-0 px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${
-          isActive ? "bg-card text-white" : "text-gray-300"
-        }`
-      }
-    >
-      {label}
-    </NavLink>
-  );
-
-  // Hide app shell (nav etc) on /auth route
-  const authRoute = locationRef.pathname.startsWith("/auth");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  // Session duration from Sessions page (broadcast via custom event)
-  const [sessionDuration, setSessionDuration] = useState<string | null>(null);
-  useEffect(() => {
-    const handler = (e: CustomEvent<{ duration: string | null }>) => {
-      setSessionDuration(e.detail.duration);
-    };
-    window.addEventListener('sessions-duration-update', handler as EventListener);
-    return () => window.removeEventListener('sessions-duration-update', handler as EventListener);
-  }, []);
   return (
     <SnackProvider>
       <div

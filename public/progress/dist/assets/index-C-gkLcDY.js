@@ -1,5 +1,5 @@
 // Auto-generated legacy alias.
 // Ensures stale clients requesting index-C-gkLcDY.js receive the current bundle.
-import * as mod from "./index-BdZC5tz5.js";
-export * from "./index-BdZC5tz5.js";
+import * as mod from "./index-DIfQ2y5F.js";
+export * from "./index-DIfQ2y5F.js";
 export default mod;
