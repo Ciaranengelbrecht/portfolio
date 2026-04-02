@@ -3,25 +3,35 @@ import { UserProfile, UserProgram, ArchivedProgram, Session } from "./types";
 import { db } from "./db";
 import { ensureProgram } from './program';
 
+function normalizeProfile(data: any): UserProfile {
+  const norm: any = { ...data };
+  if (norm.themeV2 === undefined && norm.themev2 !== undefined) {
+    norm.themeV2 = norm.themev2;
+  }
+  return norm as UserProfile;
+}
+
+export async function fetchUserProfileStrict(): Promise<UserProfile | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error && (error as any).code !== "PGRST116") throw error;
+  if (!data) return { id: user.id };
+
+  return normalizeProfile(data);
+}
+
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-    if (error && (error as any).code !== "PGRST116") throw error;
-    if (!data) return { id: user.id };
-    // Normalize column name: Postgres folded unquoted identifier to lowercase 'themev2'
-    const norm: any = { ...data };
-    if (norm.themeV2 === undefined && norm.themev2 !== undefined) {
-      norm.themeV2 = norm.themev2;
-    }
-    return norm as UserProfile;
+    return await fetchUserProfileStrict();
   } catch (e) {
     console.warn("[profile] fetchUserProfile failed", e);
     return null;

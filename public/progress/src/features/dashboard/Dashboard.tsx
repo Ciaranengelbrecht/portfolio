@@ -18,6 +18,7 @@ import { getProfileProgram } from "../../lib/profile";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { useAggregates } from "../../lib/useAggregates";
 import { getMuscleIconPath } from "../../lib/muscles";
+import { DashboardSkeleton } from "../../components/LoadingSkeletons";
 
 type HiddenKey =
   | "trainingChart"
@@ -976,6 +977,10 @@ export default function Dashboard() {
       </div>
     </GlassCard>
   );
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <>

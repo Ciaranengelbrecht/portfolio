@@ -22,6 +22,7 @@ import { getMuscleIconPath } from "../lib/muscles";
 import { computeLoggedSetVolume } from "../lib/volume";
 import { getSettings } from "../lib/helpers";
 import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
+import { ListSkeleton } from "../components/LoadingSkeletons";
 
 const LABELS: DayLabel[] = [
   "Upper",
@@ -36,7 +37,12 @@ const LABELS: DayLabel[] = [
 ];
 
 export default function ProgramSettings() {
-  const { program, setProgram } = useProgram();
+  const {
+    program,
+    setProgram,
+    loading: programLoading,
+    error: programError,
+  } = useProgram();
   const [working, setWorking] = useState<UserProgram>(
     () => program || ensureProgram(defaultProgram)
   );
@@ -499,6 +505,26 @@ export default function ProgramSettings() {
       setProjectedPerDay(perDay);
     })();
   }, [working.weeklySplit, templates]);
+
+  if (programError) {
+    return (
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Program</h2>
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {programError}. Retry startup to continue.
+        </div>
+      </div>
+    );
+  }
+
+  if (programLoading || !program) {
+    return (
+      <div className="p-4 max-w-5xl mx-auto">
+        <ListSkeleton items={6} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <GuidedSetupWizard

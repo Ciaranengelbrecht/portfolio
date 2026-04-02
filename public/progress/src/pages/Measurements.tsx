@@ -12,6 +12,7 @@ import { parseEvoltTextToMeasurement } from "../lib/evoltImport";
 import { extractTextFromPdf } from "../lib/pdf";
 import { SkeletonChart } from "../components/Skeleton";
 import QuickWeighIn from "../components/QuickWeighIn";
+import { MeasurementsSkeleton } from "../components/LoadingSkeletons";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -367,6 +368,7 @@ export default function Measurements() {
     dateISO: new Date().toISOString(),
   });
   const [data, setData] = useState<Measurement[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [sectionCollapsed, setSectionCollapsed] = useState<
     Record<MeasurementSectionId, boolean>
   >(() => {
@@ -437,28 +439,37 @@ export default function Measurements() {
   }, [sectionCollapsed]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const list = await db.getAll<Measurement>("measurements");
-      const sorted = [...list].sort((a, b) =>
-        b.dateISO.localeCompare(a.dateISO)
-      );
-      setData(sorted);
-      // today guard
-      const today = new Date().toISOString().slice(0, 10);
-      const existingToday = sorted.find(
-        (r) => r.dateISO.slice(0, 10) === today
-      );
-      if (existingToday) setM(existingToday);
-      else if (sorted.length) {
-        setM((prev) => ({
-          ...prev,
-          heightCm:
-            typeof prev.heightCm === "number" && !Number.isNaN(prev.heightCm)
-              ? prev.heightCm
-              : sorted[0]?.heightCm,
-        }));
+      try {
+        const list = await db.getAll<Measurement>("measurements");
+        const sorted = [...list].sort((a, b) =>
+          b.dateISO.localeCompare(a.dateISO)
+        );
+        if (cancelled) return;
+        setData(sorted);
+        // today guard
+        const today = new Date().toISOString().slice(0, 10);
+        const existingToday = sorted.find(
+          (r) => r.dateISO.slice(0, 10) === today
+        );
+        if (existingToday) setM(existingToday);
+        else if (sorted.length) {
+          setM((prev) => ({
+            ...prev,
+            heightCm:
+              typeof prev.heightCm === "number" && !Number.isNaN(prev.heightCm)
+                ? prev.heightCm
+                : sorted[0]?.heightCm,
+          }));
+        }
+      } finally {
+        if (!cancelled) setInitialLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1129,6 +1140,10 @@ export default function Measurements() {
     const todayEntry = sorted.find((r) => r.dateISO.slice(0, 10) === today);
     if (todayEntry) setM(todayEntry);
   }, []);
+
+  if (initialLoading) {
+    return <MeasurementsSkeleton />;
+  }
 
   return (
     <div className="space-y-6">

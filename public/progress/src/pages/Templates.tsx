@@ -4,6 +4,7 @@ import { requestRealtime } from "../lib/supabaseSync";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Template, MuscleGroup } from "../lib/types";
 import { nanoid } from "nanoid";
+import { TemplatesSkeleton } from "../components/LoadingSkeletons";
 
 const TEMPLATE_COLLAPSE_KEY = "templates:collapsedState";
 const SECONDARY_FACTOR = 0.5;
@@ -42,6 +43,7 @@ function formatMuscleCounts(counts: Record<string, number>): string {
 export default function Templates() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [name, setName] = useState("");
   const [showAddFor, setShowAddFor] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -82,13 +84,26 @@ export default function Templates() {
   };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      // Avoid blocking UI; rely on cached session or proceed optimistically
-      setExercises(await db.getAll("exercises"));
-      setTemplates(await db.getAll("templates"));
-      // subscribe only once needed
-      requestRealtime("templates");
+      try {
+        // Avoid blocking UI; rely on cached session or proceed optimistically
+        const [exerciseRows, templateRows] = await Promise.all([
+          db.getAll("exercises"),
+          db.getAll("templates"),
+        ]);
+        if (cancelled) return;
+        setExercises(exerciseRows);
+        setTemplates(templateRows);
+        // subscribe only once needed
+        requestRealtime("templates");
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -368,6 +383,10 @@ export default function Templates() {
       .slice(0, 250)
       .map((x) => x.e);
   }, [exerciseQuery, exercises, showAllExercises]);
+
+  if (initialLoading) {
+    return <TemplatesSkeleton />;
+  }
 
   return (
     <div className="space-y-4">

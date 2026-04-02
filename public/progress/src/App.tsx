@@ -12,14 +12,12 @@ import { seedExercises } from "./lib/seedExercises";
 import { initSupabaseSync } from "./lib/supabaseSync";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
-import { ProgramProvider } from "./state/program";
+import { ProgramProvider, useProgram } from "./state/program";
 import "./styles/theme.css";
 import { registerSW } from "./lib/pwa";
 import {
   supabase,
   clearAuthStorage,
-  refreshSessionNow,
-  forceRefreshSession,
   waitForSession,
 } from "./lib/supabase";
 import AuthModal from "./components/AuthModal";
@@ -31,6 +29,11 @@ import ECGBackground from "./components/ECGBackground";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SmartSuspenseFallback } from "./components/SmartSuspenseFallback";
 import { SnackProvider } from "./state/snackbar";
+import {
+  AppBootstrapError,
+  AppBootstrapScreen,
+} from "./components/AppBootstrapScreen";
+import { BootstrapProvider, useBootstrap } from "./state/bootstrap";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Analytics = lazy(() => import("./features/analytics/Analytics"));
@@ -46,10 +49,10 @@ import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
 import { migrateToV9_BlankZeros } from "./lib/migrations/v9_blank_zeros";
-import { warmPreload } from "./lib/dataCache";
-import { computeAggregates } from "./lib/aggregates";
 
 function Shell() {
+  const boot = useBootstrap();
+  const program = useProgram();
   const navigate = useNavigate();
   const locationRef = useLocation();
   const [authChecked, setAuthChecked] = useState(false);
@@ -67,34 +70,17 @@ function Shell() {
   useEffect(() => {
     registerSW();
   }, []);
-  // Warm and force-refresh session at startup; briefly wait for session to avoid flash of empty data
   useEffect(() => {
-    (async () => {
-      console.log("[App] init: waitForSession…");
-      const s = await waitForSession({ timeoutMs: 6000 });
-      console.log("[App] init: session?", !!s, "user:", s?.user?.id || null);
-      if (s?.user?.email) setAuthEmail(s.user.email);
-      setAuthChecked(true);
-      // Seed global exercise catalogue once per device (idempotent if already present)
-      seedExercises().catch(() => {});
-      // Delay heavier warmup work until browser idle to keep first route responsive.
-      const runDeferredWarmup = () => {
-        warmPreload(["exercises", "templates", "settings"], { swr: true });
-        // Sessions/measurements and aggregate computation can be expensive on bigger accounts.
-        // Let route-level pages drive those loads when needed.
-        setTimeout(() => {
-          computeAggregates().catch(() => {});
-        }, 1200);
-      };
-      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-        (window as any).requestIdleCallback(runDeferredWarmup, {
-          timeout: 1200,
-        });
-      } else {
-        setTimeout(runDeferredWarmup, 300);
-      }
-    })();
-  }, []);
+    const email = boot.session?.user?.email || null;
+    setAuthEmail(email);
+    setAuthChecked(boot.status !== "booting");
+  }, [boot.session?.user?.email, boot.status]);
+
+  // Seed global exercise catalogue once per device (idempotent if already present)
+  useEffect(() => {
+    if (boot.status !== "ready" || !boot.authed) return;
+    seedExercises().catch(() => {});
+  }, [boot.status, boot.authed]);
   useEffect(() => {
     (async () => {
       const s = await getSettings();
@@ -182,6 +168,7 @@ function Shell() {
 
   // Lightweight remote migrations (idempotent via localStorage flags)
   useEffect(() => {
+    if (boot.status !== "ready" || !boot.authed) return;
     (async () => {
       try {
         await waitForSession({ timeoutMs: 6000 });
@@ -205,7 +192,7 @@ function Shell() {
         console.warn("[App] migration runner error", e);
       }
     })();
-  }, []);
+  }, [boot.status, boot.authed]);
 
   // If user opens a Supabase password recovery link, mark the flow and navigate AFTER session exists
   useEffect(() => {
@@ -256,88 +243,26 @@ function Shell() {
     };
   }, []);
 
-  // Global auth indicator: keep a lightweight session state
-  useEffect(() => {
-    let timer: any = setTimeout(() => setAuthChecked(true), 1500);
-    const sub = supabase.auth.onAuthStateChange((_evt, session) => {
-      console.log("[App] onAuthStateChange: user?", session?.user?.id || null);
-      setAuthEmail(session?.user?.email ?? null);
-      setAuthChecked(true);
-    });
-    // Prefer resilient waitForSession over direct getSession to avoid Safari stalls
-    waitForSession({ timeoutMs: 1200 })
-      .then((s) => {
-        console.log(
-          "[App] waitForSession (global): session?",
-          !!s,
-          "user:",
-          s?.user?.id || null
-        );
-        if (s?.user?.email) {
-          setAuthEmail(s.user.email);
-        }
-        setAuthChecked(true);
-      })
-      .catch(() => setAuthChecked(true))
-      .finally(() => clearTimeout(timer));
+  if (boot.status === "booting") {
+    return <AppBootstrapScreen phase={boot.phase} />;
+  }
 
-    // Actively refresh session when returning to app, regaining network, and periodically
-    const refresh = async () => {
-      try {
-        const s = await waitForSession({ timeoutMs: 1200 });
-        console.log(
-          "[App] refresh: session?",
-          !!s,
-          "user:",
-          s?.user?.id || null
-        );
-        if (s) {
-          setAuthEmail(s.user?.email ?? null);
-        }
-      } catch {}
-    };
-    const onVis = async () => {
-      if (document.visibilityState === "visible") {
-        console.log("[App] visibilitychange: visible -> waitForSession");
-        await waitForSession({ timeoutMs: 5000 });
-        await refresh();
-        try {
-          const sess = await waitForSession({ timeoutMs: 1200 });
-          console.log(
-            "[App] visibilitychange: dispatch sb-auth, session?",
-            !!sess
-          );
-          if (sess) {
-            window.dispatchEvent(
-              new CustomEvent("sb-auth", { detail: { session: sess } })
-            );
-          }
-        } catch {}
-      }
-    };
-    window.addEventListener("visibilitychange", onVis);
-    window.addEventListener("online", refresh);
-    // React to explicit auth events (from supabase.ts)
-    const onAuth = (e: any) => {
-      const session = e?.detail?.session;
-      if (session) {
-        setAuthEmail(session.user?.email ?? null);
-      }
-    };
-    window.addEventListener("sb-auth", onAuth as any);
-    const iv = setInterval(refresh, 5 * 60 * 1000);
+  if (boot.status === "error") {
+    return (
+      <AppBootstrapError
+        message={boot.error || "Unable to initialize app"}
+        onRetry={boot.retry}
+      />
+    );
+  }
 
-    return () => {
-      try {
-        clearTimeout(timer);
-      } catch {}
-      sub?.data?.subscription?.unsubscribe?.();
-      window.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("online", refresh);
-      window.removeEventListener("sb-auth", onAuth as any);
-      clearInterval(iv);
-    };
-  }, []);
+  if (boot.authed && program.loading) {
+    return <AppBootstrapScreen phase="program" />;
+  }
+
+  if (boot.authed && program.error) {
+    return <AppBootstrapError message={program.error} onRetry={boot.retry} />;
+  }
 
   // Supabase sync handles online/visibility internally now
   useEffect(() => {
@@ -653,9 +578,11 @@ export default function App() {
   return (
     <LegacyThemeProvider>
       <VarsThemeProvider>
-        <ProgramProvider>
-          <Shell />
-        </ProgramProvider>
+        <BootstrapProvider>
+          <ProgramProvider>
+            <Shell />
+          </ProgramProvider>
+        </BootstrapProvider>
       </VarsThemeProvider>
     </LegacyThemeProvider>
   );

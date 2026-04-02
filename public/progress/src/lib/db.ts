@@ -34,9 +34,46 @@ const READ_TTL_MS: Record<StoreKey, number> = {
   sessions: 25_000,
   measurements: 15_000,
 };
+const RETRY_DELAYS_MS = [400, 800, 1600] as const;
 
 function isFresh(store: StoreKey, ts: number) {
   return Date.now() - ts < READ_TTL_MS[store];
+}
+
+function isRecoverableAuthOrNetworkError(error: any) {
+  const msg = String(error?.message || error);
+  const status = (error && (error.status || error.code)) || "";
+  return (
+    /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
+    String(status) === "401" ||
+    /Failed to fetch|TypeError|NetworkError|timeout|temporarily|ECONN|fetch/i.test(
+      msg
+    )
+  );
+}
+
+async function runWithSessionRefreshRetry<T>(
+  fn: () => Promise<T>
+): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (!isRecoverableAuthOrNetworkError(error)) {
+        throw error;
+      }
+      if (attempt === RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+      await forceRefreshSession();
+      await new Promise((resolve) =>
+        setTimeout(resolve, RETRY_DELAYS_MS[attempt])
+      );
+    }
+  }
+  throw lastError;
 }
 
 function copyList<T = any>(rows: T[]): T[] {
@@ -225,24 +262,9 @@ export const db = {
 
     const fetchPromise = (async () => {
       try {
-        const result = await attempt();
+        const result = await runWithSessionRefreshRetry(attempt);
         READ_CACHE.set(store, { ts: Date.now(), data: copyList(result) });
         return result;
-      } catch (e: any) {
-        const msg = String(e?.message || e);
-        const status = (e && (e.status || e.code)) || "";
-        if (
-          /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
-          String(status) === "401" ||
-          /Failed to fetch|TypeError|NetworkError/i.test(msg)
-        ) {
-          await forceRefreshSession();
-          await new Promise((r) => setTimeout(r, 500));
-          const retry = await attempt();
-          READ_CACHE.set(store, { ts: Date.now(), data: copyList(retry) });
-          return retry;
-        }
-        throw e;
       } finally {
         INFLIGHT_LIST.delete(store);
       }
@@ -311,7 +333,7 @@ export const db = {
       return mapped;
     };
     try {
-      const found = await attempt();
+      const found = await runWithSessionRefreshRetry(attempt);
       if (store === "settings" && key === "app") {
         if (found) return found;
         const local = readLocalSettingsCache();
@@ -319,31 +341,6 @@ export const db = {
       }
       return found;
     } catch (e: any) {
-      const msg = String(e?.message || e);
-      const status = (e && (e.status || e.code)) || "";
-      if (
-        /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
-        String(status) === "401" ||
-        /Failed to fetch|TypeError|NetworkError/i.test(msg)
-      ) {
-        await forceRefreshSession();
-        await new Promise((r) => setTimeout(r, 500));
-        try {
-          const retried = await attempt();
-          if (store === "settings" && key === "app") {
-            if (retried) return retried;
-            const local = readLocalSettingsCache();
-            if (local?.data) return { ...local.data, id: "app" } as T;
-          }
-          return retried;
-        } catch (retryErr) {
-          if (store === "settings" && key === "app") {
-            const local = readLocalSettingsCache();
-            if (local?.data) return { ...local.data, id: "app" } as T;
-          }
-          throw retryErr;
-        }
-      }
       if (store === "settings" && key === "app") {
         const local = readLocalSettingsCache();
         if (local?.data) return { ...local.data, id: "app" } as T;
@@ -418,28 +415,8 @@ export const db = {
       await sbUpsert(store as any, owner, id, payload);
     };
     try {
-      await attempt();
+      await runWithSessionRefreshRetry(attempt);
     } catch (e: any) {
-      const msg = String(e?.message || e);
-      const status = (e && (e.status || e.code)) || "";
-      if (
-        /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
-        String(status) === "401" ||
-        /Failed to fetch|TypeError|NetworkError/i.test(msg)
-      ) {
-        await forceRefreshSession();
-        await new Promise((r) => setTimeout(r, 500));
-        try {
-          await attempt();
-          return;
-        } catch (retryErr: any) {
-          if (store === "settings") {
-            // Keep local cache as source of truth until auth/network recovers.
-            return;
-          }
-          throw retryErr;
-        }
-      }
       if (store === "settings") {
         // Settings are cached locally for eventual consistency.
         return;
@@ -457,23 +434,7 @@ export const db = {
       const owner = await getOwnerId();
       await sbDelete(store as any, owner, key);
     };
-    try {
-      await attempt();
-    } catch (e: any) {
-      const msg = String(e?.message || e);
-      const status = (e && (e.status || e.code)) || "";
-      if (
-        /Not signed in|jwt|token|auth|401|permission/i.test(msg) ||
-        String(status) === "401" ||
-        /Failed to fetch|TypeError|NetworkError/i.test(msg)
-      ) {
-        await forceRefreshSession();
-        await new Promise((r) => setTimeout(r, 500));
-        await attempt();
-        return;
-      }
-      throw e;
-    }
+    await runWithSessionRefreshRetry(attempt);
   },
 };
 

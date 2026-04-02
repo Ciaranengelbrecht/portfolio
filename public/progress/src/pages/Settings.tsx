@@ -26,6 +26,7 @@ import { playRestBeep, unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
 import { getSettings, setSettings } from "../lib/helpers";
+import { ListSkeleton } from "../components/LoadingSkeletons";
 
 const SETTINGS_SECTION_COLLAPSE_KEY = "settings:sectionCollapsed";
 const INTERACTIVE_ELEMENT_SELECTOR =
@@ -652,6 +653,14 @@ export default function SettingsPage() {
       setBusy(null);
     }
   };
+
+  if (!settingsHydrated) {
+    return (
+      <div className="p-4 max-w-5xl mx-auto">
+        <ListSkeleton items={6} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
