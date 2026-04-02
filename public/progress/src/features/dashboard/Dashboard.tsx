@@ -433,6 +433,18 @@ export default function Dashboard() {
     []
   );
 
+  const latestSessionDateLabel = useMemo(() => {
+    const rows = Array.isArray(sessionsState) ? (sessionsState as Session[]) : [];
+    let latestMs = 0;
+    for (const row of rows) {
+      const raw = row.localDate ? `${row.localDate}T00:00:00` : row.dateISO;
+      const ms = raw ? Date.parse(raw) : Number.NaN;
+      if (!Number.isNaN(ms) && ms > latestMs) latestMs = ms;
+    }
+    if (!latestMs) return null;
+    return sessionDateFormatter.format(new Date(latestMs));
+  }, [sessionsState, sessionDateFormatter]);
+
   const activeMuscleDetail = useMemo(
     () => (activeMuscle ? muscleDetailMap[activeMuscle] || null : null),
     [activeMuscle, muscleDetailMap]
@@ -997,6 +1009,11 @@ export default function Dashboard() {
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
                   Training Ledger
                 </h2>
+                {latestSessionDateLabel && (
+                  <p className="mt-1 text-xs text-white/50">
+                    Updated through {latestSessionDateLabel}
+                  </p>
+                )}
               </div>
               {lifetimeHasData ? (
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
@@ -1035,6 +1052,10 @@ export default function Dashboard() {
                 <h2 className="mt-2 text-2xl font-semibold text-white/90">
                   {weeklyTitle}
                 </h2>
+                <p className="mt-1 text-xs text-white/50">
+                  Phase {phase} · Week {week}
+                  {latestSessionDateLabel ? ` · as of ${latestSessionDateLabel}` : ""}
+                </p>
               </div>
               {weeklyHasData ? (
                 <div className="grid gap-4 sm:grid-cols-2">

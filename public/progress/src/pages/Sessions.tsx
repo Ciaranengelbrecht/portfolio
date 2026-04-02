@@ -1705,6 +1705,13 @@ export default function Sessions() {
       } catch {}
     }
   };
+  const activeRestEntryId = useMemo(() => {
+    const running = Object.entries(restTimers)
+      .filter(([, timer]) => timer.running && !timer.finished)
+      .sort((a, b) => b[1].start - a[1].start);
+    return running[0]?.[0] || null;
+  }, [restTimers]);
+  const hasFloatingRestTimer = activeRestEntryId != null;
   const restTimerDisplay = (entryId: string) => {
     const t = restTimers[entryId];
     if (!t) return null;
@@ -4424,9 +4431,16 @@ export default function Sessions() {
     return `${s}s`;
   };
   const [showPacingDetails, setShowPacingDetails] = useState(false);
-  const [pacingCollapsed, setPacingCollapsed] = useState(true); // Collapsed by default
+  const [pacingCollapsed, setPacingCollapsed] = useState(false);
   const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>(
     {}
+  );
+  const pacedExercises = useMemo(
+    () =>
+      (pacing?.exercises || [])
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count),
+    [pacing?.exercises]
   );
   const toggleName = (id: string) =>
     setExpandedNames((p) => ({ ...p, [id]: !p[id] }));
@@ -4966,13 +4980,13 @@ export default function Sessions() {
                       setShowPacingDetails((s) => !s);
                     }}
                   >
-                    {showPacingDetails ? "Hide Per-Exercise Details" : "Show Per-Exercise Details"}
+                    {showPacingDetails ? "Hide exercise breakdown" : "Show exercise breakdown"}
                   </button>
                   
                   {showPacingDetails && (
                     <div className="space-y-1 max-h-64 overflow-auto pr-1">
-                      {pacing.exercises
-                        .filter((e) => e.count > 0)
+                      {pacedExercises
+                        .slice(0, 8)
                         .map((e) => {
                           const ex = exMap.get(e.exerciseId);
                           const name =
@@ -5007,9 +5021,14 @@ export default function Sessions() {
                             </div>
                           );
                         })}
-                      {!pacing.exercises.some((e) => e.count > 0) && (
+                      {!pacedExercises.length && (
                         <div className="text-[10px] text-slate-500">
                           No rest intervals yet.
+                        </div>
+                      )}
+                      {pacedExercises.length > 8 && (
+                        <div className="text-[10px] text-slate-500 px-1 pt-1">
+                          Showing top 8 by set count ({pacedExercises.length} total).
                         </div>
                       )}
                     </div>
@@ -5875,9 +5894,15 @@ export default function Sessions() {
                             </button>
                             {restTimers[entry.id] && (
                               <>
-                                <span className="text-sm font-bold tabular-nums text-emerald-200 min-w-[44px] text-center">
-                                  {restTimerDisplay(entry.id)}
-                                </span>
+                                {activeRestEntryId === entry.id ? (
+                                  <span className="text-sm font-bold tabular-nums text-emerald-200 min-w-[44px] text-center">
+                                    {restTimerDisplay(entry.id)}
+                                  </span>
+                                ) : hasFloatingRestTimer ? (
+                                  <span className="text-[10px] text-slate-400 px-1">
+                                    Live timer above
+                                  </span>
+                                ) : null}
                                 <button
                                   className="h-6 w-6 flex items-center justify-center rounded-md bg-rose-500/15 border border-rose-500/25 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all"
                                   aria-label="Stop rest timer"
@@ -6285,15 +6310,23 @@ export default function Sessions() {
                         {/* Exercise-level rest control (desktop) */}
                         <div className="col-span-4 mt-2 flex items-center justify-end gap-3 text-[11px] min-h-[56px]">
                           <div className="flex items-center gap-1.5 min-h-[56px]">
-                            {restTimerDisplay(entry.id)}
                             {restTimers[entry.id] && (
-                              <button
-                                className="h-9 w-9 leading-none flex items-center justify-center rounded-lg border border-white/10 bg-slate-800/80 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/80 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
-                                aria-label="Stop rest timer"
-                                onClick={() => stopRestTimer(entry.id)}
-                              >
-                                ×
-                              </button>
+                              <>
+                                {activeRestEntryId === entry.id ? (
+                                  restTimerDisplay(entry.id)
+                                ) : hasFloatingRestTimer ? (
+                                  <span className="rounded-md border border-white/10 bg-slate-900/70 px-2 py-1 text-[10px] text-slate-400">
+                                    Live timer above
+                                  </span>
+                                ) : null}
+                                <button
+                                  className="h-9 w-9 leading-none flex items-center justify-center rounded-lg border border-white/10 bg-slate-800/80 text-[12px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/80 focus:outline-none focus:ring-2 focus:ring-rose-500/60"
+                                  aria-label="Stop rest timer"
+                                  onClick={() => stopRestTimer(entry.id)}
+                                >
+                                  ×
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

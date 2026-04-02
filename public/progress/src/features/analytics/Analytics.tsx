@@ -160,15 +160,20 @@ function makeWeekLabel(session: Session): string {
   return phase ? `Phase ${phase} • Week ${week}` : `Week ${week}`;
 }
 
-function safeParseDate(value?: string): Date {
-  if (value) {
-    try {
-      const parsed = parseISO(value);
-      if (!Number.isNaN(parsed.getTime())) return parsed;
-    } catch {
-      /* ignore */
-    }
+function parseDateMaybe(value?: string): Date | null {
+  if (!value) return null;
+  try {
+    const parsed = parseISO(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  } catch {
+    /* ignore */
   }
+  return null;
+}
+
+function safeParseDate(value?: string): Date {
+  const parsed = parseDateMaybe(value);
+  if (parsed) return parsed;
   return new Date();
 }
 
@@ -543,6 +548,24 @@ export default function Analytics() {
     [sessions, exercises]
   );
 
+  const latestSessionAsOf = useMemo(() => {
+    const latestISO = analytics.sessions[0]?.dateISO;
+    const parsed = parseDateMaybe(latestISO);
+    return parsed ? format(parsed, "MMM d, yyyy") : null;
+  }, [analytics.sessions]);
+
+  const latestMeasurementAsOf = useMemo(() => {
+    let latestMs = 0;
+    for (const row of measurements) {
+      const parsed = parseDateMaybe(row.dateISO);
+      if (!parsed) continue;
+      const ms = parsed.getTime();
+      if (ms > latestMs) latestMs = ms;
+    }
+    if (!latestMs) return null;
+    return format(new Date(latestMs), "MMM d, yyyy");
+  }, [measurements]);
+
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const restoreSearchFocus = useRef(false);
 
@@ -718,7 +741,12 @@ export default function Analytics() {
                 Volume &amp; Sessions
               </h3>
             </div>
-            <span className="text-xs text-white/50">{tonnageUnit}</span>
+            <div className="text-right">
+              <p className="text-xs text-white/50">{tonnageUnit}</p>
+              {latestSessionAsOf && (
+                <p className="text-[11px] text-white/35">as of {latestSessionAsOf}</p>
+              )}
+            </div>
           </div>
           <div className="h-64">
             {!RC && chartSkeleton}
@@ -808,7 +836,14 @@ export default function Analytics() {
                 Trend (last {weightSeries.length} entries)
               </h3>
             </div>
-            <span className="text-xs text-white/50">{weightUnit}</span>
+            <div className="text-right">
+              <p className="text-xs text-white/50">{weightUnit}</p>
+              {latestMeasurementAsOf && (
+                <p className="text-[11px] text-white/35">
+                  as of {latestMeasurementAsOf}
+                </p>
+              )}
+            </div>
           </div>
           <div className="h-64">
             {!RC && chartSkeleton}
@@ -1559,6 +1594,14 @@ export default function Analytics() {
             <p className="mt-1 text-sm text-white/60">
               Explore weekly momentum, session quality, muscle balance, and
               exercise-specific trends with interactive visuals.
+            </p>
+            <p className="mt-2 text-xs text-white/45">
+              {latestSessionAsOf
+                ? `Training data through ${latestSessionAsOf}`
+                : "Log a session to unlock timeline insights."}
+              {latestMeasurementAsOf
+                ? ` • Bodyweight through ${latestMeasurementAsOf}`
+                : ""}
             </p>
           </div>
         </div>

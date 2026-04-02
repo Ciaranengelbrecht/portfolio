@@ -51,6 +51,19 @@ const DEFAULT_SETTINGS_SECTION_STATE: Record<SettingsSectionId, boolean> = {
   volumeTargets: true,
 };
 
+const SETTINGS_SECTION_ORDER: Array<{
+  id: SettingsSectionId;
+  label: string;
+}> = [
+  { id: "general", label: "General" },
+  { id: "appearance", label: "Appearance" },
+  { id: "safety", label: "Safety" },
+  { id: "progress", label: "Progress" },
+  { id: "exerciseOverrides", label: "Overrides" },
+  { id: "exerciseLibrary", label: "Library" },
+  { id: "volumeTargets", label: "Targets" },
+];
+
 const VOLUME_TARGET_MUSCLES = [
   "chest",
   "lats",
@@ -120,6 +133,19 @@ export default function SettingsPage() {
   const lastSavedSettingsRef = useRef<string>("");
   const pendingSaveRef = useRef<number | null>(null);
 
+  const openSectionCount = useMemo(
+    () =>
+      SETTINGS_SECTION_ORDER.reduce((count, section) => {
+        const collapsed =
+          sectionCollapsed[section.id] ?? DEFAULT_SETTINGS_SECTION_STATE[section.id];
+        return collapsed ? count : count + 1;
+      }, 0),
+    [sectionCollapsed]
+  );
+
+  const hasPendingAutosave =
+    settingsHydrated && JSON.stringify(s) !== lastSavedSettingsRef.current;
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SETTINGS_SECTION_COLLAPSE_KEY);
@@ -154,6 +180,20 @@ export default function SettingsPage() {
     },
     []
   );
+
+  const setAllSectionsCollapsed = useCallback((collapsed: boolean) => {
+    const next = SETTINGS_SECTION_ORDER.reduce((acc, section) => {
+      acc[section.id] = collapsed;
+      return acc;
+    }, {} as Record<SettingsSectionId, boolean>);
+    setSectionCollapsed(next);
+  }, []);
+
+  const jumpToSection = useCallback((id: SettingsSectionId) => {
+    const target = document.getElementById(`settings-${id}`);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   const handleSectionHeaderClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>, id: SettingsSectionId) => {
@@ -196,6 +236,7 @@ export default function SettingsPage() {
       sectionCollapsed[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
     return (
       <section
+        id={`settings-${id}`}
         className={`bg-card rounded-2xl shadow-soft border border-white/5 transition-colors ${
           collapsed ? "cursor-pointer hover:border-white/10" : ""
         }`}
@@ -665,6 +706,91 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Settings</h2>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+            Sections
+          </p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {openSectionCount}/{SETTINGS_SECTION_ORDER.length} open
+          </p>
+          <p className="text-xs text-white/60">Expand/collapse controls saved</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+            Overrides
+          </p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {exerciseOverrideCount == null ? "Loading" : exerciseOverrideCount}
+          </p>
+          <p className="text-xs text-white/60">Per-exercise deload profiles</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+            Library
+          </p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {exerciseLibraryCount == null ? "Loading" : exerciseLibraryCount}
+          </p>
+          <p className="text-xs text-white/60">Exercises in catalog</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
+          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+            Sync
+          </p>
+          <p className="mt-1 text-sm font-semibold text-white">
+            {userEmail ? "Supabase" : "Offline mode"}
+          </p>
+          <p className="text-xs text-white/60">
+            {hasPendingAutosave ? "Autosave pending" : "Autosave up to date"}
+          </p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3 space-y-3">
+        <div className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+          Quick navigation
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {SETTINGS_SECTION_ORDER.map((section) => {
+            const collapsed =
+              sectionCollapsed[section.id] ??
+              DEFAULT_SETTINGS_SECTION_STATE[section.id];
+            return (
+              <button
+                key={section.id}
+                type="button"
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  collapsed
+                    ? "border-white/12 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10"
+                    : "border-emerald-400/55 bg-emerald-500/15 text-white"
+                }`}
+                onClick={() => jumpToSection(section.id)}
+              >
+                <span className="font-medium">{section.label}</span>
+                <span className="ml-1.5 text-[10px] uppercase tracking-wide text-white/55">
+                  {collapsed ? "Closed" : "Open"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/10"
+            onClick={() => setAllSectionsCollapsed(false)}
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            className="rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/10"
+            onClick={() => setAllSectionsCollapsed(true)}
+          >
+            Collapse all
+          </button>
+        </div>
+      </div>
       <GuidedSetupWizard
         open={showGuidedSetup}
         onClose={() => setShowGuidedSetup(false)}

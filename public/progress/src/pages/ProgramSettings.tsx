@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProgram } from "../state/program";
 import {
   UserProgram,
@@ -406,6 +406,29 @@ export default function ProgramSettings() {
     }
   };
 
+  const activeTrainingDays = useMemo(
+    () => working.weeklySplit.filter((day) => day.type !== "Rest").length,
+    [working.weeklySplit]
+  );
+
+  const mappedTemplateDays = useMemo(
+    () => working.weeklySplit.filter((day) => Boolean(day.templateId)).length,
+    [working.weeklySplit]
+  );
+
+  const deloadSummary =
+    working.deload.mode === "interval"
+      ? `Every ${working.deload.everyNWeeks} weeks`
+      : working.deload.mode === "last-week"
+      ? "Last week"
+      : "Off";
+
+  const jumpToProgramSection = (id: string) => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Allocation logic effect
   useEffect(() => {
     if (!showAllocator) return;
@@ -534,6 +557,56 @@ export default function ProgramSettings() {
       />
       <h2 className="text-lg font-semibold">Program</h2>
       {toast && <div className="text-xs text-emerald-400">{toast}</div>}
+      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3 space-y-3">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Days</div>
+            <div className="text-lg font-semibold text-white">{activeTrainingDays}</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Weeks</div>
+            <div className="text-lg font-semibold text-white">{working.mesoWeeks}</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Deload</div>
+            <div className="text-sm font-semibold text-white">{deloadSummary}</div>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Template Days</div>
+            <div className="text-lg font-semibold text-white">{mappedTemplateDays}</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            onClick={() => jumpToProgramSection("program-basics")}
+          >
+            Basics
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            onClick={() => jumpToProgramSection("program-weekly-split")}
+          >
+            Weekly Split
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            onClick={() => jumpToProgramSection("program-allocator")}
+          >
+            Allocator
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            onClick={() => jumpToProgramSection("program-actions")}
+          >
+            Save Actions
+          </button>
+        </div>
+      </div>
       <div className="bg-card rounded-2xl p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="text-sm font-medium text-white">
@@ -553,7 +626,7 @@ export default function ProgramSettings() {
       </div>
       <div className="glass-card rounded-2xl p-4 space-y-4">
         {/* Muscle group heatmap */}
-        <div className="space-y-2">
+        <div id="program-volume-logged" className="space-y-2">
           <div className="text-xs uppercase tracking-wide text-gray-400">
             Muscle Logged Volume (Weighted Sets)
           </div>
@@ -597,7 +670,7 @@ export default function ProgramSettings() {
           </div>
         </div>
         {/* Projected weekly volume (planned) */}
-        <div className="space-y-2">
+        <div id="program-volume-projected" className="space-y-2">
           <div className="text-xs uppercase tracking-wide text-gray-400 flex items-center gap-2">
             Projected Weekly Volume{" "}
             <span className="text-[10px] text-gray-500 normal-case">
@@ -659,7 +732,7 @@ export default function ProgramSettings() {
             </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div id="program-basics" className="flex flex-wrap gap-4">
           <label className="space-y-1">
             <span className="text-xs text-gray-400">Name</span>
             <input
@@ -757,7 +830,7 @@ export default function ProgramSettings() {
             </div>
           </div>
         </div>
-        <div className="space-y-2">
+        <div id="program-weekly-split" className="space-y-2">
           <div className="text-xs uppercase tracking-wide text-gray-400">
             Weekly Split
           </div>
@@ -885,7 +958,7 @@ export default function ProgramSettings() {
             ))}
           </ul>
         )}
-        <div className="flex flex-wrap gap-2 text-[10px] text-gray-400">
+        <div id="program-allocator" className="flex flex-wrap gap-2 text-[10px] text-gray-400">
           <span>Planned Volume Allocator (beta)</span>
           <button
             className="btn-outline px-2 py-1 rounded-lg"
@@ -963,7 +1036,7 @@ export default function ProgramSettings() {
             </div>
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-3">
+        <div id="program-actions" className="flex flex-wrap items-center gap-3">
           <button
             onClick={save}
             disabled={saving}
