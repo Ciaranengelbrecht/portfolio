@@ -90,7 +90,8 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       setCacheOwner(session.user.id);
       setIfCurrent({ session, authed: true, phase: "data" });
 
-      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+      const offline =
+        typeof navigator !== "undefined" && navigator.onLine === false;
       if (offline && !hasCachedData([...CRITICAL_STORES])) {
         throw new Error("No cached user data available while offline");
       }
@@ -142,19 +143,31 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       const currentUserId = stateRef.current.session?.user?.id;
 
       if (!nextUserId) {
-        runId.current += 1;
-        setState((prev) => ({
-          ...prev,
-          status: "unauthenticated",
-          phase: "ready",
-          session: null,
-          authed: false,
-          error: null,
-        }));
+        // Ignore transient null auth events during startup; only react as sign-out
+        // when we were already authenticated.
+        if (stateRef.current.authed || stateRef.current.status === "ready") {
+          runId.current += 1;
+          setState((prev) => ({
+            ...prev,
+            status: "unauthenticated",
+            phase: "ready",
+            session: null,
+            authed: false,
+            error: null,
+          }));
+        }
         return;
       }
 
-      if (nextUserId !== currentUserId || stateRef.current.status !== "ready") {
+      if (stateRef.current.status === "booting") {
+        return;
+      }
+
+      if (
+        nextUserId !== currentUserId ||
+        stateRef.current.status === "unauthenticated" ||
+        stateRef.current.status === "error"
+      ) {
         setAttempt((prev) => prev + 1);
       }
     };

@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, waitForSession } from "./supabase";
 import { UserProfile, UserProgram, ArchivedProgram, Session } from "./types";
 import { db } from "./db";
 import { ensureProgram } from './program';
@@ -12,10 +12,9 @@ function normalizeProfile(data: any): UserProfile {
 }
 
 export async function fetchUserProfileStrict(): Promise<UserProfile | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const session = await waitForSession({ timeoutMs: 3000 });
+  const user = session?.user;
+  if (!user?.id) return null;
 
   const { data, error } = await supabase
     .from("profiles")

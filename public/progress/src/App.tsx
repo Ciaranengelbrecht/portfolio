@@ -474,7 +474,7 @@ function Shell() {
           <Suspense fallback={<SmartSuspenseFallback />}>
             <ErrorBoundary>
               <Routes>
-                <Route path="/auth" element={<IntroAuthPage />} />
+                <Route path="/auth/*" element={<IntroAuthPage />} />
                 <Route
                   path="/"
                   element={
@@ -546,6 +546,10 @@ function Shell() {
                       <Navigate to="/templates" replace />
                     </RequireAuth>
                   }
+                />
+                <Route
+                  path="*"
+                  element={<Navigate to={boot.authed ? "/" : "/auth"} replace />}
                 />
               </Routes>
             </ErrorBoundary>

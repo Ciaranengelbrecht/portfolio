@@ -82,7 +82,7 @@ export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Pr
   const ttlMs = opts?.ttlMs;
   const existing = cache.get(store);
   const isFresh = existing ? fresh(existing, store, ttlMs) : false;
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   if(offline){
     if(existing) return existing.data as T[];
     throw new Error(`Offline with no cached data for ${store}`);
@@ -104,7 +104,7 @@ export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Pr
 }
 
 export async function refresh(store: StoreKey){
-  const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   if(offline) return;
   try {
     const data = await db.getAll(store);
