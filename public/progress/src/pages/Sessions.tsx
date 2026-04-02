@@ -71,26 +71,17 @@ function TopMuscleAndContents({
   exMap,
   exNameCache,
   muscleFilter,
+  visibleEntries,
   onMuscleFilter,
 }: {
   session: Session;
   exMap: Map<string, Exercise>;
   exNameCache: Record<string, string>;
   muscleFilter: string | null;
+  visibleEntries: SessionEntry[];
   onMuscleFilter: (muscle: string | null) => void;
 }) {
-  // Create a stable key that changes when working sets change
-  const workingSetCount = useMemo(
-    () =>
-      session.entries.reduce(
-        (sum, e) =>
-          sum + e.sets.filter((s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0).length,
-        0
-      ),
-    [session.entries]
-  );
-
-  // Compute muscle counts - recompute when working set count changes
+  // Compute muscle counts once per session entry payload change.
   const muscleCounts = useMemo(() => {
     const counts = computeMuscleCounts(session, exMap);
     const order = [
@@ -116,7 +107,7 @@ function TopMuscleAndContents({
     return Object.entries(counts)
       .filter(([, c]) => c > 0)
       .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
-  }, [session, exMap, workingSetCount]); // Recompute when session changes, exercises change, or working set count changes
+  }, [session.entries, exMap]);
 
   // Handle muscle icon click - toggle filter
   const handleMuscleClick = (muscle: string) => {
@@ -173,18 +164,7 @@ function TopMuscleAndContents({
         </div>
       )}
       <div className="flex max-w-full gap-1 overflow-x-auto scrollbar-none px-1 py-1 rounded-lg bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:bg-slate-900/40 border border-white/5">
-        {session.entries
-          .filter((en) => {
-            // If no filter, show all
-            if (!muscleFilter) return true;
-            const ex = exMap.get(en.exerciseId);
-            if (!ex) return false;
-            // Check primary or secondary muscle
-            if (ex.muscleGroup === muscleFilter) return true;
-            if (ex.secondaryMuscles?.includes(muscleFilter as any)) return true;
-            return false;
-          })
-          .map((en, i) => {
+        {visibleEntries.map((en, i) => {
             const ex = exMap.get(en.exerciseId);
             const name = ex?.name || exNameCache[en.exerciseId] || `Ex ${i + 1}`;
             const short = name.length > 16 ? name.slice(0, 14) + "…" : name;
@@ -2255,6 +2235,7 @@ export default function Sessions() {
   }
 
   const [initialLoading, setInitialLoading] = useState(true);
+  const authRefreshInFlightRef = useRef(false);
   // --- AUTO-RECOVER DELETED EXERCISES (one-time per mount unless new deletions occur) ---
   const recoveryRunRef = useRef(false);
   const [recoveredCount, setRecoveredCount] = useState(0);
@@ -2333,29 +2314,22 @@ export default function Sessions() {
   }, [initialLoading, exercises.length, exNameCache, push]);
   // --- END AUTO-RECOVER ---
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        console.log("[Sessions] init: fetch lists (no auth wait)");
-        const [t, e] = await Promise.all([
+        const [t, e, allSessions, st] = await Promise.all([
           getAllCached("templates"),
           getAllCached("exercises"),
-        ]);
-        console.log(
-          "[Sessions] init: templates",
-          t.length,
-          "exercises",
-          e.length
-        );
-        setTemplates(t);
-        setExercises(e);
-        // Preload sessions for prev best map (day-aware for better matching)
-        setPrevBestLoading(true);
-        const [allSessions, st] = await Promise.all([
           getAllCached<Session>("sessions", {
             ttlMs: currentSessionsTtl(),
           }),
           getSettings(),
         ]);
+        if (cancelled) return;
+        setTemplates(t);
+        setExercises(e);
+        // Preload sessions for prev best map (day-aware for better matching)
+        setPrevBestLoading(true);
         const map = getPrevBestCached(
           allSessions,
           phase,
@@ -2363,6 +2337,7 @@ export default function Sessions() {
           day,
           session?.templateId
         );
+        if (cancelled) return;
         setPrevBestMap(map);
         setPrevBestLoading(false);
         setSettingsState(st as any);
@@ -2371,6 +2346,7 @@ export default function Sessions() {
         requestRealtime("sessions");
         requestRealtime("exercises");
       } catch (err) {
+        if (cancelled) return;
         console.error("[Sessions] Critical error during initialization:", err);
         // Set minimal state to prevent total freeze
         setTemplates([]);
@@ -2385,6 +2361,9 @@ export default function Sessions() {
         } catch {}
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Refetch data when auth session changes (e.g., token refresh or resume)
@@ -2394,43 +2373,34 @@ export default function Sessions() {
       if (!nextSession) {
         return;
       }
+      if (authRefreshInFlightRef.current) return;
+      authRefreshInFlightRef.current = true;
       (async () => {
-        console.log("[Sessions] sb-auth: refetch lists (no auth wait)");
-        const [t, e] = await Promise.all([
-          getAllCached("templates", { force: true }),
-          getAllCached("exercises", { force: true }),
-        ]);
-        console.log(
-          "[Sessions] sb-auth: templates",
-          t.length,
-          "exercises",
-          e.length
-        );
-        setTemplates(t);
-        setExercises(e);
-        const activeSession = activeSessionRef.current;
-        if (activeSession?.id) {
-          const fresh = await db.get<Session>("sessions", activeSession.id); // single fetch; not cached (ensure latest entry data)
-          const remoteTs = fresh?.updatedAt ? Date.parse(fresh.updatedAt) : 0;
-          console.log(
-            "[Sessions] sb-auth: refreshed session entries",
-            fresh?.entries?.length || 0,
-            "remoteTs",
-            remoteTs,
-            "lastLocal",
-            lastLocalEditRef.current
-          );
-          // Don’t clobber local optimistic edits or in-progress typing
-          const isEditing =
-            pendingRef.current ||
-            (editingFieldsRef.current && editingFieldsRef.current.size > 0);
-          if (
-            fresh &&
-            !isEditing &&
-            remoteTs > (lastLocalEditRef.current || 0)
-          ) {
-            setSession(fresh);
+        try {
+          const [t, e] = await Promise.all([
+            getAllCached("templates", { force: true }),
+            getAllCached("exercises", { force: true }),
+          ]);
+          setTemplates(t);
+          setExercises(e);
+          const activeSession = activeSessionRef.current;
+          if (activeSession?.id) {
+            const fresh = await db.get<Session>("sessions", activeSession.id); // single fetch; not cached (ensure latest entry data)
+            const remoteTs = fresh?.updatedAt ? Date.parse(fresh.updatedAt) : 0;
+            // Don’t clobber local optimistic edits or in-progress typing
+            const isEditing =
+              pendingRef.current ||
+              (editingFieldsRef.current && editingFieldsRef.current.size > 0);
+            if (
+              fresh &&
+              !isEditing &&
+              remoteTs > (lastLocalEditRef.current || 0)
+            ) {
+              setSession(fresh);
+            }
           }
+        } finally {
+          authRefreshInFlightRef.current = false;
         }
       })();
     };
@@ -5305,6 +5275,7 @@ export default function Sessions() {
             exMap={exMap}
             exNameCache={exNameCache}
             muscleFilter={muscleFilter}
+            visibleEntries={visibleEntries}
             onMuscleFilter={setMuscleFilter}
           />
         )}

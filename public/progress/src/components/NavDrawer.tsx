@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
+import { preloadRoute } from '../lib/routePreload';
 
 interface NavDrawerProps {
   open: boolean;
@@ -69,6 +70,9 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
               <NavLink
                 key={to}
                 to={to}
+                onMouseEnter={() => preloadRoute(to)}
+                onFocus={() => preloadRoute(to)}
+                onTouchStart={() => preloadRoute(to)}
                 onClick={onClose}
                 className={({isActive})=>`group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 ${isActive? 'bg-emerald-500/20 text-emerald-200 shadow-inner shadow-emerald-500/10':'text-slate-200/80 hover:text-slate-100 hover:bg-white/5'}`}
               >

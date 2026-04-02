@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { preloadRoute } from '../lib/routePreload';
 
 interface TabDef { to: string; label: string; icon: (active:boolean)=> JSX.Element }
 
@@ -29,6 +30,9 @@ export default function MobileTabs(){
           <NavLink
             key={t.to}
             to={t.to}
+            onMouseEnter={() => preloadRoute(t.to)}
+            onFocus={() => preloadRoute(t.to)}
+            onTouchStart={() => preloadRoute(t.to)}
               className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-lg text-[9px] font-medium tracking-wide ${isActive? 'text-emerald-300':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
               <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>

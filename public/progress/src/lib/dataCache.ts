@@ -19,6 +19,8 @@ const PERSIST_PREFIX = 'pp_cache_';
 const SCHEMA_VERSION = 2; // bump when underlying data shape changes
 const SCHEMA_KEY = 'pp_cache_schema_version';
 const OWNER_KEY = 'pp_cache_owner';
+const pendingEmitKeys = new Set<string>();
+let pendingEmitTimer: number | null = null;
 
 function fresh(entry: CacheEntry, store: StoreKey, ttlOverride?: number){ 
   const ttl = ttlOverride ?? TTL_CONFIG[store] ?? 10000;
@@ -46,8 +48,22 @@ function persist(store: StoreKey, entry: CacheEntry){
   try { sessionStorage.setItem(PERSIST_PREFIX + store, JSON.stringify(entry)); } catch {}
 }
 
+function flushEmits(){
+  if(typeof window=== 'undefined') return;
+  const keys = Array.from(pendingEmitKeys);
+  pendingEmitKeys.clear();
+  pendingEmitTimer = null;
+  for(const key of keys){
+    const [type, store] = key.split(':') as ['cache-set'|'cache-refresh', StoreKey];
+    window.dispatchEvent(new CustomEvent(type,{ detail:{ store } }));
+  }
+}
+
 function emit(store: StoreKey, type: 'cache-set'|'cache-refresh'){
-  if(typeof window!== 'undefined') window.dispatchEvent(new CustomEvent(type,{ detail:{ store } }));
+  if(typeof window=== 'undefined') return;
+  pendingEmitKeys.add(`${type}:${store}`);
+  if(pendingEmitTimer != null) return;
+  pendingEmitTimer = window.setTimeout(flushEmits, 16);
 }
 
 type CacheOpts = { force?: boolean; swr?: boolean; ttlMs?: number };
@@ -116,7 +132,9 @@ export async function refresh(store: StoreKey){
 }
 
 export function warmPreload(stores: StoreKey[], opts?: { swr?: boolean }){
-  stores.forEach(s=> { getAllCached(s, { swr: opts?.swr }); });
+  stores.forEach((s) => {
+    void getAllCached(s, { swr: opts?.swr }).catch(() => {});
+  });
 }
 
 export function invalidate(store?: StoreKey){

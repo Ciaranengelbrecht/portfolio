@@ -28,11 +28,12 @@ const SETTINGS_LOCAL_CACHE_KEY = "liftlog:settings-cache:v1";
 let INFLIGHT_SETTINGS_SYNC: Promise<void> | null = null;
 
 const READ_TTL_MS: Record<StoreKey, number> = {
-  exercises: 30_000,
-  templates: 30_000,
-  settings: 30_000,
-  sessions: 25_000,
-  measurements: 15_000,
+  // Keep aligned with dataCache defaults to avoid double-cache churn.
+  exercises: 60_000,
+  templates: 60_000,
+  settings: 60_000,
+  sessions: 45_000,
+  measurements: 20_000,
 };
 const RETRY_DELAYS_MS = [400, 800, 1600] as const;
 

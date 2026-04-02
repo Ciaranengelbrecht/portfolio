@@ -15,6 +15,7 @@ import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
 import { ProgramProvider, useProgram } from "./state/program";
 import "./styles/theme.css";
 import { registerSW } from "./lib/pwa";
+import { preloadRoute } from "./lib/routePreload";
 import {
   supabase,
   clearAuthStorage,
@@ -73,7 +74,30 @@ function Shell() {
   }, [bigFlash]);
   // dark class is managed by new ThemeProvider
   useEffect(() => {
-    registerSW();
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const start = () => registerSW();
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleHandle = (window as any).requestIdleCallback(start, {
+        timeout: 2500,
+      });
+    } else {
+      timeoutHandle = setTimeout(start, 1200);
+    }
+
+    return () => {
+      if (
+        idleHandle != null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle != null) {
+        clearTimeout(timeoutHandle);
+      }
+    };
   }, []);
   useEffect(() => {
     const email = boot.session?.user?.email || null;
@@ -174,29 +198,62 @@ function Shell() {
   // Lightweight remote migrations (idempotent via localStorage flags)
   useEffect(() => {
     if (boot.status !== "ready" || !boot.authed) return;
-    (async () => {
+    let cancelled = false;
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+    const run = async () => {
       try {
-        await waitForSession({ timeoutMs: 6000 });
+        await waitForSession({ timeoutMs: 2500 });
+        if (cancelled) return;
         if (localStorage.getItem("mig_v6") !== "1") {
           await migrateToV6();
+          if (cancelled) return;
           localStorage.setItem("mig_v6", "1");
         }
         if (localStorage.getItem("mig_v7") !== "1") {
           await migrateToV7();
+          if (cancelled) return;
           localStorage.setItem("mig_v7", "1");
         }
         if (localStorage.getItem("mig_v8_localDate") !== "1") {
           await migrateToV8_LocalDate();
+          if (cancelled) return;
           localStorage.setItem("mig_v8_localDate", "1");
         }
         if (localStorage.getItem("mig_v9_blankZeros") !== "1") {
           await migrateToV9_BlankZeros();
+          if (cancelled) return;
           localStorage.setItem("mig_v9_blankZeros", "1");
         }
       } catch (e) {
         console.warn("[App] migration runner error", e);
       }
-    })();
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleHandle = (window as any).requestIdleCallback(() => {
+        void run();
+      }, { timeout: 3500 });
+    } else {
+      timeoutHandle = setTimeout(() => {
+        void run();
+      }, 1500);
+    }
+
+    return () => {
+      cancelled = true;
+      if (
+        idleHandle != null &&
+        typeof window !== "undefined" &&
+        "cancelIdleCallback" in window
+      ) {
+        (window as any).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle != null) {
+        clearTimeout(timeoutHandle);
+      }
+    };
   }, [boot.status, boot.authed]);
 
   // If user opens a Supabase password recovery link, mark the flow and navigate AFTER session exists
@@ -278,6 +335,9 @@ function Shell() {
   const Tab = ({ to, label }: { to: string; label: string }) => (
     <NavLink
       to={to}
+      onMouseEnter={() => preloadRoute(to)}
+      onFocus={() => preloadRoute(to)}
+      onTouchStart={() => preloadRoute(to)}
       className={({ isActive }) =>
         `shrink-0 px-3 py-2 rounded-2xl text-sm whitespace-nowrap ${
           isActive ? "bg-card text-white" : "text-gray-300"

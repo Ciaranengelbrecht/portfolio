@@ -75,7 +75,7 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
     });
 
     try {
-      const session = await waitForSession({ timeoutMs: 6000 });
+      const session = await waitForSession({ timeoutMs: 4500 });
       if (!session?.user?.id) {
         setIfCurrent({
           status: "unauthenticated",
