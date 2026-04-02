@@ -69,9 +69,12 @@ export function computeMuscleCounts(
     
     // Count sets with actual work (matches analytics criteria)
     // Using OR logic: either reps > 0 OR weight > 0 constitutes a working set
-    const workingSets = entry.sets.filter(
-      (s) => (s.reps || 0) > 0 || (s.weightKg || 0) > 0
-    ).length;
+    let workingSets = 0;
+    for (const s of entry.sets) {
+      if ((s.reps || 0) > 0 || (s.weightKg || 0) > 0) {
+        workingSets += 1;
+      }
+    }
     
     if (workingSets === 0) continue;
     

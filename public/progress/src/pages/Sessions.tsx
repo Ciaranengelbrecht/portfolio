@@ -1,4 +1,5 @@
 import {
+  useDeferredValue,
   useEffect,
   useMemo,
   useState,
@@ -584,6 +585,8 @@ export default function Sessions() {
     nextExerciseId: string;
   } | null>(null);
   const [switchQuery, setSwitchQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const deferredSwitchQuery = useDeferredValue(switchQuery);
   const [switchScope, setSwitchScope] = useState<"group" | "all">("group");
   const [swapRecentsBySource, setSwapRecentsBySource] = useState<
     Record<string, string[]>
@@ -3691,10 +3694,14 @@ export default function Sessions() {
     }
   };
 
+  const sessionEntryIdentityKey =
+    session?.entries?.map((en) => `${en.id}:${en.exerciseId}`).join("|") ||
+    "";
+
   const sessionExerciseIds = useMemo(() => {
     if (!session) return new Set<string>();
     return new Set(session.entries.map((en) => en.exerciseId));
-  }, [session?.id, session?.entries]);
+  }, [session?.id, sessionEntryIdentityKey]);
 
   const recentExercises = useMemo(() => {
     if (!session) return [] as Exercise[];
@@ -3711,7 +3718,7 @@ export default function Sessions() {
       if (list.length === 6) break;
     }
     return list;
-  }, [session?.entries, exMap]);
+  }, [session?.id, sessionEntryIdentityKey, exMap]);
 
   const muscleFilters = useMemo(() => {
     const groups = new Set<string>();
@@ -3730,20 +3737,23 @@ export default function Sessions() {
     [recentExercises]
   );
 
+  const filteredExercisesForAdd = useMemo(
+    () =>
+      exercises.filter(
+        (ex) => addFilter === "all" || ex.muscleGroup === addFilter
+      ),
+    [exercises, addFilter]
+  );
+
   const addExerciseOptions = useMemo<OptionSheetOption[]>(() => {
-    const q = query.trim();
-    
-    // Filter by muscle group first
-    const filtered = exercises.filter(
-      (ex) => addFilter === "all" || ex.muscleGroup === addFilter
-    );
+    const q = deferredQuery.trim();
 
     // Use fuzzy search if there's a query, otherwise sort alphabetically
     let results: Array<{ item: Exercise; score: number; matches: Array<{ start: number; end: number }> }>;
     
     if (q) {
       // Fuzzy search with combined name + muscle group for better matches
-      results = fuzzySearch(filtered, q, (ex) => `${ex.name} ${ex.muscleGroup || ""}`, {
+      results = fuzzySearch(filteredExercisesForAdd, q, (ex) => `${ex.name} ${ex.muscleGroup || ""}`, {
         minScore: 0.05,
         maxResults: 400, // Allow more results for scrollable list
       });
@@ -3758,8 +3768,8 @@ export default function Sessions() {
       results.sort((a, b) => b.score - a.score);
     } else {
       // No query: show recent exercises first, then alphabetical
-      const recent = filtered.filter((ex) => recentExerciseIds.has(ex.id));
-      const rest = filtered
+      const recent = filteredExercisesForAdd.filter((ex) => recentExerciseIds.has(ex.id));
+      const rest = filteredExercisesForAdd
         .filter((ex) => !recentExerciseIds.has(ex.id))
         .sort((a, b) => a.name.localeCompare(b.name));
       
@@ -3821,7 +3831,7 @@ export default function Sessions() {
         },
       } satisfies OptionSheetOption;
     });
-  }, [exercises, addFilter, query, sessionExerciseIds, addExerciseToSession, recentExerciseIds]);
+  }, [deferredQuery, filteredExercisesForAdd, sessionExerciseIds, addExerciseToSession, recentExerciseIds]);
 
   const addSheetHighlight = (muscleFilters.length > 1 ||
     recentExercises.length > 0) && (
@@ -3889,7 +3899,7 @@ export default function Sessions() {
     const recentRank = new Map<string, number>(
       sourceRecents.map((id, idx) => [id, idx])
     );
-    const q = switchQuery.trim().toLowerCase();
+    const q = deferredSwitchQuery.trim().toLowerCase();
     const pool = exercises.filter((ex) => ex.id !== currentEx?.id);
     const scoped =
       switchScope === "group" && group
@@ -3941,10 +3951,10 @@ export default function Sessions() {
     };
   }, [
     switchTarget?.entryId,
-    session?.entries,
+    sessionEntryIdentityKey,
     exMap,
     exercises,
-    switchQuery,
+    deferredSwitchQuery,
     switchScope,
     swapRecentsBySource,
   ]);

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Navigate,
   NavLink,
@@ -50,6 +50,10 @@ import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
 import { migrateToV9_BlankZeros } from "./lib/migrations/v9_blank_zeros";
+
+function RouteSuspense({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<SmartSuspenseFallback />}>{children}</Suspense>;
+}
 
 function Shell() {
   const boot = useBootstrap();
@@ -537,89 +541,110 @@ function Shell() {
           </div>
         )}
         <main className="flex-1 w-full px-0 py-0">
-          <Suspense fallback={<SmartSuspenseFallback />}>
-            <ErrorBoundary>
-              <Routes>
-                <Route path="/auth/*" element={<IntroAuthPage />} />
-                <Route
-                  path="/"
-                  element={
-                    <RequireAuth>
+          <ErrorBoundary>
+            <Routes>
+              <Route
+                path="/auth/*"
+                element={
+                  <RouteSuspense>
+                    <IntroAuthPage />
+                  </RouteSuspense>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Dashboard />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/analytics"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Analytics />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/sessions"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/sessions"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Sessions />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/recovery"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/recovery"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Recovery />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/measurements"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/measurements"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Measurements />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/templates"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/templates"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Templates />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <Settings />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/settings/program"
-                  element={
-                    <RequireAuth>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings/program"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
                       <ProgramSettings />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/store"
-                  element={
-                    <RequireAuth>
-                      <Navigate to="/templates" replace />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="*"
-                  element={<Navigate to={boot.authed ? "/" : "/auth"} replace />}
-                />
-              </Routes>
-            </ErrorBoundary>
-          </Suspense>
+                    </RouteSuspense>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/store"
+                element={
+                  <RequireAuth>
+                    <Navigate to="/templates" replace />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="*"
+                element={<Navigate to={boot.authed ? "/" : "/auth"} replace />}
+              />
+            </Routes>
+          </ErrorBoundary>
         </main>
         {!authRoute && <MobileTabs />}
         <NavDrawer

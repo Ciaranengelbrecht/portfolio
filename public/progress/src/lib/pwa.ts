@@ -1,5 +1,7 @@
 import { registerSW as viteRegister } from "virtual:pwa-register";
 
+const SW_UPDATE_INTERVAL_MS = 5 * 60_000;
+
 const bustServiceWorker = () => {
   try {
     const url = new URL("../sw.js", import.meta.url);
@@ -35,6 +37,15 @@ export function registerSW() {
       });
 
       const tick = () => {
+        if (
+          typeof document !== "undefined" &&
+          document.visibilityState === "hidden"
+        ) {
+          return;
+        }
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          return;
+        }
         try {
           updateSW();
         } catch {}
@@ -45,7 +56,7 @@ export function registerSW() {
       };
 
       tick();
-      window.setInterval(tick, 60_000);
+      window.setInterval(tick, SW_UPDATE_INTERVAL_MS);
     } catch {}
   };
 
