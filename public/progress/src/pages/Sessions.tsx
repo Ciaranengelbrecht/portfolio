@@ -20,7 +20,6 @@ import {
   Settings,
   TrainingMode,
 } from "../lib/types";
-import { buildSuggestions } from "../lib/progression";
 import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
 import { buildPrevBestMap, getPrevBest } from "../lib/prevBest";
@@ -499,9 +498,6 @@ export default function Sessions() {
   const { program, setProgram } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
-  // When user selects a new phase (e.g., Phase 2) without any logged sets yet,
-  // keep the UI on that phase without auto-reverting until a valid set is saved.
-  const [allowEmptyPhase, setAllowEmptyPhase] = useState<boolean>(false);
   const phaseCommitPendingRef = useRef<number | null>(null);
   const [day, setDay] = useState(0);
   const routeLoadTokenRef = useRef(0);
@@ -512,9 +508,6 @@ export default function Sessions() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   // Lightweight cache of exerciseId -> name to avoid name flicker when lists refresh
   const [exNameCache, setExNameCache] = useState<Record<string, string>>({});
-  const [suggestions, setSuggestions] = useState<
-    Map<string, { weightKg?: number; reps?: number }>
-  >(new Map());
   const [session, setSession] = useState<Session | null>(null);
   const activeSessionRef = useRef<Session | null>(null);
   const viewStateRef = useRef<{ phase: number; week: number; day: number }>({
@@ -739,7 +732,6 @@ export default function Sessions() {
     >
   >({});
   const REST_TIMER_MAX = 300000; // 5 minutes auto-reset (was 3min)
-  const [readinessPct, setReadinessPct] = useState(0);
   // Manual date editing UI state
   const [editingDate, setEditingDate] = useState(false);
   const [dateEditValue, setDateEditValue] = useState("");
@@ -1352,53 +1344,6 @@ export default function Sessions() {
     } catch {}
   }, [program?.id, (program as any)?.weeklySplit?.length]);
 
-  // Recompute progression suggestions when the active session (day identity) changes
-  useEffect(() => {
-    (async () => {
-      if (!settingsState?.progress?.autoProgression) {
-        setSuggestions(new Map());
-        return;
-      }
-      if (!session) return;
-      try {
-        const [allExercises, allSessions] = await Promise.all([
-          getAllCached<Exercise>("exercises", { swr: true }),
-          getAllCached<Session>("sessions", {
-            swr: true,
-            ttlMs: currentSessionsTtl(),
-          }),
-        ]);
-        const exerciseIds = session.entries.map((e) => e.exerciseId);
-        const filteredExercises = allExercises.filter((e) =>
-          exerciseIds.includes(e.id)
-        );
-        const deloadSet = program
-          ? computeDeloadWeeks(program)
-          : new Set<number>();
-        const next = buildSuggestions(filteredExercises, allSessions, {
-          matchTemplateId: session.templateId,
-          matchDayName: session.templateId ? undefined : session.dayName,
-          onlyExerciseIds: exerciseIds,
-          adaptive: true,
-          currentSession: session,
-          deloadWeeks: deloadSet,
-        });
-        setSuggestions(next);
-      } catch {}
-    })();
-  }, [
-    session?.id,
-    session?.templateId,
-    session?.dayName,
-    session?.weekNumber,
-    session?.phaseNumber,
-    settingsState?.progress?.autoProgression,
-    program?.id,
-    program?.mesoWeeks,
-    program?.deload,
-    currentSessionsTtl,
-  ]);
-
   // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
   useEffect(() => {
     let done = false;
@@ -1606,59 +1551,6 @@ export default function Sessions() {
       setAutoNavDone(true);
     })();
   }, [phase, autoNavDone, week, day, initialRouteReady, readSessions]);
-
-  // Guard against accidental phase increment: override phase if settings jumped forward without week1 data in next phase
-  useEffect(() => {
-    (async () => {
-      // If user explicitly selected this phase for editing/preview, don't auto-revert
-      // until they leave the page or log a valid set (which will commit the phase).
-      if (allowEmptyPhase) return;
-      const all = await readSessions();
-      const curPhaseSessions = all.filter(
-        (s) => (s.phaseNumber || s.phase || 1) === phase
-      );
-      // If user is beyond phase 1 and there is zero real data in phase weeks, revert to previous phase with data
-      if (phase > 1) {
-        const haveReal = curPhaseSessions.some(sessionHasRealWork);
-        if (!haveReal) {
-          // find latest phase that has data
-          const phasesWithData = new Set<number>();
-          for (const s of all) {
-            if (sessionHasRealWork(s))
-              phasesWithData.add(s.phaseNumber || s.phase || 1);
-          }
-          if (phasesWithData.size) {
-            const back = [...phasesWithData].sort((a, b) => b - a)[0];
-            if (back !== phase) {
-              setPhase(back);
-              const settings = await getSettings();
-              // currentPhase already reflects last phase with data; no need to force a write
-              await setSettings({ ...settings });
-            }
-          }
-        }
-      }
-    })();
-  }, [phase, allowEmptyPhase, readSessions]);
-
-  // Phase readiness calculation
-  useEffect(() => {
-    (async () => {
-      if (!program) {
-        setReadinessPct(0);
-        return;
-      }
-      const all = await readSessions();
-      const cur = all.filter((s) => (s.phaseNumber || s.phase || 1) === phase);
-      const weeks = new Set<number>();
-      for (const s of cur) {
-        if (sessionHasRealWork(s)) weeks.add(s.weekNumber);
-      }
-      setReadinessPct(
-        Math.min(100, Math.round((weeks.size / (program.mesoWeeks || 1)) * 100))
-      );
-    })();
-  }, [phase, week, session?.id, program, readSessions]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -2152,10 +2044,8 @@ export default function Sessions() {
     })();
   }, [phase, week, day, initialRouteReady, readSessions]);
 
-  // Reset the transient allowEmptyPhase guard when leaving the page
   useEffect(() => {
     return () => {
-      setAllowEmptyPhase(false);
       phaseCommitPendingRef.current = null;
     };
   }, []);
@@ -2448,7 +2338,7 @@ export default function Sessions() {
             setPrevBestMap(map);
             setPrevBestLoading(false);
           });
-          recomputePrevWeekSets(s);
+          recomputePrevWeekSets(s, { force: true });
         });
       }
     };
@@ -2515,7 +2405,10 @@ export default function Sessions() {
   }, [week, phase, day, readSessions]);
 
   // Build previous week (or nearest past week) per-set lookup whenever active session context changes
-  const recomputePrevWeekSets = async (sess: Session | null) => {
+  const recomputePrevWeekSets = async (
+    sess: Session | null,
+    options?: { force?: boolean }
+  ) => {
     setPrevWeekLoading(true);
     try {
       if (!sess) {
@@ -2544,8 +2437,9 @@ export default function Sessions() {
       const currentPhase = getPhaseNumber(sess);
       const currentWeek = getWeekNumber(sess);
 
-      // Prefer fresh list to avoid stale comparisons during rapid edits
-      const all = await readSessions({ force: true, swr: false });
+      const all = await readSessions(
+        options?.force ? { force: true, swr: false } : undefined
+      );
       const candidates = (all as Session[])
         .filter((s) => s.id !== sess.id)
         .filter(identityMatches)
@@ -3169,7 +3063,6 @@ export default function Sessions() {
           const s = await getSettings();
           await setSettings({ ...s, currentPhase: phase });
         } catch {}
-        setAllowEmptyPhase(false);
         phaseCommitPendingRef.current = null;
       })();
     }
@@ -3371,7 +3264,6 @@ export default function Sessions() {
           const s = await getSettings();
           await setSettings({ ...s, currentPhase: phase });
         } catch {}
-        setAllowEmptyPhase(false);
         phaseCommitPendingRef.current = null;
       })();
     }
@@ -4589,7 +4481,6 @@ export default function Sessions() {
                 onChange={(v) => {
                   setDay(v);
                   setAutoNavDone(true);
-                  setAllowEmptyPhase(true);
                 }}
               />
             </div>
@@ -4660,7 +4551,6 @@ export default function Sessions() {
                         onChange={(selectedWeek) => {
                           setWeek(selectedWeek as any);
                           setAutoNavDone(true);
-                          setAllowEmptyPhase(true);
                         }}
                       />
                       <PhaseStepper
@@ -4668,7 +4558,6 @@ export default function Sessions() {
                         value={phase}
                         onChange={async (p) => {
                           setPhase(p);
-                          setAllowEmptyPhase(true);
                           phaseCommitPendingRef.current = p;
                           const s = await getSettings();
                           await setSettings({
@@ -4920,7 +4809,6 @@ export default function Sessions() {
                     setPhase(next as number);
                     setWeek(1 as any);
                     setDay(0);
-                    setAllowEmptyPhase(true);
                     phaseCommitPendingRef.current = next;
                     await setSettings({
                       ...s,
@@ -4953,7 +4841,6 @@ export default function Sessions() {
                       setPhase(prev as number);
                       setWeek(1 as any);
                       setDay(0);
-                      setAllowEmptyPhase(true);
                       phaseCommitPendingRef.current = prev;
                       await setSettings({
                         ...s,
@@ -5792,7 +5679,7 @@ export default function Sessions() {
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
                                       value={weightInputEditing.current[`${entry.id}:${set.setNumber}`] ?? formatOptionalNumber(set.weightKg)}
-                                      placeholder={suggestions.get(entry.exerciseId)?.weightKg ? String(suggestions.get(entry.exerciseId)?.weightKg) : "0"}
+                                      placeholder="0"
                                       onKeyDown={(e) => {
                                         if (e.key === "ArrowUp") {
                                           e.preventDefault();
@@ -5878,7 +5765,7 @@ export default function Sessions() {
                                       data-entry-id={entry.id}
                                       data-set-number={set.setNumber}
                                       value={repsInputEditing.current[`${entry.id}:${set.setNumber}`] ?? (set.reps == null ? "" : String(set.reps))}
-                                      placeholder={suggestions.get(entry.exerciseId)?.reps ? String(suggestions.get(entry.exerciseId)?.reps) : "0"}
+                                      placeholder="0"
                                       onFocus={() => editingFieldsRef.current.add(`${entry.id}:${set.setNumber}:reps`)}
                                       onKeyDown={(e) => {
                                         if (e.key === "ArrowUp") {
@@ -6073,12 +5960,7 @@ export default function Sessions() {
                                   }
                                   placeholder={(() => {
                                     if ((set.weightKg || 0) > 0) return "0";
-                                    const sug = suggestions.get(
-                                      entry.exerciseId
-                                    );
-                                    return sug?.weightKg
-                                      ? String(sug.weightKg)
-                                      : "0.0";
+                                    return "0.0";
                                   })()}
                                   onKeyDown={(e) => {
                                     if (e.key === "ArrowUp") {
@@ -6159,24 +6041,7 @@ export default function Sessions() {
                                     ];
                                   }}
                                 />
-                                {!(
-                                  (
-                                    weightInputEditing.current[
-                                      `${entry.id}:${set.setNumber}`
-                                    ] ?? ""
-                                  ).length > 0
-                                ) &&
-                                  set.weightKg == null &&
-                                  suggestions.get(entry.exerciseId)
-                                    ?.weightKg && (
-                                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-500/40 font-medium">
-                                      {
-                                        suggestions.get(entry.exerciseId)
-                                          ?.weightKg
-                                      }
-                                      kg
-                                    </span>
-                                  )}
+                                {/* Suggestions disabled for faster rendering */}
                               </div>
                               <button
                                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[13px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70"
@@ -6235,12 +6100,7 @@ export default function Sessions() {
                                   }
                                   placeholder={(() => {
                                     if ((set.reps || 0) > 0) return "0";
-                                    const sug = suggestions.get(
-                                      entry.exerciseId
-                                    );
-                                    return sug?.reps
-                                      ? String(sug.reps)
-                                      : entry.targetRepRange
+                                    return entry.targetRepRange
                                       ? entry.targetRepRange
                                       : "0";
                                   })()}
@@ -6321,19 +6181,15 @@ export default function Sessions() {
                                     ];
                                   }}
                                 />
-                                {!(
-                                  (
-                                    repsInputEditing.current[
-                                      `${entry.id}:${set.setNumber}`
-                                    ] ?? ""
-                                  ).length > 0
-                                ) &&
+                                {!((
+                                  repsInputEditing.current[
+                                    `${entry.id}:${set.setNumber}`
+                                  ] ?? ""
+                                ).length > 0) &&
                                   set.reps == null &&
-                                  (suggestions.get(entry.exerciseId)?.reps ||
-                                    entry.targetRepRange) && (
+                                  entry.targetRepRange && (
                                     <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[10px] text-emerald-400/35 font-medium">
-                                      {suggestions.get(entry.exerciseId)
-                                        ?.reps ?? entry.targetRepRange}
+                                      {entry.targetRepRange}
                                     </span>
                                   )}
                               </div>
