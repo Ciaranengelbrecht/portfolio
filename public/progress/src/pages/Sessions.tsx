@@ -738,8 +738,8 @@ export default function Sessions() {
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  // Top toolbar collapsed state (default expanded for better discoverability)
-  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  // Top toolbar collapsed state (default collapsed for compact layout)
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   // Current training mode (bulk/cut/maintenance) - persisted in settings
   const [currentTrainingMode, setCurrentTrainingMode] = useState<TrainingMode | undefined>(undefined);
   const [wipeSheetOpen, setWipeSheetOpen] = useState(false);
@@ -4671,6 +4671,31 @@ export default function Sessions() {
                     </div>
                   )}
                 </div>
+                {session && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      className="tool-btn !px-3 !py-1.5"
+                      onClick={() => setShowImport(true)}
+                      title="Import from template"
+                    >
+                      Import Template
+                    </button>
+                    <button
+                      type="button"
+                      className="tool-btn !px-3 !py-1.5"
+                      disabled={!session.entries.length}
+                      onClick={() => setShowSaveTemplate(true)}
+                      title={
+                        session.entries.length
+                          ? "Save this session as template"
+                          : "No exercises to save"
+                      }
+                    >
+                      Save Template
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -4694,31 +4719,6 @@ export default function Sessions() {
                 ▾
               </span>
             </button>
-            {session && (
-              <>
-                <button
-                  type="button"
-                  className="tool-btn !px-3 !py-1.5"
-                  onClick={() => setShowImport(true)}
-                  title="Import from template"
-                >
-                  Import Template
-                </button>
-                <button
-                  type="button"
-                  className="tool-btn !px-3 !py-1.5"
-                  disabled={!session.entries.length}
-                  onClick={() => setShowSaveTemplate(true)}
-                  title={
-                    session.entries.length
-                      ? "Save this session as template"
-                      : "No exercises to save"
-                  }
-                >
-                  Save Template
-                </button>
-              </>
-            )}
           </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
@@ -5252,31 +5252,18 @@ export default function Sessions() {
             const setsLogged = metrics?.setsLogged ?? [];
             const tonnage = metrics?.tonnage ?? 0;
             const bestSet = metrics?.bestSet;
-            // Determine completion status for visual indicator
             const plannedSetCount = guide?.sets ?? entry.sets.length;
-            const isFullyComplete = setsLogged.length >= plannedSetCount && setsLogged.length > 0;
-            const isPartiallyComplete = setsLogged.length > 0 && setsLogged.length < plannedSetCount;
-            const isNotStarted = setsLogged.length === 0;
-            const statusLabel = isFullyComplete
-              ? "Complete"
-              : isPartiallyComplete
-              ? "In progress"
-              : "Not started";
-            const statusClass = isFullyComplete
-              ? "bg-emerald-500/20 text-emerald-100 border border-emerald-400/40"
-              : isPartiallyComplete
-              ? "bg-amber-500/20 text-amber-100 border border-amber-400/40"
-              : "bg-slate-700/70 text-slate-200 border border-slate-500/40";
+            const hasLoggedSets = setsLogged.length > 0;
             const collapsedSummaryContent = (
               <>
-                <span className="font-medium text-slate-100 text-[10px]">
-                  {setsLogged.length}/{plannedSetCount} sets
-                </span>
                 <span
-                  className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.02em] ${statusClass}`}
-                  aria-label={`Exercise status: ${statusLabel}`}
+                  className={`text-[10px] ${
+                    hasLoggedSets
+                      ? "font-semibold text-emerald-200 drop-shadow-[0_0_8px_rgba(16,185,129,0.45)]"
+                      : "font-medium text-slate-100"
+                  }`}
                 >
-                  {statusLabel}
+                  {setsLogged.length}/{plannedSetCount} sets
                 </span>
               </>
             );
@@ -5318,11 +5305,7 @@ export default function Sessions() {
                     ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-slate-950 shadow-[0_0_0_1px_rgba(var(--accent-rgb,59,130,246),0.45)]"
                     : ""
                 } ${
-                  isFullyComplete
-                    ? "border-l-emerald-500/60"
-                    : isPartiallyComplete
-                    ? "border-l-amber-500/50"
-                    : "border-l-slate-600/30"
+                  hasLoggedSets ? "border-l-emerald-500/60" : "border-l-slate-600/30"
                 }`}
                 draggable
                 onDragStart={(e) => {
