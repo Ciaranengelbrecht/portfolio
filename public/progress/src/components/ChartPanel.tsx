@@ -11,6 +11,12 @@ import {
   RangeKey,
   rollingPRs,
 } from "../lib/helpers";
+import {
+  getAxisDensity,
+  getChartMargin,
+  getChartTooltipProps,
+  useIsCompactChartScreen,
+} from "../lib/chartUi";
 import { SkeletonChart } from "./Skeleton";
 
 const RANGE_OPTS: RangeKey[] = ["4w", "8w", "12w", "all"];
@@ -20,6 +26,9 @@ const EX_SERIES_KEYS = [
   { key: "repsTotal", label: "Reps" },
   { key: "volume", label: "Volume" },
 ];
+const SERIES_LABEL_MAP = Object.fromEntries(
+  EX_SERIES_KEYS.map((item) => [item.key, item.label])
+) as Record<string, string>;
 
 type ExercisePoint = {
   date: string;
@@ -44,6 +53,7 @@ export default function ChartPanel({
   const [data, setData] = useState<(ExercisePoint | MeasurementPoint)[]>([]);
   const [prs, setPrs] = useState<number[]>([]);
   const [, setThemeTick] = useState(0);
+  const compact = useIsCompactChartScreen();
 
   useEffect(() => {
     (async () => {
@@ -97,6 +107,12 @@ export default function ChartPanel({
   const keys =
     kind === "exercise" ? EX_SERIES_KEYS : [{ key: "value", label: "Value" }];
   const glow = css.getPropertyValue("--glow").trim();
+  const chartMargin = useMemo(() => getChartMargin(compact, "standard"), [compact]);
+  const axisDensity = useMemo(
+    () => getAxisDensity(data.length, compact),
+    [data.length, compact]
+  );
+  const tooltipProps = useMemo(() => getChartTooltipProps(compact), [compact]);
 
   // Lazy-load recharts
   const [RC, setRC] = useState<any | null>(null);
@@ -110,14 +126,14 @@ export default function ChartPanel({
     };
   }, []);
 
-  const Loading = <SkeletonChart height="h-60" />;
+  const Loading = <SkeletonChart height={compact ? "h-56" : "h-60"} />;
 
   return (
     <GlassCard>
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {kind === "exercise" ? (
           <select
-            className="input-app rounded-xl px-2 py-1"
+            className="input-app rounded-xl px-3 py-2 text-sm"
             value={exerciseId}
             onChange={(e) => setExerciseId(e.target.value)}
           >
@@ -129,7 +145,7 @@ export default function ChartPanel({
           </select>
         ) : (
           <select
-            className="input-app rounded-xl px-2 py-1"
+            className="input-app rounded-xl px-3 py-2 text-sm"
             value={measurementKey}
             onChange={(e) => setMeasurementKey(e.target.value as any)}
           >
@@ -142,11 +158,11 @@ export default function ChartPanel({
             )}
           </select>
         )}
-        <div className="flex gap-1 ml-auto flex-wrap">
+        <div className="flex flex-wrap gap-1.5 sm:justify-end">
           {RANGE_OPTS.map((r) => (
             <button
               key={r}
-              className={`text-xs px-2 py-1 rounded-xl ${
+              className={`rounded-xl px-2.5 py-1.5 text-xs ${
                 range === r ? "btn-primary" : "btn-outline"
               }`}
               onClick={() => setRange(r)}
@@ -156,11 +172,11 @@ export default function ChartPanel({
           ))}
         </div>
       </div>
-      <div className="flex gap-2 mb-2 flex-wrap">
+      <div className="mb-3 flex flex-wrap gap-2">
         {keys.map((s) => (
           <label
             key={s.key}
-            className="text-xs input-app rounded-xl px-2 py-1 flex items-center gap-1"
+            className="text-xs input-app rounded-xl px-2.5 py-1.5 flex items-center gap-1.5 text-white/85"
           >
             <input
               type="checkbox"
@@ -177,24 +193,37 @@ export default function ChartPanel({
           </label>
         ))}
       </div>
-      <div className="h-60">
+      <div className="h-56 sm:h-64">
         {!RC && Loading}
         {RC && (
           <RC.ResponsiveContainer>
             <RC.LineChart
               data={data}
-              margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
+              margin={chartMargin}
             >
               <RC.CartesianGrid strokeDasharray="3 3" stroke={grid} />
-              <RC.XAxis dataKey="date" stroke={axis} />
-              <RC.YAxis stroke={axis} />
-              <RC.Tooltip />
+              <RC.XAxis
+                dataKey="date"
+                stroke={axis}
+                tick={{ fontSize: axisDensity.fontSize }}
+                interval={axisDensity.interval}
+                angle={axisDensity.angle}
+                height={axisDensity.height}
+                tickMargin={axisDensity.tickMargin}
+              />
+              <RC.YAxis
+                stroke={axis}
+                tick={{ fontSize: axisDensity.fontSize }}
+                width={compact ? 36 : 44}
+              />
+              <RC.Tooltip {...tooltipProps} />
               {kind === "exercise" ? (
                 series.map((k, i) => (
                   <RC.Line
                     key={k}
                     type="monotone"
                     dataKey={k}
+                    name={SERIES_LABEL_MAP[k] || k}
                     stroke={i % 2 === 0 ? chart1 : chart2}
                     dot={false}
                     strokeWidth={i === 0 ? 2 : 1.5}
@@ -205,6 +234,7 @@ export default function ChartPanel({
                 <RC.Line
                   type="monotone"
                   dataKey="value"
+                  name="Value"
                   stroke={chart1}
                   dot={false}
                   strokeWidth={2}

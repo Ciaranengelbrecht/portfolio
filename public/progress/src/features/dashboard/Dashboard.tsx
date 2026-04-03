@@ -19,6 +19,12 @@ import { loadRecharts } from "../../lib/loadRecharts";
 import { useAggregates } from "../../lib/useAggregates";
 import { getMuscleIconPath } from "../../lib/muscles";
 import { DashboardSkeleton } from "../../components/LoadingSkeletons";
+import {
+  getAxisDensity,
+  getChartMargin,
+  getChartTooltipProps,
+  useIsCompactChartScreen,
+} from "../../lib/chartUi";
 
 type HiddenKey =
   | "trainingChart"
@@ -423,6 +429,15 @@ export default function Dashboard() {
   const [activeMuscle, setActiveMuscle] = useState<string | null>(null);
   const { data: aggs } = useAggregates();
   const tonnageUnitMultiplier = tonnageUnit === "lb" ? 2.2046226218 : 1;
+  const compactCharts = useIsCompactChartScreen();
+  const chartTooltipProps = useMemo(
+    () => getChartTooltipProps(compactCharts),
+    [compactCharts]
+  );
+  const standardChartMargin = useMemo(
+    () => getChartMargin(compactCharts, "standard"),
+    [compactCharts]
+  );
   const sessionDateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(undefined, {
@@ -973,11 +988,11 @@ export default function Dashboard() {
                 className="w-full bg-slate-700/50 rounded-t-md relative"
                 style={{ height: `${h}%` }}
               >
-                <div className="absolute inset-0 flex items-center justify-center text-[9px] font-medium text-white/80">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-white/85">
                   {r.value.toFixed(1)}
                 </div>
               </div>
-              <div className="text-[9px] mt-1 capitalize truncate w-full text-center">
+              <div className="mt-1 w-full text-center text-[10px] capitalize text-slate-300 leading-tight">
                 {r.muscle}
               </div>
             </button>
@@ -1016,18 +1031,18 @@ export default function Dashboard() {
                 )}
               </div>
               {lifetimeHasData ? (
-                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {lifetimeMetricBlocks.map((item) => (
-                    <div key={item.key} className="space-y-2">
-                      <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+                    <div key={item.key} className="space-y-1.5 min-w-0">
+                      <span className="text-[11px] uppercase tracking-[0.3em] text-white/65">
                         {item.label}
                       </span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-semibold text-white/90">
+                      <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
+                        <span className="text-3xl sm:text-4xl font-semibold text-white/90">
                           {item.value}
                         </span>
                         {item.caption && (
-                          <span className="text-xs uppercase tracking-[0.32em] text-white/50">
+                          <span className="text-[11px] uppercase tracking-[0.2em] text-white/60 whitespace-nowrap">
                             {item.caption}
                           </span>
                         )}
@@ -1058,13 +1073,13 @@ export default function Dashboard() {
                 </p>
               </div>
               {weeklyHasData ? (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {weeklyMetricBlocks.map((item) => (
                     <div
                       key={item.key}
                       className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
                     >
-                      <span className="text-[10px] uppercase tracking-[0.35em] text-white/40">
+                      <span className="text-[11px] uppercase tracking-[0.28em] text-white/65">
                         {item.label}
                       </span>
                       <div className="flex items-baseline gap-2">
@@ -1072,7 +1087,7 @@ export default function Dashboard() {
                           {item.value}
                         </span>
                         {item.caption && (
-                          <span className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                          <span className="text-[11px] uppercase tracking-[0.2em] text-white/60">
                             {item.caption}
                           </span>
                         )}
@@ -1148,7 +1163,7 @@ export default function Dashboard() {
                   (Weighted Sets)
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {Object.entries(muscleWeek)
                   .sort((a, b) => b[1] - a[1])
                   .map(([m, v]) => {
@@ -1199,7 +1214,7 @@ export default function Dashboard() {
                             handleClick();
                           }
                         }}
-                        className="bg-white/5 rounded-lg px-2 py-2 space-y-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        className="bg-white/5 rounded-lg px-2.5 py-2.5 space-y-1.5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
@@ -1208,7 +1223,7 @@ export default function Dashboard() {
                           delta >= 0 ? "+" : ""
                         }${delta.toFixed(1)}`}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-gray-400">
+                        <div className="flex items-center justify-between text-[11px] text-gray-300">
                           <span className="capitalize flex items-center gap-1">
                             {m}
                             <span
@@ -1241,7 +1256,7 @@ export default function Dashboard() {
                             }}
                           />
                           {tgt ? (
-                            <span className="absolute inset-y-0 right-0 text-[8px] text-white/60 pr-1 flex items-center">
+                            <span className="absolute inset-y-0 right-0 text-[10px] text-white/70 pr-1.5 flex items-center">
                               {Math.round(pct)}%
                             </span>
                           ) : null}
@@ -1250,7 +1265,7 @@ export default function Dashboard() {
                     );
                   })}
                 {!Object.keys(muscleWeek).length && (
-                  <div className="col-span-full text-[11px] text-gray-500">
+                  <div className="col-span-full text-xs text-gray-400">
                     No logged sets yet.
                   </div>
                 )}
@@ -1272,7 +1287,7 @@ export default function Dashboard() {
                   (Weighted Sets)
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {Object.entries(muscleTotals)
                   .sort((a, b) => b[1] - a[1])
                   .map(([m, v]) => {
@@ -1281,13 +1296,13 @@ export default function Dashboard() {
                     return (
                       <motion.div
                         key={m}
-                        className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                        className="bg-white/5 rounded-lg px-2.5 py-2.5 space-y-1.5"
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 4 }}
                         transition={{ duration: 0.25 }}
                       >
-                        <div className="flex items-center justify-between text-[10px] text-gray-400">
+                        <div className="flex items-center justify-between text-[11px] text-gray-300">
                           <span className="capitalize">{m}</span>
                           <span className="tabular-nums">{v.toFixed(1)}</span>
                         </div>
@@ -1307,7 +1322,7 @@ export default function Dashboard() {
                     );
                   })}
                 {!Object.keys(muscleTotals).length && (
-                  <div className="col-span-full text-[11px] text-gray-500">
+                  <div className="col-span-full text-xs text-gray-400">
                     No logged sets yet.
                   </div>
                 )}
@@ -1343,11 +1358,11 @@ export default function Dashboard() {
                       (per selected day across weeks)
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-200">
                     <label className="flex items-center gap-1">
                       Day
                       <select
-                        className="bg-slate-700 rounded px-1 py-0.5"
+                        className="bg-slate-700 rounded px-2 py-1"
                         value={selectedDay}
                         onChange={(e) => {
                           setSelectedDay(Number(e.target.value));
@@ -1363,7 +1378,7 @@ export default function Dashboard() {
                     <label className="flex items-center gap-1">
                       Highlight
                       <select
-                        className="bg-slate-700 rounded px-1 py-0.5"
+                        className="bg-slate-700 rounded px-2 py-1"
                         value={highlightWeek ?? ""}
                         onChange={(e) =>
                           setHighlightWeek(
@@ -1388,7 +1403,7 @@ export default function Dashboard() {
                             .pop() || null
                         )
                       }
-                      className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600"
+                      className="rounded bg-slate-700 px-2.5 py-1 hover:bg-slate-600"
                     >
                       Last
                     </button>
@@ -1429,9 +1444,10 @@ export default function Dashboard() {
                   const ResponsiveContainer = RC?.ResponsiveContainer;
                   const ReferenceLine = RC?.ReferenceLine;
                   const CartesianGrid = RC?.CartesianGrid;
+                  const axisDensity = getAxisDensity(rows.length, compactCharts);
                   return (
                     <div>
-                      <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 mb-2">
+                      <div className="mb-2 flex flex-wrap gap-3 text-xs text-slate-300">
                         <div>
                           Avg{" "}
                           <span className="text-slate-200 font-medium tabular-nums">
@@ -1481,13 +1497,13 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-                      <div className="h-56">
+                      <div className="h-52 sm:h-56">
                         {RC && rows.length ? (
                           <ResponsiveContainer width="100%" height="100%">
                             <Chart
                               data={rows}
-                              margin={{ left: 4, right: 4, top: 10, bottom: 4 }}
-                              barSize={32}
+                              margin={standardChartMargin}
+                              barSize={compactCharts ? 22 : 32}
                             >
                               <CartesianGrid
                                 stroke="rgba(255,255,255,0.08)"
@@ -1495,14 +1511,24 @@ export default function Dashboard() {
                               />
                               <XAxis
                                 dataKey="week"
-                                tick={{ fill: "#94a3b8", fontSize: 10 }}
+                                tick={{
+                                  fill: "#94a3b8",
+                                  fontSize: axisDensity.fontSize,
+                                }}
+                                interval={axisDensity.interval}
+                                angle={axisDensity.angle}
+                                height={axisDensity.height}
+                                tickMargin={axisDensity.tickMargin}
                                 tickFormatter={(v: number) => "W" + v}
                                 axisLine={false}
                                 tickLine={false}
                               />
                               <YAxis
-                                tick={{ fill: "#94a3b8", fontSize: 10 }}
-                                width={40}
+                                tick={{
+                                  fill: "#94a3b8",
+                                  fontSize: axisDensity.fontSize,
+                                }}
+                                width={compactCharts ? 34 : 40}
                                 axisLine={false}
                                 tickLine={false}
                                 tickFormatter={(v: number) =>
@@ -1512,6 +1538,7 @@ export default function Dashboard() {
                                 }
                               />
                               <Tooltip
+                                {...chartTooltipProps}
                                 cursor={{ fill: "rgba(255,255,255,0.06)" }}
                                 content={({ active, payload, label }: any) => {
                                   if (!active || !payload?.length) return null;
@@ -1708,7 +1735,7 @@ export default function Dashboard() {
           />
           <div className="flex min-h-full items-center justify-center px-4 py-8">
             <div className="relative z-10 w-full max-w-2xl">
-              <div className="relative flex max-h-[85vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)]">
+              <div className="relative flex max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)]">
                 <button
                   type="button"
                   onClick={closeMuscleDetail}
@@ -1741,7 +1768,7 @@ export default function Dashboard() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <div className="text-sm uppercase tracking-widest text-white/40">
+                        <div className="text-sm uppercase tracking-widest text-white/55">
                           Focus
                         </div>
                         <h2 className="text-2xl font-semibold capitalize">
@@ -1777,7 +1804,7 @@ export default function Dashboard() {
 
                   <div className="grid gap-3 sm:grid-cols-3 text-sm">
                     <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      <div className="text-[10px] uppercase tracking-wide text-white/60">
                         Total Sets
                       </div>
                       <div className="text-lg font-semibold tabular-nums text-white">
@@ -1785,7 +1812,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      <div className="text-[10px] uppercase tracking-wide text-white/60">
                         Total Volume
                       </div>
                       <div className="text-lg font-semibold tabular-nums text-white">
@@ -1796,7 +1823,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="rounded-2xl bg-white/5 px-3 py-2">
-                      <div className="text-[10px] uppercase tracking-wide text-white/40">
+                      <div className="text-[10px] uppercase tracking-wide text-white/60">
                         Avg Sets / Session
                       </div>
                       <div className="text-lg font-semibold tabular-nums text-white">
@@ -1828,12 +1855,12 @@ export default function Dashboard() {
                               {session.exercises.map((exercise) => (
                                 <div
                                   key={exercise.exerciseId}
-                                  className="flex items-center justify-between text-[11px] text-slate-200/90"
+                                  className="flex items-start justify-between gap-3 text-[11px] text-slate-200/90"
                                 >
-                                  <span className="truncate max-w-[60%]">
+                                  <span className="min-w-0 flex-1 leading-snug break-words">
                                     {exercise.name}
                                   </span>
-                                  <span className="tabular-nums text-slate-300">
+                                  <span className="tabular-nums text-slate-300 whitespace-nowrap">
                                     {exercise.sets} sets ·{" "}
                                     {(
                                       exercise.tonnage * tonnageUnitMultiplier

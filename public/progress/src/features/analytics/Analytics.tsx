@@ -4,6 +4,12 @@ import GlassCard from "../../components/GlassCard";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { getAllCached } from "../../lib/dataCache";
 import { useAggregates } from "../../lib/useAggregates";
+import {
+  getAxisDensity,
+  getChartMargin,
+  getChartTooltipProps,
+  useIsCompactChartScreen,
+} from "../../lib/chartUi";
 import { getSettings } from "../../lib/helpers";
 import { countValidSets } from "../../lib/volume";
 import { Exercise, Measurement, Session, Settings } from "../../lib/types";
@@ -542,6 +548,23 @@ export default function Analytics() {
   const weightMultiplier = usesLb ? KG_TO_LB : 1;
   const weightUnit = usesLb ? "lb" : "kg";
   const tonnageUnit = weightUnit;
+  const compactCharts = useIsCompactChartScreen();
+  const standardChartMargin = useMemo(
+    () => getChartMargin(compactCharts, "standard"),
+    [compactCharts]
+  );
+  const tightChartMargin = useMemo(
+    () => getChartMargin(compactCharts, "tight"),
+    [compactCharts]
+  );
+  const roomyChartMargin = useMemo(
+    () => getChartMargin(compactCharts, "roomy"),
+    [compactCharts]
+  );
+  const chartTooltipProps = useMemo(
+    () => getChartTooltipProps(compactCharts),
+    [compactCharts]
+  );
 
   const analytics = useMemo(
     () => buildAnalytics(sessions, exercises),
@@ -674,8 +697,33 @@ export default function Analytics() {
     ? analytics.muscles.find((m) => m.muscle === selectedMuscle)
     : undefined;
 
+  const weeklyAxisDensity = useMemo(
+    () => getAxisDensity(weeklySeries.length, compactCharts),
+    [weeklySeries.length, compactCharts]
+  );
+  const weightAxisDensity = useMemo(
+    () => getAxisDensity(weightSeries.length, compactCharts),
+    [weightSeries.length, compactCharts]
+  );
+  const prAxisDensity = useMemo(
+    () => getAxisDensity(prSeries.length, compactCharts),
+    [prSeries.length, compactCharts]
+  );
+  const sessionAxisDensity = useMemo(
+    () => getAxisDensity(analytics.sessions.length, compactCharts),
+    [analytics.sessions.length, compactCharts]
+  );
+  const muscleTimelineAxisDensity = useMemo(
+    () => getAxisDensity(selectedMuscleData?.timeline.length ?? 0, compactCharts),
+    [selectedMuscleData?.timeline.length, compactCharts]
+  );
+  const exerciseAxisDensity = useMemo(
+    () => getAxisDensity(exerciseTimeline.length, compactCharts),
+    [exerciseTimeline.length, compactCharts]
+  );
+
   const chartSkeleton = (
-    <div className="h-60 rounded-3xl bg-slate-800/40 animate-pulse flex items-center justify-center text-xs text-slate-400">
+    <div className="h-52 sm:h-60 rounded-3xl bg-slate-800/40 animate-pulse flex items-center justify-center text-xs text-slate-400">
       Loading chart…
     </div>
   );
@@ -693,7 +741,7 @@ export default function Analytics() {
 
   const OverviewSection = () => (
     <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
             label: "Workouts",
@@ -717,14 +765,14 @@ export default function Analytics() {
           },
         ].map((metric) => (
           <GlassCard key={metric.label}>
-            <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.35em] text-white/50">
+            <div className="space-y-1.5">
+              <p className="text-[11px] uppercase tracking-[0.33em] text-white/70">
                 {metric.caption}
               </p>
-              <div className="text-3xl font-semibold tracking-tight text-white">
+              <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
                 {metric.value}
               </div>
-              <p className="text-sm text-white/60">{metric.label}</p>
+              <p className="text-sm text-white/75">{metric.label}</p>
             </div>
           </GlassCard>
         ))}
@@ -744,27 +792,30 @@ export default function Analytics() {
             <div className="text-right">
               <p className="text-xs text-white/50">{tonnageUnit}</p>
               {latestSessionAsOf && (
-                <p className="text-[11px] text-white/35">as of {latestSessionAsOf}</p>
+                <p className="text-[11px] text-white/55">as of {latestSessionAsOf}</p>
               )}
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-52 sm:h-64">
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.ComposedChart
                   data={weeklySeries}
-                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                  margin={roomyChartMargin}
                 >
                   <RC.CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="rgba(148,163,184,0.2)"
+                    stroke="rgba(148,163,184,0.26)"
                   />
                   <RC.XAxis
                     dataKey="label"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
-                    interval={0}
+                    tick={{ fontSize: weeklyAxisDensity.fontSize }}
+                    interval={weeklyAxisDensity.interval}
+                    angle={weeklyAxisDensity.angle}
+                    height={weeklyAxisDensity.height}
+                    tickMargin={weeklyAxisDensity.tickMargin}
                     tickFormatter={(label: string) =>
                       label.replace("Phase", "P").replace("Week", "W")
                     }
@@ -772,16 +823,17 @@ export default function Analytics() {
                   <RC.YAxis
                     yAxisId="left"
                     stroke="rgba(94,234,212,0.7)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: weeklyAxisDensity.fontSize }}
                     tickFormatter={(value: number) => formatCompact(value)}
                   />
                   <RC.YAxis
                     yAxisId="right"
                     orientation="right"
                     stroke="rgba(139,92,246,0.6)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: weeklyAxisDensity.fontSize }}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
                       if (name === "sessions" || name === "sets") {
                         return [formatCount(value as number), name];
@@ -839,19 +891,19 @@ export default function Analytics() {
             <div className="text-right">
               <p className="text-xs text-white/50">{weightUnit}</p>
               {latestMeasurementAsOf && (
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-white/55">
                   as of {latestMeasurementAsOf}
                 </p>
               )}
             </div>
           </div>
-          <div className="h-64">
+          <div className="h-52 sm:h-64">
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
                 <RC.AreaChart
                   data={weightSeries}
-                  margin={{ left: 0, right: 0, top: 10, bottom: 0 }}
+                  margin={tightChartMargin}
                 >
                   <RC.Defs>
                     <linearGradient id="bwGradient" x1="0" x2="0" y1="0" y2="1">
@@ -874,14 +926,19 @@ export default function Analytics() {
                   <RC.XAxis
                     dataKey="date"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: weightAxisDensity.fontSize }}
+                    interval={weightAxisDensity.interval}
+                    angle={weightAxisDensity.angle}
+                    height={weightAxisDensity.height}
+                    tickMargin={weightAxisDensity.tickMargin}
                   />
                   <RC.YAxis
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: weightAxisDensity.fontSize }}
                     tickFormatter={(value: number) => value.toFixed(1)}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number) =>
                       `${value.toFixed(1)} ${weightUnit}`
                     }
@@ -911,13 +968,13 @@ export default function Analytics() {
             </h3>
           </div>
         </div>
-        <div className="h-56">
+        <div className="h-52 sm:h-56">
           {!RC && chartSkeleton}
           {RC && (
             <RC.ResponsiveContainer>
               <RC.BarChart
                 data={prSeries}
-                margin={{ left: 8, right: 8, top: 10, bottom: 0 }}
+                margin={standardChartMargin}
               >
                 <RC.CartesianGrid
                   strokeDasharray="3 3"
@@ -926,18 +983,21 @@ export default function Analytics() {
                 <RC.XAxis
                   dataKey="label"
                   stroke="rgba(226,232,240,0.65)"
-                  tick={{ fontSize: 12 }}
-                  interval={0}
+                  tick={{ fontSize: prAxisDensity.fontSize }}
+                  interval={prAxisDensity.interval}
+                  angle={prAxisDensity.angle}
+                  height={prAxisDensity.height}
+                  tickMargin={prAxisDensity.tickMargin}
                   tickFormatter={(label: string) =>
                     label.replace("Phase", "P").replace("Week", "W")
                   }
                 />
                 <RC.YAxis
                   stroke="rgba(226,232,240,0.65)"
-                  tick={{ fontSize: 12 }}
+                  tick={{ fontSize: prAxisDensity.fontSize }}
                   allowDecimals={false}
                 />
-                <RC.Tooltip />
+                <RC.Tooltip {...chartTooltipProps} />
                 <RC.Bar
                   dataKey="prs"
                   fill="rgba(16,185,129,0.8)"
@@ -966,7 +1026,7 @@ export default function Analytics() {
             </div>
             <span className="text-xs text-white/50">{tonnageUnit}</span>
           </div>
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
@@ -980,7 +1040,7 @@ export default function Analytics() {
                       sets: session.sets,
                       topWeight: session.topWeightKg * weightMultiplier,
                     }))}
-                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                  margin={roomyChartMargin}
                 >
                   <RC.CartesianGrid
                     strokeDasharray="3 3"
@@ -989,14 +1049,19 @@ export default function Analytics() {
                   <RC.XAxis
                     dataKey="date"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: sessionAxisDensity.fontSize }}
+                    interval={sessionAxisDensity.interval}
+                    angle={sessionAxisDensity.angle}
+                    height={sessionAxisDensity.height}
+                    tickMargin={sessionAxisDensity.tickMargin}
                   />
                   <RC.YAxis
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: sessionAxisDensity.fontSize }}
                     tickFormatter={(value: number) => formatCompact(value)}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
                       if (name === "sets")
                         return [formatCount(value as number), "Sets"];
@@ -1041,7 +1106,7 @@ export default function Analytics() {
               </h3>
             </div>
           </div>
-          <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
             {analytics.sessions.slice(0, 8).map((session) => (
               <div
                 key={session.id}
@@ -1057,9 +1122,9 @@ export default function Analytics() {
                       : `Week ${session.weekNumber}`}
                   </span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/70">
+                <div className="mt-2 grid grid-cols-1 gap-2 text-xs text-white/80 sm:grid-cols-2">
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-white/40">
+                    <p className="uppercase tracking-[0.28em] text-white/60">
                       Volume
                     </p>
                     <p className="text-base font-semibold text-white">
@@ -1067,7 +1132,7 @@ export default function Analytics() {
                     </p>
                   </div>
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-white/40">
+                    <p className="uppercase tracking-[0.28em] text-white/60">
                       Top weight
                     </p>
                     <p className="text-base font-semibold text-white">
@@ -1075,7 +1140,7 @@ export default function Analytics() {
                     </p>
                   </div>
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-white/40">
+                    <p className="uppercase tracking-[0.28em] text-white/60">
                       Sets
                     </p>
                     <p className="text-base font-semibold text-white">
@@ -1083,7 +1148,7 @@ export default function Analytics() {
                     </p>
                   </div>
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-white/40">
+                    <p className="uppercase tracking-[0.28em] text-white/60">
                       Active time
                     </p>
                     <p className="text-base font-semibold text-white">
@@ -1107,7 +1172,7 @@ export default function Analytics() {
                         className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5"
                       >
                         <span className="capitalize">{item.muscle}</span>
-                        <span className="text-white/40">
+                        <span className="text-white/60">
                           {(item.share * 100).toFixed(0)}%
                         </span>
                       </span>
@@ -1141,19 +1206,19 @@ export default function Analytics() {
           </div>
         </div>
         <div className="pb-1">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible">
             {analytics.muscles.slice(0, 12).map((muscle) => (
               <button
                 key={muscle.muscle}
                 onClick={() => setSelectedMuscle(muscle.muscle)}
-                className={`min-w-[8.25rem] max-w-full rounded-2xl border px-3 py-2 text-left text-sm font-medium transition-colors ${
+                className={`min-w-[7.75rem] rounded-2xl border px-3 py-2 text-left text-sm font-medium transition-colors ${
                   selectedMuscle === muscle.muscle
                     ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/40"
-                    : "bg-white/5 text-white/70 border-white/10 hover:border-white/20"
+                    : "bg-white/5 text-white/80 border-white/15 hover:border-white/25"
                 }`}
               >
-                <span className="block truncate capitalize">{muscle.muscle}</span>
-                <span className="block truncate text-[11px] text-white/50">
+                <span className="block capitalize leading-tight">{muscle.muscle}</span>
+                <span className="block text-[11px] text-white/60">
                   {formatCount(Math.round(muscle.sets))} sets
                 </span>
               </button>
@@ -1175,7 +1240,7 @@ export default function Analytics() {
             </div>
             <span className="text-xs text-white/50">share</span>
           </div>
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && (
               <RC.ResponsiveContainer>
@@ -1198,9 +1263,10 @@ export default function Analytics() {
                     dataKey="muscle"
                     tickFormatter={(value: string) => value.replace(/_/g, " ")}
                     stroke="rgba(226,232,240,0.7)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: compactCharts ? 10 : 12 }}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
                       if (name === "sets")
                         return [formatCount(value as number), "Sets"];
@@ -1237,13 +1303,13 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && selectedMuscleData && selectedMuscleData.timeline.length ? (
               <RC.ResponsiveContainer>
                 <RC.AreaChart
                   data={selectedMuscleData.timeline}
-                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                  margin={roomyChartMargin}
                 >
                   <RC.CartesianGrid
                     strokeDasharray="3 3"
@@ -1252,14 +1318,19 @@ export default function Analytics() {
                   <RC.XAxis
                     dataKey="label"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: muscleTimelineAxisDensity.fontSize }}
+                    interval={muscleTimelineAxisDensity.interval}
+                    angle={muscleTimelineAxisDensity.angle}
+                    height={muscleTimelineAxisDensity.height}
+                    tickMargin={muscleTimelineAxisDensity.tickMargin}
                   />
                   <RC.YAxis
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: muscleTimelineAxisDensity.fontSize }}
                     tickFormatter={(value: number) => formatCount(value)}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
                       if (name === "sets")
                         return [formatCount(value as number), "Sets"];
@@ -1400,7 +1471,7 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && exerciseTimeline.length ? (
               <RC.ResponsiveContainer>
@@ -1412,7 +1483,7 @@ export default function Analytics() {
                     avgWeight: entry.avgWeightKg * weightMultiplier,
                     sets: entry.sets,
                   }))}
-                  margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                  margin={roomyChartMargin}
                 >
                   <RC.CartesianGrid
                     strokeDasharray="3 3"
@@ -1421,22 +1492,27 @@ export default function Analytics() {
                   <RC.XAxis
                     dataKey="date"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: exerciseAxisDensity.fontSize }}
+                    interval={exerciseAxisDensity.interval}
+                    angle={exerciseAxisDensity.angle}
+                    height={exerciseAxisDensity.height}
+                    tickMargin={exerciseAxisDensity.tickMargin}
                   />
                   <RC.YAxis
                     yAxisId="left"
                     stroke="rgba(226,232,240,0.65)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: exerciseAxisDensity.fontSize }}
                     tickFormatter={(value: number) => formatCompact(value)}
                   />
                   <RC.YAxis
                     yAxisId="right"
                     orientation="right"
                     stroke="rgba(59,130,246,0.7)"
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: exerciseAxisDensity.fontSize }}
                     tickFormatter={(value: number) => value.toFixed(0)}
                   />
                   <RC.Tooltip
+                    {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
                       if (name === "sets")
                         return [formatCount(value as number), "Sets"];
@@ -1506,7 +1582,7 @@ export default function Analytics() {
               </span>
             )}
           </div>
-          <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
             {exerciseTimeline
               .slice()
               .sort(
@@ -1529,9 +1605,9 @@ export default function Analytics() {
                         : `Week ${entry.weekNumber}`}
                     </span>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-white/70">
+                  <div className="mt-2 grid grid-cols-1 gap-2 text-xs text-white/80 sm:grid-cols-2">
                     <div>
-                      <p className="uppercase tracking-[0.3em] text-white/40">
+                      <p className="uppercase tracking-[0.28em] text-white/60">
                         Volume
                       </p>
                       <p className="text-base font-semibold text-white">
@@ -1539,7 +1615,7 @@ export default function Analytics() {
                       </p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.3em] text-white/40">
+                      <p className="uppercase tracking-[0.28em] text-white/60">
                         Top weight
                       </p>
                       <p className="text-base font-semibold text-white">
@@ -1551,14 +1627,14 @@ export default function Analytics() {
                     {entry.setDetails.map((set, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between text-xs text-white/60"
+                        className="flex items-center justify-between text-xs text-white/75"
                       >
-                        <span className="text-white/40">Set {idx + 1}</span>
+                        <span className="text-white/60">Set {idx + 1}</span>
                         <span className="tabular-nums text-white/80">
                           {formatCount(set.reps)} reps @{" "}
                           {formatWeightValue(set.weightKg)}
                           {set.rpe != null && (
-                            <span className="text-white/40">
+                            <span className="text-white/60">
                               {" "}
                               • RPE {set.rpe}
                             </span>
