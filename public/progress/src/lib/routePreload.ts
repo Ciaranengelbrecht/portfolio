@@ -7,6 +7,7 @@ const preloaders: Record<string, () => Promise<unknown>> = {
   "/templates": () => import("../pages/Templates"),
   "/settings": () => import("../pages/Settings"),
   "/settings/program": () => import("../pages/ProgramSettings"),
+  "/welcome": () => import("../features/onboarding/FirstRunExperience"),
   "/auth": () => import("../pages/auth/IntroAuthPage"),
 };
 
@@ -15,6 +16,7 @@ const preloaded = new Set<string>();
 function normalizeRoute(path: string): string {
   if (!path) return "/";
   if (path.startsWith("/auth")) return "/auth";
+  if (path.startsWith("/welcome")) return "/welcome";
   return path;
 }
 

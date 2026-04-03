@@ -134,7 +134,54 @@ export async function getSettings(): Promise<Settings> {
       ...base,
       progress: {
         ...(base.progress || {}),
-        guidedSetup: { completed: false },
+        guidedSetup: {
+          completed: false,
+          skipped: false,
+          starterCreated: false,
+          mode: "advanced",
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (base.progress?.guidedSetup && base.progress.guidedSetup.skipped == null) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        guidedSetup: {
+          ...(base.progress?.guidedSetup || {}),
+          skipped: false,
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (
+    base.progress?.guidedSetup &&
+    base.progress.guidedSetup.starterCreated == null
+  ) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        guidedSetup: {
+          ...(base.progress?.guidedSetup || {}),
+          starterCreated: false,
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (base.progress?.guidedSetup && !base.progress.guidedSetup.mode) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        guidedSetup: {
+          ...(base.progress?.guidedSetup || {}),
+          mode: "advanced",
+        },
       },
     };
     mutated = true;

@@ -200,6 +200,9 @@ export interface Settings {
     autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
     guidedSetup?: {
       completed?: boolean;
+      skipped?: boolean;
+      starterCreated?: boolean;
+      mode?: "quick" | "advanced";
       lastCompletedStep?: number;
       draft?: GuidedSetupState;
       lastUpdatedAt?: string;

@@ -10,6 +10,7 @@ import {
 import { getSettings, setSettings } from "./lib/helpers";
 import { seedExercises } from "./lib/seedExercises";
 import { initSupabaseSync } from "./lib/supabaseSync";
+import { getFirstRunStatus } from "./lib/onboarding";
 import { ThemeProvider as LegacyThemeProvider } from "./lib/theme";
 import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
 import { ProgramProvider, useProgram } from "./state/program";
@@ -45,6 +46,9 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Recovery = lazy(() => import("./pages/Recovery"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
 const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
+const FirstRunExperience = lazy(
+  () => import("./features/onboarding/FirstRunExperience")
+);
 import RequireAuth from "./routes/guards/RequireAuth";
 import { migrateToV6 } from "./lib/migrations/v6_program";
 import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
@@ -68,9 +72,15 @@ function Shell() {
   const [bigFlash, setBigFlash] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessionDuration, setSessionDuration] = useState<string | null>(null);
+  const [firstRunStatus, setFirstRunStatus] = useState<{
+    checked: boolean;
+    shouldShow: boolean;
+  }>({ checked: false, shouldShow: false });
   const didApplyStartPage = useRef(false);
   // Hide app shell (nav etc) on /auth route
   const authRoute = locationRef.pathname.startsWith("/auth");
+  const onboardingRoute = locationRef.pathname.startsWith("/welcome");
+  const hideChrome = authRoute || onboardingRoute;
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -108,6 +118,46 @@ function Shell() {
     setAuthEmail(email);
     setAuthChecked(boot.status !== "booting");
   }, [boot.session?.user?.email, boot.status]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (boot.status !== "ready" || !boot.authed || program.loading || !!program.error) {
+      setFirstRunStatus({ checked: false, shouldShow: false });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    (async () => {
+      try {
+        const status = await getFirstRunStatus(program.program);
+        if (cancelled) return;
+        setFirstRunStatus({ checked: true, shouldShow: status.shouldShowFirstRun });
+        if (status.shouldShowFirstRun && !onboardingRoute) {
+          navigate("/welcome", { replace: true });
+        } else if (!status.shouldShowFirstRun && onboardingRoute) {
+          navigate("/", { replace: true });
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("[App] first-run status check failed", err);
+        setFirstRunStatus({ checked: true, shouldShow: false });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    boot.status,
+    boot.authed,
+    program.loading,
+    program.error,
+    program.program?.id,
+    onboardingRoute,
+    navigate,
+  ]);
 
   // Seed global exercise catalogue once per device (idempotent if already present)
   useEffect(() => {
@@ -313,6 +363,7 @@ function Shell() {
   useEffect(() => {
     if (didApplyStartPage.current) return;
     if (boot.status !== "ready" || !boot.authed) return;
+    if (!firstRunStatus.checked || firstRunStatus.shouldShow) return;
     didApplyStartPage.current = true;
 
     (async () => {
@@ -334,7 +385,14 @@ function Shell() {
         else if (start === "dashboard") navigate("/");
       }
     })();
-  }, [boot.status, boot.authed, locationRef.pathname, navigate]);
+  }, [
+    boot.status,
+    boot.authed,
+    firstRunStatus.checked,
+    firstRunStatus.shouldShow,
+    locationRef.pathname,
+    navigate,
+  ]);
 
   const Tab = ({ to, label }: { to: string; label: string }) => (
     <NavLink
@@ -388,10 +446,10 @@ function Shell() {
         className="min-h-screen flex flex-col relative pb-12 md:pb-0"
         id="app-shell"
       >
-        {!authRoute && <BackgroundFX />}
+        {!hideChrome && <BackgroundFX />}
         {/* ECG background (behind everything); toggled via body data attribute & settings */}
-        {!authRoute && <ECGBackground />}
-        {!authRoute && (
+        {!hideChrome && <ECGBackground />}
+        {!hideChrome && (
           <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur bg-bg/70 border-b border-white/5">
             <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -506,10 +564,10 @@ function Shell() {
           </header>
         )}
         {/* Spacer to account for fixed header height across all pages (non-auth) */}
-        {!authRoute && (
+        {!hideChrome && (
           <div style={{ height: "var(--app-header-h)" }} aria-hidden="true" />
         )}
-        {!authRoute && (
+        {!hideChrome && (
           <AuthModal
             open={authOpen}
             onClose={() => setAuthOpen(false)}
@@ -520,14 +578,14 @@ function Shell() {
             }}
           />
         )}
-        {!authRoute && (
+        {!hideChrome && (
           <BigFlash
             open={!!bigFlash}
             message={bigFlash || ""}
             onClose={() => setBigFlash(null)}
           />
         )}
-        {!authRoute && toast && (
+        {!hideChrome && toast && (
           <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-50">
             <div className="bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2 shadow-soft text-sm">
               {toast}
@@ -549,6 +607,16 @@ function Shell() {
                   <RouteSuspense>
                     <IntroAuthPage />
                   </RouteSuspense>
+                }
+              />
+              <Route
+                path="/welcome"
+                element={
+                  <RequireAuth>
+                    <RouteSuspense>
+                      <FirstRunExperience />
+                    </RouteSuspense>
+                  </RequireAuth>
                 }
               />
               <Route
@@ -638,7 +706,7 @@ function Shell() {
             </Routes>
           </ErrorBoundary>
         </main>
-        {!authRoute && <MobileTabs />}
+        {!hideChrome && <MobileTabs />}
         <NavDrawer
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}

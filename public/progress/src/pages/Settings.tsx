@@ -820,18 +820,23 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
           <div className="space-y-1">
             <div className="text-sm font-semibold text-white">
-              Jump-start your training plan
+              {s.progress?.guidedSetup?.completed
+                ? "Refine your training plan"
+                : "Jump-start your training plan"}
             </div>
             <p className="text-xs text-white/70">
-              Launch the guided setup to craft a personalised split, volume
-              targets, and starter templates in minutes.
+              {s.progress?.guidedSetup?.completed
+                ? "Re-run guided setup anytime to refresh your split, volume targets, and starter templates."
+                : "Launch guided setup to craft a personalised split, volume targets, and starter templates in minutes."}
             </p>
           </div>
           <button
             className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
             onClick={() => setShowGuidedSetup(true)}
           >
-            Launch guided setup
+            {s.progress?.guidedSetup?.completed
+              ? "Re-run guided setup"
+              : "Launch guided setup"}
           </button>
         </div>
         <div>

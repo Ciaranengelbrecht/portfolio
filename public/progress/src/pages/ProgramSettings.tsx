@@ -610,18 +610,18 @@ export default function ProgramSettings() {
       <div className="bg-card rounded-2xl p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="text-sm font-medium text-white">
-            Need a personalised starting point?
+            Want to refresh your program quickly?
           </div>
           <p className="text-xs text-gray-400">
-            Answer a few questions and we’ll build a split, volume targets, and
-            starter templates for you.
+            Run guided setup to regenerate your split, volume targets, and
+            starter templates with cleaner defaults.
           </p>
         </div>
         <button
           className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
           onClick={() => setShowGuidedSetup(true)}
         >
-          Launch guided setup
+          Run guided setup
         </button>
       </div>
       <div className="glass-card rounded-2xl p-4 space-y-4">

@@ -23,6 +23,7 @@ import {
   buildGuidedSetupPlan,
   GuidedSetupPlanResult,
 } from "../../lib/guidedSetup";
+import { withQuickDefaults } from "../../lib/onboarding";
 import { useSnack } from "../../state/snackbar";
 import { archiveCurrentProgram, saveProfileProgram } from "../../lib/profile";
 import { useProgram } from "../../state/program";
@@ -36,6 +37,8 @@ const STEP_TITLES = [
   "Volume & effort",
   "Review",
 ];
+
+const QUICK_STEP_TITLES = ["Welcome", "Your background", "Schedule", "Review"];
 
 const DEFAULT_STATE: GuidedSetupState = {
   experience: "intermediate",
@@ -168,15 +171,18 @@ interface GuidedSetupWizardProps {
   open: boolean;
   onClose: () => void;
   onComplete?: () => void;
+  mode?: "quick" | "advanced";
 }
 
 export default function GuidedSetupWizard({
   open,
   onClose,
   onComplete,
+  mode = "advanced",
 }: GuidedSetupWizardProps) {
   const { push } = useSnack();
   const { program, setProgram } = useProgram();
+  const stepTitles = mode === "quick" ? QUICK_STEP_TITLES : STEP_TITLES;
   const [settings, setSettingsState] = useState<Settings | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [state, setState] = useState<GuidedSetupState>(DEFAULT_STATE);
@@ -186,6 +192,13 @@ export default function GuidedSetupWizard({
     null
   );
   const [saving, setSaving] = useState(false);
+  const [exerciseOverrides, setExerciseOverrides] = useState<
+    Record<string, string>
+  >({});
+  const effectiveState = useMemo(
+    () => (mode === "quick" ? withQuickDefaults(state) : state),
+    [mode, state]
+  );
 
   // Load settings/exercises when opened
   useEffect(() => {
@@ -200,15 +213,17 @@ export default function GuidedSetupWizard({
       if (!mounted) return;
       setSettingsState(s);
       const draft = s.progress?.guidedSetup?.draft;
-      const mergedState: GuidedSetupState = {
+      const mergedStateBase: GuidedSetupState = {
         ...DEFAULT_STATE,
         ...(draft || {}),
       };
+      const mergedState =
+        mode === "quick" ? withQuickDefaults(mergedStateBase) : mergedStateBase;
       setState(mergedState);
       if (typeof s.progress?.guidedSetup?.lastCompletedStep === "number") {
         setActiveStep(
           Math.min(
-            STEP_TITLES.length - 1,
+            stepTitles.length - 1,
             s.progress?.guidedSetup?.lastCompletedStep || 0
           )
         );
@@ -216,12 +231,17 @@ export default function GuidedSetupWizard({
         setActiveStep(0);
       }
       setExercises(ex);
+      setExerciseOverrides({});
       setLoading(false);
     })();
     return () => {
       mounted = false;
     };
-  }, [open]);
+  }, [mode, open, stepTitles.length]);
+
+  useEffect(() => {
+    setActiveStep((prev) => Math.min(prev, stepTitles.length - 1));
+  }, [stepTitles.length]);
 
   // Persist draft progress (debounced)
   useEffect(() => {
@@ -254,26 +274,42 @@ export default function GuidedSetupWizard({
   useEffect(() => {
     if (!open || !exercises.length) return;
     try {
-      const nextPlan = buildGuidedSetupPlan(state, exercises);
+      const nextPlan = buildGuidedSetupPlan(effectiveState, exercises);
       setPlanPreview(nextPlan);
     } catch (e) {
       console.warn("[guided-setup] preview generation failed", e);
     }
-  }, [open, state, exercises]);
+  }, [open, effectiveState, exercises]);
 
   const stepComplete = useMemo(() => {
+    if (mode === "quick") {
+      return [
+        true,
+        Boolean(
+          effectiveState.experience &&
+            effectiveState.equipment &&
+            effectiveState.goalEmphasis
+        ),
+        Boolean(effectiveState.daysPerWeek && effectiveState.daysPerWeek >= 3),
+        Boolean(planPreview),
+      ];
+    }
     return [
       true,
-      Boolean(state.experience && state.equipment && state.goalEmphasis),
-      Boolean(state.daysPerWeek && state.daysPerWeek >= 3),
-      Boolean(state.priorityMuscles?.primary?.length),
-      Boolean(state.setsPerSession && state.volumePreference),
+      Boolean(
+        effectiveState.experience &&
+          effectiveState.equipment &&
+          effectiveState.goalEmphasis
+      ),
+      Boolean(effectiveState.daysPerWeek && effectiveState.daysPerWeek >= 3),
+      Boolean(effectiveState.priorityMuscles?.primary?.length),
+      Boolean(effectiveState.setsPerSession && effectiveState.volumePreference),
       Boolean(planPreview),
     ];
-  }, [state, planPreview]);
+  }, [mode, effectiveState, planPreview]);
 
   const canGoNext = stepComplete[activeStep];
-  const atEnd = activeStep === STEP_TITLES.length - 1;
+  const atEnd = activeStep === stepTitles.length - 1;
 
   if (!open) return null;
 
@@ -284,7 +320,7 @@ export default function GuidedSetupWizard({
 
   const goNext = () => {
     if (!canGoNext) return;
-    setActiveStep((s) => Math.min(STEP_TITLES.length - 1, s + 1));
+    setActiveStep((s) => Math.min(stepTitles.length - 1, s + 1));
   };
   const goBack = () => {
     setActiveStep((s) => Math.max(0, s - 1));
@@ -327,15 +363,16 @@ export default function GuidedSetupWizard({
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const plan = buildGuidedSetupPlan(state, exercises);
-      const templatesToSave = await prepareTemplates(plan.templates);
+      const plan = buildGuidedSetupPlan(effectiveState, exercises);
+      const planWithOverrides = applyExerciseOverrides(plan, exerciseOverrides);
+      const templatesToSave = await prepareTemplates(planWithOverrides.templates);
       await Promise.all(
         templatesToSave.map((template) => db.put("templates", template))
       );
-      const schedule = plan.schedule;
+      const schedule = planWithOverrides.schedule;
       const templateByScheduleId = new Map<string, GuidedTemplateDraft>();
       const templateByIndex = new Map<number, GuidedTemplateDraft>();
-      plan.templates.forEach((draft) => {
+      planWithOverrides.templates.forEach((draft) => {
         if (draft.scheduleDayId) {
           templateByScheduleId.set(draft.scheduleDayId, draft);
         }
@@ -359,7 +396,7 @@ export default function GuidedSetupWizard({
         }
       );
       const programToSave: UserProgram = {
-        ...plan.program,
+        ...planWithOverrides.program,
         weekLengthDays: schedule.length,
         weeklySplit: weeklySplitWithTemplates,
         updatedAt: now,
@@ -371,14 +408,17 @@ export default function GuidedSetupWizard({
         ...settings,
         volumeTargets: {
           ...(settings.volumeTargets || {}),
-          ...plan.volumeTargets,
+          ...planWithOverrides.volumeTargets,
         },
         progress: {
           ...(settings.progress || {}),
           weeklyTargetDays: trainingDayCount,
           guidedSetup: {
             completed: true,
-            lastCompletedStep: STEP_TITLES.length - 1,
+            skipped: false,
+            starterCreated: false,
+            mode,
+            lastCompletedStep: stepTitles.length - 1,
             lastUpdatedAt: now,
             draft: undefined,
           },
@@ -428,7 +468,7 @@ export default function GuidedSetupWizard({
               Guided setup
             </p>
             <h2 className="text-xl font-semibold text-white">
-              {STEP_TITLES[activeStep]}
+              {stepTitles[activeStep]}
             </h2>
           </div>
           <button
@@ -442,7 +482,7 @@ export default function GuidedSetupWizard({
         <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="hidden border-r border-white/10 bg-slate-950/40 px-4 py-6 md:block">
             <ol className="space-y-3 text-sm text-white/60">
-              {STEP_TITLES.map((title, idx) => (
+              {stepTitles.map((title, idx) => (
                 <li key={title} className="flex items-center gap-3">
                   <span
                     className={clsx(
@@ -475,11 +515,16 @@ export default function GuidedSetupWizard({
               </div>
             ) : (
               <StepContent
+                mode={mode}
                 step={activeStep}
                 state={state}
                 plan={currentPlan}
                 exercises={exercises}
+                exerciseOverrides={exerciseOverrides}
                 onStateChange={updateState}
+                onExerciseOverride={(key, exerciseId) =>
+                  setExerciseOverrides((prev) => ({ ...prev, [key]: exerciseId }))
+                }
                 onPriorityChange={updatePriority}
                 onToggleRestDay={toggleRestDay}
               />
@@ -488,7 +533,7 @@ export default function GuidedSetupWizard({
         </div>
         <footer className="border-t border-white/10 bg-slate-950/60 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-white/50">
-            Step {activeStep + 1} of {STEP_TITLES.length}
+            Step {activeStep + 1} of {stepTitles.length}
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
@@ -523,11 +568,14 @@ export default function GuidedSetupWizard({
 }
 
 interface StepContentProps {
+  mode: "quick" | "advanced";
   step: number;
   state: GuidedSetupState;
   plan: GuidedSetupPlanResult | null;
   exercises: Exercise[];
+  exerciseOverrides: Record<string, string>;
   onStateChange: (patch: Partial<GuidedSetupState>) => void;
+  onExerciseOverride: (key: string, exerciseId: string) => void;
   onPriorityChange: (
     key: "primary" | "secondary" | "maintenance",
     value: MuscleGroup[]
@@ -536,14 +584,45 @@ interface StepContentProps {
 }
 
 function StepContent({
+  mode,
   step,
   state,
   plan,
   exercises,
+  exerciseOverrides,
   onStateChange,
+  onExerciseOverride,
   onPriorityChange,
   onToggleRestDay,
 }: StepContentProps) {
+  if (mode === "quick") {
+    switch (step) {
+      case 0:
+        return <WelcomeStep exercises={exercises.length} compact />;
+      case 1:
+        return <BackgroundStep state={state} onStateChange={onStateChange} />;
+      case 2:
+        return (
+          <ScheduleStep
+            state={state}
+            onChange={onStateChange}
+            onToggleRestDay={onToggleRestDay}
+          />
+        );
+      case 3:
+        return (
+          <ReviewStep
+            plan={plan}
+            exercises={exercises}
+            exerciseOverrides={exerciseOverrides}
+            onExerciseOverride={onExerciseOverride}
+          />
+        );
+      default:
+        return null;
+    }
+  }
+
   switch (step) {
     case 0:
       return <WelcomeStep exercises={exercises.length} />;
@@ -562,27 +641,42 @@ function StepContent({
     case 4:
       return <VolumeStep state={state} onChange={onStateChange} />;
     case 5:
-      return <ReviewStep plan={plan} exercises={exercises} />;
+      return (
+        <ReviewStep
+          plan={plan}
+          exercises={exercises}
+          exerciseOverrides={exerciseOverrides}
+          onExerciseOverride={onExerciseOverride}
+        />
+      );
     default:
       return null;
   }
 }
 
-function WelcomeStep({ exercises }: { exercises: number }) {
+function WelcomeStep({
+  exercises,
+  compact,
+}: {
+  exercises: number;
+  compact?: boolean;
+}) {
   return (
     <div className="space-y-4">
       <p className="text-lg font-medium text-white">
-        Let’s build your personalised program.
+        {compact
+          ? "Let’s build a clean starter program in minutes."
+          : "Let’s build your personalised program."}
       </p>
       <p className="text-sm text-white/70">
-        We’ll ask about your schedule, goals, and priorities, then craft a
-        weekly split, volume targets, and starter templates. You can tweak
-        everything later – this is just a guided jump-start.
+        {compact
+          ? "Quick setup keeps decisions light. We’ll use smart defaults for volume and priorities, then generate starter templates you can tweak later."
+          : "We’ll ask about your schedule, goals, and priorities, then craft a weekly split, volume targets, and starter templates. You can tweak everything later – this is just a guided jump-start."}
       </p>
       <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-sm text-white/70">
         <ul className="list-disc space-y-2 pl-5">
           <li>Distribute training days to match your availability.</li>
-          <li>Emphasise the muscle groups you want to grow fastest.</li>
+          {!compact && <li>Emphasise the muscle groups you want to grow fastest.</li>}
           <li>
             Seed your Templates with smart exercise suggestions ({exercises}{" "}
             catalogued).
@@ -866,14 +960,34 @@ function VolumeStep({
 function ReviewStep({
   plan,
   exercises,
+  exerciseOverrides,
+  onExerciseOverride,
 }: {
   plan: GuidedSetupPlanResult | null;
   exercises: Exercise[];
+  exerciseOverrides: Record<string, string>;
+  onExerciseOverride: (key: string, exerciseId: string) => void;
 }) {
   const exerciseMap = useMemo(
-    () => new Map(exercises.map((ex) => [ex.id, ex.name])),
+    () => new Map(exercises.map((ex) => [ex.id, ex])),
     [exercises]
   );
+
+  const shortlistByExerciseId = useMemo(() => {
+    const byId = new Map<string, Exercise[]>();
+    for (const exercise of exercises) {
+      const alternatives = exercises
+        .filter(
+          (candidate) =>
+            candidate.id !== exercise.id &&
+            candidate.muscleGroup === exercise.muscleGroup
+        )
+        .slice(0, 2);
+      byId.set(exercise.id, [exercise, ...alternatives]);
+    }
+    return byId;
+  }, [exercises]);
+
   if (!plan)
     return (
       <div className="flex h-48 items-center justify-center text-sm text-white/60">
@@ -891,7 +1005,7 @@ function ReviewStep({
         description="Glance over the split, template suggestions, and weekly volume to make sure it matches your intent."
         bullets={[
           "Weekly split shows the auto-planned pattern with quick notes on where primaries land.",
-          "Suggested templates list anchor/support exercises—swap anything out after saving if needed.",
+          "Suggested templates include a minimal shortlist so you can swap key exercises now.",
           "Volume targets feed progress dashboards and auto-progressions so dial them in confidently.",
         ]}
       />
@@ -934,18 +1048,45 @@ function ReviewStep({
                   <p className="mt-2 text-xs text-white/55">{tpl.note}</p>
                 )}
                 <ul className="mt-3 space-y-1 text-xs text-white/65">
-                  {tpl.plan.map((p: GuidedTemplateDraft["plan"][number]) => {
-                    const exerciseName =
-                      exerciseMap.get(p.exerciseId) || "Exercise";
+                  {tpl.plan.map(
+                    (p: GuidedTemplateDraft["plan"][number], idx: number) => {
+                    const rowKey = `${tpl.id}:${p.exerciseId}:${idx}`;
+                    const selectedExerciseId =
+                      exerciseOverrides[rowKey] || p.exerciseId;
+                    const selectedExercise =
+                      exerciseMap.get(selectedExerciseId) ||
+                      exerciseMap.get(p.exerciseId);
+                    const exerciseName = selectedExercise?.name || "Exercise";
+                    const shortlist = shortlistByExerciseId.get(p.exerciseId) || [];
                     const highlightRole = highlightMap.get(p.exerciseId);
                     return (
                       <li
-                        key={p.exerciseId}
-                        className="flex items-center justify-between gap-2"
+                        key={`${tpl.id}-${idx}`}
+                        className="flex items-start justify-between gap-3"
                       >
-                        <span>
-                          {exerciseName} – {p.plannedSets} sets @ {p.repRange}
-                        </span>
+                        <div className="min-w-0 space-y-1">
+                          <div className="truncate">
+                            {exerciseName} - {p.plannedSets} sets @ {p.repRange}
+                          </div>
+                          {shortlist.length > 1 && (
+                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-white/40">
+                              Swap
+                              <select
+                                value={selectedExerciseId}
+                                onChange={(event) =>
+                                  onExerciseOverride(rowKey, event.target.value)
+                                }
+                                className="rounded-lg border border-white/15 bg-slate-950/80 px-2 py-1 text-[11px] normal-case tracking-normal text-white"
+                              >
+                                {shortlist.map((option) => (
+                                  <option key={option.id} value={option.id}>
+                                    {option.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                        </div>
                         {highlightRole && (
                           <span
                             className={clsx(
@@ -989,6 +1130,46 @@ function ReviewStep({
       </Section>
     </div>
   );
+}
+
+function applyExerciseOverrides(
+  plan: GuidedSetupPlanResult,
+  overrides: Record<string, string>
+): GuidedSetupPlanResult {
+  if (!Object.keys(overrides).length) {
+    return plan;
+  }
+
+  const nextTemplates = plan.templates.map((template) => {
+    const nextPlan = template.plan.map((entry, idx) => {
+      const rowKey = `${template.id}:${entry.exerciseId}:${idx}`;
+      const replacementId = overrides[rowKey];
+      if (!replacementId || replacementId === entry.exerciseId) {
+        return entry;
+      }
+      return {
+        ...entry,
+        exerciseId: replacementId,
+      };
+    });
+
+    const nextHighlights = template.highlights?.map((highlight, idx) => ({
+      ...highlight,
+      exerciseId: nextPlan[idx]?.exerciseId || highlight.exerciseId,
+    }));
+
+    return {
+      ...template,
+      exerciseIds: nextPlan.map((entry) => entry.exerciseId),
+      plan: nextPlan,
+      highlights: nextHighlights,
+    };
+  });
+
+  return {
+    ...plan,
+    templates: nextTemplates,
+  };
 }
 
 async function prepareTemplates(

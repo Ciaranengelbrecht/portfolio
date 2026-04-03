@@ -33,7 +33,12 @@ export const defaultSettings: Settings = {
     showDeloadHints: true,
     showPrevHints: true,
     autoProgression: true,
-    guidedSetup: { completed: false },
+    guidedSetup: {
+      completed: false,
+      skipped: false,
+      starterCreated: false,
+      mode: "advanced",
+    },
   },
   volumeTargets: {
     chest: 12,

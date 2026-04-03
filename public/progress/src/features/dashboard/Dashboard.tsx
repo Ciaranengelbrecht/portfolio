@@ -25,6 +25,7 @@ import {
   getChartTooltipProps,
   useIsCompactChartScreen,
 } from "../../lib/chartUi";
+import { useNavigate } from "react-router-dom";
 
 type HiddenKey =
   | "trainingChart"
@@ -381,6 +382,7 @@ function computeSessionDurationMs(session: Session): number {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [phase, setPhase] = useState(1);
   const [week, setWeek] = useState(1);
   const [muscleWeek, setMuscleWeek] = useState<Record<string, number>>({});
@@ -988,6 +990,9 @@ export default function Dashboard() {
     return `Week ${weeklyStats.weekNumber}`;
   }, [weeklyStats.phaseNumber, weeklyStats.weekNumber]);
 
+  const showOnboardingPrompt =
+    settingsState?.progress?.guidedSetup?.completed !== true;
+
   const WeeklyMuscleBar = () => (
     <GlassCard>
       <div className="flex items-center justify-between mb-2">
@@ -1138,6 +1143,27 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        {showOnboardingPrompt && (
+          <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-4 py-3 sm:px-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-200/80">
+                  New user setup
+                </p>
+                <p className="mt-1 text-sm text-white/80">
+                  Build your program with a minimal guided flow to start training fast.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-300"
+                onClick={() => navigate("/welcome")}
+              >
+                Start setup
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 text-label">
           <SectionToggle label="Training" flag="trainingChart" />
           <SectionToggle label="Body" flag="bodyChart" />
