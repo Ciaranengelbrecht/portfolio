@@ -881,9 +881,11 @@ input[type="number"] {
     0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.14),
     0 14px 26px -22px rgba(0 0 0 / 0.62);
   backdrop-filter: blur(9px) saturate(130%);
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 260ms ease, border-color 220ms ease, background-color 240ms ease,
-    opacity 180ms ease;
+  transform: translateZ(0);
+  will-change: transform, box-shadow, border-color, background-color, opacity;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 260ms ease, background-color 280ms ease, opacity 180ms ease;
 }
 
 .session-entry-card.is-collapsed {
@@ -893,7 +895,7 @@ input[type="number"] {
 }
 
 .session-entry-card.is-expanded:hover {
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
 }
 
 .session-entry-card.card-enhanced::before {
@@ -932,6 +934,14 @@ input[type="number"] {
 .session-collapsed-count.is-active .session-collapsed-count-value {
   color: color-mix(in srgb, var(--success) 84%, var(--text) 16%);
   text-shadow: 0 0 10px rgba(var(--accent-rgb, 59 130 246) / 0.22);
+}
+
+.session-prev-hint-motion {
+  will-change: opacity, transform;
+}
+
+.session-sets-motion {
+  will-change: height, opacity, transform;
 }
 
 /* Clean set card - minimal and compact */
@@ -983,6 +993,7 @@ input[type="number"] {
   );
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--success) 28%, transparent),
     0 14px 22px -22px rgba(0 0 0 / 0.55);
+  animation: setCompleteRise 340ms cubic-bezier(0.16, 1, 0.3, 1) 1;
 }
 
 .set-card-clean.completed::before {
@@ -993,6 +1004,21 @@ input[type="number"] {
 .set-card-clean.active {
   border-color: color-mix(in srgb, var(--warning) 42%, var(--card-border) 58%);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning) 22%, transparent);
+}
+
+@keyframes setCompleteRise {
+  0% {
+    transform: translateY(1px) scale(0.995);
+    filter: saturate(0.92);
+  }
+  60% {
+    transform: translateY(-1px) scale(1.006);
+    filter: saturate(1.06);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    filter: saturate(1);
+  }
 }
 
 /* Compact touch-friendly +/- buttons - smaller for cleaner mobile UI */
@@ -1010,8 +1036,9 @@ input[type="number"] {
   color: color-mix(in srgb, var(--text) 88%, var(--text-muted) 12%);
   font-size: 0.83rem;
   font-weight: 600;
-  transition: transform 140ms ease, background-color 180ms ease,
-    border-color 180ms ease, color 180ms ease;
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms ease, border-color 200ms ease, color 200ms ease,
+    box-shadow 220ms ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1023,12 +1050,18 @@ input[type="number"] {
     rgba(var(--accent-rgb, 59 130 246) / 0.34)
   );
   background: color-mix(in srgb, var(--bg-muted) 66%, var(--card) 34%);
+  box-shadow: 0 8px 14px -12px rgba(0 0 0 / 0.55);
 }
 
 .btn-stepper-large:active {
-  transform: scale(0.92);
+  transform: translateY(0.5px) scale(0.9);
   background: color-mix(in srgb, var(--bg-muted) 58%, var(--card) 42%);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.btn-stepper-large:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 59 130 246) / 0.24);
 }
 
 /* Input for mid-workout logging - wider, clearer values */
@@ -1134,17 +1167,19 @@ input[type="number"] {
   background: color-mix(in srgb, var(--bg-muted) 76%, var(--card) 24%);
   color: color-mix(in srgb, var(--text) 84%, var(--text-muted) 16%);
   font-size: 11px;
-  transition: transform 140ms ease, background-color 180ms ease,
-    border-color 180ms ease, color 180ms ease;
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms ease, border-color 200ms ease, color 200ms ease,
+    box-shadow 220ms ease;
 }
 
 .btn-set-action:hover {
   background: color-mix(in srgb, var(--bg-muted) 62%, var(--card) 38%);
   color: color-mix(in srgb, var(--text) 92%, black 8%);
+  box-shadow: 0 8px 14px -12px rgba(0 0 0 / 0.58);
 }
 
 .btn-set-action:active {
-  transform: scale(0.9);
+  transform: translateY(0.5px) scale(0.9);
 }
 
 .btn-set-action:disabled {
@@ -1161,6 +1196,61 @@ input[type="number"] {
 .btn-set-delete:hover {
   background: rgba(244 63 94 / 0.2);
   color: rgba(254 205 211 / 0.98);
+}
+
+.exercise-remove-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.64rem;
+  border: 1px solid color-mix(in srgb, rgba(244 63 94 / 0.55) 72%, var(--card-border) 28%);
+  background: linear-gradient(
+    145deg,
+    rgba(244 63 94 / 0.26),
+    rgba(244 63 94 / 0.12)
+  );
+  color: rgba(255 228 230 / 0.95);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 170ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms ease, border-color 200ms ease,
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1), color 180ms ease;
+}
+
+.exercise-remove-btn::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255 255 255 / 0.1);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.exercise-remove-btn:hover {
+  border-color: rgba(251 113 133 / 0.7);
+  background: linear-gradient(
+    145deg,
+    rgba(244 63 94 / 0.36),
+    rgba(244 63 94 / 0.18)
+  );
+  color: rgba(255 241 242 / 0.98);
+  box-shadow: 0 10px 16px -12px rgba(244 63 94 / 0.6),
+    0 0 0 1px rgba(244 63 94 / 0.26);
+}
+
+.exercise-remove-btn:active {
+  transform: translateY(0.5px) scale(0.92);
+}
+
+.exercise-remove-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(251 113 133 / 0.4),
+    0 10px 18px -12px rgba(244 63 94 / 0.5);
 }
 
 .session-sets-grid {
@@ -1329,5 +1419,23 @@ input[type="number"] {
   .btn-set-action:active,
   .btn-add-set:active {
     transform: scale(0.92);
+  }
+
+  .exercise-remove-btn:active {
+    transform: translateY(0.5px) scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .session-entry-card,
+  .set-card-clean,
+  .btn-stepper-large,
+  .btn-set-action,
+  .exercise-remove-btn {
+    transition: none !important;
+  }
+
+  .set-card-clean.completed {
+    animation: none !important;
   }
 }

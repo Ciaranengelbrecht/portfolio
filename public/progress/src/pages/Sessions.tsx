@@ -5207,12 +5207,21 @@ export default function Sessions() {
               toggleEntryCollapsed(entry.id);
             };
             return (
-              <div
+              <motion.div
                 key={entry.id}
+                layout
+                transition={{
+                  layout: {
+                    type: "spring",
+                    stiffness: 230,
+                    damping: 30,
+                    mass: 0.85,
+                  },
+                }}
                 id={`exercise-${entry.id}`}
                 className={`relative card-enhanced session-entry-card ${
                   isCollapsed ? "is-collapsed" : "is-expanded"
-                } rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
+                } rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
                   dimmed ? "opacity-30" : ""
                 } ${
                   isFocusTarget
@@ -5222,7 +5231,7 @@ export default function Sessions() {
                   hasLoggedSets ? "border-l-emerald-500/60" : "border-l-slate-600/30"
                 }`}
                 draggable
-                onDragStart={(e) => {
+                onDragStart={(e: any) => {
                   setDragEntryIdx(entryIdx);
                   e.dataTransfer.effectAllowed = "move";
                   e.dataTransfer.setData("text/plain", String(entryIdx));
@@ -5436,7 +5445,7 @@ export default function Sessions() {
                         </button>
                         <button
                           aria-label="Remove exercise"
-                          className="flex h-8 w-8 items-center justify-center rounded-md border border-rose-500/45 bg-rose-500/15 text-[12px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+                          className="exercise-remove-btn"
                           onClick={() => removeEntry(entry.id)}
                           title="Remove exercise"
                         >
@@ -5482,7 +5491,7 @@ export default function Sessions() {
                 <AnimatePresence initial={false}>
                   {!isCollapsed && showPrevHints && (
                     <motion.div
-                      className="mt-1 flex items-center gap-2 flex-wrap"
+                      className="session-prev-hint-motion mt-1 flex items-center gap-2 flex-wrap"
                       key="prevhints"
                       variants={maybeDisable(fadeSlideUp)}
                       initial="initial"
@@ -5508,19 +5517,41 @@ export default function Sessions() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <AnimatePresence initial={false} mode="wait">
+                <AnimatePresence initial={false} mode="sync">
                   {!isCollapsed && (
                     <motion.div
+                      layout
                       key="setsBlock"
-                      initial={{ height: 0, opacity: 0, y: -8 }}
+                      className="session-sets-motion"
+                      initial={{ height: 0, opacity: 0, y: -6 }}
                       animate={{ height: "auto", opacity: 1, y: 0 }}
-                      exit={{ height: 0, opacity: 0, y: -8 }}
+                      exit={{ height: 0, opacity: 0, y: -4 }}
                       transition={{
-                        height: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.22, ease: "easeOut" },
-                        y: { duration: 0.22, ease: "easeOut" },
+                        layout: {
+                          type: "spring",
+                          stiffness: 250,
+                          damping: 32,
+                          mass: 0.82,
+                        },
+                        height: {
+                          type: "spring",
+                          stiffness: 250,
+                          damping: 34,
+                          mass: 0.84,
+                        },
+                        opacity: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+                        y: {
+                          type: "spring",
+                          stiffness: 320,
+                          damping: 36,
+                          mass: 0.62,
+                        },
                       }}
-                      style={{ overflow: "hidden", willChange: "height, opacity, transform" }}
+                      style={{
+                        overflow: "hidden",
+                        willChange: "height, opacity, transform",
+                        transformOrigin: "top center",
+                      }}
                     >
                       {/* Sets - mobile friendly list (Phase 6: Clean UX - Refined Dec 2025) */}
                       <div
@@ -5530,8 +5561,17 @@ export default function Sessions() {
                         {entry.sets.map((set, idx) => {
                           const isSetComplete = (set.weightKg ?? 0) > 0 && (set.reps ?? 0) > 0;
                           return (
-                          <div
-                            key={idx}
+                          <motion.div
+                            key={set.addedAt || `${set.setNumber}-${idx}`}
+                            layout
+                            transition={{
+                              layout: {
+                                type: "spring",
+                                stiffness: 280,
+                                damping: 30,
+                                mass: 0.62,
+                              },
+                            }}
                             className={`set-card-clean ${isSetComplete ? 'completed' : ''}`}
                           >
                             {/* Compact set header - cleaner without tick */}
@@ -5747,7 +5787,7 @@ export default function Sessions() {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                         })}
                         
@@ -6225,7 +6265,7 @@ export default function Sessions() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             );
           })}
       </div>
