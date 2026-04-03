@@ -1051,37 +1051,45 @@ export default function Dashboard() {
   return (
     <>
       <div className="space-y-6">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/70 to-slate-950 p-6 text-slate-100 shadow-[0_30px_80px_-45px_rgba(56,189,248,0.6)]">
-            <div className="pointer-events-none absolute -left-24 top-0 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-            <div className="pointer-events-none absolute -right-12 -bottom-16 h-52 w-52 rounded-full bg-indigo-500/10 blur-3xl" />
-            <div className="relative z-10 flex flex-col gap-6">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.38em] text-white/60">
-                  Lifetime
-                </p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                  Training Ledger
-                </h2>
-                {latestSessionDateLabel && (
-                  <p className="mt-1 text-xs text-white/50">
-                    Updated through {latestSessionDateLabel}
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/65 p-3 sm:p-4 shadow-[0_28px_70px_-50px_rgba(59,130,246,0.65)]">
+          <div className="pointer-events-none absolute -left-20 top-0 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -right-10 -bottom-10 h-44 w-44 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="relative z-10 grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+            <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-3 sm:p-4 text-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.32em] text-white/55">
+                    Lifetime
                   </p>
-                )}
+                  <h2 className="mt-1 text-xl sm:text-2xl font-semibold tracking-tight text-white">
+                    Training Ledger
+                  </h2>
+                  {latestSessionDateLabel && (
+                    <p className="mt-1 text-[11px] text-white/55">
+                      Updated through {latestSessionDateLabel}
+                    </p>
+                  )}
+                </div>
+                <span className="rounded-full border border-cyan-300/25 bg-cyan-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-cyan-100/80">
+                  Snapshot
+                </span>
               </div>
               {lifetimeHasData ? (
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
                   {lifetimeMetricBlocks.map((item) => (
-                    <div key={item.key} className="space-y-1.5 min-w-0">
-                      <span className="text-[11px] uppercase tracking-[0.3em] text-white/65">
+                    <div
+                      key={item.key}
+                      className="rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2"
+                    >
+                      <span className="block text-[10px] uppercase tracking-[0.22em] text-white/55">
                         {item.label}
                       </span>
-                      <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
-                        <span className="text-3xl sm:text-4xl font-semibold text-white/90">
+                      <div className="mt-1 flex items-baseline gap-1.5 min-w-0 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-semibold text-white/90 leading-none">
                           {item.value}
                         </span>
                         {item.caption && (
-                          <span className="text-[11px] uppercase tracking-[0.2em] text-white/60 whitespace-nowrap">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/55 whitespace-nowrap">
                             {item.caption}
                           </span>
                         )}
@@ -1090,43 +1098,48 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-white/70">
+                <p className="mt-3 text-sm text-white/70">
                   Log your first session to unlock lifetime insights.
                 </p>
               )}
-            </div>
-          </div>
-          <div className="relative overflow-hidden rounded-3xl border border-white/5 bg-slate-900/85 p-6 text-slate-100 shadow-[0_25px_70px_-50px_rgba(59,130,246,0.55)]">
-            <div className="pointer-events-none absolute -right-16 top-8 h-44 w-44 rounded-full bg-emerald-500/20 blur-3xl" />
-            <div className="relative z-10 flex flex-col gap-5">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.38em] text-emerald-200/70">
-                  Current Focus
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white/90">
-                  {weeklyTitle}
-                </h2>
-                <p className="mt-1 text-xs text-white/50">
-                  Phase {phase} · Week {week}
-                  {latestSessionDateLabel ? ` · as of ${latestSessionDateLabel}` : ""}
-                </p>
+            </section>
+
+            <section className="rounded-2xl border border-white/10 bg-slate-900/78 p-3 sm:p-4 text-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.32em] text-emerald-200/70">
+                    Current Focus
+                  </p>
+                  <h2 className="mt-1 text-lg sm:text-xl font-semibold text-white/90 leading-tight">
+                    {weeklyTitle}
+                  </h2>
+                  <p className="mt-1 text-[11px] text-white/55">
+                    Phase {phase} · Week {week}
+                    {latestSessionDateLabel
+                      ? ` · as of ${latestSessionDateLabel}`
+                      : ""}
+                  </p>
+                </div>
+                <span className="rounded-full border border-emerald-300/25 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-emerald-100/80">
+                  Live
+                </span>
               </div>
               {weeklyHasData ? (
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   {weeklyMetricBlocks.map((item) => (
                     <div
                       key={item.key}
-                      className="space-y-2 rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3"
+                      className="rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2"
                     >
-                      <span className="text-[11px] uppercase tracking-[0.28em] text-white/65">
+                      <span className="block text-[10px] uppercase tracking-[0.2em] text-white/55">
                         {item.label}
                       </span>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-3xl font-semibold text-white">
+                      <div className="mt-1 flex items-baseline gap-1.5 min-w-0 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-semibold text-white leading-none">
                           {item.value}
                         </span>
                         {item.caption && (
-                          <span className="text-[11px] uppercase tracking-[0.2em] text-white/60">
+                          <span className="text-[10px] uppercase tracking-[0.16em] text-white/55 whitespace-nowrap">
                             {item.caption}
                           </span>
                         )}
@@ -1135,12 +1148,12 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-300/80">
+                <p className="mt-3 text-sm text-slate-300/80">
                   No tracked sessions for this week yet. Log a workout to see
                   trends instantly.
                 </p>
               )}
-            </div>
+            </section>
           </div>
         </div>
         {showOnboardingPrompt && (
