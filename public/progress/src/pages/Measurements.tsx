@@ -1954,12 +1954,13 @@ export default function Measurements() {
 
       {/* Preview Modal */}
       {preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setPreview(null)}
           />
-          <div className="relative bg-slate-900 rounded-2xl shadow-xl w-[90vw] max-w-xl p-4 space-y-3">
+          <div className="relative flex w-full max-w-xl max-h-[min(90dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-2xl bg-slate-900 shadow-xl">
+            <div className="space-y-3 overflow-y-auto p-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="text-lg font-semibold">Import preview</div>
               <button
@@ -1975,7 +1976,7 @@ export default function Measurements() {
                 ? ` • Scan date: ${preview.scanDateISO.slice(0, 10)}`
                 : ""}
             </div>
-            <div className="max-h-72 overflow-auto bg-slate-800/60 rounded-xl p-3">
+            <div className="max-h-[min(50dvh,22rem)] overflow-auto bg-slate-800/60 rounded-xl p-3 pb-2">
               <table className="w-full text-sm">
                 <tbody>
                   {Object.entries(preview.parsed).map(([k, v]) => (
@@ -1996,7 +1997,8 @@ export default function Measurements() {
                 {preview.warnings.join(" • ")}
               </div>
             )}
-            <div className="flex gap-2 justify-end">
+            </div>
+            <div className="flex justify-end gap-2 border-t border-white/10 bg-slate-950/40 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
               <button
                 className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"
                 onClick={() => setPreview(null)}

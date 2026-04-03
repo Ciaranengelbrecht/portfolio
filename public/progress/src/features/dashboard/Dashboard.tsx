@@ -1788,14 +1788,14 @@ export default function Dashboard() {
         </AnimatePresence>
       </div>
       {modalMuscleKey && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] overflow-y-auto p-3 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:p-4">
           <div
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
             onClick={closeMuscleDetail}
           />
-          <div className="flex min-h-full items-center justify-center px-4 py-8">
+          <div className="flex min-h-full items-start justify-center py-2 sm:items-center sm:py-8">
             <div className="relative z-10 w-full max-w-2xl">
-              <div className="relative flex max-h-[92vh] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)]">
+              <div className="relative flex max-h-[min(92dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-[0_45px_120px_-60px_rgba(59,130,246,0.8)]">
                 <button
                   type="button"
                   onClick={closeMuscleDetail}
@@ -1896,7 +1896,7 @@ export default function Dashboard() {
                   <div className="flex-1 min-h-0">
                     {modalHasDetail ? (
                       <div
-                        className="space-y-4 h-full overflow-y-auto pr-1 sm:pr-2"
+                        className="space-y-4 h-full overflow-y-auto pr-1 pb-2 sm:pr-2"
                         onScroll={handleModalSessionsScroll}
                       >
                         <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] text-slate-300">
@@ -1951,7 +1951,7 @@ export default function Dashboard() {
                         )}
                       </div>
                     ) : (
-                      <div className="h-full overflow-y-auto">
+                      <div className="h-full overflow-y-auto pb-2">
                         <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-center text-[12px] text-slate-300">
                           No detailed session data available for this muscle in
                           the selected week.

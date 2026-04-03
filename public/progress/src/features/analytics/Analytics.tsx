@@ -11,12 +11,18 @@ import {
   useIsCompactChartScreen,
 } from "../../lib/chartUi";
 import { getSettings } from "../../lib/helpers";
+import {
+  readRecentSelections,
+  rememberRecentSelection,
+  sortByRecentSelection,
+} from "../../lib/recentSelections";
 import { countValidSets } from "../../lib/volume";
 import { Exercise, Measurement, Session, Settings } from "../../lib/types";
 import { format, parseISO } from "date-fns";
 
 const SECONDARY_FACTOR = 0.5;
 const KG_TO_LB = 2.2046226218;
+const ANALYTICS_EXERCISE_RECENT_SCOPE = "analytics:exercise-picker";
 
 const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
   notation: "compact",
@@ -591,14 +597,41 @@ export default function Analytics() {
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const restoreSearchFocus = useRef(false);
+  const [recentExerciseIds, setRecentExerciseIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setRecentExerciseIds(readRecentSelections(ANALYTICS_EXERCISE_RECENT_SCOPE));
+  }, []);
+
+  const handleExerciseSelect = useCallback(
+    (exerciseId: string, persist = true) => {
+      setSelectedExerciseId(exerciseId);
+      if (!persist) return;
+      setRecentExerciseIds(
+        rememberRecentSelection(
+          ANALYTICS_EXERCISE_RECENT_SCOPE,
+          exerciseId,
+          14
+        )
+      );
+    },
+    []
+  );
 
   const filteredExercises = useMemo(() => {
     const term = exerciseQuery.trim().toLowerCase();
-    if (!term) return exercises;
-    return exercises.filter((exercise) =>
+    const filtered = term
+      ? exercises.filter((exercise) =>
       exercise.name.toLowerCase().includes(term)
+        )
+      : exercises;
+    return sortByRecentSelection(
+      filtered,
+      (exercise) => exercise.id,
+      recentExerciseIds,
+      (left, right) => left.name.localeCompare(right.name)
     );
-  }, [exerciseQuery, exercises]);
+  }, [exerciseQuery, exercises, recentExerciseIds]);
 
   const exerciseOptions = useMemo(() => {
     if (!selectedExerciseId) return filteredExercises;
@@ -619,8 +652,8 @@ export default function Analytics() {
 
   useEffect(() => {
     if (selectedExerciseId || !exerciseOptions.length) return;
-    setSelectedExerciseId(exerciseOptions[0].id);
-  }, [exerciseOptions, selectedExerciseId]);
+    handleExerciseSelect(exerciseOptions[0].id, false);
+  }, [exerciseOptions, selectedExerciseId, handleExerciseSelect]);
 
   useEffect(() => {
     if (!restoreSearchFocus.current) return;
@@ -642,12 +675,12 @@ export default function Analytics() {
         ([, value]) => value.timeline.length > 0
       );
       if (firstWithHistory) {
-        setSelectedExerciseId(firstWithHistory[0]);
+        handleExerciseSelect(firstWithHistory[0], false);
       } else if (exercises.length) {
-        setSelectedExerciseId(exercises[0].id);
+        handleExerciseSelect(exercises[0].id, false);
       }
     }
-  }, [analytics.exerciseMap, exercises, selectedExerciseId]);
+  }, [analytics.exerciseMap, exercises, selectedExerciseId, handleExerciseSelect]);
 
   useEffect(() => {
     if (!selectedMuscle && analytics.muscles.length) {
@@ -1572,7 +1605,7 @@ export default function Analytics() {
               <select
                 className="rounded-2xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-white/80 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60 disabled:cursor-not-allowed disabled:text-white/30"
                 value={exerciseOptions.length ? selectedExerciseId : ""}
-                onChange={(event) => setSelectedExerciseId(event.target.value)}
+                onChange={(event) => handleExerciseSelect(event.target.value)}
                 disabled={!exerciseOptions.length}
               >
                 {exerciseOptions.length ? (

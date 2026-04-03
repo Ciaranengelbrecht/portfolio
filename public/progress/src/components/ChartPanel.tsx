@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import GlassCard from "./GlassCard";
 import { loadRecharts } from "../lib/loadRecharts";
 import { db } from "../lib/db";
@@ -11,6 +11,11 @@ import {
   RangeKey,
   rollingPRs,
 } from "../lib/helpers";
+import {
+  readRecentSelections,
+  rememberRecentSelection,
+  sortByRecentSelection,
+} from "../lib/recentSelections";
 import {
   getAxisDensity,
   getChartMargin,
@@ -26,6 +31,7 @@ const EX_SERIES_KEYS = [
   { key: "repsTotal", label: "Reps" },
   { key: "volume", label: "Volume" },
 ];
+const CHART_EXERCISE_RECENT_SCOPE = "charts:exercise-picker";
 const SERIES_LABEL_MAP = Object.fromEntries(
   EX_SERIES_KEYS.map((item) => [item.key, item.label])
 ) as Record<string, string>;
@@ -48,6 +54,8 @@ export default function ChartPanel({
   const [measurementKey, setMeasurementKey] =
     useState<keyof Measurement>("waist");
   const [exerciseId, setExerciseId] = useState<string>("");
+  const [exerciseQuery, setExerciseQuery] = useState("");
+  const [recentExerciseIds, setRecentExerciseIds] = useState<string[]>([]);
   const [range, setRange] = useState<RangeKey>("8w");
   const [series, setSeries] = useState<string[]>(["topWeight"]);
   const [data, setData] = useState<(ExercisePoint | MeasurementPoint)[]>([]);
@@ -58,6 +66,7 @@ export default function ChartPanel({
   useEffect(() => {
     (async () => {
       setExercises(await db.getAll("exercises"));
+      setRecentExerciseIds(readRecentSelections(CHART_EXERCISE_RECENT_SCOPE));
       const prefs = await getDashboardPrefs();
       if (prefs.exerciseId) setExerciseId(prefs.exerciseId);
       if (prefs.measurementKey) setMeasurementKey(prefs.measurementKey);
@@ -65,12 +74,51 @@ export default function ChartPanel({
     })();
   }, []);
 
+  const handleExerciseSelect = useCallback(
+    (id: string, persist = true) => {
+      setExerciseId(id);
+      if (!persist) return;
+      setRecentExerciseIds(
+        rememberRecentSelection(CHART_EXERCISE_RECENT_SCOPE, id, 14)
+      );
+    },
+    []
+  );
+
+  const filteredExerciseOptions = useMemo(() => {
+    const term = exerciseQuery.trim().toLowerCase();
+    const pool = term
+      ? exercises.filter((exercise) =>
+          exercise.name.toLowerCase().includes(term)
+        )
+      : exercises;
+    return sortByRecentSelection(
+      pool,
+      (exercise) => exercise.id,
+      recentExerciseIds,
+      (left, right) => left.name.localeCompare(right.name)
+    );
+  }, [exerciseQuery, exercises, recentExerciseIds]);
+
+  const exerciseSelectOptions = useMemo(() => {
+    if (!exerciseId) return filteredExerciseOptions;
+    if (filteredExerciseOptions.some((exercise) => exercise.id === exerciseId)) {
+      return filteredExerciseOptions;
+    }
+    const selected = exercises.find((exercise) => exercise.id === exerciseId);
+    if (!selected) return filteredExerciseOptions;
+    return [
+      selected,
+      ...filteredExerciseOptions.filter((exercise) => exercise.id !== selected.id),
+    ];
+  }, [exerciseId, filteredExerciseOptions, exercises]);
+
   useEffect(() => {
     (async () => {
       if (kind === "exercise") {
         const id = exerciseId || exercises[0]?.id;
         if (!id) return;
-        setExerciseId(id);
+        handleExerciseSelect(id, false);
         const d = (await getExerciseTimeSeries(id, range)) as ExercisePoint[];
         setData(d);
         const pr = await rollingPRs(id);
@@ -87,7 +135,7 @@ export default function ChartPanel({
         await setDashboardPrefs({ measurementKey, range });
       }
     })();
-  }, [kind, exerciseId, measurementKey, range, exercises]);
+  }, [kind, exerciseId, measurementKey, range, exercises, handleExerciseSelect]);
 
   // Re-render on theme changes to pick up CSS variable values for charts
   useEffect(() => {
@@ -132,17 +180,34 @@ export default function ChartPanel({
     <GlassCard>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         {kind === "exercise" ? (
-          <select
-            className="input-app rounded-xl px-3 py-2 text-sm"
-            value={exerciseId}
-            onChange={(e) => setExerciseId(e.target.value)}
-          >
-            {exercises.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[260px]">
+            <input
+              className="input-app rounded-xl px-3 py-2 text-sm"
+              type="search"
+              spellCheck={false}
+              placeholder="Search exercises"
+              value={exerciseQuery}
+              onChange={(e) => setExerciseQuery(e.target.value)}
+            />
+            <select
+              className="input-app rounded-xl px-3 py-2 text-sm"
+              value={exerciseSelectOptions.length ? exerciseId : ""}
+              onChange={(e) => handleExerciseSelect(e.target.value)}
+              disabled={!exerciseSelectOptions.length}
+            >
+              {exerciseSelectOptions.length ? (
+                exerciseSelectOptions.map((exercise) => (
+                  <option key={exercise.id} value={exercise.id}>
+                    {exercise.name}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>
+                  No exercises found
+                </option>
+              )}
+            </select>
+          </div>
         ) : (
           <select
             className="input-app rounded-xl px-3 py-2 text-sm"

@@ -1008,7 +1008,7 @@ export default function ProgramSettings() {
                 Suggestions
               </div>
               {allocatorData.suggestions.length ? (
-                <ul className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                <ul className="space-y-1 max-h-32 overflow-y-auto pr-1 pb-1">
                   {allocatorData.suggestions.map((s, i) => (
                     <li
                       key={i}
@@ -1088,7 +1088,7 @@ export default function ProgramSettings() {
           <div className="text-xs uppercase tracking-wide text-gray-400">
             Archived Programs
           </div>
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 pb-1">
             {history.map((h) => (
               <div
                 key={h.id}
@@ -1117,7 +1117,7 @@ export default function ProgramSettings() {
       )}
       {previewTemplate && (
         <div
-          className="fixed bottom-4 right-4 z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in"
+          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in"
           onMouseLeave={() => setPreviewTemplate(null)}
         >
           <div className="flex items-center justify-between text-xs">
@@ -1129,7 +1129,7 @@ export default function ProgramSettings() {
               Close
             </button>
           </div>
-          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 text-[11px]">
+          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 pb-1 text-[11px]">
             {previewTemplate.exerciseIds.map((id) => (
               <li
                 key={id}
@@ -1153,7 +1153,7 @@ export default function ProgramSettings() {
             <div className="text-[11px] text-gray-400">
               Review changes before archiving current program:
             </div>
-            <ul className="text-[11px] list-disc pl-4 space-y-1 max-h-40 overflow-y-auto pr-1">
+            <ul className="text-[11px] list-disc pl-4 space-y-1 max-h-40 overflow-y-auto pr-1 pb-1">
               {diffItems.map((d, i) => (
                 <li key={i}>{d}</li>
               ))}

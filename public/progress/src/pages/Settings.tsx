@@ -1673,11 +1673,11 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40"
+                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
                         >
-                          <div className="w-full max-w-[380px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">{label}</div>
                               <button
@@ -1777,11 +1777,11 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40"
+                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
                         >
-                          <div className="w-full max-w-[420px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="w-full max-w-[min(92vw,420px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">{label}</div>
                               <button
@@ -1924,11 +1924,11 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40"
+                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
                         >
-                          <div className="w-full max-w-[380px] max-h-[90vh] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4">
+                          <div className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">
                                 Glow color
@@ -2848,7 +2848,7 @@ function ExerciseLibraryManager({
           </button>
         ))}
       </div>
-      <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
+      <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1 pb-1">
         {list.length === 0 ? (
           <div className="text-sm text-muted">
             No exercises yet. Add some above to start customising deloads.

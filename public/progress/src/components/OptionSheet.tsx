@@ -1,10 +1,19 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef } from "react";
+import {
+  Fragment,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 export type OptionSheetOption = {
   id: string;
-  label: string;
+  label: ReactNode;
   description?: string;
   hint?: string;
   badge?: ReactNode;
@@ -55,13 +64,75 @@ export default function OptionSheet({
 }: OptionSheetProps) {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const lastActive = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const onCloseRef = useRef(onClose);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  const firstEnabledIndex = useMemo(
+    () => options.findIndex((option) => !option.disabled),
+    [options]
+  );
+  const selectedEnabledIndex = useMemo(
+    () => options.findIndex((option) => option.selected && !option.disabled),
+    [options]
+  );
+
+  useEffect(() => {
+    optionRefs.current = optionRefs.current.slice(0, options.length);
+  }, [options.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    const nextIndex =
+      selectedEnabledIndex >= 0 ? selectedEnabledIndex : firstEnabledIndex;
+    setActiveIndex(nextIndex);
+  }, [open, selectedEnabledIndex, firstEnabledIndex]);
+
+  const focusOption = useCallback((index: number) => {
+    if (index < 0) return;
+    const node = optionRefs.current[index];
+    if (!node) return;
+    node.focus({ preventScroll: true });
+    node.scrollIntoView({ block: "nearest" });
+    setActiveIndex(index);
+  }, []);
+
+  const moveActiveIndex = useCallback(
+    (direction: 1 | -1) => {
+      if (!options.length) return;
+      let idx = activeIndex;
+      for (let i = 0; i < options.length; i += 1) {
+        idx = (idx + direction + options.length) % options.length;
+        if (!options[idx]?.disabled) {
+          focusOption(idx);
+          return;
+        }
+      }
+    },
+    [activeIndex, options, focusOption]
+  );
+
+  const focusBoundary = useCallback(
+    (boundary: "start" | "end") => {
+      const indexes =
+        boundary === "start"
+          ? options.map((_, idx) => idx)
+          : options.map((_, idx) => options.length - 1 - idx);
+      for (const idx of indexes) {
+        if (!options[idx]?.disabled) {
+          focusOption(idx);
+          break;
+        }
+      }
+    },
+    [options, focusOption]
+  );
 
   // Check if click is on empty/background area (not interactive content)
   const handleEmptySpaceClick = useCallback((e: React.MouseEvent) => {
@@ -89,9 +160,63 @@ export default function OptionSheet({
     const prevOverflow = body?.style.overflow || "";
     if (body) body.style.overflow = "hidden";
     const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName || "";
+      const isTextInput =
+        tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable;
+
       if (e.key === "Escape") {
         e.preventDefault();
         onCloseRef.current?.();
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        if (searchRef.current) {
+          e.preventDefault();
+          searchRef.current.focus({ preventScroll: true });
+          searchRef.current.select?.();
+        }
+        return;
+      }
+
+      if (!options.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (isTextInput) {
+          const startIndex =
+            activeIndex >= 0 ? activeIndex : firstEnabledIndex;
+          focusOption(startIndex);
+          return;
+        }
+        moveActiveIndex(1);
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (isTextInput) {
+          const startIndex =
+            activeIndex >= 0 ? activeIndex : firstEnabledIndex;
+          focusOption(startIndex);
+          return;
+        }
+        moveActiveIndex(-1);
+        return;
+      }
+
+      if (isTextInput) return;
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        focusBoundary("start");
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        focusBoundary("end");
       }
     };
     document.addEventListener("keydown", handler);
@@ -105,11 +230,14 @@ export default function OptionSheet({
             node.select?.();
           }
         } else {
-          const first = node.querySelector(
-            "[data-option]"
-          ) as HTMLElement | null;
+          const targetIndex =
+            selectedEnabledIndex >= 0 ? selectedEnabledIndex : firstEnabledIndex;
+          const first =
+            targetIndex >= 0
+              ? optionRefs.current[targetIndex]
+              : (node.querySelector("[data-option]") as HTMLElement | null);
           if (first && document.activeElement !== first) {
-            first.focus();
+            first.focus({ preventScroll: true });
           }
         }
       }
@@ -120,7 +248,17 @@ export default function OptionSheet({
       lastActive.current?.focus?.({ preventScroll: true });
       lastActive.current = null;
     };
-  }, [open, initialFocus]);
+  }, [
+    open,
+    initialFocus,
+    options.length,
+    activeIndex,
+    firstEnabledIndex,
+    selectedEnabledIndex,
+    focusOption,
+    moveActiveIndex,
+    focusBoundary,
+  ]);
 
   const content = useMemo(() => {
     if (!open) return null;
@@ -144,7 +282,7 @@ export default function OptionSheet({
               onClick={onClose}
             />
             <motion.div
-              className="relative z-10 w-full max-h-[94vh] overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 backdrop-blur-sm shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] sm:max-w-2xl sm:rounded-3xl flex flex-col"
+              className="relative z-10 flex w-full max-h-[min(94dvh,calc(100dvh-0.75rem))] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] backdrop-blur-sm sm:max-h-[94vh] sm:max-w-2xl sm:rounded-3xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
@@ -162,7 +300,7 @@ export default function OptionSheet({
                 <div className="w-8 h-1 rounded-full bg-white/20" />
               </div>
               <div 
-                className="flex flex-col gap-4 p-5 pt-0 sm:pt-5"
+                className="flex flex-col gap-4 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[max(0.25rem,env(safe-area-inset-top))] sm:pb-5 sm:pt-5"
                 onClick={handleEmptySpaceClick}
               >
                 <header className="flex flex-col gap-2 pr-8">
@@ -206,26 +344,35 @@ export default function OptionSheet({
                 <div
                   ref={listRef}
                   tabIndex={-1}
-                  className="relative -mx-2 flex-1 px-2 pb-2 overscroll-contain"
+                  role="listbox"
+                  aria-label={title}
+                  className="relative -mx-2 flex-1 overscroll-contain px-2 pb-2 pt-2"
                   style={{
-                    maxHeight: `min(72vh, ${maxListHeight}px)`,
+                    maxHeight: `min(70dvh, ${maxListHeight}px)`,
                     overflowY: "auto",
                     WebkitOverflowScrolling: "touch",
                     scrollbarWidth: "thin",
                     scrollbarColor: "rgba(255,255,255,0.15) transparent",
+                    scrollPaddingBottom: "1rem",
                   }}
                   onClick={handleEmptySpaceClick}
                 >
-                  <div className="pointer-events-none sticky top-0 z-10 h-4 -mb-4 bg-gradient-to-b from-slate-950/95 to-transparent" />
-                  <div className="pointer-events-none sticky bottom-0 z-10 h-6 -mt-6 bg-gradient-to-t from-slate-950/95 to-transparent" />
-                  <div className="relative space-y-2 pb-4 pt-2" onClick={handleEmptySpaceClick}>
+                  <div className="pointer-events-none absolute inset-x-2 top-0 z-10 h-5 bg-gradient-to-b from-slate-950/95 to-transparent" />
+                  <div className="pointer-events-none absolute inset-x-2 bottom-0 z-10 h-8 bg-gradient-to-t from-slate-950/95 to-transparent" />
+                  <div className="relative space-y-2 pb-6" onClick={handleEmptySpaceClick}>
                     {options.length === 0 && emptyState}
-                    {options.map((option) => (
+                    {options.map((option, idx) => (
                       <Fragment key={option.id}>
                         <button
+                          ref={(node) => {
+                            optionRefs.current[idx] = node;
+                          }}
                           data-option
                           type="button"
                           disabled={option.disabled}
+                          role="option"
+                          aria-selected={option.selected}
+                          onFocus={() => setActiveIndex(idx)}
                           onClick={() => {
                             if (option.disabled) return;
                             option.onSelect();

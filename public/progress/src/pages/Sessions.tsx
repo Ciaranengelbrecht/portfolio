@@ -7401,7 +7401,7 @@ function MobileSummaryFader({
   }, [visibleThreshold]);
   return (
     <div
-      className={`fixed sm:hidden bottom-0 left-0 right-0 z-30 px-4 py-3 flex items-center gap-4 overflow-x-auto transition-all duration-500 ease-out will-change-transform backdrop-blur border-t border-white/10 bg-slate-900/80 ${
+      className={`fixed sm:hidden bottom-0 left-0 right-0 z-30 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-4 overflow-x-auto transition-all duration-500 ease-out will-change-transform backdrop-blur border-t border-white/10 bg-slate-900/80 ${
         visible
           ? "opacity-100 translate-y-0"
           : "opacity-0 translate-y-4 pointer-events-none"

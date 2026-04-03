@@ -5,9 +5,15 @@ import { waitForSession } from "../lib/supabase";
 import { Exercise, Template, MuscleGroup } from "../lib/types";
 import { nanoid } from "nanoid";
 import { TemplatesSkeleton } from "../components/LoadingSkeletons";
+import {
+  readRecentSelections,
+  rememberRecentSelection,
+  sortByRecentSelection,
+} from "../lib/recentSelections";
 
 const TEMPLATE_COLLAPSE_KEY = "templates:collapsedState";
 const SECONDARY_FACTOR = 0.5;
+const TEMPLATE_ADD_EXERCISE_SCOPE = "templates:add-exercise";
 
 /** Compute sets per muscle group from a template's planned sets */
 function computeMuscleSets(
@@ -49,6 +55,9 @@ export default function Templates() {
   const [query, setQuery] = useState("");
   const [exerciseQuery, setExerciseQuery] = useState("");
   const [showAllExercises, setShowAllExercises] = useState(false);
+  const [recentAddExerciseIds, setRecentAddExerciseIds] = useState<string[]>(
+    []
+  );
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     if (typeof window === "undefined") return {};
     try {
@@ -95,6 +104,9 @@ export default function Templates() {
         if (cancelled) return;
         setExercises(exerciseRows);
         setTemplates(templateRows);
+        setRecentAddExerciseIds(
+          readRecentSelections(TEMPLATE_ADD_EXERCISE_SCOPE)
+        );
         // subscribe only once needed
         requestRealtime("templates");
       } finally {
@@ -233,6 +245,9 @@ export default function Templates() {
     };
     await db.put("templates", nt);
     setTemplates(templates.map((x) => (x.id === t.id ? nt : x)));
+    setRecentAddExerciseIds(
+      rememberRecentSelection(TEMPLATE_ADD_EXERCISE_SCOPE, ex.id, 16)
+    );
     setShowAddFor(null);
     setQuery("");
   };
@@ -383,6 +398,21 @@ export default function Templates() {
       .slice(0, 250)
       .map((x) => x.e);
   }, [exerciseQuery, exercises, showAllExercises]);
+
+  const addExerciseResults = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    const filtered = term
+      ? exercises.filter((exercise) =>
+          exercise.name.toLowerCase().includes(term)
+        )
+      : exercises;
+    return sortByRecentSelection(
+      filtered,
+      (exercise) => exercise.id,
+      recentAddExerciseIds,
+      (left, right) => left.name.localeCompare(right.name)
+    ).slice(0, 300);
+  }, [query, exercises, recentAddExerciseIds]);
 
   if (initialLoading) {
     return <TemplatesSkeleton />;
@@ -833,59 +863,83 @@ export default function Templates() {
 
       {showAddFor && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 grid place-items-end sm:place-items-center"
+          className="fixed inset-0 z-50 grid place-items-end bg-black/60 sm:place-items-center sm:p-4"
           onClick={() => setShowAddFor(null)}
         >
           <div
-            className="bg-card rounded-t-2xl sm:rounded-2xl p-4 shadow-soft w-full sm:max-w-md"
+            className="flex w-full max-h-[min(90dvh,calc(100dvh-0.75rem))] flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft sm:rounded-2xl sm:max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="font-medium mb-2">Add exercise</div>
-            <input
-              autoFocus
-              className="w-full bg-slate-800 rounded-xl px-3 py-3"
-              placeholder="Search or create exercise"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            <div className="mt-3 max-h-[60vh] overflow-y-auto space-y-2">
-              {/* Create option when no exact case-insensitive match */}
-              {(() => {
-                const q = query.trim();
-                if (!q) return null;
-                const exact = findExerciseByName(q);
-                if (!exact) {
+            <div className="flex-1 overflow-y-auto p-4 pb-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="font-medium">Add exercise</div>
+                <button
+                  type="button"
+                  className="rounded-lg border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:text-white"
+                  onClick={() => setShowAddFor(null)}
+                >
+                  Close
+                </button>
+              </div>
+              <input
+                autoFocus
+                className="w-full rounded-xl bg-slate-800 px-3 py-3"
+                placeholder="Search or create exercise"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                type="search"
+                spellCheck={false}
+              />
+              <div className="mt-3 max-h-[min(54dvh,380px)] overflow-y-auto space-y-2 pb-2">
+                {/* Create option when no exact case-insensitive match */}
+                {(() => {
+                  const q = query.trim();
+                  if (!q) return null;
+                  const exact = findExerciseByName(q);
+                  if (!exact) {
+                    return (
+                      <button
+                        className="w-full rounded-xl bg-brand-600 px-3 py-3 text-left hover:bg-brand-700"
+                        onClick={async () => {
+                          const t = templates.find((x) => x.id === showAddFor)!;
+                          const e = await createOrGetExercise(q);
+                          await addExerciseToTemplate(t, e);
+                        }}
+                      >
+                        Create "{q}"
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
+                {addExerciseResults.map((exercise) => {
+                  const isRecent = recentAddExerciseIds.includes(exercise.id);
                   return (
                     <button
-                      className="w-full text-left px-3 py-3 rounded-xl bg-brand-600 hover:bg-brand-700"
-                      onClick={async () => {
+                      key={exercise.id}
+                      className="w-full rounded-xl bg-slate-800 px-3 py-3 text-left hover:bg-slate-700"
+                      onClick={() => {
                         const t = templates.find((x) => x.id === showAddFor)!;
-                        const e = await createOrGetExercise(q);
-                        await addExerciseToTemplate(t, e);
+                        addExerciseToTemplate(t, exercise);
                       }}
                     >
-                      Create “{q}”
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate">{exercise.name}</span>
+                        {isRecent && (
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/70">
+                            Recent
+                          </span>
+                        )}
+                      </span>
                     </button>
                   );
-                }
-                return null;
-              })()}
-              {exercises
-                .filter((e) =>
-                  e.name.toLowerCase().includes(query.toLowerCase())
-                )
-                .map((e) => (
-                  <button
-                    key={e.id}
-                    className="w-full text-left px-3 py-3 bg-slate-800 rounded-xl"
-                    onClick={() => {
-                      const t = templates.find((x) => x.id === showAddFor)!;
-                      addExerciseToTemplate(t, e);
-                    }}
-                  >
-                    {e.name}
-                  </button>
-                ))}
+                })}
+                {!addExerciseResults.length && query.trim() && (
+                  <div className="rounded-xl bg-slate-800/60 px-3 py-4 text-center text-sm text-slate-300/70">
+                    No exercises match your search.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

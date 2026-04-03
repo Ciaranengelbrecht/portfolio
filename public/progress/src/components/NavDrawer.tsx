@@ -48,7 +48,7 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
       <div className="absolute inset-y-0 right-0 flex max-w-full pointer-events-none">
         <div
           ref={panelRef}
-          className="pointer-events-auto w-[78vw] max-w-[320px] h-full bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_10px_40px_-8px_rgba(0,0,0,.6)] flex flex-col outline-none translate-x-0 animate-[drawerSlide_.4s_cubic-bezier(.32,.72,.33,1)]"
+          className="pointer-events-auto w-[78vw] max-w-[320px] h-full bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_10px_40px_-8px_rgba(0,0,0,.6)] flex flex-col outline-none translate-x-0 animate-[drawerSlide_.4s_cubic-bezier(.32,.72,.33,1)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]"
           tabIndex={-1}
         >
           <div className="p-4 pb-3 flex items-center justify-between gap-3">
@@ -57,7 +57,7 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
               Close
             </button>
           </div>
-          <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-1" aria-label="Primary">
+          <nav className="flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1" aria-label="Primary">
             {[
               ['/', 'Dashboard'],
               ['/analytics','Analytics'],
