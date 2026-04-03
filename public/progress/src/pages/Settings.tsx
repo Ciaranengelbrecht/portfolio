@@ -110,6 +110,11 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [userEmail, setUserEmail] = useState<string | undefined>();
+  const [profileNameDraft, setProfileNameDraft] = useState("");
+  const [profileEmailDraft, setProfileEmailDraft] = useState("");
+  const [profilePasswordCurrent, setProfilePasswordCurrent] = useState("");
+  const [profilePasswordNext, setProfilePasswordNext] = useState("");
+  const [profilePasswordConfirm, setProfilePasswordConfirm] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -133,6 +138,20 @@ export default function SettingsPage() {
 
   const hasPendingAutosave =
     settingsHydrated && JSON.stringify(s) !== lastSavedSettingsRef.current;
+
+  const applyAuthIdentity = (user?: any) => {
+    setUserEmail(user?.email || undefined);
+    setProfileEmailDraft(user?.email || "");
+    const metadata = user?.user_metadata || {};
+    const rawName = metadata.display_name ?? metadata.full_name ?? "";
+    const nextName = typeof rawName === "string" ? rawName : "";
+    setProfileNameDraft(nextName);
+    if (!user) {
+      setProfilePasswordCurrent("");
+      setProfilePasswordNext("");
+      setProfilePasswordConfirm("");
+    }
+  };
 
   type SectionCardProps = {
     id: string;
@@ -426,24 +445,20 @@ export default function SettingsPage() {
     // Track supabase auth state
     const sub = supabase.auth.onAuthStateChange(
       async (_evt: any, session: any) => {
-        setUserEmail(session?.user?.email || undefined);
+        applyAuthIdentity(session?.user);
         setAuthChecked(true);
       }
     );
     const onAuth = (e: any) => {
       const session = e?.detail?.session;
-      if (session) {
-        setUserEmail(session.user?.email || undefined);
-      }
+      applyAuthIdentity(session?.user);
     };
     window.addEventListener("sb-auth", onAuth);
     // get current session once (resilient)
     let timer = setTimeout(() => setAuthChecked(true), 1500);
     waitForSession({ timeoutMs: 1200 })
       .then((s: any) => {
-        if (s?.user?.email) {
-          setUserEmail(s.user.email || undefined);
-        }
+        applyAuthIdentity(s?.user);
         setAuthChecked(true);
       })
       .catch(() => setAuthChecked(true))
@@ -927,41 +942,299 @@ export default function SettingsPage() {
               Checking session…
             </div>
           ) : userEmail ? (
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-sm text-app">Signed in as {userEmail}</span>
-              <button
-                className={`px-3 py-2 rounded-xl ${
-                  busy === "signout" ? "btn-outline" : "btn-primary"
-                }`}
-                disabled={busy === "signout"}
-                onClick={async () => {
-                  setBusy("signout");
-                  try {
-                    await supabase.auth.signOut({ scope: "global" } as any);
-                    setToast("Signed out");
-                    setBigFlash("Signed out successfully");
-                  } finally {
+            <div className="space-y-3 mt-2">
+              <div className="settings-inline-field">
+                <div className="min-w-0">
+                  <div className="settings-switch-label">Signed in</div>
+                  <div className="settings-switch-description truncate">
+                    {userEmail}
+                  </div>
+                </div>
+                <button
+                  className={`px-3 py-2 rounded-xl ${
+                    busy === "signout" ? "btn-outline" : "btn-primary"
+                  }`}
+                  disabled={busy === "signout"}
+                  onClick={async () => {
+                    setBusy("signout");
                     try {
-                      localStorage.removeItem("sb_pw_reset");
-                      clearAuthStorage();
-                    } catch {}
-                    // Verify session gone (resilient)
-                    try {
-                      let tries = 0;
-                      while (tries++ < 10) {
-                        const s = await waitForSession({ timeoutMs: 800 });
-                        if (!s) break;
-                        await new Promise((r) => setTimeout(r, 100));
+                      await supabase.auth.signOut({ scope: "global" } as any);
+                      setToast("Signed out");
+                      setBigFlash("Signed out successfully");
+                    } finally {
+                      try {
+                        localStorage.removeItem("sb_pw_reset");
+                        clearAuthStorage();
+                      } catch {}
+                      // Verify session gone (resilient)
+                      try {
+                        let tries = 0;
+                        while (tries++ < 10) {
+                          const s = await waitForSession({ timeoutMs: 800 });
+                          if (!s) break;
+                          await new Promise((r) => setTimeout(r, 100));
+                        }
+                      } catch {}
+                      applyAuthIdentity(undefined);
+                      navigate("/");
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "signout" ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
+
+              <div className="settings-subpanel space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
+                    Profile
+                  </div>
+                  <span className="settings-static-pill text-[10px]">Live</span>
+                </div>
+                <label className="space-y-1">
+                  <div className="text-xs text-white/80">Display name</div>
+                  <input
+                    className="input-app rounded-xl px-3 py-2 w-full"
+                    placeholder="How should we address you?"
+                    maxLength={40}
+                    value={profileNameDraft}
+                    onChange={(e) => setProfileNameDraft(e.target.value)}
+                  />
+                </label>
+                <label className="space-y-1">
+                  <div className="text-xs text-white/80">Email</div>
+                  <input
+                    className="input-app rounded-xl px-3 py-2 w-full"
+                    placeholder="you@example.com"
+                    value={profileEmailDraft}
+                    onChange={(e) => setProfileEmailDraft(e.target.value)}
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn-primary px-3 py-2 rounded-xl"
+                    disabled={busy === "profile-name" || !profileNameDraft.trim()}
+                    onClick={async () => {
+                      const nextName = profileNameDraft.trim();
+                      if (!nextName) return alert("Enter a display name");
+                      setBusy("profile-name");
+                      try {
+                        const { data: userData } = await supabase.auth.getUser();
+                        const current = userData.user;
+                        if (!current) {
+                          alert("Session expired. Please sign in again.");
+                          return;
+                        }
+                        const metadata = current.user_metadata || {};
+                        const { data, error } = await supabase.auth.updateUser({
+                          data: {
+                            ...metadata,
+                            display_name: nextName,
+                            full_name: nextName,
+                          },
+                        });
+                        if (error) {
+                          alert("Could not update profile name: " + error.message);
+                          return;
+                        }
+                        applyAuthIdentity(data.user);
+                        setToast("Profile name updated");
+                        setBigFlash("Name saved");
+                      } finally {
+                        setBusy(null);
                       }
-                    } catch {}
-                    setUserEmail(undefined);
-                    navigate("/");
-                    setBusy(null);
-                  }
-                }}
-              >
-                Sign out
-              </button>
+                    }}
+                  >
+                    {busy === "profile-name" ? "Saving…" : "Save name"}
+                  </button>
+                  <button
+                    className="btn-outline px-3 py-2 rounded-xl"
+                    disabled={busy === "profile-name"}
+                    onClick={async () => {
+                      const { data } = await supabase.auth.getUser();
+                      const metadata = data.user?.user_metadata || {};
+                      const rawName = metadata.display_name ?? metadata.full_name ?? "";
+                      setProfileNameDraft(
+                        typeof rawName === "string" ? rawName : ""
+                      );
+                    }}
+                  >
+                    Reset
+                  </button>
+                  <button
+                    className="btn-outline px-3 py-2 rounded-xl"
+                    disabled={busy === "profile-email" || !profileEmailDraft.trim()}
+                    onClick={async () => {
+                      const nextEmail = profileEmailDraft.trim().toLowerCase();
+                      if (!/.+@.+\..+/.test(nextEmail)) {
+                        alert("Enter a valid email address");
+                        return;
+                      }
+                      if (nextEmail === (userEmail || "").toLowerCase()) {
+                        alert("Enter a different email address to update");
+                        return;
+                      }
+                      setBusy("profile-email");
+                      try {
+                        const { error } = await supabase.auth.updateUser({
+                          email: nextEmail,
+                        });
+                        if (error) {
+                          alert("Could not update email: " + error.message);
+                          return;
+                        }
+                        setProfileEmailDraft(nextEmail);
+                        setToast("Check your inbox to confirm your new email");
+                        setBigFlash("Email update requested");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                  >
+                    {busy === "profile-email" ? "Updating…" : "Update email"}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted leading-snug">
+                  Name updates sync instantly. Email updates require confirmation via your inbox.
+                </p>
+              </div>
+
+              <div className="settings-subpanel space-y-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
+                  Security
+                </div>
+                <div className="grid grid-cols-1 min-[460px]:grid-cols-2 gap-2">
+                  <input
+                    className="input-app rounded-xl px-3 py-2"
+                    placeholder="Current password"
+                    type="password"
+                    value={profilePasswordCurrent}
+                    onChange={(e) => setProfilePasswordCurrent(e.target.value)}
+                  />
+                  <input
+                    className="input-app rounded-xl px-3 py-2"
+                    placeholder="New password"
+                    type="password"
+                    value={profilePasswordNext}
+                    onChange={(e) => setProfilePasswordNext(e.target.value)}
+                  />
+                  <input
+                    className="input-app rounded-xl px-3 py-2 min-[460px]:col-span-2"
+                    placeholder="Confirm new password"
+                    type="password"
+                    value={profilePasswordConfirm}
+                    onChange={(e) => setProfilePasswordConfirm(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px]">
+                  <span
+                    className={`px-2 py-1 rounded-full border ${
+                      profilePasswordNext.length >= 8
+                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
+                        : "border-white/10 bg-white/5 text-white/70"
+                    }`}
+                  >
+                    8+ characters
+                  </span>
+                  <span
+                    className={`px-2 py-1 rounded-full border ${
+                      profilePasswordNext.length > 0 &&
+                      profilePasswordNext === profilePasswordConfirm
+                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
+                        : "border-white/10 bg-white/5 text-white/70"
+                    }`}
+                  >
+                    Passwords match
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="btn-primary px-3 py-2 rounded-xl"
+                    disabled={
+                      busy === "profile-password" ||
+                      !profilePasswordCurrent ||
+                      profilePasswordNext.length < 8 ||
+                      profilePasswordNext !== profilePasswordConfirm
+                    }
+                    onClick={async () => {
+                      if (!userEmail) return;
+                      if (!profilePasswordCurrent)
+                        return alert("Enter your current password");
+                      if (!profilePasswordNext || profilePasswordNext.length < 8)
+                        return alert("New password must be at least 8 characters");
+                      if (profilePasswordNext !== profilePasswordConfirm)
+                        return alert("New passwords do not match");
+                      if (profilePasswordCurrent === profilePasswordNext)
+                        return alert("Use a different password from your current one");
+
+                      setBusy("profile-password");
+                      try {
+                        const { error: verifyError } =
+                          await supabase.auth.signInWithPassword({
+                            email: userEmail,
+                            password: profilePasswordCurrent,
+                          });
+                        if (verifyError) {
+                          alert("Current password is incorrect.");
+                          return;
+                        }
+                        const { error } = await supabase.auth.updateUser({
+                          password: profilePasswordNext,
+                        });
+                        if (error) {
+                          alert("Could not update password: " + error.message);
+                          return;
+                        }
+                        setProfilePasswordCurrent("");
+                        setProfilePasswordNext("");
+                        setProfilePasswordConfirm("");
+                        setToast("Password updated");
+                        setBigFlash("Password changed");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                  >
+                    {busy === "profile-password"
+                      ? "Updating…"
+                      : "Update password"}
+                  </button>
+                  <button
+                    className="btn-outline px-3 py-2 rounded-xl"
+                    disabled={busy === "profile-reset-email"}
+                    onClick={async () => {
+                      if (!userEmail) return;
+                      const base =
+                        window.location.origin + window.location.pathname;
+                      const redirectTo = base.includes("/dist")
+                        ? base
+                        : base.replace(/\/?$/, "/") + "dist/";
+                      setBusy("profile-reset-email");
+                      try {
+                        const { error } =
+                          await supabase.auth.resetPasswordForEmail(userEmail, {
+                            redirectTo,
+                          });
+                        if (error) {
+                          alert("Reset error: " + error.message);
+                          return;
+                        }
+                        setToast("Password reset email sent");
+                      } finally {
+                        setBusy(null);
+                      }
+                    }}
+                  >
+                    {busy === "profile-reset-email"
+                      ? "Sending…"
+                      : "Send reset link"}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted leading-snug">
+                  For magic-link accounts or re-auth prompts, use Send reset link.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-2.5 mt-2">
@@ -992,7 +1265,7 @@ export default function SettingsPage() {
                       });
                     if (error) alert("Sign-in error: " + error.message);
                     else {
-                      setUserEmail(data.user?.email || email);
+                      applyAuthIdentity(data.user);
                       setToast("Signed in");
                       setBigFlash("Signed in successfully");
                     }
@@ -1020,7 +1293,7 @@ export default function SettingsPage() {
                     else if (!data.session)
                       alert("Check your email to confirm your account.");
                     else {
-                      setUserEmail(data.user?.email || email);
+                      applyAuthIdentity(data.user);
                       setToast("Account created");
                       setBigFlash("Signed in successfully");
                     }
@@ -1067,7 +1340,7 @@ export default function SettingsPage() {
                       });
                       if (error) alert("OTP error: " + error.message);
                       else {
-                        setUserEmail(data?.user?.email || email);
+                        applyAuthIdentity(data?.user);
                         setToast("Signed in via OTP");
                       }
                       setBusy(null);
