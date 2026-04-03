@@ -910,11 +910,17 @@ input[type="number"] {
 .session-collapsed-count {
   display: inline-flex;
   align-items: baseline;
-  justify-content: flex-end;
   gap: 0.28rem;
   white-space: nowrap;
   color: var(--text-muted);
   line-height: 1;
+}
+
+.session-collapsed-count-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.24rem;
+  padding-left: 0.1rem;
 }
 
 .session-collapsed-count-value {
