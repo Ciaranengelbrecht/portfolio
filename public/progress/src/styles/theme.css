@@ -665,3 +665,254 @@ body.rest-screen-flash::after {
     opacity: 0 !important;
   }
 }
+
+/* --- Settings page mobile-first visual overhaul --- */
+.settings-page {
+  --settings-edge: rgba(255 255 255 / 0.12);
+  --settings-panel: rgba(9 15 26 / 0.72);
+}
+
+.settings-shell {
+  border-radius: 1.25rem;
+  border: 1px solid var(--settings-edge);
+  background: linear-gradient(
+    145deg,
+    rgba(14 20 34 / 0.96),
+    rgba(14 20 34 / 0.68)
+  );
+  box-shadow: 0 14px 28px -16px rgba(0 0 0 / 0.8),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.16),
+    0 0 18px -12px rgba(var(--accent-rgb, 59 130 246) / 0.35);
+  backdrop-filter: blur(16px) saturate(145%);
+  position: sticky;
+  top: calc(var(--app-header-h, 56px) + 0.45rem);
+  z-index: 25;
+}
+
+.settings-page-title {
+  letter-spacing: -0.02em;
+}
+
+.settings-tab-strip {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+  scroll-snap-type: x mandatory;
+}
+
+.settings-tab-chip {
+  min-height: 44px;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255 255 255 / 0.12);
+  background: rgba(255 255 255 / 0.03);
+  color: rgba(241 245 249 / 0.86);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.settings-tab-chip[data-active="true"] {
+  border-color: rgba(var(--accent-rgb, 59 130 246) / 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb, 59 130 246) / 0.32),
+    rgba(var(--accent-rgb, 59 130 246) / 0.14)
+  );
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.2),
+    0 8px 16px -10px rgba(var(--accent-rgb, 59 130 246) / 0.6);
+}
+
+.settings-status-strip {
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255 255 255 / 0.11);
+  background: rgba(7 11 19 / 0.56);
+  padding: 0.7rem 0.75rem;
+}
+
+.settings-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255 255 255 / 0.08);
+  background: linear-gradient(
+    160deg,
+    var(--settings-panel),
+    rgba(8 12 21 / 0.58)
+  );
+  box-shadow: 0 18px 28px -22px rgba(0 0 0 / 0.85),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.13);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
+.settings-panel-head {
+  padding: 0.95rem 0.95rem 0.65rem;
+  border-bottom: 1px solid rgba(255 255 255 / 0.06);
+}
+
+.settings-panel-body {
+  padding: 0.95rem;
+}
+
+.settings-panel-eyebrow {
+  color: rgba(148 163 184 / 0.8);
+}
+
+.settings-panel-description {
+  max-width: 62ch;
+}
+
+.settings-highlight-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(16 185 129 / 0.34);
+  background: linear-gradient(
+    145deg,
+    rgba(16 185 129 / 0.13),
+    rgba(16 185 129 / 0.04)
+  );
+  padding: 0.85rem;
+}
+
+.settings-subpanel {
+  border-radius: 1rem;
+  border: 1px solid rgba(255 255 255 / 0.1);
+  background: rgba(4 9 17 / 0.5);
+  padding: 0.75rem;
+}
+
+.settings-rest-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+@media (min-width: 390px) {
+  .settings-rest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .settings-rest-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.settings-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.settings-toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255 255 255 / 0.12);
+  background: rgba(255 255 255 / 0.03);
+  padding: 0.42rem 0.6rem;
+  min-height: 42px;
+}
+
+.settings-danger-zone {
+  border-radius: 1rem;
+  border: 1px solid rgba(239 68 68 / 0.35);
+  background: linear-gradient(
+    150deg,
+    rgba(239 68 68 / 0.12),
+    rgba(239 68 68 / 0.03)
+  );
+  padding: 0.75rem;
+}
+
+.settings-danger-btn {
+  min-height: 44px;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(248 113 113 / 0.4);
+  background: linear-gradient(145deg, rgba(239 68 68 / 0.82), rgba(220 38 38 / 0.9));
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: transform 0.12s ease, filter 0.2s ease;
+}
+
+.settings-danger-btn:hover {
+  filter: brightness(1.04);
+}
+
+.settings-danger-btn:active {
+  transform: scale(0.98);
+}
+
+.settings-page .btn-primary,
+.settings-page .btn-outline {
+  min-height: 44px;
+  border-radius: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.settings-page .btn-primary {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-rgb, 59 130 246) / 0.95),
+    rgba(var(--accent-rgb, 59 130 246) / 0.72)
+  );
+  color: #fff;
+  border: 1px solid rgba(var(--accent-rgb, 59 130 246) / 0.35);
+  box-shadow: 0 12px 18px -14px rgba(var(--accent-rgb, 59 130 246) / 0.9),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.22);
+}
+
+.settings-page .btn-outline {
+  border: 1px solid rgba(255 255 255 / 0.16);
+  background: rgba(13 19 31 / 0.66);
+  color: rgba(241 245 249 / 0.95);
+}
+
+.settings-page .input-app {
+  min-height: 44px;
+  border-radius: 0.85rem;
+  border-color: rgba(255 255 255 / 0.14);
+  background: rgba(7 11 20 / 0.75);
+}
+
+.settings-page .input-app:focus,
+.settings-page .input-app:focus-visible {
+  outline: none;
+  border-color: rgba(var(--accent-rgb, 59 130 246) / 0.55);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 59 130 246) / 0.2);
+}
+
+.settings-page select.input-app {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #94a3b8 50%),
+    linear-gradient(135deg, #94a3b8 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px)
+    calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+@media (min-width: 768px) {
+  .settings-shell,
+  .settings-panel {
+    border-radius: 1.4rem;
+  }
+
+  .settings-panel-head {
+    padding: 1.1rem 1.1rem 0.8rem;
+  }
+
+  .settings-panel-body {
+    padding: 1.1rem;
+  }
+}

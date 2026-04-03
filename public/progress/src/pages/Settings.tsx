@@ -154,18 +154,22 @@ export default function SettingsPage() {
     return (
       <section
         id={`settings-${id}`}
-        className="bg-card rounded-2xl shadow-soft border border-white/5"
+        className="settings-panel"
       >
-        <div className="flex flex-wrap items-start gap-3 px-4 py-4">
+        <div className="settings-panel-head flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             {eyebrow && (
-              <div className="text-[10px] uppercase tracking-[0.32em] text-white/40">
+              <div className="settings-panel-eyebrow text-[10px] uppercase tracking-[0.32em] text-white/40">
                 {eyebrow}
               </div>
             )}
-            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+            <h3 className="text-lg font-semibold text-slate-100 leading-tight">
+              {title}
+            </h3>
             {description && (
-              <p className="text-sm text-slate-300/80">{description}</p>
+              <p className="settings-panel-description text-sm text-slate-300/80">
+                {description}
+              </p>
             )}
           </div>
           {badge && (
@@ -174,7 +178,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-        <div className="px-4 pb-4 space-y-4">{children}</div>
+        <div className="settings-panel-body space-y-4">{children}</div>
       </section>
     );
   };
@@ -642,64 +646,58 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-4 space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold text-white">Settings</h2>
-            <p className="text-sm text-white/70">
-              Choose a category, edit what you need, and changes autosave.
-            </p>
-          </div>
-          <div className="text-xs text-white/65 sm:text-right">
-            <div>{userEmail ? `Sync: ${userEmail}` : "Sync: Offline mode"}</div>
-            <div>
-              {hasPendingAutosave ? "Autosave pending" : "Autosave up to date"}
-            </div>
-          </div>
+    <div className="settings-page space-y-4 pb-20">
+      <div className="settings-shell space-y-3">
+        <div className="space-y-1">
+          <h2 className="settings-page-title text-xl font-semibold text-white">
+            Settings
+          </h2>
+          <p className="text-sm text-white/70 leading-snug">
+            Mobile-first control center for your training preferences, account,
+            and data.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="settings-tab-strip no-scrollbar" role="tablist" aria-label="Settings categories">
           {SETTINGS_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                activeTab === tab.id
-                  ? "border-emerald-400/70 bg-emerald-500/15 text-white"
-                  : "border-white/12 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10"
-              }`}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className="settings-tab-chip"
+              data-active={activeTab === tab.id ? "true" : "false"}
               onClick={() => setActiveTab(tab.id)}
-              aria-pressed={activeTab === tab.id}
             >
               {tab.label}
             </button>
           ))}
         </div>
-        <p className="text-xs text-white/65">{activeTabMeta.description}</p>
-      </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs text-white/70">
-          {hasPendingAutosave
-            ? "Autosave is running. You can still force-save now."
-            : "All visible settings are saved."}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn-outline px-3 py-2 rounded-xl text-xs"
-            onClick={() => void saveNow()}
-          >
-            Save now
-          </button>
-          <button
-            type="button"
-            className="btn-outline px-3 py-2 rounded-xl text-xs disabled:opacity-50"
-            onClick={() => void undoLastSave()}
-            disabled={!undoSnapshot}
-          >
-            Undo last save
-          </button>
+        <div className="settings-status-strip flex flex-col gap-2">
+          <p className="text-xs text-white/75 leading-snug">{activeTabMeta.description}</p>
+          <div className="flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
+            <div className="text-xs text-white/70">
+              {userEmail ? `Sync: ${userEmail}` : "Sync: Offline mode"} · {hasPendingAutosave ? "Autosave pending" : "Saved"}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-outline px-3 py-2 rounded-xl text-xs"
+                onClick={() => void saveNow()}
+              >
+                Save now
+              </button>
+              <button
+                type="button"
+                className="btn-outline px-3 py-2 rounded-xl text-xs disabled:opacity-50"
+                onClick={() => void undoLastSave()}
+                disabled={!undoSnapshot}
+              >
+                Undo last save
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <GuidedSetupWizard
@@ -729,7 +727,7 @@ export default function SettingsPage() {
           description="Configure rest timer alerts, Supabase sync, and workout defaults."
           badge={<span>{userEmail ? "Signed in" : "Offline mode"}</span>}
         >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+        <div className="settings-highlight-card flex flex-col gap-3 min-[560px]:flex-row min-[560px]:items-center min-[560px]:justify-between">
           <div className="space-y-1">
             <div className="text-sm font-semibold text-white">
               {s.progress?.guidedSetup?.completed
@@ -743,7 +741,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <button
-            className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+            className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold"
             onClick={() => setShowGuidedSetup(true)}
           >
             {s.progress?.guidedSetup?.completed
@@ -751,18 +749,18 @@ export default function SettingsPage() {
               : "Launch guided setup"}
           </button>
         </div>
-        <div>
+        <div className="space-y-2">
           <div className="font-medium mb-1">Rest Timer</div>
           <div className="text-xs text-muted mb-2">
             Default target rest time (seconds). Timer animates, beeps, and
             vibrates (if enabled) when this threshold is reached.
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="settings-rest-grid">
             <input
               type="number"
               min={30}
               max={300}
-              className="input-app rounded-xl px-3 py-2 w-28"
+              className="input-app rounded-xl px-3 py-2 w-full min-[390px]:max-w-[120px]"
               value={s.restTimerTargetSeconds ?? ""}
               onChange={(e) => {
                 const v = Number(e.target.value);
@@ -773,14 +771,14 @@ export default function SettingsPage() {
                 }));
               }}
             />
-            <div className="flex gap-2">
+            <div className="settings-chip-row min-[390px]:col-span-2 lg:col-span-3">
               {[60, 90, 120, 150].map((preset) => (
                 <button
                   key={preset}
-                  className={`px-3 py-2 rounded-xl text-xs ${
+                  className={`px-3 py-2 rounded-xl text-xs font-medium min-h-[42px] ${
                     (s.restTimerTargetSeconds || 0) === preset
-                      ? "bg-emerald-600"
-                      : "bg-slate-700"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-800/85 border border-white/10 text-white/85"
                   }`}
                   onClick={() =>
                     setS((prev) => ({
@@ -793,7 +791,7 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
+            <label className="settings-toggle-chip">
               <input
                 type="checkbox"
                 checked={s.restTimerStrongAlert !== false}
@@ -807,7 +805,7 @@ export default function SettingsPage() {
               <span>Strong pulse</span>
             </label>
             <label
-              className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1"
+              className="settings-toggle-chip"
               title="Play a short beep when rest target is reached"
             >
               <input
@@ -824,7 +822,7 @@ export default function SettingsPage() {
                 <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
                   <span>Style</span>
                   <select
-                    className="bg-slate-800 rounded px-2 py-1"
+                    className="input-app rounded-lg px-2 py-1"
                     value={s.restTimerBeepStyle || "gentle"}
                     onChange={(e) =>
                       setS((prev) => ({
@@ -846,7 +844,7 @@ export default function SettingsPage() {
                     type="number"
                     min={1}
                     max={5}
-                    className="bg-slate-800 rounded px-2 py-1 w-16"
+                    className="input-app rounded-lg px-2 py-1 w-16"
                     value={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
                     onChange={(e) => {
                       const v = Number(e.target.value);
@@ -895,7 +893,7 @@ export default function SettingsPage() {
               </>
             )}
             <label
-              className="flex items-center gap-1 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1"
+              className="settings-toggle-chip"
               title="Brief white flash behind app when rest target first reached. Accessibility: may be intense for some users."
             >
               <input
@@ -925,7 +923,7 @@ export default function SettingsPage() {
             most animations.
           </div>
         </div>
-        <div className="mb-2">
+        <div className="settings-subpanel mb-1">
           <div className="font-medium">Account (Supabase)</div>
           <div className="text-sm text-muted">
             Sign in to sync via Supabase. Offline still works; changes sync when
@@ -973,7 +971,7 @@ export default function SettingsPage() {
               </button>
             </div>
           ) : (
-            <div className="space-y-2 mt-2">
+            <div className="space-y-2.5 mt-2">
               <input
                 className="input-app rounded-xl px-3 py-3 w-full"
                 placeholder="you@example.com"
@@ -987,9 +985,9 @@ export default function SettingsPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                 <button
-                  className="btn-primary px-3 py-3 rounded-xl"
+                  className="btn-primary px-3 py-3 rounded-xl w-full"
                   onClick={async () => {
                     if (!email || !password)
                       return alert("Enter email and password");
@@ -1011,7 +1009,7 @@ export default function SettingsPage() {
                   Sign in
                 </button>
                 <button
-                  className="btn-outline px-3 py-3 rounded-xl"
+                  className="btn-outline px-3 py-3 rounded-xl w-full"
                   onClick={async () => {
                     if (!email || !password)
                       return alert("Enter email and password");
@@ -1039,7 +1037,7 @@ export default function SettingsPage() {
                   Create account
                 </button>
                 <button
-                  className="btn-outline px-3 py-3 rounded-xl"
+                  className="btn-outline px-3 py-3 rounded-xl w-full"
                   onClick={async () => {
                     if (!email) return alert("Enter your email");
                     const redirectTo =
@@ -1056,9 +1054,9 @@ export default function SettingsPage() {
                 >
                   Send magic link
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-[420px]:col-span-2">
                   <input
-                    className="input-app rounded-xl px-3 py-3"
+                    className="input-app rounded-xl px-3 py-3 flex-1"
                     placeholder="OTP code"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
@@ -1086,7 +1084,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <button
-                  className="btn-outline px-3 py-3 rounded-xl"
+                  className="btn-outline px-3 py-3 rounded-xl w-full min-[420px]:col-span-2"
                   onClick={async () => {
                     if (!email) return alert("Enter your email");
                     // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
@@ -1132,7 +1130,7 @@ export default function SettingsPage() {
             type === "recovery" || localStorage.getItem("sb_pw_reset") === "1";
           if (isRecovery) {
             return (
-              <div className="mt-2 space-y-2">
+              <div className="settings-subpanel mt-2 space-y-2">
                 <div className="text-sm text-app">Reset your password</div>
                 <input
                   className="input-app rounded-xl px-3 py-3 w-full"
@@ -1178,7 +1176,7 @@ export default function SettingsPage() {
           }
           return null;
         })()}
-        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+        <div className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-3 gap-3">
           <label className="space-y-1">
             <div className="text-sm text-app">Units</div>
             <select
@@ -2066,169 +2064,174 @@ export default function SettingsPage() {
                 />
               </label>
               {s.ecg?.enabled && (
-                <>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Intensity</span>
-                    <select
-                      className="bg-transparent outline-none"
-                      value={s.ecg?.intensity || "low"}
-                      onChange={(e) => {
-                        const intensity = e.target.value as any;
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), intensity, enabled: true },
-                        };
-                        setS(next);
-                        const root = document.documentElement;
-                        const map: Record<
-                          string,
-                          {
-                            opacity: string;
-                            speed: string;
-                            strokeWidth: string;
-                            dash: string;
-                          }
-                        > = {
-                          low: {
-                            opacity: "0.15",
-                            speed: "46s",
-                            strokeWidth: "1.6",
-                            dash: "5 7",
-                          },
-                          med: {
-                            opacity: "0.25",
-                            speed: "34s",
-                            strokeWidth: "2",
-                            dash: "5 5",
-                          },
-                          high: {
-                            opacity: "0.35",
-                            speed: "26s",
-                            strokeWidth: "2.4",
-                            dash: "4 4",
-                          },
-                        };
-                        const cfg = map[intensity];
-                        root.style.setProperty("--ecg-opacity", cfg.opacity);
-                        root.style.setProperty("--ecg-speed", cfg.speed);
-                        root.style.setProperty(
-                          "--ecg-stroke-w",
-                          cfg.strokeWidth
-                        );
-                        root.style.setProperty("--ecg-dash", cfg.dash);
-                      }}
-                    >
-                      <option value="low">Low</option>
-                      <option value="med">Med</option>
-                      <option value="high">High</option>
-                    </select>
+                <details className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-medium text-white/85">
+                    Advanced ECG controls
+                  </summary>
+                  <div className="mt-3 grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Intensity</span>
+                      <select
+                        className="bg-transparent outline-none"
+                        value={s.ecg?.intensity || "low"}
+                        onChange={(e) => {
+                          const intensity = e.target.value as any;
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), intensity, enabled: true },
+                          };
+                          setS(next);
+                          const root = document.documentElement;
+                          const map: Record<
+                            string,
+                            {
+                              opacity: string;
+                              speed: string;
+                              strokeWidth: string;
+                              dash: string;
+                            }
+                          > = {
+                            low: {
+                              opacity: "0.15",
+                              speed: "46s",
+                              strokeWidth: "1.6",
+                              dash: "5 7",
+                            },
+                            med: {
+                              opacity: "0.25",
+                              speed: "34s",
+                              strokeWidth: "2",
+                              dash: "5 5",
+                            },
+                            high: {
+                              opacity: "0.35",
+                              speed: "26s",
+                              strokeWidth: "2.4",
+                              dash: "4 4",
+                            },
+                          };
+                          const cfg = map[intensity];
+                          root.style.setProperty("--ecg-opacity", cfg.opacity);
+                          root.style.setProperty("--ecg-speed", cfg.speed);
+                          root.style.setProperty(
+                            "--ecg-stroke-w",
+                            cfg.strokeWidth
+                          );
+                          root.style.setProperty("--ecg-dash", cfg.dash);
+                        }}
+                      >
+                        <option value="low">Low</option>
+                        <option value="med">Med</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Shape</span>
+                      <select
+                        className="bg-transparent outline-none"
+                        value={s.ecg?.shape || "classic"}
+                        onChange={(e) => {
+                          const shape = e.target.value as any;
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), shape, enabled: true },
+                          };
+                          setS(next);
+                        }}
+                      >
+                        <option value="classic">Classic</option>
+                        <option value="smooth">Smooth</option>
+                        <option value="spikes">Spikes</option>
+                        <option value="minimal">Minimal</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Speed</span>
+                      <input
+                        type="range"
+                        min={4000}
+                        max={180000}
+                        step={1000}
+                        value={s.ecg?.speedMs || 42000}
+                        onChange={(e) => {
+                          const speedMs = Number(e.target.value);
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), speedMs, enabled: true },
+                          };
+                          setS(next);
+                          document.documentElement.style.setProperty(
+                            "--ecg-custom-speed-ms",
+                            String(speedMs)
+                          );
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Trail</span>
+                      <input
+                        title={String(s.ecg?.trailMs || 2000) + " ms"}
+                        type="range"
+                        min={400}
+                        max={8000}
+                        step={100}
+                        value={s.ecg?.trailMs || 2000}
+                        onChange={(e) => {
+                          const trailMs = Number(e.target.value);
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), trailMs, enabled: true },
+                          };
+                          setS(next);
+                          document.documentElement.style.setProperty(
+                            "--ecg-trail-ms",
+                            String(trailMs)
+                          );
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Spikes</span>
+                      <input
+                        type="range"
+                        min={1}
+                        max={5}
+                        step={1}
+                        value={s.ecg?.spikes || 1}
+                        onChange={(e) => {
+                          const spikes = Number(e.target.value);
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), spikes, enabled: true },
+                          };
+                          setS(next);
+                        }}
+                      />
+                      <span className="text-xs opacity-70">
+                        {s.ecg?.spikes || 1}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                      <span>Color</span>
+                      <input
+                        type="color"
+                        value={s.ecg?.color || "#22c55e"}
+                        onChange={(e) => {
+                          const color = e.target.value;
+                          const next = {
+                            ...s,
+                            ecg: { ...(s.ecg || {}), color, enabled: true },
+                          };
+                          setS(next);
+                          document.documentElement.style.setProperty(
+                            "--ecg-custom-color",
+                            color
+                          );
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Shape</span>
-                    <select
-                      className="bg-transparent outline-none"
-                      value={s.ecg?.shape || "classic"}
-                      onChange={(e) => {
-                        const shape = e.target.value as any;
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), shape, enabled: true },
-                        };
-                        setS(next);
-                      }}
-                    >
-                      <option value="classic">Classic</option>
-                      <option value="smooth">Smooth</option>
-                      <option value="spikes">Spikes</option>
-                      <option value="minimal">Minimal</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Speed</span>
-                    <input
-                      type="range"
-                      min={4000}
-                      max={180000}
-                      step={1000}
-                      value={s.ecg?.speedMs || 42000}
-                      onChange={(e) => {
-                        const speedMs = Number(e.target.value);
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), speedMs, enabled: true },
-                        };
-                        setS(next);
-                        document.documentElement.style.setProperty(
-                          "--ecg-custom-speed-ms",
-                          String(speedMs)
-                        );
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Trail</span>
-                    <input
-                      title={String(s.ecg?.trailMs || 2000) + " ms"}
-                      type="range"
-                      min={400}
-                      max={8000}
-                      step={100}
-                      value={s.ecg?.trailMs || 2000}
-                      onChange={(e) => {
-                        const trailMs = Number(e.target.value);
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), trailMs, enabled: true },
-                        };
-                        setS(next);
-                        document.documentElement.style.setProperty(
-                          "--ecg-trail-ms",
-                          String(trailMs)
-                        );
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Spikes</span>
-                    <input
-                      type="range"
-                      min={1}
-                      max={5}
-                      step={1}
-                      value={s.ecg?.spikes || 1}
-                      onChange={(e) => {
-                        const spikes = Number(e.target.value);
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), spikes, enabled: true },
-                        };
-                        setS(next);
-                      }}
-                    />
-                    <span className="text-xs opacity-70">
-                      {s.ecg?.spikes || 1}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                    <span>Color</span>
-                    <input
-                      type="color"
-                      value={s.ecg?.color || "#22c55e"}
-                      onChange={(e) => {
-                        const color = e.target.value;
-                        const next = {
-                          ...s,
-                          ecg: { ...(s.ecg || {}), color, enabled: true },
-                        };
-                        setS(next);
-                        document.documentElement.style.setProperty(
-                          "--ecg-custom-color",
-                          color
-                        );
-                      }}
-                    />
-                  </div>
-                </>
+                </details>
               )}
             </div>
           </div>
@@ -2244,69 +2247,79 @@ export default function SettingsPage() {
           title="Data and safety"
           description="Control destructive actions and manage import/export/reset workflows."
         >
-          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-            <span className="text-sm text-app">
-              Confirm before deleting items
-            </span>
-            <input
-              type="checkbox"
-              checked={!!s.confirmDestructive}
-              onChange={(e) =>
-                setS({ ...s, confirmDestructive: e.target.checked })
-              }
-            />
-          </label>
-          <div className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-3 text-xs text-white/70">
-            Export creates a full backup. Import merges data from a previous export. Reset and account deletion are permanent.
+          <div className="settings-subpanel space-y-3">
+            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+              <span className="text-sm text-app">
+                Confirm before deleting items
+              </span>
+              <input
+                type="checkbox"
+                checked={!!s.confirmDestructive}
+                onChange={(e) =>
+                  setS({ ...s, confirmDestructive: e.target.checked })
+                }
+              />
+            </label>
+            <p className="text-xs text-white/70 leading-snug">
+              Export creates a full backup. Import merges data from a previous export.
+            </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              className="btn-outline px-3 py-2 rounded-xl"
-              onClick={exportData}
-            >
-              Export JSON & CSV
-            </button>
-            <input
-              type="file"
-              hidden
-              ref={fileRef}
-              accept="application/json"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) importData(f);
-              }}
-            />
-            <button
-              className="btn-outline px-3 py-2 rounded-xl"
-              onClick={() => fileRef.current?.click()}
-            >
-              Import JSON
-            </button>
-            <button
-              className="px-3 py-2 rounded-xl text-white"
-              style={{ background: "var(--danger)" }}
-              onClick={resetData}
-            >
-              Reset data
-            </button>
-            <a
-              className="btn-outline px-3 py-2 rounded-xl"
-              href="https://ciaranengelbrecht.com/delete-account-liftlog.html"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Deletion info
-            </a>
-            {userEmail && (
+          <div className="settings-subpanel">
+            <div className="grid grid-cols-1 min-[390px]:grid-cols-2 gap-2">
               <button
-                className="px-3 py-2 rounded-xl text-white"
-                style={{ background: "#ef4444" }}
-                disabled={busy === "delete"}
-                onClick={deleteAccountAndData}
+                className="btn-outline px-3 py-2 rounded-xl"
+                onClick={exportData}
               >
-                {busy === "delete" ? "Deleting…" : "Delete account & data"}
+                Export JSON & CSV
               </button>
-            )}
+              <input
+                type="file"
+                hidden
+                ref={fileRef}
+                accept="application/json"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importData(f);
+                }}
+              />
+              <button
+                className="btn-outline px-3 py-2 rounded-xl"
+                onClick={() => fileRef.current?.click()}
+              >
+                Import JSON
+              </button>
+              <a
+                className="btn-outline px-3 py-2 rounded-xl inline-flex items-center justify-center"
+                href="https://ciaranengelbrecht.com/delete-account-liftlog.html"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Deletion info
+              </a>
+            </div>
+          </div>
+
+          <div className="settings-danger-zone space-y-3">
+            <p className="text-xs font-medium text-red-200/90">
+              Danger zone: these actions are permanent and cannot be undone.
+            </p>
+            <div className="grid grid-cols-1 min-[390px]:grid-cols-2 gap-2">
+              <button
+                className="settings-danger-btn"
+                onClick={resetData}
+              >
+                Reset data
+              </button>
+              {userEmail && (
+                <button
+                  className="settings-danger-btn"
+                  disabled={busy === "delete"}
+                  onClick={deleteAccountAndData}
+                >
+                  {busy === "delete" ? "Deleting…" : "Delete account & data"}
+                </button>
+              )}
+            </div>
           </div>
         </SectionCard>
       )}
@@ -2319,71 +2332,73 @@ export default function SettingsPage() {
           title="Progress"
           description="Tune weekly targets and gameplay effects that keep training fresh."
         >
-          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-            <span className="text-sm text-app">Weekly target days</span>
-            <input
-              className="input-app rounded px-2 py-1 w-16 text-center"
-              inputMode="numeric"
-              value={s.progress?.weeklyTargetDays ?? 6}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (!/^\d*$/.test(v)) return;
-                const n = Math.max(3, Math.min(6, Number(v || "6")));
-                setS({
-                  ...s,
-                  progress: { ...(s.progress || {}), weeklyTargetDays: n },
-                });
-              }}
-            />
-          </label>
-          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-            <span className="text-sm text-app">Gamification effects</span>
-            <input
-              type="checkbox"
-              checked={s.progress?.gamification ?? true}
-              onChange={(e) =>
-                setS({
-                  ...s,
-                  progress: {
-                    ...(s.progress || {}),
-                    gamification: e.target.checked,
-                  },
-                })
-              }
-            />
-          </label>
-          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-            <span className="text-sm text-app">Show deload hints</span>
-            <input
-              type="checkbox"
-              checked={s.progress?.showDeloadHints ?? true}
-              onChange={(e) =>
-                setS({
-                  ...s,
-                  progress: {
-                    ...(s.progress || {}),
-                    showDeloadHints: e.target.checked,
-                  },
-                })
-              }
-            />
-          </label>
-          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-            <span className="text-sm text-app">Show previous week hints</span>
-            <input
-              type="checkbox"
-              checked={s.progress?.showPrevHints ?? true}
-              onChange={(e) =>
-                setS({
-                  ...s,
-                  progress: {
-                    ...(s.progress || {}),
-                    showPrevHints: e.target.checked,
-                  },
-                })
-              }
-            />
-          </label>
+          <div className="grid grid-cols-1 min-[390px]:grid-cols-2 gap-3">
+            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+              <span className="text-sm text-app">Weekly target days</span>
+              <input
+                className="input-app rounded px-2 py-1 w-16 text-center"
+                inputMode="numeric"
+                value={s.progress?.weeklyTargetDays ?? 6}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!/^\d*$/.test(v)) return;
+                  const n = Math.max(3, Math.min(6, Number(v || "6")));
+                  setS({
+                    ...s,
+                    progress: { ...(s.progress || {}), weeklyTargetDays: n },
+                  });
+                }}
+              />
+            </label>
+            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+              <span className="text-sm text-app">Gamification effects</span>
+              <input
+                type="checkbox"
+                checked={s.progress?.gamification ?? true}
+                onChange={(e) =>
+                  setS({
+                    ...s,
+                    progress: {
+                      ...(s.progress || {}),
+                      gamification: e.target.checked,
+                    },
+                  })
+                }
+              />
+            </label>
+            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+              <span className="text-sm text-app">Show deload hints</span>
+              <input
+                type="checkbox"
+                checked={s.progress?.showDeloadHints ?? true}
+                onChange={(e) =>
+                  setS({
+                    ...s,
+                    progress: {
+                      ...(s.progress || {}),
+                      showDeloadHints: e.target.checked,
+                    },
+                  })
+                }
+              />
+            </label>
+            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+              <span className="text-sm text-app">Show previous week hints</span>
+              <input
+                type="checkbox"
+                checked={s.progress?.showPrevHints ?? true}
+                onChange={(e) =>
+                  setS({
+                    ...s,
+                    progress: {
+                      ...(s.progress || {}),
+                      showPrevHints: e.target.checked,
+                    },
+                  })
+                }
+              />
+            </label>
+          </div>
           <p className="text-xs text-muted">Changes in this section autosave.</p>
         </SectionCard>
       )}
@@ -2423,7 +2438,7 @@ export default function SettingsPage() {
               </span>
             }
           >
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2">
+            <div className="settings-subpanel flex flex-col gap-3 min-[560px]:flex-row min-[560px]:items-center min-[560px]:justify-between">
               <div className="text-xs text-white/70">
                 Program split and workout structure live in Program settings.
               </div>
@@ -2473,7 +2488,7 @@ function BeepTester({
 }) {
   return (
     <button
-      className="px-3 py-2 rounded-xl text-xs bg-slate-700 hover:bg-slate-600"
+      className="btn-outline px-3 py-2 rounded-xl text-xs"
       title="Play a preview beep"
       onClick={async () => {
         try {
@@ -2558,7 +2573,7 @@ function ExerciseOverrides({ onCountChange }: ExerciseOverridesProps) {
         {list.map((ex, i) => (
           <div
             key={ex.id}
-            className="grid grid-cols-3 gap-2 items-center [@media(max-width:420px)]:grid-cols-1 [@media(max-width:560px)]:grid-cols-2 bg-slate-800/40 rounded-xl px-3 py-2"
+            className="grid grid-cols-1 min-[430px]:grid-cols-[1.2fr_1fr_1fr] gap-2 items-center bg-slate-900/40 rounded-2xl px-3 py-2.5 border border-white/5"
           >
             <div className="truncate text-xs sm:text-sm">{ex.name}</div>
             <input
@@ -2664,16 +2679,16 @@ function ExerciseLibraryManager({
         Edit primary and secondary muscles. Secondary muscles contribute
         indirect volume (0.5x) in allocator.
       </div>
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="grid grid-cols-1 min-[560px]:grid-cols-2 gap-2 items-center">
         <input
-          className="input-app rounded-xl px-3 py-2"
+          className="input-app rounded-xl px-3 py-2 w-full"
           placeholder="Search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <div className="flex gap-2 items-center">
           <input
-            className="input-app rounded-xl px-3 py-2"
+            className="input-app rounded-xl px-3 py-2 flex-1"
             placeholder="New exercise"
             value={creating}
             onChange={(e) => setCreating(e.target.value)}
@@ -2690,7 +2705,7 @@ function ExerciseLibraryManager({
       <div className="flex flex-wrap gap-1 pt-1 pb-1">
         <button
           onClick={() => setMuscleFilter("")}
-          className={`text-[11px] px-2 py-1 rounded-lg border transition whitespace-nowrap ${
+          className={`text-[11px] px-2.5 py-1.5 rounded-xl border transition whitespace-nowrap ${
             muscleFilter === ""
               ? "bg-emerald-600/70 border-emerald-400 text-white shadow-inner"
               : "bg-slate-700/60 border-white/10 text-slate-200 hover:bg-slate-600/60"
@@ -2702,7 +2717,7 @@ function ExerciseLibraryManager({
           <button
             key={m}
             onClick={() => setMuscleFilter((prev) => (prev === m ? "" : m))}
-            className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border transition whitespace-nowrap capitalize ${
+            className={`flex items-center gap-1 text-[11px] px-2.5 py-1.5 rounded-xl border transition whitespace-nowrap capitalize ${
               muscleFilter === m
                 ? "bg-emerald-600/70 border-emerald-400 text-white shadow-inner"
                 : "bg-slate-700/60 border-white/10 text-slate-200 hover:bg-slate-600/60"
@@ -2746,18 +2761,18 @@ function ExerciseLibraryManager({
             return (
               <div
                 key={ex.id}
-                className="p-3 rounded-xl bg-slate-800 space-y-2"
+                className="p-3 rounded-2xl bg-slate-900/60 border border-white/5 space-y-2"
               >
                 <div className="flex justify-between gap-2 flex-wrap">
                   <input
-                    className="bg-slate-700 rounded px-2 py-1 text-sm flex-1 min-w-[160px]"
+                    className="input-app rounded-xl px-2 py-1.5 text-sm flex-1 min-w-[160px]"
                     value={ex.name}
                     onChange={(e) =>
                       update(ex.id, (x) => ({ ...x, name: e.target.value }))
                     }
                   />
                   <select
-                    className="bg-slate-700 rounded px-2 py-1 text-sm"
+                    className="input-app rounded-xl px-2 py-1.5 text-sm"
                     value={ex.muscleGroup}
                     onChange={(e) =>
                       update(ex.id, (x) => ({
@@ -2831,7 +2846,7 @@ function WeeklyVolumeTargets({
         Set desired weighted set targets per muscle. Used for allocator and
         dashboard progress bars. Changes autosave.
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[390px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
         {VOLUME_TARGET_MUSCLES.map((m) => (
           <label key={m} className="space-y-1">
             <span className="text-xs capitalize text-app">{m}</span>
