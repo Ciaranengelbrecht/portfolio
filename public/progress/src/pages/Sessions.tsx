@@ -5172,19 +5172,15 @@ export default function Sessions() {
             const hasLoggedSets = setsLogged.length > 0;
             const collapsedSummaryContent = (
               <>
-                <span
-                  className={`text-[10px] ${
-                    hasLoggedSets
-                      ? "font-semibold text-emerald-200 drop-shadow-[0_0_8px_rgba(16,185,129,0.45)]"
-                      : "font-medium text-slate-100"
-                  }`}
-                >
-                  {setsLogged.length}/{plannedSetCount} sets
+                <span className="session-collapsed-count-value tabular-nums">
+                  {setsLogged.length}/{plannedSetCount}
                 </span>
+                <span className="session-collapsed-count-label">sets</span>
               </>
             );
-            const collapsedSummaryClass =
-              "inline-flex items-center gap-1.5 rounded-lg bg-slate-800/75 px-2.5 py-1 text-[11px] text-slate-100 ring-1 ring-white/[0.08] shadow-sm";
+            const collapsedSummaryClass = `session-collapsed-count ${
+              hasLoggedSets ? "is-active" : ""
+            }`;
             const displayName =
               ex?.name || exNameCache[entry.exerciseId] || "Deleted exercise";
             const nameButtonClass = `inline-flex items-center gap-2 min-w-0 ${
@@ -5214,7 +5210,9 @@ export default function Sessions() {
               <div
                 key={entry.id}
                 id={`exercise-${entry.id}`}
-                className={`relative card-enhanced rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
+                className={`relative card-enhanced session-entry-card ${
+                  isCollapsed ? "is-collapsed" : "is-expanded"
+                } rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in reorder-anim group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
                   dimmed ? "opacity-30" : ""
                 } ${
                   isFocusTarget
@@ -5373,9 +5371,7 @@ export default function Sessions() {
                         </span>
                       )}
                       {isCollapsed && (
-                        <span
-                          className={`hidden sm:inline-flex ${collapsedSummaryClass}`}
-                        >
+                        <span className={`inline-flex ${collapsedSummaryClass}`}>
                           {collapsedSummaryContent}
                         </span>
                       )}
@@ -5480,14 +5476,6 @@ export default function Sessions() {
                       )}
                     </div>
                   </div>
-                  {/* Collapsed metrics pill keeps mobile footprint minimal */}
-                  {isCollapsed && (
-                    <span
-                      className={`${collapsedSummaryClass} sm:hidden mt-0.5 w-full justify-between`}
-                    >
-                      {collapsedSummaryContent}
-                    </span>
-                  )}
                   {/* Close inner content wrapper opened earlier */}
                 </div>
                 {/* end relative z-10 */}
@@ -5524,14 +5512,15 @@ export default function Sessions() {
                   {!isCollapsed && (
                     <motion.div
                       key="setsBlock"
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
+                      initial={{ height: 0, opacity: 0, y: -8 }}
+                      animate={{ height: "auto", opacity: 1, y: 0 }}
+                      exit={{ height: 0, opacity: 0, y: -8 }}
                       transition={{
-                        height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-                        opacity: { duration: 0.2, ease: "easeOut" },
+                        height: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.22, ease: "easeOut" },
+                        y: { duration: 0.22, ease: "easeOut" },
                       }}
-                      style={{ overflow: "hidden", willChange: "height, opacity" }}
+                      style={{ overflow: "hidden", willChange: "height, opacity, transform" }}
                     >
                       {/* Sets - mobile friendly list (Phase 6: Clean UX - Refined Dec 2025) */}
                       <div
@@ -5578,7 +5567,7 @@ export default function Sessions() {
                             {/* Weight & Reps - Aligned compact touch targets */}
                             <div className="grid grid-cols-2 gap-2 items-start">
                               {/* Weight Input */}
-                              <div className="input-wrapper-workout">
+                              <div className="input-wrapper-workout set-input-panel">
                                 <div className="flex items-center justify-between mb-0.5 h-4">
                                   <span className="input-label-workout">Weight</span>
                                   {(() => {
@@ -5666,7 +5655,7 @@ export default function Sessions() {
                               </div>
 
                               {/* Reps Input */}
-                              <div className="input-wrapper-workout">
+                              <div className="input-wrapper-workout set-input-panel">
                                 <div className="flex items-center justify-between mb-0.5 h-4">
                                   <span className="input-label-workout">Reps</span>
                                   {(() => {
@@ -5822,13 +5811,13 @@ export default function Sessions() {
 
                       {/* Sets grid with drag-and-drop (desktop) */}
                       <div
-                        className="mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center"
+                        className="session-sets-grid mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center"
                         role="list"
                         aria-label={`Sets for exercise ${entry.exerciseId}`}
                       >
-                        <div className="text-sm text-gray-400">Set</div>
-                        <div className="text-sm text-gray-400">Weight</div>
-                        <div className="text-sm text-gray-400">Reps</div>
+                        <div className="session-sets-grid-head">Set</div>
+                        <div className="session-sets-grid-head">Weight</div>
+                        <div className="session-sets-grid-head">Reps</div>
                         <div></div>
                         {entry.sets.map((set, idx) => (
                           <div
@@ -5863,10 +5852,10 @@ export default function Sessions() {
                               }
                             }}
                           >
-                            <div className="px-2">{set.setNumber}</div>
-                            <div className="flex items-start gap-1.5">
+                            <div className="session-set-number">{set.setNumber}</div>
+                            <div className="session-set-cell flex items-start gap-1.5">
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[13px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70"
+                                className="btn-stepper-large"
                                 onClick={() =>
                                   updateEntry({
                                     ...entry,
@@ -5891,7 +5880,7 @@ export default function Sessions() {
                                   inputMode="decimal"
                                   pattern="[0-9]*[.,]?[0-9]*"
                                   aria-label="Weight"
-                                  className="input-number-enhanced h-9 w-full"
+                                  className="input-workout-large"
                                   data-set-input="true"
                                   data-entry-id={entry.id}
                                   data-set-number={set.setNumber}
@@ -5989,7 +5978,7 @@ export default function Sessions() {
                                 {/* Suggestions disabled for faster rendering */}
                               </div>
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[13px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70"
+                                className="btn-stepper-large"
                                 onClick={() =>
                                   updateEntry({
                                     ...entry,
@@ -6007,9 +5996,9 @@ export default function Sessions() {
                                 +
                               </button>
                             </div>
-                            <div className="flex items-start gap-1.5">
+                            <div className="session-set-cell flex items-start gap-1.5">
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[13px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70"
+                                className="btn-stepper-large"
                                 onClick={() =>
                                   updateEntry({
                                     ...entry,
@@ -6033,7 +6022,7 @@ export default function Sessions() {
                                 <input
                                   inputMode="numeric"
                                   aria-label="Reps"
-                                  className="input-number-enhanced h-9 w-full"
+                                  className="input-workout-large"
                                   data-set-input="true"
                                   data-entry-id={entry.id}
                                   data-set-number={set.setNumber}
@@ -6139,7 +6128,7 @@ export default function Sessions() {
                                   )}
                               </div>
                               <button
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[13px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70"
+                                className="btn-stepper-large"
                                 onClick={() =>
                                   updateEntry({
                                     ...entry,
@@ -6154,14 +6143,14 @@ export default function Sessions() {
                                 +
                               </button>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="session-set-actions flex items-center gap-1.5">
                               <PRChip
                                 exerciseId={entry.exerciseId}
                                 score={(set.weightKg ?? 0) * (set.reps ?? 0)}
                                 week={week}
                               />
                               <button
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[11px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="btn-set-action"
                                 disabled={idx === 0}
                                 onClick={() => reorderSet(entry, idx, idx - 1)}
                                 aria-label="Move set up"
@@ -6169,7 +6158,7 @@ export default function Sessions() {
                                 <span aria-hidden="true">↑</span>
                               </button>
                               <button
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[11px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40"
+                                className="btn-set-action"
                                 disabled={idx === entry.sets.length - 1}
                                 onClick={() => reorderSet(entry, idx, idx + 1)}
                                 aria-label="Move set down"
@@ -6177,7 +6166,7 @@ export default function Sessions() {
                                 <span aria-hidden="true">↓</span>
                               </button>
                               <button
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/15 text-[11px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25"
+                                className="btn-set-delete"
                                 onClick={() => deleteSet(entry, idx)}
                                 aria-label="Delete set"
                               >
@@ -6186,7 +6175,7 @@ export default function Sessions() {
                               {/* Removed per-set rest controls in desktop grid */}
                               {idx === entry.sets.length - 1 && (
                                 <button
-                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/35 bg-emerald-600/20 text-[11px] text-emerald-200 transition-colors duration-150 hover:bg-emerald-600/30"
+                                  className="btn-set-action border-emerald-500/35 bg-emerald-600/20 text-emerald-200 hover:bg-emerald-600/30"
                                   onClick={() => duplicateLastSet(entry)}
                                   aria-label="Duplicate last set"
                                 >
@@ -6202,7 +6191,7 @@ export default function Sessions() {
                           <div></div>
                           <div>
                             <button
-                              className="text-[10px] bg-emerald-700 rounded px-2 py-0.5"
+                              className="btn-add-set"
                               onClick={() => addSet(entry)}
                             >
                               Add Set

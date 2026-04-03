@@ -865,55 +865,206 @@ input[type="number"] {
 /* Dec 2024 - Optimized for mid-workout use */
 /* Dec 2025 - Refined for cleaner, more compact layout */
 
+/* Session exercise card shell (expanded/collapsed states) */
+.session-entry-card {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 90%, transparent),
+    color-mix(in srgb, var(--bg-muted) 84%, transparent)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--card-border) 78%,
+    rgba(var(--accent-rgb, 59 130 246) / 0.22)
+  ) !important;
+  box-shadow: var(--shadow-sm),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.14),
+    0 14px 26px -22px rgba(0 0 0 / 0.62);
+  backdrop-filter: blur(9px) saturate(130%);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease, border-color 220ms ease, background-color 240ms ease,
+    opacity 180ms ease;
+}
+
+.session-entry-card.is-collapsed {
+  box-shadow: var(--shadow-sm),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.1),
+    0 10px 18px -18px rgba(0 0 0 / 0.5);
+}
+
+.session-entry-card.is-expanded:hover {
+  transform: translateY(-1px);
+}
+
+.session-entry-card.card-enhanced::before {
+  opacity: 0.52;
+}
+
+.session-entry-card.card-enhanced::after {
+  opacity: 0.34;
+  filter: blur(22px);
+}
+
+.session-collapsed-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.28rem;
+  margin-left: 0.2rem;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.session-collapsed-count-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.session-collapsed-count-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.86;
+}
+
+.session-collapsed-count.is-active .session-collapsed-count-value {
+  color: color-mix(in srgb, var(--success) 84%, var(--text) 16%);
+  text-shadow: 0 0 10px rgba(var(--accent-rgb, 59 130 246) / 0.22);
+}
+
 /* Clean set card - minimal and compact */
 .set-card-clean {
-  @apply relative rounded-lg px-2 py-1.5;
-  @apply bg-slate-900/35 border border-white/[0.04];
-  @apply transition-all duration-200;
+  position: relative;
+  border-radius: 0.9rem;
+  padding: 0.48rem 0.56rem 0.6rem;
+  border: 1px solid
+    color-mix(in srgb, var(--card-border) 78%, rgba(255 255 255 / 0.04));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 90%, transparent),
+    color-mix(in srgb, var(--bg-muted) 80%, transparent)
+  );
+  box-shadow: 0 10px 18px -18px rgba(0 0 0 / 0.62),
+    inset 0 1px 0 rgba(255 255 255 / 0.04);
+  transition: transform 180ms ease, border-color 220ms ease,
+    box-shadow 220ms ease, background-color 220ms ease;
+}
+
+.set-card-clean::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.42rem;
+  bottom: 0.42rem;
+  width: 2px;
+  border-radius: 999px;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.set-card-clean:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(
+    in srgb,
+    var(--card-border) 56%,
+    rgba(var(--accent-rgb, 59 130 246) / 0.34)
+  );
 }
 
 .set-card-clean.completed {
-  @apply border-l-2 border-l-emerald-500/50;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, rgba(15, 23, 42, 0.35) 100%);
+  border-color: color-mix(in srgb, var(--success) 42%, var(--card-border) 58%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success) 10%, var(--card) 90%) 0%,
+    color-mix(in srgb, var(--bg-muted) 86%, transparent) 100%
+  );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--success) 28%, transparent),
+    0 14px 22px -22px rgba(0 0 0 / 0.55);
+}
+
+.set-card-clean.completed::before {
+  background: color-mix(in srgb, var(--success) 76%, transparent);
+  opacity: 1;
 }
 
 .set-card-clean.active {
-  @apply border-l-2 border-l-amber-500/50;
-  @apply ring-1 ring-amber-500/15;
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--card-border) 58%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning) 22%, transparent);
 }
 
 /* Compact touch-friendly +/- buttons - smaller for cleaner mobile UI */
 .btn-stepper-large {
-  @apply flex items-center justify-center;
-  @apply min-h-[32px] min-w-[32px] h-[32px] w-[32px];
-  @apply rounded-md;
-  @apply bg-slate-800/70 border border-slate-700/40;
-  @apply text-white/90 text-sm font-medium;
-  @apply active:scale-90 active:bg-slate-700;
-  @apply transition-all duration-150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 32px;
+  height: 32px;
+  width: 32px;
+  border-radius: 0.58rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 70%, rgba(255 255 255 / 0.08));
+  background: color-mix(in srgb, var(--bg-muted) 78%, var(--card) 22%);
+  color: color-mix(in srgb, var(--text) 88%, var(--text-muted) 12%);
+  font-size: 0.83rem;
+  font-weight: 600;
+  transition: transform 140ms ease, background-color 180ms ease,
+    border-color 180ms ease, color 180ms ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
+.btn-stepper-large:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--card-border) 52%,
+    rgba(var(--accent-rgb, 59 130 246) / 0.34)
+  );
+  background: color-mix(in srgb, var(--bg-muted) 66%, var(--card) 34%);
+}
+
 .btn-stepper-large:active {
+  transform: scale(0.92);
+  background: color-mix(in srgb, var(--bg-muted) 58%, var(--card) 42%);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* Input for mid-workout logging - wider, clearer values */
 .input-workout-large {
-  @apply h-[34px] w-full;
-  @apply bg-slate-950/80 border border-slate-700/40 rounded-md;
-  @apply text-white text-sm font-semibold text-center tabular-nums;
-  @apply px-2;
-  @apply transition-all duration-200;
-  @apply focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none;
+  height: 34px;
+  width: 100%;
+  border-radius: 0.58rem;
+  border: 1px solid
+    color-mix(in srgb, var(--card-border) 70%, rgba(255 255 255 / 0.06));
+  background: color-mix(in srgb, var(--card) 90%, var(--bg-muted) 10%);
+  color: color-mix(in srgb, var(--text) 92%, black 8%);
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  padding: 0 0.45rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease,
+    background-color 180ms ease;
+  outline: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   min-width: 44px;
 }
 
+.input-workout-large:focus,
+.input-workout-large:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--card-border) 38%);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 59 130 246) / 0.2);
+  background: color-mix(in srgb, var(--card) 95%, var(--bg-muted) 5%);
+}
+
 .input-workout-large::placeholder {
-  @apply text-slate-600 font-normal text-xs;
+  color: color-mix(in srgb, var(--text-muted) 84%, transparent);
+  font-weight: 500;
+  font-size: 0.72rem;
 }
 
 /* Compact set header */
@@ -923,31 +1074,52 @@ input[type="number"] {
 
 .set-number-badge {
   @apply inline-flex items-center gap-1;
-  @apply text-[10px] font-medium text-slate-300;
+  color: color-mix(in srgb, var(--text) 86%, var(--text-muted) 14%);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
 }
 
 .set-number-badge .number {
-  @apply flex items-center justify-center;
-  @apply h-[18px] w-[18px] rounded;
-  @apply bg-slate-800/60 text-slate-400;
-  @apply text-[9px] font-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  width: 18px;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 65%, rgba(255 255 255 / 0.08));
+  background: color-mix(in srgb, var(--bg-muted) 76%, var(--card) 24%);
+  color: color-mix(in srgb, var(--text) 80%, var(--text-muted) 20%);
+  font-size: 0.58rem;
+  font-weight: 700;
 }
 
 .set-number-badge.completed .number {
-  @apply bg-emerald-600/20 text-emerald-400;
+  border-color: color-mix(in srgb, var(--success) 46%, transparent);
+  background: color-mix(in srgb, var(--success) 18%, var(--card) 82%);
+  color: color-mix(in srgb, var(--success) 74%, var(--text) 26%);
 }
 
 /* Weight/Reps input section - tight layout */
 .input-group-workout {
-  @apply flex items-center gap-1;
+  @apply flex items-center;
+  gap: 0.35rem;
 }
 
 .input-wrapper-workout {
   @apply flex-1 flex flex-col min-w-0;
 }
 
+.set-input-panel {
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 70%, rgba(255 255 255 / 0.05));
+  background: color-mix(in srgb, var(--card) 88%, var(--bg-muted) 12%);
+  padding: 0.3rem 0.38rem 0.38rem;
+}
+
 .input-label-workout {
-  @apply text-[8px] font-medium uppercase tracking-wide text-slate-500/80;
+  @apply text-[8px] font-medium uppercase tracking-wide;
+  color: color-mix(in srgb, var(--text-muted) 90%, transparent);
 }
 
 /* Compact action buttons in set header */
@@ -958,18 +1130,79 @@ input[type="number"] {
 .btn-set-action {
   @apply flex items-center justify-center;
   @apply h-7 w-7 rounded-md;
-  @apply bg-slate-800/55 border border-white/[0.08];
-  @apply text-slate-300 text-[11px];
-  @apply transition-all duration-150;
-  @apply hover:bg-slate-700/70 hover:text-slate-100;
-  @apply active:scale-90;
+  border: 1px solid color-mix(in srgb, var(--card-border) 68%, rgba(255 255 255 / 0.08));
+  background: color-mix(in srgb, var(--bg-muted) 76%, var(--card) 24%);
+  color: color-mix(in srgb, var(--text) 84%, var(--text-muted) 16%);
+  font-size: 11px;
+  transition: transform 140ms ease, background-color 180ms ease,
+    border-color 180ms ease, color 180ms ease;
+}
+
+.btn-set-action:hover {
+  background: color-mix(in srgb, var(--bg-muted) 62%, var(--card) 38%);
+  color: color-mix(in srgb, var(--text) 92%, black 8%);
+}
+
+.btn-set-action:active {
+  transform: scale(0.9);
+}
+
+.btn-set-action:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
 }
 
 .btn-set-delete {
-  @apply btn-set-action;
-  @apply bg-rose-500/[0.15] border-rose-500/30;
-  @apply text-rose-200;
-  @apply hover:bg-rose-500/[0.15] hover:text-rose-300;
+  border-color: rgba(244 63 94 / 0.38);
+  background: rgba(244 63 94 / 0.14);
+  color: rgba(255 228 230 / 0.92);
+}
+
+.btn-set-delete:hover {
+  background: rgba(244 63 94 / 0.2);
+  color: rgba(254 205 211 / 0.98);
+}
+
+.session-sets-grid {
+  border-top: 1px solid color-mix(in srgb, var(--card-border) 78%, rgba(255 255 255 / 0.05));
+  padding-top: 0.6rem;
+}
+
+.session-sets-grid-head {
+  font-size: 0.63rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--text-muted) 88%, transparent);
+}
+
+.session-set-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.62rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 70%, rgba(255 255 255 / 0.06));
+  background: color-mix(in srgb, var(--card) 88%, var(--bg-muted) 12%);
+  color: color-mix(in srgb, var(--text) 90%, var(--text-muted) 10%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-set-cell {
+  border-radius: 0.78rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 74%, rgba(255 255 255 / 0.06));
+  background: color-mix(in srgb, var(--card) 90%, var(--bg-muted) 10%);
+  padding: 0.28rem;
+}
+
+.session-set-actions {
+  border-radius: 0.78rem;
+  border: 1px solid color-mix(in srgb, var(--card-border) 74%, rgba(255 255 255 / 0.06));
+  background: color-mix(in srgb, var(--card) 88%, var(--bg-muted) 12%);
+  padding: 0.28rem;
 }
 
 /* Rest timer - compact inline design */
