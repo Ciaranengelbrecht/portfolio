@@ -648,7 +648,7 @@ export default function SettingsPage() {
   return (
     <div className="settings-page space-y-4 pb-20">
       <div className="settings-shell space-y-3">
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0">
           <h2 className="settings-page-title text-xl font-semibold text-white">
             Settings
           </h2>
@@ -676,21 +676,21 @@ export default function SettingsPage() {
 
         <div className="settings-status-strip flex flex-col gap-2">
           <p className="text-xs text-white/75 leading-snug">{activeTabMeta.description}</p>
-          <div className="flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-center min-[390px]:justify-between">
-            <div className="text-xs text-white/70">
+          <div className="flex flex-col gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
+            <div className="text-xs text-white/70 min-w-0">
               {userEmail ? `Sync: ${userEmail}` : "Sync: Offline mode"} · {hasPendingAutosave ? "Autosave pending" : "Saved"}
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="btn-outline px-3 py-2 rounded-xl text-xs"
+                className="btn-outline px-3 py-2 rounded-xl text-xs settings-utility-btn"
                 onClick={() => void saveNow()}
               >
                 Save now
               </button>
               <button
                 type="button"
-                className="btn-outline px-3 py-2 rounded-xl text-xs disabled:opacity-50"
+                className="btn-outline px-3 py-2 rounded-xl text-xs settings-utility-btn disabled:opacity-50"
                 onClick={() => void undoLastSave()}
                 disabled={!undoSnapshot}
               >
@@ -1180,7 +1180,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Units</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-compact"
               value={s.unit}
               onChange={(e) => setS({ ...s, unit: e.target.value as any })}
             >
@@ -1200,7 +1200,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Deload load %</div>
             <input
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-input-compact"
               inputMode="decimal"
               value={Math.round(s.deloadDefaults.loadPct * 100)}
               onChange={(e) =>
@@ -1217,7 +1217,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Deload set %</div>
             <input
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-input-compact"
               inputMode="decimal"
               value={Math.round(s.deloadDefaults.setPct * 100)}
               onChange={(e) =>
@@ -1234,7 +1234,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Start Page</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-medium"
               value={s.dashboardPrefs?.startPage || "last"}
               onChange={(e) =>
                 setS({
@@ -1255,7 +1255,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Open to last session</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-compact"
               value={String(s.dashboardPrefs?.openToLast ?? true)}
               onChange={(e) =>
                 setS({
@@ -1274,7 +1274,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Card Style</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-compact"
               value={s.cardStyle || "glass"}
               onChange={(e) => {
                 const v = e.target.value as any;
@@ -1290,7 +1290,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Auto-advance session</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-compact"
               value={String(s.autoAdvanceSession ?? false)}
               onChange={(e) =>
                 setS({ ...s, autoAdvanceSession: e.target.value === "true" })
@@ -1305,7 +1305,7 @@ export default function SettingsPage() {
               Default set rows per exercise
             </div>
             <input
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-input-compact"
               inputMode="numeric"
               value={s.defaultSetRows ?? 3}
               onChange={(e) => {
@@ -1320,7 +1320,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Measurement units</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-medium"
               value={s.measurementUnits || "metric"}
               onChange={(e) =>
                 setS({ ...s, measurementUnits: e.target.value as any })
@@ -1333,7 +1333,7 @@ export default function SettingsPage() {
           <label className="space-y-1">
             <div className="text-sm text-app">Privacy: unlock</div>
             <select
-              className="input-app rounded-xl px-3 py-2"
+              className="input-app rounded-xl px-3 py-2 settings-select-medium"
               value={s.privacyUnlockMode || "everyLaunch"}
               onChange={(e) =>
                 setS({ ...s, privacyUnlockMode: e.target.value as any })

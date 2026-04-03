@@ -675,6 +675,7 @@ body.rest-screen-flash::after {
 .settings-shell {
   border-radius: 1.25rem;
   border: 1px solid var(--settings-edge);
+  padding: 0.9rem;
   background: linear-gradient(
     145deg,
     rgba(14 20 34 / 0.96),
@@ -684,13 +685,20 @@ body.rest-screen-flash::after {
     0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.16),
     0 0 18px -12px rgba(var(--accent-rgb, 59 130 246) / 0.35);
   backdrop-filter: blur(16px) saturate(145%);
-  position: sticky;
-  top: calc(var(--app-header-h, 56px) + 0.45rem);
-  z-index: 25;
+  position: relative;
+  top: auto;
+  z-index: 1;
+  overflow: visible;
 }
 
 .settings-page-title {
   letter-spacing: -0.02em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.settings-page :where(h2, h3, p, span, label) {
+  overflow-wrap: anywhere;
 }
 
 .settings-tab-strip {
@@ -736,6 +744,11 @@ body.rest-screen-flash::after {
   padding: 0.7rem 0.75rem;
 }
 
+.settings-status-strip .btn-outline {
+  background: rgba(255 255 255 / 0.03);
+  border-color: rgba(255 255 255 / 0.18);
+}
+
 .settings-panel {
   border-radius: 1.25rem;
   border: 1px solid rgba(255 255 255 / 0.08);
@@ -764,6 +777,7 @@ body.rest-screen-flash::after {
 
 .settings-panel-description {
   max-width: 62ch;
+  line-height: 1.4;
 }
 
 .settings-highlight-card {
@@ -873,7 +887,11 @@ body.rest-screen-flash::after {
 
 .settings-page .btn-outline {
   border: 1px solid rgba(255 255 255 / 0.16);
-  background: rgba(13 19 31 / 0.66);
+  background: linear-gradient(
+    145deg,
+    rgba(13 19 31 / 0.82),
+    rgba(13 19 31 / 0.62)
+  );
   color: rgba(241 245 249 / 0.95);
 }
 
@@ -902,10 +920,49 @@ body.rest-screen-flash::after {
   padding-right: 2rem;
 }
 
+.settings-utility-btn {
+  background: rgba(255 255 255 / 0.05) !important;
+  border-color: rgba(255 255 255 / 0.22) !important;
+  color: rgba(241 245 249 / 0.92) !important;
+}
+
+.settings-utility-btn:hover {
+  background: rgba(255 255 255 / 0.09) !important;
+}
+
+.settings-input-compact {
+  width: min(100%, 8.5rem);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-select-compact {
+  width: min(100%, 10.5rem);
+}
+
+.settings-select-medium {
+  width: min(100%, 13rem);
+}
+
+.settings-input-compact,
+.settings-select-compact,
+.settings-select-medium {
+  border-color: rgba(var(--accent-rgb, 59 130 246) / 0.3) !important;
+  background: linear-gradient(
+    145deg,
+    rgba(10 16 28 / 0.9),
+    rgba(10 16 28 / 0.72)
+  ) !important;
+}
+
 @media (min-width: 768px) {
   .settings-shell,
   .settings-panel {
     border-radius: 1.4rem;
+  }
+
+  .settings-shell {
+    padding: 1.05rem;
   }
 
   .settings-panel-head {
