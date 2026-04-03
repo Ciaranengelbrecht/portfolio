@@ -37,9 +37,9 @@ const LABELS: DayLabel[] = [
 ];
 
 const PROGRAM_ICON_BTN_NEUTRAL =
-  "flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[11px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40";
+  "flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-slate-800/70 text-[10px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40";
 const PROGRAM_SEGMENT_BTN =
-  "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors";
+  "rounded-md border px-2 py-1 text-[10px] font-medium transition-colors";
 
 export default function ProgramSettings() {
   const {
@@ -554,7 +554,7 @@ export default function ProgramSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <GuidedSetupWizard
         open={showGuidedSetup}
         onClose={() => setShowGuidedSetup(false)}
@@ -574,27 +574,27 @@ export default function ProgramSettings() {
         </div>
       )}
 
-      <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-3">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+      <div className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-2.5">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          <div className="rounded-lg border border-white/8 bg-slate-900/50 px-2.5 py-1.5">
             <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
               Days
             </div>
             <div className="text-lg font-semibold text-white">{activeTrainingDays}</div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+          <div className="rounded-lg border border-white/8 bg-slate-900/50 px-2.5 py-1.5">
             <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
               Weeks
             </div>
             <div className="text-lg font-semibold text-white">{working.mesoWeeks}</div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+          <div className="rounded-lg border border-white/8 bg-slate-900/50 px-2.5 py-1.5">
             <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
               Deload
             </div>
             <div className="text-sm font-semibold text-white">{deloadSummary}</div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+          <div className="rounded-lg border border-white/8 bg-slate-900/50 px-2.5 py-1.5">
             <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
               Template Days
             </div>
@@ -602,31 +602,31 @@ export default function ProgramSettings() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+              className="rounded-full border border-white/12 bg-slate-900/55 px-2.5 py-0.5 text-[10px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-basics")}
           >
             Basics
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+              className="rounded-full border border-white/12 bg-slate-900/55 px-2.5 py-0.5 text-[10px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-weekly-split")}
           >
             Weekly Split
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+              className="rounded-full border border-white/12 bg-slate-900/55 px-2.5 py-0.5 text-[10px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-allocator")}
           >
             Allocator
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+              className="rounded-full border border-white/12 bg-slate-900/55 px-2.5 py-0.5 text-[10px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-actions")}
           >
             Save
@@ -634,9 +634,9 @@ export default function ProgramSettings() {
         </div>
       </div>
 
-      <div className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="card-surface rounded-2xl p-2.5 sm:p-3 shadow-soft flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <div className="text-sm font-medium text-white">
+          <div className="text-[13px] font-medium text-white">
             Want to refresh your program quickly?
           </div>
           <p className="text-xs text-white/60">
@@ -645,164 +645,68 @@ export default function ProgramSettings() {
           </p>
         </div>
         <button
-          className="btn-primary inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold"
+          className="btn-primary inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold"
           onClick={() => setShowGuidedSetup(true)}
         >
           Run guided setup
         </button>
       </div>
-      <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-4">
-        {/* Muscle group heatmap */}
-        <div id="program-volume-logged" className="space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
-            Muscle Logged Volume (Weighted Sets)
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {Object.entries(muscleVolume)
-              .sort((a, b) => b[1] - a[1])
-              .map(([m, v]) => {
-                const max = Math.max(1, ...Object.values(muscleVolume));
-                const pct = (v / max) * 100;
-                return (
-                  <div
-                    key={m}
-                    className="rounded-lg border border-white/8 bg-slate-900/45 px-2 py-2 space-y-1"
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-white/60">
-                      <span className="capitalize inline-flex items-center gap-1">
-                        <img
-                          src={getMuscleIconPath(m)}
-                          alt={m}
-                          className="w-3.5 h-3.5 opacity-80"
-                          loading="lazy"
-                        />
-                        {m}
-                      </span>
-                      <span className="tabular-nums">{Math.round(v)}</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            {!Object.keys(muscleVolume).length && (
-              <div className="col-span-full text-[11px] text-white/45">
-                No logged volume yet this phase.
-              </div>
-            )}
-          </div>
-        </div>
-        {/* Projected weekly volume (planned) */}
-        <div id="program-volume-projected" className="space-y-2">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
-            Projected Weekly Volume{" "}
-            <span className="text-[10px] normal-case tracking-normal text-white/40">
-              (based on current templates & defaults)
-            </span>
-          </div>
-          {Object.keys(projectedMuscleVolume).length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(projectedMuscleVolume)
-                .sort((a, b) => b[1] - a[1])
-                .map(([m, v]) => {
-                  const max = Math.max(
-                    1,
-                    ...Object.values(projectedMuscleVolume)
-                  );
-                  const pct = (v / max) * 100;
-                  const target = weeklySetTargets[m];
-                  const diff = target != null ? v - target : null;
-                  return (
-                    <div
-                      key={m}
-                      className="rounded-lg border border-white/8 bg-slate-900/45 px-2 py-2 space-y-1"
-                      title={
-                        diff != null
-                          ? `Target ${target}, Diff ${
-                              diff > 0 ? "+" : ""
-                            }${Math.round(diff)}`
-                          : undefined
-                      }
-                    >
-                      <div className="flex items-center justify-between text-[10px] text-white/60">
-                        <span className="capitalize">{m}</span>
-                        <span className="tabular-nums flex items-center gap-1">
-                          {Math.round(v)}
-                          {diff != null && (
-                            <span
-                              className={
-                                diff > 0 ? "text-emerald-400" : "text-amber-400"
-                              }
-                            >
-                              {diff > 0 ? "▲" : "▼"}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <div className="h-2 w-full bg-slate-700/40 rounded overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className="text-[11px] text-white/45">
-              No templates linked to compute projection.
-            </div>
-          )}
-        </div>
-        <div id="program-basics" className="space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+      <div className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-3">
+        <div id="program-basics" className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
             Program Basics
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="space-y-1">
-              <span className="text-[11px] text-white/55">Name</span>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-[180px] flex-1 space-y-1">
+              <span className="text-[10px] uppercase tracking-wide text-white/50">
+                Name
+              </span>
               <input
                 value={working.name}
                 onChange={(e) => update({ name: e.target.value })}
-                className="input-app h-9 rounded-xl px-3 py-2"
+                className="input-app h-8 rounded-lg px-2.5 py-1 text-sm"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-[11px] text-white/55">Mesocycle weeks</span>
+              <span className="text-[10px] uppercase tracking-wide text-white/50">
+                Weeks
+              </span>
               <input
                 type="number"
                 min={4}
                 max={20}
                 value={working.mesoWeeks}
                 onChange={(e) => update({ mesoWeeks: Number(e.target.value) })}
-                className="input-app h-9 w-full rounded-xl px-3 py-2"
+                className="input-app h-8 w-16 rounded-lg px-2 py-1 text-center text-xs"
               />
             </label>
 
             <label className="space-y-1">
-              <span className="text-[11px] text-white/55">Week length (days)</span>
-              <select
+              <span className="text-[10px] uppercase tracking-wide text-white/50">
+                Week days
+              </span>
+              <input
+                type="number"
+                min={5}
+                max={10}
+                step={1}
+                inputMode="numeric"
                 value={working.weekLengthDays}
-                onChange={(e) => changeWeekLen(Number(e.target.value))}
-                className="input-app h-9 rounded-xl px-3 py-2"
-              >
-                {[5, 6, 7, 8, 9, 10].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isNaN(v)) return;
+                  changeWeekLen(Math.max(5, Math.min(10, Math.round(v))));
+                }}
+                className="input-app h-8 w-16 rounded-lg px-2 py-1 text-center text-xs"
+              />
             </label>
 
-            <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-              <span className="text-[11px] text-white/55">Deload</span>
-              <div className="flex flex-wrap items-center gap-1.5">
+            <div className="min-w-[220px] flex-1 space-y-1">
+              <span className="text-[10px] uppercase tracking-wide text-white/50">
+                Deload
+              </span>
+              <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
                   className={`${PROGRAM_SEGMENT_BTN} ${
@@ -827,7 +731,7 @@ export default function ProgramSettings() {
                     update({ deload: { mode: "last-week" } as DeloadConfig })
                   }
                 >
-                  Last week
+                  Last
                 </button>
                 <button
                   type="button"
@@ -864,130 +768,141 @@ export default function ProgramSettings() {
                         } as DeloadConfig,
                       })
                     }
-                    className="input-app h-8 w-16 rounded-lg px-2 py-1 text-xs"
+                    className="input-app h-7 w-14 rounded-md px-1.5 py-1 text-center text-[10px]"
                   />
                 )}
               </div>
             </div>
           </div>
         </div>
-        <div id="program-weekly-split" className="space-y-2">
-          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+
+        <div id="program-weekly-split" className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
             Weekly Split
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {working.weeklySplit.map((d, i) => (
-              <div
-                key={i}
-                className="min-w-0 rounded-xl border border-white/8 bg-slate-900/45 p-2.5 space-y-2"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", String(i));
-                }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  const from = Number(e.dataTransfer.getData("text/plain"));
-                  if (!isNaN(from)) moveDay(from, i);
-                }}
-              >
-                <div className="flex items-center justify-between text-[10px] text-white/50">
-                  <span className="cursor-grab select-none uppercase tracking-wide">
-                    Day {i + 1}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      aria-label="Move day up"
-                      disabled={i === 0}
-                      className={PROGRAM_ICON_BTN_NEUTRAL}
-                      onClick={() => moveDay(i, i - 1)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      aria-label="Move day down"
-                      disabled={i === working.weeklySplit.length - 1}
-                      className={PROGRAM_ICON_BTN_NEUTRAL}
-                      onClick={() => moveDay(i, i + 1)}
-                    >
-                      ↓
-                    </button>
-                  </div>
-                </div>
-                <select
-                  aria-label={`Day ${i + 1} type`}
-                  value={d.type}
-                  onChange={(e) =>
-                    updateSplit(i, {
-                      type: e.target.value as DayLabel,
-                      customLabel: undefined,
-                    })
-                  }
-                  className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-xs"
-                >
-                  {LABELS.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-                {d.type === "Custom" && (
-                  <input
-                    aria-label="Custom label"
-                    placeholder="Label"
-                    value={d.customLabel || ""}
-                    onChange={(e) =>
-                      updateSplit(i, { customLabel: e.target.value })
-                    }
-                    className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-xs"
-                  />
-                )}
-                <select
-                  aria-label="Template mapping"
-                  value={d.templateId || ""}
-                  onChange={(e) =>
-                    updateSplit(i, { templateId: e.target.value || undefined })
-                  }
-                  onMouseEnter={() => {
-                    if (d.templateId) {
-                      const t = templates.find((t) => t.id === d.templateId);
-                      if (t) setPreviewTemplate(t);
-                    }
+          <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+            {working.weeklySplit.map((d, i) => {
+              const templateExerciseCount = d.templateId
+                ? templates.find((t) => t.id === d.templateId)?.exerciseIds
+                    .length || 0
+                : 0;
+
+              return (
+                <div
+                  key={i}
+                  className="min-w-0 rounded-lg border border-white/8 bg-slate-900/45 p-2 space-y-1.5"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", String(i));
                   }}
-                  onMouseLeave={() => setPreviewTemplate(null)}
-                  className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-[11px]"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    const from = Number(e.dataTransfer.getData("text/plain"));
+                    if (!isNaN(from)) moveDay(from, i);
+                  }}
                 >
-                  <option value="">No template</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-                {d.templateId && (
-                  <div className="text-[10px] text-white/45">
-                    {templates.find((t) => t.id === d.templateId)?.exerciseIds
-                      .length || 0}{" "}
-                    exercises
+                  <div className="flex items-center justify-between text-[10px] text-white/50">
+                    <span className="cursor-grab select-none uppercase tracking-wide">
+                      Day {i + 1}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        aria-label="Move day up"
+                        disabled={i === 0}
+                        className={PROGRAM_ICON_BTN_NEUTRAL}
+                        onClick={() => moveDay(i, i - 1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        aria-label="Move day down"
+                        disabled={i === working.weeklySplit.length - 1}
+                        className={PROGRAM_ICON_BTN_NEUTRAL}
+                        onClick={() => moveDay(i, i + 1)}
+                      >
+                        ↓
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1.5">
+                    <select
+                      aria-label={`Day ${i + 1} type`}
+                      value={d.type}
+                      onChange={(e) =>
+                        updateSplit(i, {
+                          type: e.target.value as DayLabel,
+                          customLabel: undefined,
+                        })
+                      }
+                      className="input-app h-7 w-full rounded-md px-2 py-1 text-[11px]"
+                    >
+                      {LABELS.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      aria-label="Template mapping"
+                      value={d.templateId || ""}
+                      onChange={(e) =>
+                        updateSplit(i, { templateId: e.target.value || undefined })
+                      }
+                      onMouseEnter={() => {
+                        if (d.templateId) {
+                          const t = templates.find((t) => t.id === d.templateId);
+                          if (t) setPreviewTemplate(t);
+                        }
+                      }}
+                      onMouseLeave={() => setPreviewTemplate(null)}
+                      className="input-app h-7 w-full rounded-md px-2 py-1 text-[10px]"
+                    >
+                      <option value="">No template</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <span className="rounded-md border border-white/10 bg-slate-800/70 px-1.5 py-1 text-[10px] text-white/55">
+                      {templateExerciseCount}
+                    </span>
+                  </div>
+
+                  {d.type === "Custom" && (
+                    <input
+                      aria-label="Custom label"
+                      placeholder="Custom label"
+                      value={d.customLabel || ""}
+                      onChange={(e) =>
+                        updateSplit(i, { customLabel: e.target.value })
+                      }
+                      className="input-app h-7 w-full rounded-md px-2 py-1 text-[11px]"
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <div className="flex flex-wrap gap-1.5 text-xs">
+
+          <div className="flex flex-wrap gap-1 text-[11px]">
             <button
-              className="btn-outline rounded-lg px-3 py-1.5"
+              className="btn-outline rounded-md px-2.5 py-1"
               onClick={() => addPreset("default")}
             >
               Default UL x3
             </button>
             <button
-              className="btn-outline rounded-lg px-3 py-1.5"
+              className="btn-outline rounded-md px-2.5 py-1"
               onClick={() => addPreset("ppl+rest")}
             >
               PPL + Rest
             </button>
             <button
-              className="btn-outline rounded-lg px-3 py-1.5"
+              className="btn-outline rounded-md px-2.5 py-1"
               onClick={() => addPreset("fullbody6")}
             >
               Full Body 6
@@ -1016,8 +931,8 @@ export default function ProgramSettings() {
           </button>
         </div>
         {showAllocator && (
-          <div className="rounded-xl border border-white/8 bg-slate-900/45 p-3 space-y-2">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg border border-white/8 bg-slate-900/45 p-2.5 space-y-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {Object.entries(weeklySetTargets).map(([m, val]) => (
                 <label key={m} className="space-y-1">
                   <span className="flex items-center justify-between text-[10px] uppercase tracking-wide text-white/45">
@@ -1037,7 +952,7 @@ export default function ProgramSettings() {
                         [m]: Number(e.target.value),
                       }))
                     }
-                    className="input-app h-8 w-full rounded-lg px-2 py-1 text-xs"
+                    className="input-app h-7 w-full rounded-md px-1.5 py-1 text-[11px]"
                   />
                   <div
                     className={`text-[10px] ${
@@ -1060,7 +975,7 @@ export default function ProgramSettings() {
                   {allocatorData.suggestions.map((s, i) => (
                     <li
                       key={i}
-                      className="flex justify-between rounded-lg border border-white/8 bg-slate-800/55 px-2 py-1 text-[11px]"
+                      className="flex justify-between rounded-md border border-white/8 bg-slate-800/55 px-2 py-1 text-[10px]"
                     >
                       <span>
                         Day {s.day + 1}: add {s.add} {s.muscle} set
@@ -1088,21 +1003,21 @@ export default function ProgramSettings() {
           <button
             onClick={save}
             disabled={saving}
-            className="btn-primary rounded-xl px-4 py-2 text-sm disabled:opacity-40"
+            className="btn-primary rounded-lg px-3 py-1.5 text-xs disabled:opacity-40"
           >
             {saving ? "Saving…" : "Save Program"}
           </button>
           <button
             onClick={archiveAndSwitch}
             disabled={saving}
-            className="btn-outline rounded-xl px-4 py-2 text-sm disabled:opacity-40"
+            className="btn-outline rounded-lg px-3 py-1.5 text-xs disabled:opacity-40"
           >
             Archive & Switch
           </button>
           <button
             onClick={applyProgramToFutureSessions}
             disabled={saving}
-            className="btn-outline rounded-xl px-4 py-2 text-sm disabled:opacity-40"
+            className="btn-outline rounded-lg px-3 py-1.5 text-xs disabled:opacity-40"
             title="Apply current program templates to all non-logged sessions in the current phase"
           >
             Apply to future sessions
@@ -1163,6 +1078,120 @@ export default function ProgramSettings() {
           </div>
         </div>
       )}
+
+      <div className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-2.5">
+        <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
+          Volume Insights
+        </div>
+        <div className="grid gap-2 lg:grid-cols-2">
+          <div id="program-volume-logged" className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-white/45">
+              Logged Volume
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {Object.entries(muscleVolume)
+                .sort((a, b) => b[1] - a[1])
+                .map(([m, v]) => {
+                  const max = Math.max(1, ...Object.values(muscleVolume));
+                  const pct = (v / max) * 100;
+                  return (
+                    <div
+                      key={`logged-${m}`}
+                      className="rounded-md border border-white/8 bg-slate-900/45 px-2 py-1.5"
+                    >
+                      <div className="mb-1 flex items-center justify-between text-[10px] text-white/60">
+                        <span className="inline-flex items-center gap-1 capitalize">
+                          <img
+                            src={getMuscleIconPath(m)}
+                            alt={m}
+                            className="h-3.5 w-3.5 opacity-80"
+                            loading="lazy"
+                          />
+                          {m}
+                        </span>
+                        <span className="tabular-nums">{Math.round(v)}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded bg-slate-700/40">
+                        <div
+                          className="h-full bg-emerald-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              {!Object.keys(muscleVolume).length && (
+                <div className="col-span-full text-[11px] text-white/45">
+                  No logged volume yet this phase.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div id="program-volume-projected" className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wide text-white/45">
+              Projected Volume
+            </div>
+            {Object.keys(projectedMuscleVolume).length ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                {Object.entries(projectedMuscleVolume)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([m, v]) => {
+                    const max = Math.max(
+                      1,
+                      ...Object.values(projectedMuscleVolume)
+                    );
+                    const pct = (v / max) * 100;
+                    const target = weeklySetTargets[m];
+                    const diff = target != null ? v - target : null;
+                    return (
+                      <div
+                        key={`projected-${m}`}
+                        className="rounded-md border border-white/8 bg-slate-900/45 px-2 py-1.5"
+                        title={
+                          diff != null
+                            ? `Target ${target}, Diff ${
+                                diff > 0 ? "+" : ""
+                              }${Math.round(diff)}`
+                            : undefined
+                        }
+                      >
+                        <div className="mb-1 flex items-center justify-between text-[10px] text-white/60">
+                          <span className="capitalize">{m}</span>
+                          <span className="tabular-nums inline-flex items-center gap-1">
+                            {Math.round(v)}
+                            {diff != null && (
+                              <span
+                                className={
+                                  diff > 0
+                                    ? "text-emerald-400"
+                                    : "text-amber-400"
+                                }
+                              >
+                                {diff > 0 ? "▲" : "▼"}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded bg-slate-700/40">
+                          <div
+                            className="h-full bg-indigo-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-[11px] text-white/45">
+                No templates linked to compute projection.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {previewTemplate && (
         <div
           className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 max-w-xs rounded-xl border border-white/12 bg-slate-950/90 p-3 shadow-lg backdrop-blur fade-in"
