@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GlassCard from "../../components/GlassCard";
 import { loadRecharts } from "../../lib/loadRecharts";
@@ -697,6 +697,41 @@ export default function Analytics() {
     ? analytics.muscles.find((m) => m.muscle === selectedMuscle)
     : undefined;
 
+  const [weeklyVisibleSeries, setWeeklyVisibleSeries] = useState<
+    Record<"volume" | "sessions" | "sets", boolean>
+  >({
+    volume: true,
+    sessions: true,
+    sets: true,
+  });
+  const [sessionVisibleSeries, setSessionVisibleSeries] = useState<
+    Record<"volume" | "topWeight", boolean>
+  >({
+    volume: true,
+    topWeight: true,
+  });
+  const [muscleVisibleSeries, setMuscleVisibleSeries] = useState<
+    Record<"sets" | "tonnageKg", boolean>
+  >({
+    sets: true,
+    tonnageKg: true,
+  });
+  const [exerciseVisibleSeries, setExerciseVisibleSeries] = useState<
+    Record<"volume" | "topWeight" | "avgWeight", boolean>
+  >({
+    volume: true,
+    topWeight: true,
+    avgWeight: true,
+  });
+
+  const toggleSeriesState = useCallback((setter: any, key: string) => {
+    setter((prev: Record<string, boolean>) => {
+      const activeCount = Object.values(prev).filter(Boolean).length;
+      if (prev[key] && activeCount === 1) return prev;
+      return { ...prev, [key]: !prev[key] };
+    });
+  }, []);
+
   const weeklyAxisDensity = useMemo(
     () => getAxisDensity(weeklySeries.length, compactCharts),
     [weeklySeries.length, compactCharts]
@@ -721,6 +756,9 @@ export default function Analytics() {
     () => getAxisDensity(exerciseTimeline.length, compactCharts),
     [exerciseTimeline.length, compactCharts]
   );
+
+  const weeklyRightAxisVisible =
+    weeklyVisibleSeries.sessions || weeklyVisibleSeries.sets;
 
   const chartSkeleton = (
     <div className="h-52 sm:h-60 rounded-3xl bg-slate-800/40 animate-pulse flex items-center justify-center text-xs text-slate-400">
@@ -796,6 +834,43 @@ export default function Analytics() {
               )}
             </div>
           </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSeriesState(setWeeklyVisibleSeries, "volume")}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                weeklyVisibleSeries.volume
+                  ? "border-emerald-300/60 bg-emerald-500/20 text-emerald-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Volume
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setWeeklyVisibleSeries, "sessions")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                weeklyVisibleSeries.sessions
+                  ? "border-violet-300/60 bg-violet-500/20 text-violet-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Sessions
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSeriesState(setWeeklyVisibleSeries, "sets")}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                weeklyVisibleSeries.sets
+                  ? "border-sky-300/60 bg-sky-500/20 text-sky-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Sets
+            </button>
+          </div>
           <div className="h-52 sm:h-64">
             {!RC && chartSkeleton}
             {RC && (
@@ -826,12 +901,14 @@ export default function Analytics() {
                     tick={{ fontSize: weeklyAxisDensity.fontSize }}
                     tickFormatter={(value: number) => formatCompact(value)}
                   />
-                  <RC.YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="rgba(139,92,246,0.6)"
-                    tick={{ fontSize: weeklyAxisDensity.fontSize }}
-                  />
+                  {weeklyRightAxisVisible && (
+                    <RC.YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="rgba(139,92,246,0.6)"
+                      tick={{ fontSize: weeklyAxisDensity.fontSize }}
+                    />
+                  )}
                   <RC.Tooltip
                     {...chartTooltipProps}
                     formatter={(value: number, name: string) => {
@@ -844,34 +921,40 @@ export default function Analytics() {
                       ];
                     }}
                   />
-                  <RC.Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="rgba(45,212,191,0.9)"
-                    fill="rgba(20,184,166,0.25)"
-                    strokeWidth={2.2}
-                    name={`Volume (${tonnageUnit})`}
-                  />
-                  <RC.Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="sessions"
-                    stroke="rgba(139,92,246,0.85)"
-                    strokeWidth={2.2}
-                    dot={{ r: 3 }}
-                    name="Sessions"
-                  />
-                  <RC.Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="sets"
-                    stroke="rgba(96,165,250,0.85)"
-                    strokeDasharray="5 4"
-                    strokeWidth={2}
-                    dot={false}
-                    name="Sets"
-                  />
+                  {weeklyVisibleSeries.volume && (
+                    <RC.Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="volume"
+                      stroke="rgba(45,212,191,0.9)"
+                      fill="rgba(20,184,166,0.25)"
+                      strokeWidth={2.2}
+                      name={`Volume (${tonnageUnit})`}
+                    />
+                  )}
+                  {weeklyVisibleSeries.sessions && (
+                    <RC.Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="sessions"
+                      stroke="rgba(139,92,246,0.85)"
+                      strokeWidth={2.2}
+                      dot={{ r: 3 }}
+                      name="Sessions"
+                    />
+                  )}
+                  {weeklyVisibleSeries.sets && (
+                    <RC.Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="sets"
+                      stroke="rgba(96,165,250,0.85)"
+                      strokeDasharray="5 4"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Sets"
+                    />
+                  )}
                 </RC.ComposedChart>
               </RC.ResponsiveContainer>
             )}
@@ -1026,6 +1109,32 @@ export default function Analytics() {
             </div>
             <span className="text-xs text-white/50">{tonnageUnit}</span>
           </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSeriesState(setSessionVisibleSeries, "volume")}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                sessionVisibleSeries.volume
+                  ? "border-rose-300/60 bg-rose-500/20 text-rose-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Volume
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setSessionVisibleSeries, "topWeight")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                sessionVisibleSeries.topWeight
+                  ? "border-sky-300/60 bg-sky-500/20 text-sky-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Top Weight
+            </button>
+          </div>
           <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && (
@@ -1076,20 +1185,24 @@ export default function Analytics() {
                       ];
                     }}
                   />
-                  <RC.Area
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="rgba(239,68,68,0.85)"
-                    fill="rgba(239,68,68,0.18)"
-                    strokeWidth={2.4}
-                  />
-                  <RC.Line
-                    type="monotone"
-                    dataKey="topWeight"
-                    stroke="rgba(59,130,246,0.85)"
-                    strokeWidth={2.2}
-                    dot={{ r: 2 }}
-                  />
+                  {sessionVisibleSeries.volume && (
+                    <RC.Area
+                      type="monotone"
+                      dataKey="volume"
+                      stroke="rgba(239,68,68,0.85)"
+                      fill="rgba(239,68,68,0.18)"
+                      strokeWidth={2.4}
+                    />
+                  )}
+                  {sessionVisibleSeries.topWeight && (
+                    <RC.Line
+                      type="monotone"
+                      dataKey="topWeight"
+                      stroke="rgba(59,130,246,0.85)"
+                      strokeWidth={2.2}
+                      dot={{ r: 2 }}
+                    />
+                  )}
                 </RC.AreaChart>
               </RC.ResponsiveContainer>
             )}
@@ -1303,6 +1416,32 @@ export default function Analytics() {
               </span>
             )}
           </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSeriesState(setMuscleVisibleSeries, "sets")}
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                muscleVisibleSeries.sets
+                  ? "border-pink-300/60 bg-pink-500/20 text-pink-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Sets
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setMuscleVisibleSeries, "tonnageKg")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                muscleVisibleSeries.tonnageKg
+                  ? "border-fuchsia-300/60 bg-fuchsia-500/20 text-fuchsia-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Volume
+            </button>
+          </div>
           <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && selectedMuscleData && selectedMuscleData.timeline.length ? (
@@ -1337,21 +1476,25 @@ export default function Analytics() {
                       return [formatVolumeValue(value as number), "Volume"];
                     }}
                   />
-                  <RC.Area
-                    type="monotone"
-                    dataKey="sets"
-                    stroke="rgba(236,72,153,0.85)"
-                    fill="rgba(236,72,153,0.25)"
-                    strokeWidth={2.4}
-                  />
-                  <RC.Line
-                    type="monotone"
-                    dataKey="tonnageKg"
-                    stroke="rgba(244,114,182,0.9)"
-                    strokeWidth={2.2}
-                    dot={{ r: 2 }}
-                    name="Volume"
-                  />
+                  {muscleVisibleSeries.sets && (
+                    <RC.Area
+                      type="monotone"
+                      dataKey="sets"
+                      stroke="rgba(236,72,153,0.85)"
+                      fill="rgba(236,72,153,0.25)"
+                      strokeWidth={2.4}
+                    />
+                  )}
+                  {muscleVisibleSeries.tonnageKg && (
+                    <RC.Line
+                      type="monotone"
+                      dataKey="tonnageKg"
+                      stroke="rgba(244,114,182,0.9)"
+                      strokeWidth={2.2}
+                      dot={{ r: 2 }}
+                      name="Volume"
+                    />
+                  )}
                 </RC.AreaChart>
               </RC.ResponsiveContainer>
             ) : (
@@ -1471,6 +1614,47 @@ export default function Analytics() {
               </span>
             )}
           </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setExerciseVisibleSeries, "volume")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                exerciseVisibleSeries.volume
+                  ? "border-rose-300/60 bg-rose-500/20 text-rose-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Volume
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setExerciseVisibleSeries, "topWeight")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                exerciseVisibleSeries.topWeight
+                  ? "border-sky-300/60 bg-sky-500/20 text-sky-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Top
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                toggleSeriesState(setExerciseVisibleSeries, "avgWeight")
+              }
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                exerciseVisibleSeries.avgWeight
+                  ? "border-blue-300/60 bg-blue-500/20 text-blue-100"
+                  : "border-white/20 bg-white/5 text-white/70"
+              }`}
+            >
+              Avg
+            </button>
+          </div>
           <div className="h-56 sm:h-72">
             {!RC && chartSkeleton}
             {RC && exerciseTimeline.length ? (
@@ -1527,34 +1711,40 @@ export default function Analytics() {
                       ];
                     }}
                   />
-                  <RC.Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="rgba(248,113,113,0.9)"
-                    fill="rgba(248,113,113,0.2)"
-                    strokeWidth={2.4}
-                    name={`Volume (${tonnageUnit})`}
-                  />
-                  <RC.Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="topWeight"
-                    stroke="rgba(59,130,246,0.9)"
-                    strokeWidth={2.4}
-                    dot={{ r: 2 }}
-                    name={`Top (${weightUnit})`}
-                  />
-                  <RC.Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="avgWeight"
-                    stroke="rgba(96,165,250,0.8)"
-                    strokeDasharray="5 4"
-                    strokeWidth={2}
-                    dot={false}
-                    name={`Avg (${weightUnit})`}
-                  />
+                  {exerciseVisibleSeries.volume && (
+                    <RC.Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="volume"
+                      stroke="rgba(248,113,113,0.9)"
+                      fill="rgba(248,113,113,0.2)"
+                      strokeWidth={2.4}
+                      name={`Volume (${tonnageUnit})`}
+                    />
+                  )}
+                  {exerciseVisibleSeries.topWeight && (
+                    <RC.Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="topWeight"
+                      stroke="rgba(59,130,246,0.9)"
+                      strokeWidth={2.4}
+                      dot={{ r: 2 }}
+                      name={`Top (${weightUnit})`}
+                    />
+                  )}
+                  {exerciseVisibleSeries.avgWeight && (
+                    <RC.Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="avgWeight"
+                      stroke="rgba(96,165,250,0.8)"
+                      strokeDasharray="5 4"
+                      strokeWidth={2}
+                      dot={false}
+                      name={`Avg (${weightUnit})`}
+                    />
+                  )}
                 </RC.ComposedChart>
               </RC.ResponsiveContainer>
             ) : (

@@ -13,6 +13,12 @@ import { extractTextFromPdf } from "../lib/pdf";
 import { SkeletonChart } from "../components/Skeleton";
 import QuickWeighIn from "../components/QuickWeighIn";
 import { MeasurementsSkeleton } from "../components/LoadingSkeletons";
+import {
+  getAxisDensity,
+  getChartMargin,
+  getChartTooltipProps,
+  useIsCompactChartScreen,
+} from "../lib/chartUi";
 
 const TIPS: Record<string, string> = {
   neck: "Measure at the thickest point, relaxed.",
@@ -833,6 +839,7 @@ export default function Measurements() {
     "weightKg",
     "waist",
   ]);
+  const compactCharts = useIsCompactChartScreen();
   const [smoothing, setSmoothing] = useState(false);
   useEffect(() => {
     (async () => {
@@ -929,6 +936,18 @@ export default function Measurements() {
   const xTickValues = useMemo(
     () => buildTickValues(chartSeries),
     [chartSeries]
+  );
+  const trendChartMargin = useMemo(
+    () => getChartMargin(compactCharts, "roomy"),
+    [compactCharts]
+  );
+  const trendAxisDensity = useMemo(
+    () => getAxisDensity(chartSeries.length, compactCharts),
+    [chartSeries.length, compactCharts]
+  );
+  const trendTooltipProps = useMemo(
+    () => getChartTooltipProps(compactCharts),
+    [compactCharts]
   );
   const primaryOverlayData = overlaySeries[primaryKey as string];
   const areaSource = useMemo(() => {
@@ -1712,8 +1731,8 @@ export default function Measurements() {
           <span>Primary: {formatMeasurementLabel(primaryKey as string)}</span>
         }
       >
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="uppercase tracking-wide text-gray-400">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 text-xs [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <span className="shrink-0 uppercase tracking-wide text-gray-400">
             Overlays:
           </span>
           {[
@@ -1731,7 +1750,7 @@ export default function Measurements() {
             <button
               key={k}
               onClick={() => toggleOverlay(k as keyof Measurement)}
-              className={`px-3 py-2 min-h-[36px] text-sm rounded-lg border ${
+              className={`shrink-0 px-3 py-1.5 min-h-[34px] text-xs rounded-lg border ${
                 overlayKeys.includes(k as any)
                   ? "bg-emerald-600 border-emerald-500"
                   : "bg-white/5 border-white/10"
@@ -1754,7 +1773,7 @@ export default function Measurements() {
                 return next;
               });
             }}
-            className={`px-3 py-2 min-h-[36px] text-sm rounded-lg border ${
+            className={`shrink-0 px-3 py-1.5 min-h-[34px] text-xs rounded-lg border ${
               smoothing
                 ? "bg-indigo-600 border-indigo-500"
                 : "bg-white/5 border-white/10"
@@ -1762,19 +1781,19 @@ export default function Measurements() {
           >
             {smoothing ? "Smoothing On" : "Smoothing Off"}
           </button>
-          <span className="ml-auto text-[10px] text-gray-500 hidden sm:inline">
-            Tooltip shows Δ vs prev day • Toggle smoothing for rolling avg (w=3)
-          </span>
         </div>
-        <div className="h-72">
-          {!RC && <SkeletonChart height="h-72" />}
+        <p className="text-[11px] text-gray-400">
+          Tooltip shows delta vs previous entry. Smoothing applies a rolling 3-point average.
+        </p>
+        <div className="h-56 sm:h-72">
+          {!RC && <SkeletonChart height={compactCharts ? "h-56" : "h-72"} />}
           {RC && (
             <div className="relative h-full">
               <div className="relative h-full rounded-2xl border border-white/10 bg-slate-950/30">
                 <RC.ResponsiveContainer width="100%" height="100%">
                   <RC.ComposedChart
                     data={areaSource.data}
-                    margin={{ left: 8, right: 16, top: 10, bottom: 0 }}
+                    margin={trendChartMargin}
                   >
                     <RC.CartesianGrid
                       strokeDasharray="3 3"
@@ -1783,27 +1802,39 @@ export default function Measurements() {
                     <RC.XAxis
                       dataKey="date"
                       stroke="rgba(226,232,240,0.65)"
-                      tick={{ fill: "rgba(226,232,240,0.85)", fontSize: 12 }}
+                      tick={{
+                        fill: "rgba(226,232,240,0.85)",
+                        fontSize: trendAxisDensity.fontSize,
+                      }}
                       tickLine={false}
                       axisLine={false}
-                      tickMargin={12}
-                      interval={0}
+                      tickMargin={trendAxisDensity.tickMargin}
+                      interval={trendAxisDensity.interval}
+                      angle={trendAxisDensity.angle}
+                      height={trendAxisDensity.height}
                       ticks={xTickValues}
                       tickFormatter={formatChartDateTick}
                     />
                     <RC.YAxis
                       stroke="rgba(226,232,240,0.65)"
-                      tick={{ fill: "rgba(226,232,240,0.85)", fontSize: 12 }}
+                      tick={{
+                        fill: "rgba(226,232,240,0.85)",
+                        fontSize: trendAxisDensity.fontSize,
+                      }}
                       tickLine={false}
                       axisLine={false}
-                      width={48}
+                      width={compactCharts ? 40 : 48}
                     />
                     <RC.Tooltip
                       active={!!scrub && !!scrub.payload.length}
                       payload={scrub?.payload || []}
                       label={scrub?.label}
                       position={scrub ? { x: scrub.cursorX, y: 32 } : undefined}
-                      wrapperStyle={{ outline: "none", borderRadius: 12 }}
+                      wrapperStyle={{
+                        ...(trendTooltipProps.wrapperStyle || {}),
+                        outline: "none",
+                        borderRadius: 12,
+                      }}
                       cursor={false}
                       content={
                         <UnifiedTooltip

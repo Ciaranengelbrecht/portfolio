@@ -45,6 +45,8 @@ const DASHBOARD_DEFAULT_HIDDEN: Record<HiddenKey, boolean> = {
   sessionVolumeTrend: true,
 };
 
+const MODAL_SESSION_BATCH = 10;
+
 const COMPACT_FORMATTER = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 1,
@@ -560,6 +562,38 @@ export default function Dashboard() {
   const modalSessions = activeMuscleDetail?.sessions ?? [];
   const modalSessionCount = modalSessions.length;
   const modalHasDetail = modalSessionCount > 0;
+  const [modalVisibleCount, setModalVisibleCount] = useState(MODAL_SESSION_BATCH);
+  const visibleModalSessions = useMemo(
+    () => modalSessions.slice(0, modalVisibleCount),
+    [modalSessions, modalVisibleCount]
+  );
+  const hasMoreModalSessions = modalVisibleCount < modalSessionCount;
+
+  const loadMoreModalSessions = useCallback(() => {
+    setModalVisibleCount((prev) =>
+      Math.min(prev + MODAL_SESSION_BATCH, modalSessionCount)
+    );
+  }, [modalSessionCount]);
+
+  const handleModalSessionsScroll = useCallback(
+    (event: any) => {
+      if (!hasMoreModalSessions) return;
+      const target = event.currentTarget as HTMLDivElement;
+      if (!target) return;
+      const nearBottom =
+        target.scrollTop + target.clientHeight >= target.scrollHeight - 120;
+      if (nearBottom) {
+        loadMoreModalSessions();
+      }
+    },
+    [hasMoreModalSessions, loadMoreModalSessions]
+  );
+
+  useEffect(() => {
+    if (activeMuscle) {
+      setModalVisibleCount(MODAL_SESSION_BATCH);
+    }
+  }, [activeMuscle]);
   useEffect(() => {
     (async () => {
       const prefs = await getDashboardPrefs();
@@ -1835,8 +1869,14 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-h-0">
                     {modalHasDetail ? (
-                      <div className="space-y-4 h-full overflow-y-auto pr-1 sm:pr-2">
-                        {modalSessions.map((session) => (
+                      <div
+                        className="space-y-4 h-full overflow-y-auto pr-1 sm:pr-2"
+                        onScroll={handleModalSessionsScroll}
+                      >
+                        <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-[11px] text-slate-300">
+                          Showing {visibleModalSessions.length} of {modalSessionCount} sessions
+                        </div>
+                        {visibleModalSessions.map((session) => (
                           <div
                             key={session.sessionId}
                             className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 space-y-2"
@@ -1872,6 +1912,17 @@ export default function Dashboard() {
                             </div>
                           </div>
                         ))}
+                        {hasMoreModalSessions && (
+                          <div className="flex justify-center pt-1 pb-2">
+                            <button
+                              type="button"
+                              onClick={loadMoreModalSessions}
+                              className="rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition hover:bg-white/10"
+                            >
+                              Load more sessions
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="h-full overflow-y-auto">
