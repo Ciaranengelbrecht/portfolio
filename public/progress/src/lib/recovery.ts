@@ -157,6 +157,10 @@ function hasHighEccentric(exerciseName: string): boolean {
 
 // Rolling window (ms) to inspect past sessions; 7 days = 168h
 const WINDOW_MS = 1000 * 60 * 60 * 168;
+const FREQUENCY_WINDOW_MS = 1000 * 60 * 60 * 72;
+const SESSION_BUCKET_MS = 1000 * 60 * 60 * 2;
+const RECOVERY_TARGET_RATIO = 0.05;
+const ETA_SOLVER_STEPS = 22;
 
 // Realistic stress threshold per muscle - represents max accumulated fatigue before overtraining
 // Lowered significantly to give more realistic recovery times
@@ -167,6 +171,49 @@ export function muscleThreshold(m: MuscleGroup): number {
 // Exponential time constant deriving from half-life: Tau = t_half / ln(2)
 function tauFromHalfLife(halfHours: number): number {
   return (halfHours * 3600 * 1000) / Math.log(2);
+}
+
+interface DecayComponent {
+  current: number;
+  tauMs: number;
+}
+
+function remainingAtOffsetMs(
+  components: DecayComponent[],
+  offsetMs: number
+): number {
+  if (offsetMs <= 0) {
+    return components.reduce((sum, component) => sum + component.current, 0);
+  }
+  let remaining = 0;
+  for (const component of components) {
+    remaining += component.current * Math.exp(-offsetMs / component.tauMs);
+  }
+  return remaining;
+}
+
+function solveEtaOffsetMs(
+  components: DecayComponent[],
+  targetRemaining: number,
+  maxOffsetMs: number
+): number {
+  if (!components.length || targetRemaining <= 0 || maxOffsetMs <= 0) return 0;
+  if (remainingAtOffsetMs(components, 0) <= targetRemaining) return 0;
+  if (remainingAtOffsetMs(components, maxOffsetMs) > targetRemaining) {
+    return maxOffsetMs;
+  }
+
+  let lo = 0;
+  let hi = maxOffsetMs;
+  for (let i = 0; i < ETA_SOLVER_STEPS; i++) {
+    const mid = (lo + hi) / 2;
+    if (remainingAtOffsetMs(components, mid) <= targetRemaining) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  return Math.ceil(hi);
 }
 
 export interface SetStressRecord {
@@ -353,12 +400,12 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     
     // ==== TRAINING FREQUENCY ANALYSIS ====
     // Count distinct training sessions in last 72h for this muscle
-    const last72h = now - (72 * 3600 * 1000);
+    const last72h = now - FREQUENCY_WINDOW_MS;
     const recentSessionTimes = new Set<number>();
     list.forEach(rec => {
       if (rec.startMs > last72h) {
         // Group into 2h windows to count distinct sessions
-        recentSessionTimes.add(Math.floor(rec.startMs / (2 * 3600 * 1000)));
+        recentSessionTimes.add(Math.floor(rec.startMs / SESSION_BUCKET_MS));
       }
     });
     const recentSessions = recentSessionTimes.size;
@@ -374,14 +421,18 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     
     let remaining = 0;
     let mostRecentWorkout = 0; // Track most recent training session
+    const decayComponents: DecayComponent[] = [];
     
     for (const rec of list) {
       const age = now - rec.startMs;
       if (age < 0) continue; // Future timestamp, ignore
-      const perSetTau = tau * (rec.recoveryMult || 1);
-      // Apply frequency modifier to stress decay
-      const rem = rec.s0 * frequencyMod * Math.exp(-age / perSetTau);
+      const perSetTau = Math.max(1, tau * (rec.recoveryMult || 1));
+      // Apply frequency pressure only to recent work to avoid distorting older sessions.
+      const frequencyAdjustedS0 = rec.startMs > last72h ? rec.s0 * frequencyMod : rec.s0;
+      const rem = frequencyAdjustedS0 * Math.exp(-age / perSetTau);
+      if (rem <= 0) continue;
       remaining += rem;
+      decayComponents.push({ current: rem, tauMs: perSetTau });
       if (rec.startMs > mostRecentWorkout) mostRecentWorkout = rec.startMs;
     }
     
@@ -392,26 +443,23 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
 
     // Smart ETA calculation - realistic recovery timeline
     let etaFull: number | undefined = undefined;
+    const targetStress = RECOVERY_TARGET_RATIO * threshold;
     
-    if (remaining <= 0.05 * threshold) {
+    if (remaining <= targetStress) {
       // Already recovered (< 5% stress remaining)
       etaFull = now;
-    } else if (remaining > 0) {
-      // Calculate time needed for stress to decay to 5% of threshold (essentially recovered)
-      // remaining * exp(-dt / tau) = 0.05 * threshold
-      // dt = tau * ln(remaining / (0.05 * threshold))
-      const targetStress = 0.05 * threshold;
-      const dt = tau * Math.log(Math.max(1, remaining / targetStress));
-      
-      if (isFinite(dt) && dt > 0) {
-        // Cap maximum recovery time at 2x baseline hours (prevents absurd values)
-        const maxRecoveryMs = fullRecoveryHours * 2 * 3600 * 1000;
-        const clampedDt = Math.min(dt, maxRecoveryMs);
-        etaFull = now + clampedDt;
-      } else {
-        // Fallback: use baseline recovery time from most recent workout
-        etaFull = mostRecentWorkout + (fullRecoveryHours * 3600 * 1000);
-      }
+    } else if (remaining > 0 && decayComponents.length) {
+      // Solve ETA against the same mixed decay model used for current remaining fatigue.
+      const maxRecoveryMs = fullRecoveryHours * 2 * 3600 * 1000;
+      const etaOffsetMs = solveEtaOffsetMs(
+        decayComponents,
+        targetStress,
+        maxRecoveryMs
+      );
+      etaFull = now + etaOffsetMs;
+    } else {
+      // Fallback: use baseline recovery time from most recent workout
+      etaFull = mostRecentWorkout + (fullRecoveryHours * 3600 * 1000);
     }
 
     let status: MuscleRecoveryState['status'];
