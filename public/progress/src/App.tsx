@@ -632,14 +632,6 @@ function Shell() {
                 }
               />
               <Route
-                path="/store"
-                element={
-                  <RequireAuth>
-                    <Navigate to="/templates" replace />
-                  </RequireAuth>
-                }
-              />
-              <Route
                 path="*"
                 element={<Navigate to={boot.authed ? "/" : "/auth"} replace />}
               />

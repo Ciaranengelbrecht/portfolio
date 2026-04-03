@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "export": "next export",
     "twa:build": "cd public/progress && npx --yes @bubblewrap/cli build",
     "twa:update": "cd public/progress && npx --yes @bubblewrap/cli update",
     "twa:fingerprint": "cd public/progress && npx --yes @bubblewrap/cli fingerprint",
@@ -13,7 +12,6 @@
     "twa:clean-root": "rm -f app-release-bundle.aab app-release-signed.apk app-release-signed.apk.idsig app-release-unsigned-aligned.apk"
   },
   "dependencies": {
-    "@heroicons/react": "^2.1.1",
     "@supabase/supabase-js": "^2.55.0",
     "framer-motion": "^10.17.6",
     "next": "14.0.4",

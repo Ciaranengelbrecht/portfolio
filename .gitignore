@@ -39,12 +39,14 @@ next-env.d.ts
 /public/progress/android/
 /public/progress/output/
 /public/progress/build/
+/public/progress/dist/
 /public/progress/app/
 /public/progress/gradle/
 /public/progress/.gradle/
 /progress/android/
 /progress/output/
 /progress/build/
+/progress/dist/
 /progress/app/
 /progress/gradle/
 /progress/.gradle/
