@@ -756,95 +756,91 @@ export default function SettingsPage() {
             vibrates (if enabled) when this threshold is reached.
           </div>
           <div className="settings-rest-grid">
-            <input
-              type="number"
-              min={30}
-              max={300}
-              className="input-app rounded-xl px-3 py-2 w-full min-[390px]:max-w-[120px]"
-              value={s.restTimerTargetSeconds ?? ""}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                if (isNaN(v)) return;
-                setS((prev) => ({
-                  ...prev,
-                  restTimerTargetSeconds: Math.max(30, Math.min(300, v)),
-                }));
-              }}
-            />
-            <div className="settings-chip-row min-[390px]:col-span-2 lg:col-span-3">
-              {[60, 90, 120, 150].map((preset) => (
-                <button
-                  key={preset}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium min-h-[42px] ${
-                    (s.restTimerTargetSeconds || 0) === preset
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-800/85 border border-white/10 text-white/85"
-                  }`}
-                  onClick={() =>
-                    setS((prev) => ({
-                      ...prev,
-                      restTimerTargetSeconds: preset,
-                    }))
-                  }
-                >
-                  {preset}s
-                </button>
-              ))}
-            </div>
-            <label className="settings-toggle-chip">
+            <label className="settings-inline-field settings-inline-field-stack">
+              <span className="settings-inline-label">Target seconds</span>
               <input
-                type="checkbox"
-                checked={s.restTimerStrongAlert !== false}
-                onChange={(e) =>
+                type="number"
+                min={30}
+                max={300}
+                className="input-app rounded-xl px-3 py-2 settings-input-compact"
+                value={s.restTimerTargetSeconds ?? ""}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (isNaN(v)) return;
                   setS((prev) => ({
                     ...prev,
-                    restTimerStrongAlert: e.target.checked,
-                  }))
-                }
+                    restTimerTargetSeconds: Math.max(30, Math.min(300, v)),
+                  }));
+                }}
               />
-              <span>Strong pulse</span>
             </label>
-            <label
-              className="settings-toggle-chip"
-              title="Play a short beep when rest target is reached"
-            >
-              <input
-                type="checkbox"
-                checked={s.restTimerBeep !== false}
-                onChange={(e) =>
-                  setS((prev) => ({ ...prev, restTimerBeep: e.target.checked }))
-                }
-              />
-              <span>Beep at target</span>
-            </label>
-            {s.restTimerBeep !== false && (
-              <>
-                <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
-                  <span>Style</span>
-                  <select
-                    className="input-app rounded-lg px-2 py-1"
-                    value={s.restTimerBeepStyle || "gentle"}
-                    onChange={(e) =>
+            <div className="settings-inline-field settings-inline-field-stack min-[390px]:col-span-2 lg:col-span-2">
+              <span className="settings-inline-label">Quick presets</span>
+              <div className="settings-chip-row">
+                {[60, 90, 120, 150].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`settings-preset-chip ${(s.restTimerTargetSeconds || 0) === preset ? "is-active" : ""}`}
+                    onClick={() =>
                       setS((prev) => ({
                         ...prev,
-                        restTimerBeepStyle: e.target.value as any,
+                        restTimerTargetSeconds: preset,
                       }))
                     }
                   >
-                    <option value="gentle">Gentle</option>
-                    <option value="chime">Chime</option>
-                    <option value="digital">Digital</option>
-                    <option value="alarm">Alarm</option>
-                    <option value="click">Click</option>
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1">
-                  <span>Count</span>
+                    {preset}s
+                  </button>
+                ))}
+              </div>
+            </div>
+            <SettingsSwitchRow
+              label="Strong pulse"
+              checked={s.restTimerStrongAlert !== false}
+              onChange={(checked) =>
+                setS((prev) => ({ ...prev, restTimerStrongAlert: checked }))
+              }
+              className="settings-switch-row-compact"
+            />
+            <SettingsSwitchRow
+              label="Beep at target"
+              description="Play a short beep when rest target is reached"
+              checked={s.restTimerBeep !== false}
+              onChange={(checked) =>
+                setS((prev) => ({ ...prev, restTimerBeep: checked }))
+              }
+              className="settings-switch-row-compact"
+            />
+            {s.restTimerBeep !== false && (
+              <>
+                <div className="settings-inline-field settings-inline-field-stack min-[390px]:col-span-2 lg:col-span-3">
+                  <span className="settings-inline-label">Beep style</span>
+                  <SegmentedControl
+                    ariaLabel="Rest timer beep style"
+                    value={s.restTimerBeepStyle || "gentle"}
+                    options={[
+                      { value: "gentle", label: "Gentle" },
+                      { value: "chime", label: "Chime" },
+                      { value: "digital", label: "Digital" },
+                      { value: "alarm", label: "Alarm" },
+                      { value: "click", label: "Click" },
+                    ]}
+                    className="settings-segmented-tight settings-segmented-wrap"
+                    onChange={(next) =>
+                      setS((prev) => ({
+                        ...prev,
+                        restTimerBeepStyle: next as any,
+                      }))
+                    }
+                  />
+                </div>
+                <label className="settings-inline-field">
+                  <span className="settings-inline-label">Beep count</span>
                   <input
                     type="number"
                     min={1}
                     max={5}
-                    className="input-app rounded-lg px-2 py-1 w-16"
+                    className="input-app rounded-xl px-3 py-2 settings-input-compact"
                     value={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
                     onChange={(e) => {
                       const v = Number(e.target.value);
@@ -860,59 +856,56 @@ export default function SettingsPage() {
                   />
                 </label>
                 <label
-                  className="flex items-center gap-2 text-[11px] bg-card/40 border border-card rounded-xl px-2 py-1"
+                  className="settings-inline-field settings-inline-field-stack min-[390px]:col-span-2 lg:col-span-2"
                   title="Make the beep louder to cut through music (50% to 300%)."
                 >
-                  <span>Volume</span>
-                  <input
-                    type="range"
-                    min={50}
-                    max={300}
-                    step={10}
-                    className="w-40"
-                    value={Math.max(
-                      50,
-                      Math.min(300, s.restTimerBeepVolume ?? 140)
-                    )}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      if (Number.isFinite(v))
-                        setS((prev) => ({
-                          ...prev,
-                          restTimerBeepVolume: Math.max(
-                            50,
-                            Math.min(300, Math.floor(v))
-                          ),
-                        }));
-                    }}
-                  />
-                  <span className="tabular-nums w-10 text-right">
-                    {Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}%
-                  </span>
+                  <span className="settings-inline-label">Beep volume</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={50}
+                      max={300}
+                      step={10}
+                      className="settings-range"
+                      value={Math.max(
+                        50,
+                        Math.min(300, s.restTimerBeepVolume ?? 140)
+                      )}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (Number.isFinite(v))
+                          setS((prev) => ({
+                            ...prev,
+                            restTimerBeepVolume: Math.max(
+                              50,
+                              Math.min(300, Math.floor(v))
+                            ),
+                          }));
+                      }}
+                    />
+                    <span className="tabular-nums w-11 text-right text-xs text-white/85">
+                      {Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}%
+                    </span>
+                  </div>
                 </label>
               </>
             )}
-            <label
-              className="settings-toggle-chip"
-              title="Brief white flash behind app when rest target first reached. Accessibility: may be intense for some users."
-            >
-              <input
-                type="checkbox"
-                checked={!!s.restTimerScreenFlash}
-                onChange={(e) =>
-                  setS((prev) => ({
-                    ...prev,
-                    restTimerScreenFlash: e.target.checked,
-                  }))
-                }
-              />
-              <span>Screen flash</span>
-            </label>
-            <BeepTester
-              styleKey={s.restTimerBeepStyle || "gentle"}
-              count={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
-              volumePct={Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}
+            <SettingsSwitchRow
+              label="Screen flash"
+              description="Brief white flash behind app when rest target is reached"
+              checked={!!s.restTimerScreenFlash}
+              onChange={(checked) =>
+                setS((prev) => ({ ...prev, restTimerScreenFlash: checked }))
+              }
+              className="settings-switch-row-compact"
             />
+            <div className="flex items-end">
+              <BeepTester
+                styleKey={s.restTimerBeepStyle || "gentle"}
+                count={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
+                volumePct={Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}
+              />
+            </div>
           </div>
           <div className="text-[10px] text-muted mt-1 leading-snug max-w-[580px]">
             Strong pulse enlarges and pulses the timer once target is reached.
@@ -1177,24 +1170,24 @@ export default function SettingsPage() {
           return null;
         })()}
         <div className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-3 gap-3">
-          <label className="space-y-1">
+          <div className="space-y-1.5">
             <div className="text-sm text-app">Units</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-compact"
-              value={s.unit}
-              onChange={(e) => setS({ ...s, unit: e.target.value as any })}
-            >
-              <option value="kg">kg</option>
-              <option value="lb">lb</option>
-            </select>
-          </label>
-          <div className="space-y-1">
-            <div className="text-sm text-app">Theme</div>
-            <div className="input-app rounded-xl px-3 py-2 text-muted flex items-center justify-between">
+            <SegmentedControl
+              ariaLabel="Weight unit"
+              value={s.unit || "kg"}
+              options={[
+                { value: "kg", label: "kg" },
+                { value: "lb", label: "lb" },
+              ]}
+              className="settings-segmented-compact"
+              onChange={(next) => setS({ ...s, unit: next as any })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <div className="text-sm text-app">Theme mode</div>
+            <div className="settings-static-row">
               <span>Dark</span>
-              <span className="text-[11px] uppercase tracking-wide">
-                Locked
-              </span>
+              <span className="settings-static-pill">Locked</span>
             </div>
           </div>
           <label className="space-y-1">
@@ -1232,7 +1225,7 @@ export default function SettingsPage() {
             />
           </label>
           <label className="space-y-1">
-            <div className="text-sm text-app">Start Page</div>
+            <div className="text-sm text-app">Start page</div>
             <select
               className="input-app rounded-xl px-3 py-2 settings-select-medium"
               value={s.dashboardPrefs?.startPage || "last"}
@@ -1252,54 +1245,44 @@ export default function SettingsPage() {
               <option value="measurements">Measurements</option>
             </select>
           </label>
-          <label className="space-y-1">
-            <div className="text-sm text-app">Open to last session</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-compact"
-              value={String(s.dashboardPrefs?.openToLast ?? true)}
-              onChange={(e) =>
-                setS({
-                  ...s,
-                  dashboardPrefs: {
-                    ...(s.dashboardPrefs || {}),
-                    openToLast: e.target.value === "true",
-                  },
-                })
-              }
-            >
-              <option value="true">On</option>
-              <option value="false">Off</option>
-            </select>
-          </label>
-          <label className="space-y-1">
-            <div className="text-sm text-app">Card Style</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-compact"
+          <SettingsSwitchRow
+            label="Open to last session"
+            checked={s.dashboardPrefs?.openToLast ?? true}
+            onChange={(checked) =>
+              setS({
+                ...s,
+                dashboardPrefs: {
+                  ...(s.dashboardPrefs || {}),
+                  openToLast: checked,
+                },
+              })
+            }
+            className="settings-switch-row-compact"
+          />
+          <div className="space-y-1.5">
+            <div className="text-sm text-app">Card style</div>
+            <SegmentedControl
+              ariaLabel="Card style"
               value={s.cardStyle || "glass"}
-              onChange={(e) => {
-                const v = e.target.value as any;
+              options={[
+                { value: "glass", label: "Glass" },
+                { value: "solid", label: "Solid" },
+                { value: "minimal", label: "Minimal" },
+              ]}
+              className="settings-segmented-tight"
+              onChange={(next) => {
+                const v = next as any;
                 setS({ ...s, cardStyle: v });
                 document.documentElement.setAttribute("data-card-style", v);
               }}
-            >
-              <option value="glass">Glass</option>
-              <option value="solid">Solid</option>
-              <option value="minimal">Minimal</option>
-            </select>
-          </label>
-          <label className="space-y-1">
-            <div className="text-sm text-app">Auto-advance session</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-compact"
-              value={String(s.autoAdvanceSession ?? false)}
-              onChange={(e) =>
-                setS({ ...s, autoAdvanceSession: e.target.value === "true" })
-              }
-            >
-              <option value="false">Off</option>
-              <option value="true">On</option>
-            </select>
-          </label>
+            />
+          </div>
+          <SettingsSwitchRow
+            label="Auto-advance session"
+            checked={!!s.autoAdvanceSession}
+            onChange={(checked) => setS({ ...s, autoAdvanceSession: checked })}
+            className="settings-switch-row-compact"
+          />
           <label className="space-y-1">
             <div className="text-sm text-app">
               Default set rows per exercise
@@ -1317,32 +1300,34 @@ export default function SettingsPage() {
               }}
             />
           </label>
-          <label className="space-y-1">
+          <div className="space-y-1.5">
             <div className="text-sm text-app">Measurement units</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-medium"
+            <SegmentedControl
+              ariaLabel="Measurement units"
               value={s.measurementUnits || "metric"}
-              onChange={(e) =>
-                setS({ ...s, measurementUnits: e.target.value as any })
+              options={[
+                { value: "metric", label: "cm / kg" },
+                { value: "imperial", label: "in / lb" },
+              ]}
+              onChange={(next) =>
+                setS({ ...s, measurementUnits: next as any })
               }
-            >
-              <option value="metric">cm / kg</option>
-              <option value="imperial">in / lb</option>
-            </select>
-          </label>
-          <label className="space-y-1">
-            <div className="text-sm text-app">Privacy: unlock</div>
-            <select
-              className="input-app rounded-xl px-3 py-2 settings-select-medium"
+            />
+          </div>
+          <div className="space-y-1.5 min-[390px]:col-span-2 xl:col-span-1">
+            <div className="text-sm text-app">Privacy unlock</div>
+            <SegmentedControl
+              ariaLabel="Privacy unlock mode"
               value={s.privacyUnlockMode || "everyLaunch"}
-              onChange={(e) =>
-                setS({ ...s, privacyUnlockMode: e.target.value as any })
+              options={[
+                { value: "everyLaunch", label: "Every launch" },
+                { value: "remember24h", label: "Remember 24h" },
+              ]}
+              onChange={(next) =>
+                setS({ ...s, privacyUnlockMode: next as any })
               }
-            >
-              <option value="everyLaunch">Require passcode every launch</option>
-              <option value="remember24h">Remember unlock for 24h</option>
-            </select>
-          </label>
+            />
+          </div>
         </div>
         <p className="text-xs text-muted">
           Data import/export and reset actions are under the Data &amp; Safety tab.
@@ -1440,7 +1425,7 @@ export default function SettingsPage() {
                                 {k.replace(/-/g, " ")}
                               </span>
                               {themeKey === k && (
-                                <span className="text-accent text-xs">✓</span>
+                                <span className="settings-static-pill text-[10px]">Active</span>
                               )}
                             </div>
                             <div className="text-[10px] text-muted truncate mb-2">
@@ -1681,7 +1666,7 @@ export default function SettingsPage() {
                                 </span>
                               </div>
                               <input
-                                className="w-full"
+                                className="settings-range"
                                 type="range"
                                 min={0}
                                 max={100}
@@ -1908,58 +1893,64 @@ export default function SettingsPage() {
               Save Theme
             </button>
             {/* Theme fine tuning */}
-            <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-              <span className="text-xs">Accent intensity</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={s.themeV2?.accentIntensity ?? 50}
-                onChange={(e) => {
-                  const accentIntensity = Number(e.target.value);
-                  const next: Settings = {
-                    ...s,
-                    themeV2: {
-                      key: s.themeV2?.key || themeKey,
-                      ...(s.themeV2 || {}),
-                      accentIntensity,
-                    },
-                  } as any;
-                  setS(next);
-                  // re-apply theme with new intensity
-                  setThemeKey((next.themeV2?.key || themeKey) as any);
-                }}
-              />
-              <span className="text-xs tabular-nums w-8 text-right">
-                {s.themeV2?.accentIntensity ?? 50}
-              </span>
+            <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
+              <span className="settings-inline-label">Accent intensity</span>
+              <div className="flex items-center gap-2 w-full">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="settings-range"
+                  value={s.themeV2?.accentIntensity ?? 50}
+                  onChange={(e) => {
+                    const accentIntensity = Number(e.target.value);
+                    const next: Settings = {
+                      ...s,
+                      themeV2: {
+                        key: s.themeV2?.key || themeKey,
+                        ...(s.themeV2 || {}),
+                        accentIntensity,
+                      },
+                    } as any;
+                    setS(next);
+                    // re-apply theme with new intensity
+                    setThemeKey((next.themeV2?.key || themeKey) as any);
+                  }}
+                />
+                <span className="text-xs tabular-nums w-8 text-right text-white/85">
+                  {s.themeV2?.accentIntensity ?? 50}
+                </span>
+              </div>
             </label>
-            <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-              <span className="text-xs">Glow strength</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={s.themeV2?.glowStrength ?? 50}
-                onChange={(e) => {
-                  const glowStrength = Number(e.target.value);
-                  const next: Settings = {
-                    ...s,
-                    themeV2: {
-                      key: s.themeV2?.key || themeKey,
-                      ...(s.themeV2 || {}),
-                      glowStrength,
-                    },
-                  } as any;
-                  setS(next);
-                  setThemeKey((next.themeV2?.key || themeKey) as any);
-                }}
-              />
-              <span className="text-xs tabular-nums w-8 text-right">
-                {s.themeV2?.glowStrength ?? 50}
-              </span>
+            <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
+              <span className="settings-inline-label">Glow strength</span>
+              <div className="flex items-center gap-2 w-full">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  className="settings-range"
+                  value={s.themeV2?.glowStrength ?? 50}
+                  onChange={(e) => {
+                    const glowStrength = Number(e.target.value);
+                    const next: Settings = {
+                      ...s,
+                      themeV2: {
+                        key: s.themeV2?.key || themeKey,
+                        ...(s.themeV2 || {}),
+                        glowStrength,
+                      },
+                    } as any;
+                    setS(next);
+                    setThemeKey((next.themeV2?.key || themeKey) as any);
+                  }}
+                />
+                <span className="text-xs tabular-nums w-8 text-right text-white/85">
+                  {s.themeV2?.glowStrength ?? 50}
+                </span>
+              </div>
             </label>
             {themeSaved === true && (
               <span className="text-xs text-emerald-400">Saved ✓</span>
@@ -1967,15 +1958,13 @@ export default function SettingsPage() {
             {themeSaved === false && (
               <span className="text-xs text-red-400">Not saved</span>
             )}
-            <label className="flex items-center gap-2 text-xs bg-card/40 border border-card rounded-xl px-3 py-2">
-              <span>Reduce motion</span>
-              <input
-                type="checkbox"
+            <div className="settings-switch-grid w-full">
+              <SettingsSwitchRow
+                label="Reduce motion"
                 checked={!!s.reducedMotion}
-                onChange={(e) => {
-                  const val = e.target.checked;
-                  setS({ ...s, reducedMotion: val });
-                  if (val)
+                onChange={(checked) => {
+                  setS({ ...s, reducedMotion: checked });
+                  if (checked)
                     document.documentElement.setAttribute(
                       "data-reduced-motion",
                       "true"
@@ -1986,93 +1975,70 @@ export default function SettingsPage() {
                     );
                 }}
               />
-            </label>
-            <div className="flex flex-wrap gap-2 items-center text-xs">
-              <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+              <div className="settings-static-row">
                 <span>Theme mode</span>
-                <span className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-200 text-[11px] uppercase tracking-wide">
-                  Dark locked
-                </span>
+                <span className="settings-static-pill">Dark locked</span>
               </div>
-              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                <span>Compact UI</span>
-                <input
-                  type="checkbox"
-                  checked={!!s.ui?.compactMode}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    const next = {
-                      ...s,
-                      ui: { ...(s.ui || {}), compactMode: val },
-                    };
-                    setS(next);
-                    document.documentElement.setAttribute(
-                      "data-density",
-                      val ? "compact" : "normal"
-                    );
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                <span>Instant theme</span>
-                <input
-                  type="checkbox"
-                  checked={!!s.ui?.instantThemeTransition}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    const next = {
-                      ...s,
-                      ui: { ...(s.ui || {}), instantThemeTransition: val },
-                    };
-                    setS(next);
-                    if (val)
-                      document.documentElement.classList.remove(
-                        "theme-animate"
-                      );
-                    else
-                      document.documentElement.classList.add("theme-animate");
-                  }}
-                />
-              </label>
-              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                <span>Smoothing default</span>
-                <input
-                  type="checkbox"
-                  checked={!!s.ui?.smoothingDefault}
-                  onChange={(e) => {
-                    const val = e.target.checked;
-                    const next = {
-                      ...s,
-                      ui: { ...(s.ui || {}), smoothingDefault: val },
-                    };
-                    setS(next);
-                  }}
-                />
-              </label>
-              {/* ECG background toggle */}
-              <label className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
-                <span>ECG bg</span>
-                <input
-                  type="checkbox"
-                  checked={!!s.ecg?.enabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    const next = { ...s, ecg: { ...(s.ecg || {}), enabled } };
-                    setS(next);
-                    document.body.dataset.ecg = enabled ? "on" : "off";
-                  }}
-                />
-              </label>
+              <SettingsSwitchRow
+                label="Compact UI"
+                checked={!!s.ui?.compactMode}
+                onChange={(checked) => {
+                  const next = {
+                    ...s,
+                    ui: { ...(s.ui || {}), compactMode: checked },
+                  };
+                  setS(next);
+                  document.documentElement.setAttribute(
+                    "data-density",
+                    checked ? "compact" : "normal"
+                  );
+                }}
+              />
+              <SettingsSwitchRow
+                label="Instant theme"
+                checked={!!s.ui?.instantThemeTransition}
+                onChange={(checked) => {
+                  const next = {
+                    ...s,
+                    ui: { ...(s.ui || {}), instantThemeTransition: checked },
+                  };
+                  setS(next);
+                  if (checked)
+                    document.documentElement.classList.remove("theme-animate");
+                  else
+                    document.documentElement.classList.add("theme-animate");
+                }}
+              />
+              <SettingsSwitchRow
+                label="Smoothing default"
+                checked={!!s.ui?.smoothingDefault}
+                onChange={(checked) => {
+                  const next = {
+                    ...s,
+                    ui: { ...(s.ui || {}), smoothingDefault: checked },
+                  };
+                  setS(next);
+                }}
+              />
+              <SettingsSwitchRow
+                label="ECG background"
+                checked={!!s.ecg?.enabled}
+                onChange={(checked) => {
+                  const next = { ...s, ecg: { ...(s.ecg || {}), enabled: checked } };
+                  setS(next);
+                  document.body.dataset.ecg = checked ? "on" : "off";
+                }}
+              />
               {s.ecg?.enabled && (
                 <details className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">
                   <summary className="cursor-pointer text-xs font-medium text-white/85">
                     Advanced ECG controls
                   </summary>
                   <div className="mt-3 grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field">
                       <span>Intensity</span>
                       <select
-                        className="bg-transparent outline-none"
+                        className="input-app rounded-xl px-2 py-1 settings-select-compact"
                         value={s.ecg?.intensity || "low"}
                         onChange={(e) => {
                           const intensity = e.target.value as any;
@@ -2125,10 +2091,10 @@ export default function SettingsPage() {
                         <option value="high">High</option>
                       </select>
                     </div>
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field">
                       <span>Shape</span>
                       <select
-                        className="bg-transparent outline-none"
+                        className="input-app rounded-xl px-2 py-1 settings-select-compact"
                         value={s.ecg?.shape || "classic"}
                         onChange={(e) => {
                           const shape = e.target.value as any;
@@ -2145,13 +2111,14 @@ export default function SettingsPage() {
                         <option value="minimal">Minimal</option>
                       </select>
                     </div>
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field settings-inline-field-stack">
                       <span>Speed</span>
                       <input
                         type="range"
                         min={4000}
                         max={180000}
                         step={1000}
+                        className="settings-range"
                         value={s.ecg?.speedMs || 42000}
                         onChange={(e) => {
                           const speedMs = Number(e.target.value);
@@ -2167,7 +2134,7 @@ export default function SettingsPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field settings-inline-field-stack">
                       <span>Trail</span>
                       <input
                         title={String(s.ecg?.trailMs || 2000) + " ms"}
@@ -2175,6 +2142,7 @@ export default function SettingsPage() {
                         min={400}
                         max={8000}
                         step={100}
+                        className="settings-range"
                         value={s.ecg?.trailMs || 2000}
                         onChange={(e) => {
                           const trailMs = Number(e.target.value);
@@ -2190,28 +2158,31 @@ export default function SettingsPage() {
                         }}
                       />
                     </div>
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field settings-inline-field-stack">
                       <span>Spikes</span>
-                      <input
-                        type="range"
-                        min={1}
-                        max={5}
-                        step={1}
-                        value={s.ecg?.spikes || 1}
-                        onChange={(e) => {
-                          const spikes = Number(e.target.value);
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), spikes, enabled: true },
-                          };
-                          setS(next);
-                        }}
-                      />
-                      <span className="text-xs opacity-70">
-                        {s.ecg?.spikes || 1}
-                      </span>
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          type="range"
+                          min={1}
+                          max={5}
+                          step={1}
+                          className="settings-range"
+                          value={s.ecg?.spikes || 1}
+                          onChange={(e) => {
+                            const spikes = Number(e.target.value);
+                            const next = {
+                              ...s,
+                              ecg: { ...(s.ecg || {}), spikes, enabled: true },
+                            };
+                            setS(next);
+                          }}
+                        />
+                        <span className="text-xs tabular-nums text-white/80 w-4 text-right">
+                          {s.ecg?.spikes || 1}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-card/40 border border-card rounded-xl px-3 py-2">
+                    <div className="settings-inline-field">
                       <span>Color</span>
                       <input
                         type="color"
@@ -2248,18 +2219,13 @@ export default function SettingsPage() {
           description="Control destructive actions and manage import/export/reset workflows."
         >
           <div className="settings-subpanel space-y-3">
-            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-              <span className="text-sm text-app">
-                Confirm before deleting items
-              </span>
-              <input
-                type="checkbox"
-                checked={!!s.confirmDestructive}
-                onChange={(e) =>
-                  setS({ ...s, confirmDestructive: e.target.checked })
-                }
-              />
-            </label>
+            <SettingsSwitchRow
+              label="Confirm before deleting items"
+              checked={!!s.confirmDestructive}
+              onChange={(checked) =>
+                setS({ ...s, confirmDestructive: checked })
+              }
+            />
             <p className="text-xs text-white/70 leading-snug">
               Export creates a full backup. Import merges data from a previous export.
             </p>
@@ -2333,10 +2299,10 @@ export default function SettingsPage() {
           description="Tune weekly targets and gameplay effects that keep training fresh."
         >
           <div className="grid grid-cols-1 min-[390px]:grid-cols-2 gap-3">
-            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <label className="settings-inline-field">
               <span className="text-sm text-app">Weekly target days</span>
               <input
-                className="input-app rounded px-2 py-1 w-16 text-center"
+                className="input-app rounded-xl px-2 py-1 w-16 text-center"
                 inputMode="numeric"
                 value={s.progress?.weeklyTargetDays ?? 6}
                 onChange={(e) => {
@@ -2350,54 +2316,45 @@ export default function SettingsPage() {
                 }}
               />
             </label>
-            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-              <span className="text-sm text-app">Gamification effects</span>
-              <input
-                type="checkbox"
-                checked={s.progress?.gamification ?? true}
-                onChange={(e) =>
-                  setS({
-                    ...s,
-                    progress: {
-                      ...(s.progress || {}),
-                      gamification: e.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
-            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-              <span className="text-sm text-app">Show deload hints</span>
-              <input
-                type="checkbox"
-                checked={s.progress?.showDeloadHints ?? true}
-                onChange={(e) =>
-                  setS({
-                    ...s,
-                    progress: {
-                      ...(s.progress || {}),
-                      showDeloadHints: e.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
-            <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-              <span className="text-sm text-app">Show previous week hints</span>
-              <input
-                type="checkbox"
-                checked={s.progress?.showPrevHints ?? true}
-                onChange={(e) =>
-                  setS({
-                    ...s,
-                    progress: {
-                      ...(s.progress || {}),
-                      showPrevHints: e.target.checked,
-                    },
-                  })
-                }
-              />
-            </label>
+            <SettingsSwitchRow
+              label="Gamification effects"
+              checked={s.progress?.gamification ?? true}
+              onChange={(checked) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    gamification: checked,
+                  },
+                })
+              }
+            />
+            <SettingsSwitchRow
+              label="Show deload hints"
+              checked={s.progress?.showDeloadHints ?? true}
+              onChange={(checked) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    showDeloadHints: checked,
+                  },
+                })
+              }
+            />
+            <SettingsSwitchRow
+              label="Show previous week hints"
+              checked={s.progress?.showPrevHints ?? true}
+              onChange={(checked) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    showPrevHints: checked,
+                  },
+                })
+              }
+            />
           </div>
           <p className="text-xs text-muted">Changes in this section autosave.</p>
         </SectionCard>
@@ -2473,6 +2430,118 @@ export default function SettingsPage() {
           />
         </SectionCard>
       )}
+    </div>
+  );
+}
+
+type SegmentedOption = {
+  value: string;
+  label: string;
+};
+
+type SegmentedControlProps = {
+  value: string;
+  options: SegmentedOption[];
+  onChange: (next: string) => void;
+  ariaLabel: string;
+  className?: string;
+};
+
+function SegmentedControl({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  className,
+}: SegmentedControlProps) {
+  return (
+    <div
+      className={["settings-segmented", className].filter(Boolean).join(" ")}
+      role="radiogroup"
+      aria-label={ariaLabel}
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            className="settings-segmented-option"
+            data-active={active ? "true" : "false"}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type SettingsSwitchProps = {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+  disabled?: boolean;
+};
+
+function SettingsSwitch({
+  checked,
+  onChange,
+  ariaLabel,
+  disabled,
+}: SettingsSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      className="settings-switch"
+      data-checked={checked ? "true" : "false"}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="settings-switch-thumb" />
+    </button>
+  );
+}
+
+type SettingsSwitchRowProps = {
+  label: string;
+  description?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+};
+
+function SettingsSwitchRow({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+  className,
+}: SettingsSwitchRowProps) {
+  return (
+    <div
+      className={["settings-switch-row", className].filter(Boolean).join(" ")}
+    >
+      <div className="min-w-0">
+        <div className="settings-switch-label">{label}</div>
+        {description ? (
+          <div className="settings-switch-description">{description}</div>
+        ) : null}
+      </div>
+      <SettingsSwitch
+        checked={checked}
+        onChange={onChange}
+        ariaLabel={label}
+        disabled={disabled}
+      />
     </div>
   );
 }
