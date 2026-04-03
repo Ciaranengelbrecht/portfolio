@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { db } from "../lib/db";
 import { Measurement } from "../lib/types";
 import { nanoid } from "nanoid";
@@ -7,53 +7,67 @@ import { motion, AnimatePresence } from "framer-motion";
 interface QuickWeighInProps {
   onSave: () => void;
   lastWeight?: number;
+  lastWaist?: number;
 }
 
 /**
  * QuickWeighIn - A streamlined weight entry component
  * Reduces friction for the most common measurement: daily weight
  */
-export default function QuickWeighIn({ onSave, lastWeight }: QuickWeighInProps) {
+const parsePositive = (value: string) => {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+};
+
+export default function QuickWeighIn({
+  onSave,
+  lastWeight,
+  lastWaist,
+}: QuickWeighInProps) {
   const [weight, setWeight] = useState<string>("");
+  const [waist, setWaist] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus input on mount for quick entry
-  useEffect(() => {
-    // Small delay to avoid focus issues on page load
-    const t = setTimeout(() => inputRef.current?.focus(), 100);
-    return () => clearTimeout(t);
-  }, []);
+  const weightRef = useRef<HTMLInputElement>(null);
 
   const handleSave = useCallback(async () => {
-    const val = parseFloat(weight);
-    if (isNaN(val) || val <= 0) return;
+    const parsedWeight = parsePositive(weight);
+    const parsedWaist = parsePositive(waist);
+    if (parsedWeight == null && parsedWaist == null) return;
 
     setIsSaving(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
-      
+
       // Check if there's already a measurement for today
       const all = await db.getAll<Measurement>("measurements");
       const todayEntry = all.find((m) => m.dateISO.slice(0, 10) === today);
+
+      const patch: Partial<Measurement> = {};
+      if (parsedWeight != null) patch.weightKg = Number(parsedWeight.toFixed(2));
+      if (parsedWaist != null) patch.waist = Number(parsedWaist.toFixed(2));
 
       if (todayEntry) {
         // Update existing entry
         await db.put("measurements", {
           ...todayEntry,
-          weightKg: val,
+          ...patch,
         });
       } else {
         // Get height from most recent entry if available
-        const sorted = [...all].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
-        const lastHeight = sorted.find((m) => typeof m.heightCm === "number")?.heightCm;
+        const sorted = [...all].sort((a, b) =>
+          b.dateISO.localeCompare(a.dateISO)
+        );
+        const lastHeight = sorted.find(
+          (m) => typeof m.heightCm === "number"
+        )?.heightCm;
 
-        // Create new entry with just weight
+        // Create new entry with available quick fields.
         const newEntry: Measurement = {
           id: nanoid(),
           dateISO: new Date().toISOString(),
-          weightKg: val,
+          ...patch,
           ...(lastHeight && { heightCm: lastHeight }),
         };
         await db.put("measurements", newEntry);
@@ -61,6 +75,7 @@ export default function QuickWeighIn({ onSave, lastWeight }: QuickWeighInProps) 
 
       setShowSuccess(true);
       setWeight("");
+      setWaist("");
       onSave();
 
       // Reset success state after animation
@@ -69,33 +84,57 @@ export default function QuickWeighIn({ onSave, lastWeight }: QuickWeighInProps) 
       console.error("Quick weigh-in failed:", err);
     } finally {
       setIsSaving(false);
+      if (parsedWeight == null) {
+        weightRef.current?.focus();
+      }
     }
-  }, [weight, onSave]);
+  }, [weight, waist, onSave]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    field: "weight" | "waist"
+  ) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSave();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setWeight((prev) => {
-        const val = parseFloat(prev) || lastWeight || 0;
-        return (val + 0.1).toFixed(1);
-      });
+      if (field === "weight") {
+        setWeight((prev) => {
+          const val = parseFloat(prev) || lastWeight || 0;
+          return (val + 0.1).toFixed(1);
+        });
+      } else {
+        setWaist((prev) => {
+          const val = parseFloat(prev) || lastWaist || 0;
+          return Math.max(0, val + 0.5).toFixed(1);
+        });
+      }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setWeight((prev) => {
-        const val = parseFloat(prev) || lastWeight || 0;
-        return Math.max(0, val - 0.1).toFixed(1);
-      });
+      if (field === "weight") {
+        setWeight((prev) => {
+          const val = parseFloat(prev) || lastWeight || 0;
+          return Math.max(0, val - 0.1).toFixed(1);
+        });
+      } else {
+        setWaist((prev) => {
+          const val = parseFloat(prev) || lastWaist || 0;
+          return Math.max(0, val - 0.5).toFixed(1);
+        });
+      }
     }
   };
 
-  const isValid = !isNaN(parseFloat(weight)) && parseFloat(weight) > 0;
-  const diff = lastWeight && isValid ? parseFloat(weight) - lastWeight : null;
+  const hasWeight = parsePositive(weight) != null;
+  const hasWaist = parsePositive(waist) != null;
+  const isValid = hasWeight || hasWaist;
+  const weightDiff =
+    lastWeight && hasWeight ? parseFloat(weight) - lastWeight : null;
+  const waistDiff = lastWaist && hasWaist ? parseFloat(waist) - lastWaist : null;
 
   return (
-    <div className="relative rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-950/40 to-slate-900/60 p-4 overflow-hidden">
+    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-emerald-950/35 to-slate-900/60 p-3.5">
       {/* Success overlay */}
       <AnimatePresence>
         {showSuccess && (
@@ -115,93 +154,122 @@ export default function QuickWeighIn({ onSave, lastWeight }: QuickWeighInProps) 
         )}
       </AnimatePresence>
 
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center">
+      <div className="mb-2.5 flex items-center gap-2.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600/20">
           <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
           </svg>
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-white">Quick Weigh-in</h3>
-          <p className="text-xs text-slate-400">Log today's weight in seconds</p>
+          <h3 className="text-sm font-semibold text-white">Quick measurements</h3>
+          <p className="text-[11px] text-slate-400">Log weight and waist fast</p>
         </div>
       </div>
 
-      <div className="flex items-stretch gap-2">
-        <div className="flex-1 relative">
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="decimal"
-            value={weight}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-              setWeight(v);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={lastWeight ? `${lastWeight.toFixed(1)}` : "Weight"}
-            className="w-full h-12 px-4 pr-12 rounded-xl bg-slate-800/80 border border-white/10 
-                       text-lg font-medium text-white placeholder:text-slate-500
-                       focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50
-                       transition-all"
-          />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
-            kg
-          </span>
-        </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label className="min-w-0 space-y-1">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Weight</span>
+          <div className="relative">
+            <input
+              ref={weightRef}
+              type="text"
+              inputMode="decimal"
+              value={weight}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                setWeight(v);
+              }}
+              onKeyDown={(e) => handleKeyDown(e, "weight")}
+              placeholder={lastWeight ? `${lastWeight.toFixed(1)}` : "kg"}
+              className="h-10 w-full rounded-lg border border-white/10 bg-slate-800/80 px-3 pr-10 text-sm font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+              kg
+            </span>
+          </div>
+        </label>
+
+        <label className="min-w-0 space-y-1">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Waist</span>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={waist}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!/^\d*(?:\.\d*)?$/.test(v)) return;
+                setWaist(v);
+              }}
+              onKeyDown={(e) => handleKeyDown(e, "waist")}
+              placeholder={lastWaist ? `${lastWaist.toFixed(1)}` : "cm"}
+              className="h-10 w-full rounded-lg border border-white/10 bg-slate-800/80 px-3 pr-10 text-sm font-medium text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+              cm
+            </span>
+          </div>
+        </label>
 
         <button
+          type="button"
           onClick={handleSave}
           disabled={!isValid || isSaving}
-          className="h-12 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 
-                     disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed
-                     text-white font-medium transition-all
-                     flex items-center gap-2"
+          className="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
         >
-          {isSaving ? (
-            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-          Save
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
 
-      {/* Weight difference indicator */}
       <AnimatePresence>
-        {diff !== null && (
+        {(weightDiff !== null || waistDiff !== null) && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-2 flex items-center gap-2 text-xs"
+            className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]"
           >
-            <span className="text-slate-400">vs. last:</span>
-            <span className={diff > 0 ? "text-amber-400" : diff < 0 ? "text-emerald-400" : "text-slate-400"}>
-              {diff > 0 ? "+" : ""}{diff.toFixed(1)} kg
-            </span>
-            {diff !== 0 && (
-              <span className={diff > 0 ? "text-amber-400/60" : "text-emerald-400/60"}>
-                ({diff > 0 ? "↑" : "↓"} {Math.abs((diff / lastWeight!) * 100).toFixed(1)}%)
+            {weightDiff !== null && (
+              <span className="inline-flex items-center gap-1">
+                <span className="text-slate-400">Wt:</span>
+                <span
+                  className={
+                    weightDiff > 0
+                      ? "text-amber-400"
+                      : weightDiff < 0
+                        ? "text-emerald-400"
+                        : "text-slate-400"
+                  }
+                >
+                  {weightDiff > 0 ? "+" : ""}
+                  {weightDiff.toFixed(1)} kg
+                </span>
+              </span>
+            )}
+            {waistDiff !== null && (
+              <span className="inline-flex items-center gap-1">
+                <span className="text-slate-400">Waist:</span>
+                <span
+                  className={
+                    waistDiff > 0
+                      ? "text-amber-400"
+                      : waistDiff < 0
+                        ? "text-emerald-400"
+                        : "text-slate-400"
+                  }
+                >
+                  {waistDiff > 0 ? "+" : ""}
+                  {waistDiff.toFixed(1)} cm
+                </span>
               </span>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Hint text */}
-      <p className="mt-3 text-[11px] text-slate-500 flex items-center gap-1.5">
-        <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">↑</kbd>
-        <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">↓</kbd>
-        <span>to adjust • </span>
-        <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[10px]">Enter</kbd>
-        <span>to save</span>
+      <p className="mt-2 text-[10px] text-slate-500">
+        Use arrow keys to nudge values, Enter to save.
       </p>
     </div>
   );

@@ -867,7 +867,7 @@ input[type="number"] {
 
 /* Clean set card - minimal and compact */
 .set-card-clean {
-  @apply relative rounded-lg px-2.5 py-2;
+  @apply relative rounded-lg px-2 py-1.5;
   @apply bg-slate-900/35 border border-white/[0.04];
   @apply transition-all duration-200;
 }
@@ -885,10 +885,10 @@ input[type="number"] {
 /* Compact touch-friendly +/- buttons - smaller for cleaner mobile UI */
 .btn-stepper-large {
   @apply flex items-center justify-center;
-  @apply min-h-[36px] min-w-[36px] h-[36px] w-[36px];
+  @apply min-h-[32px] min-w-[32px] h-[32px] w-[32px];
   @apply rounded-md;
   @apply bg-slate-800/70 border border-slate-700/40;
-  @apply text-white/90 text-base font-medium;
+  @apply text-white/90 text-sm font-medium;
   @apply active:scale-90 active:bg-slate-700;
   @apply transition-all duration-150;
   touch-action: manipulation;
@@ -901,36 +901,36 @@ input[type="number"] {
 
 /* Input for mid-workout logging - wider, clearer values */
 .input-workout-large {
-  @apply h-[38px] w-full;
+  @apply h-[34px] w-full;
   @apply bg-slate-950/80 border border-slate-700/40 rounded-md;
-  @apply text-white text-base font-semibold text-center tabular-nums;
+  @apply text-white text-sm font-semibold text-center tabular-nums;
   @apply px-2;
   @apply transition-all duration-200;
   @apply focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  min-width: 50px;
+  min-width: 44px;
 }
 
 .input-workout-large::placeholder {
-  @apply text-slate-600 font-normal text-sm;
+  @apply text-slate-600 font-normal text-xs;
 }
 
 /* Compact set header */
 .set-header-clean {
-  @apply flex items-center justify-between mb-2;
+  @apply flex items-center justify-between mb-1.5;
 }
 
 .set-number-badge {
   @apply inline-flex items-center gap-1;
-  @apply text-xs font-medium text-slate-300;
+  @apply text-[10px] font-medium text-slate-300;
 }
 
 .set-number-badge .number {
   @apply flex items-center justify-center;
-  @apply w-5 h-5 rounded;
+  @apply h-[18px] w-[18px] rounded;
   @apply bg-slate-800/60 text-slate-400;
-  @apply text-[10px] font-semibold;
+  @apply text-[9px] font-semibold;
 }
 
 .set-number-badge.completed .number {
@@ -947,7 +947,7 @@ input[type="number"] {
 }
 
 .input-label-workout {
-  @apply text-[9px] font-medium uppercase tracking-wide text-slate-500/80;
+  @apply text-[8px] font-medium uppercase tracking-wide text-slate-500/80;
 }
 
 /* Compact action buttons in set header */
@@ -957,9 +957,9 @@ input[type="number"] {
 
 .btn-set-action {
   @apply flex items-center justify-center;
-  @apply h-8 w-8 rounded-md;
+  @apply h-7 w-7 rounded-md;
   @apply bg-slate-800/55 border border-white/[0.08];
-  @apply text-slate-300 text-[12px];
+  @apply text-slate-300 text-[11px];
   @apply transition-all duration-150;
   @apply hover:bg-slate-700/70 hover:text-slate-100;
   @apply active:scale-90;
@@ -1018,9 +1018,9 @@ input[type="number"] {
 
 .exercise-stat-chip {
   @apply inline-flex items-center gap-1;
-  @apply px-2 py-0.5 rounded-md;
+  @apply rounded-md px-1.5 py-0;
   @apply bg-slate-800/50 border border-white/[0.04];
-  @apply text-[10px] font-medium text-slate-300 tabular-nums;
+  @apply text-[9px] font-medium text-slate-300 tabular-nums;
 }
 
 .exercise-stat-chip.highlight {

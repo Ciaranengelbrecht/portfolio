@@ -5839,38 +5839,40 @@ export default function Sessions() {
                         })}
                         
                         {/* Action row: Add Set + Rest Timer */}
-                        <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-white/[0.04]">
+                        <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-white/[0.04] pt-1.5">
                           {/* Add Set button - prominent */}
                           <button
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold transition-all hover:bg-indigo-500/25 hover:border-indigo-400/40 hover:shadow-[0_0_12px_rgba(99,102,241,0.25)] active:scale-95"
+                            type="button"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-indigo-500/30 bg-indigo-500/15 text-[10px] font-semibold text-indigo-300 transition-all hover:border-indigo-400/40 hover:bg-indigo-500/22 active:scale-95"
                             onClick={() => addSet(entry)}
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
-                            Add Set
+                            Set
                           </button>
                           
                           {/* Rest Timer - prominent */}
-                          <div className="inline-flex items-center gap-1.5">
+                          <div className="inline-flex items-center gap-1">
                             <button
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
+                              type="button"
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all active:scale-95 ${
                                 restTimers[entry.id]?.running
-                                  ? "bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
-                                  : "bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+                                  ? "border border-emerald-400/40 bg-emerald-500/20 text-emerald-300"
+                                  : "border border-amber-500/30 bg-amber-500/15 text-amber-300 hover:border-amber-400/40 hover:bg-amber-500/24"
                               }`}
                               onClick={() => restartRestTimer(entry.id)}
                               aria-label={restTimers[entry.id] ? "Restart rest timer" : "Start rest timer"}
                             >
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              {restTimers[entry.id] ? "Restart" : "Rest"}
+                              {restTimers[entry.id] ? "Reset" : "Rest"}
                             </button>
                             {restTimers[entry.id] && (
                               <>
                                 {activeRestEntryId === entry.id ? (
-                                  <span className="text-sm font-bold tabular-nums text-emerald-200 min-w-[44px] text-center">
+                                  <span className="min-w-[40px] text-center text-xs font-bold tabular-nums text-emerald-200">
                                     {restTimerDisplay(entry.id)}
                                   </span>
                                 ) : hasFloatingRestTimer ? (
@@ -5879,11 +5881,12 @@ export default function Sessions() {
                                   </span>
                                 ) : null}
                                 <button
-                                  className="h-6 w-6 flex items-center justify-center rounded-md bg-rose-500/15 border border-rose-500/25 text-rose-400 hover:bg-rose-500/25 hover:text-rose-300 transition-all"
+                                  type="button"
+                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-rose-500/25 bg-rose-500/15 text-rose-400 transition-all hover:bg-rose-500/25 hover:text-rose-300"
                                   aria-label="Stop rest timer"
                                   onClick={() => stopRestTimer(entry.id)}
                                 >
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </button>
@@ -6929,34 +6932,35 @@ function SessionMomentumPanel({
   const queueRemainder = Math.max(0, remainingTasks - 1);
 
   return (
-    <div className="mx-4 mt-2 rounded-2xl border border-white/12 bg-[rgba(15,23,42,0.78)] shadow-[0_14px_30px_-24px_rgba(59,130,246,0.55)] backdrop-blur-sm fade-in overflow-hidden">
+    <div className="mx-2.5 mt-1.5 overflow-hidden rounded-xl border border-white/10 bg-[rgba(15,23,42,0.74)] shadow-[0_10px_24px_-22px_rgba(59,130,246,0.55)] backdrop-blur-sm fade-in sm:mx-4">
       {/* Collapsible header - always visible */}
       <button
+        type="button"
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full px-4 py-3 sm:px-5 flex items-center justify-between gap-3 hover:bg-white/5 transition-colors"
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-white/5 sm:px-4"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400/80">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <p className="text-[9px] uppercase tracking-[0.24em] text-slate-400/80">
             Session momentum
           </p>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-semibold text-white/90">
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-semibold text-white/90">
               {completion}%
             </span>
           </div>
           {/* Compact progress bar in header */}
-          <div className="hidden sm:block w-20 h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="hidden h-1 w-16 overflow-hidden rounded-full bg-white/10 sm:block">
             <div
               className="h-full rounded-full bg-gradient-to-r from-emerald-400/80 to-emerald-300/70"
               style={{ width: `${completion}%` }}
             />
           </div>
-          <span className="text-[10px] text-slate-400">
+          <span className="text-[9px] text-slate-400">
             {analytics.completedSets}/{analytics.plannedSets} sets
           </span>
         </div>
         <svg
-          className={`w-4 h-4 text-slate-400 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
+          className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isCollapsed ? "" : "rotate-180"}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -6975,9 +6979,9 @@ function SessionMomentumPanel({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 sm:px-5 space-y-3">
+            <div className="space-y-2.5 px-3 pb-3 sm:px-4">
               {/* Full progress bar */}
-              <div className="relative h-2 overflow-hidden rounded-full bg-white/10">
+              <div className="relative h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-400/80 via-emerald-400/70 to-emerald-300/70"
                   style={{ width: `${completion}%` }}
@@ -6986,9 +6990,9 @@ function SessionMomentumPanel({
               </div>
               
               {/* Stats pills */}
-              <div className="flex flex-wrap gap-2 text-[10px] text-slate-200">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+              <div className="flex flex-wrap gap-1.5 text-[9px] text-slate-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.18em]">
                     Sets
                   </span>
                   <span className="text-white/90">
@@ -6996,20 +7000,20 @@ function SessionMomentumPanel({
                     {analytics.plannedSets.toLocaleString()}
                   </span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.18em]">
                     Volume
                   </span>
                   <span className="text-emerald-300">
                     {analytics.totalVolume.toLocaleString()}
                   </span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-                  <span className="text-slate-400 uppercase tracking-[0.24em]">PR</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.18em]">PR</span>
                   <span className="text-white/90">{analytics.prSignals}</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 font-medium">
-                  <span className="text-slate-400 uppercase tracking-[0.24em]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 font-medium">
+                  <span className="text-slate-400 uppercase tracking-[0.18em]">
                     Muscles
                   </span>
                   <span className="text-white/90">{activeMuscleCount}</span>
@@ -7018,24 +7022,24 @@ function SessionMomentumPanel({
 
               {/* Top muscles */}
               {topMuscles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
+                <div className="flex flex-wrap items-center gap-1 text-[9px] text-slate-200">
                   {topMuscles.map((m) => {
                     const icon = getMuscleIconPath(m.muscle);
                     return (
                       <span
                         key={m.muscle}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
+                        className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5 tabular-nums"
                         title={`${m.muscle} · ${m.workingSets}/${m.totalSets} sets`}
                       >
                         {icon ? (
                           <img
                             src={icon}
                             alt={m.muscle}
-                            className="h-5 w-5 rounded-sm border border-white/15 bg-black/20"
+                            className="h-4 w-4 rounded-sm border border-white/15 bg-black/20"
                           />
                         ) : (
                           <span
-                            className="h-5 w-5 rounded-sm border border-white/10 bg-slate-700/60"
+                            className="h-4 w-4 rounded-sm border border-white/10 bg-slate-700/60"
                             aria-hidden="true"
                           />
                         )}
@@ -7050,21 +7054,21 @@ function SessionMomentumPanel({
 
               {/* Up next task */}
               {nextTask && (
-                <div className="rounded-xl border border-white/12 bg-white/5 px-3 py-3">
-                  <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.26em] text-slate-400">
-                    <span>Up next</span>
-                    <span className="text-slate-500 normal-case tracking-normal">
+                <div className="rounded-lg border border-white/12 bg-white/5 px-2.5 py-2">
+                  <div className="flex items-center justify-between text-[9px] uppercase tracking-[0.2em] text-slate-400">
+                    <span>Next</span>
+                    <span className="normal-case tracking-normal text-slate-500">
                       {queueRemainder > 0
                         ? `+${queueRemainder} more`
                         : `${remainingTasks} item${remainingTasks === 1 ? "" : "s"}`}
                     </span>
                   </div>
-                  <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-200">
+                  <div className="mt-1.5 flex items-center justify-between gap-2 rounded-md border border-white/10 bg-slate-900/60 px-2.5 py-1.5 text-[10px] text-slate-200">
                     <div className="min-w-0">
                       <div className="truncate font-medium text-white/90">
                         {nextTask.name}
                       </div>
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[9px] text-slate-400">
                         {nextTask.missingSets} set
                         {nextTask.missingSets === 1 ? "" : "s"} remaining ·{" "}
                         <span className="capitalize">{nextTask.muscle}</span>
@@ -7072,14 +7076,15 @@ function SessionMomentumPanel({
                     </div>
                     {onFocusRequest && (
                       <button
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-medium transition ${
+                        type="button"
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-medium transition ${
                           focusedEntryId === nextTask.entryId
                             ? "bg-emerald-400 text-slate-950"
                             : "bg-slate-700 text-slate-200 hover:bg-slate-600"
                         }`}
                         onClick={() => onFocusRequest(nextTask.entryId)}
                       >
-                        {focusedEntryId === nextTask.entryId ? "Focused" : "Focus"}
+                        {focusedEntryId === nextTask.entryId ? "On" : "Focus"}
                       </button>
                     )}
                   </div>

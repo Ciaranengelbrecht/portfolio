@@ -588,45 +588,39 @@ export default function Measurements() {
     const collapsed = sectionCollapsed[id] ?? DEFAULT_SECTION_STATE[id];
     return (
       <section
-        className={`bg-card rounded-2xl shadow-soft border border-white/5 transition-colors ${
+        className={`bg-card rounded-xl shadow-soft border border-white/5 transition-colors ${
           collapsed ? "cursor-pointer hover:border-white/10" : ""
         }`}
         onClick={(event) => handleSectionSurfaceClick(event, id)}
         aria-expanded={!collapsed}
       >
-        <div className="flex flex-wrap items-start gap-3 px-4 py-4">
+        <div className="flex flex-wrap items-start gap-2.5 px-3 py-3">
           <button
             type="button"
             aria-label={collapsed ? "Expand section" : "Collapse section"}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            className="inline-flex h-7 items-center justify-center rounded-md border border-white/10 bg-white/5 px-2 text-[10px] font-medium uppercase tracking-[0.14em] text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
             onClick={(event) => handleSectionHeaderClick(event, id)}
           >
-            <span
-              className={`inline-block transform text-base transition-transform duration-150 ${
-                collapsed ? "-rotate-90" : ""
-              }`}
-            >
-              ▾
-            </span>
+            {collapsed ? "Open" : "Hide"}
           </button>
           <div className="min-w-0 flex-1 space-y-1">
             {eyebrow && (
-              <div className="text-[10px] uppercase tracking-[0.32em] text-white/40">
+              <div className="text-[9px] uppercase tracking-[0.3em] text-white/40">
                 {eyebrow}
               </div>
             )}
-            <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
+            <h3 className="text-base font-semibold text-slate-100">{title}</h3>
             {description && (
-              <p className="text-sm text-slate-300/80">{description}</p>
+              <p className="text-xs text-slate-300/80">{description}</p>
             )}
           </div>
           {badge && (
-            <div className="ml-auto text-right text-xs text-slate-400">
+            <div className="ml-auto text-right text-[11px] text-slate-400">
               {badge}
             </div>
           )}
         </div>
-        {!collapsed && <div className="px-4 pb-4 space-y-4">{children}</div>}
+        {!collapsed && <div className="px-3 pb-3 space-y-3">{children}</div>}
       </section>
     );
   };
@@ -1145,8 +1139,19 @@ export default function Measurements() {
   const lastRecordedWeight = useMemo(() => {
     const withWeight = data.filter((m) => typeof m.weightKg === "number");
     if (!withWeight.length) return undefined;
-    const sorted = [...withWeight].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    const sorted = [...withWeight].sort((a, b) =>
+      b.dateISO.localeCompare(a.dateISO)
+    );
     return sorted[0].weightKg;
+  }, [data]);
+
+  const lastRecordedWaist = useMemo(() => {
+    const withWaist = data.filter((m) => typeof m.waist === "number");
+    if (!withWaist.length) return undefined;
+    const sorted = [...withWaist].sort((a, b) =>
+      b.dateISO.localeCompare(a.dateISO)
+    );
+    return sorted[0].waist;
   }, [data]);
 
   // Refresh data after quick weigh-in
@@ -1165,17 +1170,21 @@ export default function Measurements() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h2 className="text-xl font-semibold">Measurements</h2>
       
       {/* Quick Weigh-in for fast daily weight logging */}
-      <QuickWeighIn onSave={refreshData} lastWeight={lastRecordedWeight} />
+      <QuickWeighIn
+        onSave={refreshData}
+        lastWeight={lastRecordedWeight}
+        lastWaist={lastRecordedWaist}
+      />
       
       <SectionCard
         id="entry"
         eyebrow="Current entry"
         title="Capture measurements"
-        description="Log tape, circumference, and skinfold data before saving."
+        description="Log key body metrics, then save."
       >
         <>
           {/* Hidden file input for Evolt import */}
@@ -1190,8 +1199,8 @@ export default function Measurements() {
               e.currentTarget.value = "";
             }}
           />
-          <div className="space-y-3 fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-2.5 fade-in">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 "weightKg",
                 "heightCm",
@@ -1208,17 +1217,18 @@ export default function Measurements() {
                 const unit = getUnitForKey(k);
                 return (
                   <label key={k} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm text-gray-300">
+                    <div className="flex items-center justify-between text-xs text-gray-300">
                       <span>{label}</span>
                       {unit && (
-                        <span className="text-[10px] uppercase tracking-[0.24em] text-slate-500">
+                        <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500">
                           {unit}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        className="bg-slate-700 rounded px-3 py-2"
+                        type="button"
+                        className="rounded bg-slate-700 px-2.5 py-1.5 text-sm"
                         onClick={() =>
                           setM((prev) => ({
                             ...prev,
@@ -1233,7 +1243,7 @@ export default function Measurements() {
                       </button>
                       <input
                         inputMode="decimal"
-                        className="w-full input-number-enhanced"
+                        className="input-number-enhanced h-9 w-full"
                         value={(m as any)[k] ?? ""}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
@@ -1256,12 +1266,16 @@ export default function Measurements() {
                         onChange={(e) => {
                           const v = e.target.value;
                           if (!/^\d*(?:\.\d*)?$/.test(v)) return;
-                          setM({ ...m, [k]: v === "" ? undefined : Number(v) });
+                          setM((prev) => ({
+                            ...prev,
+                            [k]: v === "" ? undefined : Number(v),
+                          }));
                         }}
                         placeholder={unit}
                       />
                       <button
-                        className="bg-slate-700 rounded px-3 py-2"
+                        type="button"
+                        className="rounded bg-slate-700 px-2.5 py-1.5 text-sm"
                         onClick={() =>
                           setM((prev) => ({
                             ...prev,
@@ -1273,7 +1287,7 @@ export default function Measurements() {
                       </button>
                     </div>
                     {TIPS[k] && (
-                      <p className="text-xs text-gray-400">{TIPS[k]}</p>
+                      <p className="text-[11px] text-gray-400">{TIPS[k]}</p>
                     )}
                   </label>
                 );
@@ -1389,20 +1403,23 @@ export default function Measurements() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
-                className="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl"
+                type="button"
+                className="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm hover:bg-brand-700 sm:w-auto"
                 onClick={save}
               >
                 Save
               </button>
               <button
-                className="w-full sm:w-auto bg-indigo-700 hover:bg-indigo-600 px-3 py-3 rounded-xl"
+                type="button"
+                className="w-full rounded-lg bg-indigo-700 px-3 py-2 text-sm hover:bg-indigo-600 sm:w-auto"
                 onClick={onChooseEvolt}
                 title="Import Evolt 360 PDF or exported .txt"
               >
-                Import Evolt 360
+                Import Evolt
               </button>
               <button
-                className="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 px-3 py-3 rounded-xl"
+                type="button"
+                className="w-full rounded-lg bg-slate-700 px-3 py-2 text-sm hover:bg-slate-600 sm:w-auto"
                 onClick={() =>
                   setM({
                     id: nanoid(),
@@ -1415,7 +1432,7 @@ export default function Measurements() {
                   })
                 }
               >
-                Add another
+                New entry
               </button>
               <MeasurementsInfoModal />
             </div>
@@ -1747,7 +1764,7 @@ export default function Measurements() {
             "ffmi",
             "ffmiAdjusted",
           ].map((k) => (
-            <button
+            <button type="button"
               key={k}
               onClick={() => toggleOverlay(k as keyof Measurement)}
               className={`shrink-0 px-3 py-1.5 min-h-[34px] text-xs rounded-lg border ${
@@ -1759,7 +1776,7 @@ export default function Measurements() {
               {formatMeasurementLabel(k)}
             </button>
           ))}
-          <button
+          <button type="button"
             onClick={async () => {
               setSmoothing((s) => {
                 const next = !s;
@@ -1963,7 +1980,7 @@ export default function Measurements() {
             <div className="space-y-3 overflow-y-auto p-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="text-lg font-semibold">Import preview</div>
-              <button
+              <button type="button"
                 className="text-xs text-gray-400"
                 onClick={() => setPreview(null)}
               >
@@ -1999,13 +2016,13 @@ export default function Measurements() {
             )}
             </div>
             <div className="flex justify-end gap-2 border-t border-white/10 bg-slate-950/40 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
-              <button
+              <button type="button"
                 className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"
                 onClick={() => setPreview(null)}
               >
                 Cancel
               </button>
-              <button
+              <button type="button"
                 className="bg-brand-600 hover:bg-brand-700 px-3 py-2 rounded-lg"
                 onClick={confirmEvoltImport}
               >
@@ -2120,7 +2137,7 @@ export default function Measurements() {
                           : ""}
                       </span>
                     )}
-                    <button
+                    <button type="button"
                       className="text-xs bg-red-600 hover:bg-red-500 rounded px-3 py-2"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -2134,7 +2151,7 @@ export default function Measurements() {
                 {!isCollapsed && (
                   <>
                     <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] text-slate-300">
-                      <button
+                      <button type="button"
                         className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-3 py-2"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -2160,7 +2177,7 @@ export default function Measurements() {
                           Weight
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2202,7 +2219,7 @@ export default function Measurements() {
                             }}
                             placeholder="kg"
                           />
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2219,7 +2236,7 @@ export default function Measurements() {
                           Height
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2261,7 +2278,7 @@ export default function Measurements() {
                             }}
                             placeholder="cm"
                           />
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2278,7 +2295,7 @@ export default function Measurements() {
                           Waist
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2314,7 +2331,7 @@ export default function Measurements() {
                             }}
                             placeholder="waist"
                           />
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, { waist: (row.waist || 0) + 0.5 })
@@ -2329,7 +2346,7 @@ export default function Measurements() {
                           Upper Arm
                         </div>
                         <div className="flex items-center gap-2">
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
@@ -2371,7 +2388,7 @@ export default function Measurements() {
                             }}
                             placeholder="arm"
                           />
-                          <button
+                          <button type="button"
                             className="bg-slate-700 rounded px-3 py-2"
                             onClick={() =>
                               update(row.id, {
