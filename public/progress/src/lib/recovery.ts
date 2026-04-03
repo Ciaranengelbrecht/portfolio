@@ -105,6 +105,13 @@ interface ExerciseModifiers {
   secondaryContribution: number; // How much secondary muscles contribute (0-1)
 }
 
+interface ExerciseProfile {
+  primary: MuscleGroup;
+  secondary: MuscleGroup[];
+  modifiers: ExerciseModifiers;
+  highEccentric: boolean;
+}
+
 function classifyExercise(exerciseName: string): ExerciseModifiers {
   const name = exerciseName.toLowerCase();
   
@@ -218,10 +225,14 @@ function resolveEffectiveWeightKg(set: SetEntry, primary: MuscleGroup): number {
   return DEFAULT_WEIGHT_BY_MUSCLE[primary] ?? 25;
 }
 
-function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGroup, whenMs: number): SetStressRecord[] {
+function computeSetStress(
+  set: SetEntry,
+  profile: ExerciseProfile,
+  whenMs: number
+): SetStressRecord[] {
   if (!set.reps || set.reps <= 0) return [];
   const reps = set.reps;
-  const weight = resolveEffectiveWeightKg(set, primary);
+  const weight = resolveEffectiveWeightKg(set, profile.primary);
   
   // ==== INTENSITY CALCULATION ====
   // Smart intensity calculation - uses relative intensity zones
@@ -253,22 +264,17 @@ function computeSetStress(set: SetEntry, exercise: Exercise, primary: MuscleGrou
   const effortFactor = rpeToEffort(set.rpe);
   
   // ==== EXERCISE TYPE MODIFIERS ====
-  const exerciseModifiers = classifyExercise(exercise.name);
+  const exerciseModifiers = profile.modifiers;
   const stressMult = exerciseModifiers.stressMultiplier;
   const recoveryMult = exerciseModifiers.recoveryMultiplier;
   
   // ==== ECCENTRIC STRESS MODIFIER ====
   // Exercises with high eccentric component cause more muscle damage
-  const highEccentric = hasHighEccentric(exercise.name);
+  const highEccentric = profile.highEccentric;
   const eccentricMod = highEccentric ? 1.15 : 1.0;
   const decayMult = recoveryMult * (highEccentric ? 1.1 : 1.0);
 
-  // Normalize secondary muscles to new specific groups
-  const secondaryMuscles = (exercise.secondaryMuscles || [])
-    .filter(Boolean)
-    .map(m => normalizeMuscleGroupInternal(m as string));
-  
-  const muscles: MuscleGroup[] = [primary, ...secondaryMuscles];
+  const muscles: MuscleGroup[] = [profile.primary, ...profile.secondary];
   
   // Secondary muscles use exercise-specific contribution rate
   return muscles.map((m, idx) => {
@@ -288,33 +294,47 @@ export async function computeRecovery(nowMs?: number): Promise<RecoveryBundle> {
     getAllCached<Exercise>('exercises', { swr: true })
   ]);
   const now = nowMs ?? Date.now();
-  const exerciseMap = new Map<string, Exercise>();
-  exercises.forEach(e => exerciseMap.set(e.id, e));
-
-  const cutoff = now - WINDOW_MS;
-  const records: SetStressRecord[] = [];
-  for (const s of sessions) {
-    // Use loggedEndAt or date to approximate mid-session if individual set timestamps missing
-    for (const entry of s.entries) {
-      const ex = exerciseMap.get(entry.exerciseId);
-      if (!ex) continue;
-      // Normalize legacy muscle group names (back->lats, shoulders->delts)
-      const primary = normalizeMuscleGroupInternal(ex.muscleGroup || 'other');
-      for (const set of entry.sets) {
-        const ts = set.completedAt ? Date.parse(set.completedAt) : (s.loggedEndAt ? Date.parse(s.loggedEndAt) : Date.parse(s.dateISO));
-        if (!ts || isNaN(ts)) continue;
-        if (ts < cutoff) continue;
-        records.push(...computeSetStress(set, ex, primary, ts));
-      }
-    }
-  }
-
   const groups: Record<MuscleGroup, SetStressRecord[]> = {
     chest: [], lats: [], traps: [], delts: [], reardelts: [], biceps: [], triceps: [], forearms: [], quads: [], hamstrings: [], glutes: [], calves: [], core: [], other: [],
     // Legacy aliases
     back: [], shoulders: [], legs: []
   };
-  records.forEach(r => { groups[r.muscle].push(r); });
+
+  const exerciseProfileMap = new Map<string, ExerciseProfile>();
+  exercises.forEach((exercise) => {
+    const primary = normalizeMuscleGroupInternal(exercise.muscleGroup || 'other');
+    const secondary = (exercise.secondaryMuscles || [])
+      .filter(Boolean)
+      .map((muscle) => normalizeMuscleGroupInternal(muscle as string));
+    exerciseProfileMap.set(exercise.id, {
+      primary,
+      secondary,
+      modifiers: classifyExercise(exercise.name),
+      highEccentric: hasHighEccentric(exercise.name),
+    });
+  });
+
+  const cutoff = now - WINDOW_MS;
+  for (const session of sessions) {
+    const fallbackTs = session.loggedEndAt
+      ? Date.parse(session.loggedEndAt)
+      : Date.parse(session.dateISO);
+
+    for (const entry of session.entries) {
+      const profile = exerciseProfileMap.get(entry.exerciseId);
+      if (!profile) continue;
+
+      for (const set of entry.sets) {
+        const ts = set.completedAt ? Date.parse(set.completedAt) : fallbackTs;
+        if (!ts || Number.isNaN(ts) || ts < cutoff) continue;
+
+        const stressRecords = computeSetStress(set, profile, ts);
+        for (const record of stressRecords) {
+          groups[record.muscle].push(record);
+        }
+      }
+    }
+  }
 
   const muscles: MuscleRecoveryState[] = [];
   (Object.keys(groups) as MuscleGroup[]).forEach(m => {

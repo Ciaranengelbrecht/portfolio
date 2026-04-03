@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getRecovery, MuscleRecoveryState } from "../lib/recovery";
 import { MUSCLE_ICON_PATHS } from "../lib/muscles";
 import { SkeletonMuscleCard } from "../components/Skeleton";
@@ -10,7 +10,7 @@ interface ViewState {
   muscles: MuscleRecoveryState[];
 }
 
-const ORDER: (keyof typeof MUSCLE_ICON_PATHS)[] = [
+const ORDER: MuscleRecoveryState["muscle"][] = [
   "chest",
   "lats",
   "traps",
@@ -27,9 +27,9 @@ const ORDER: (keyof typeof MUSCLE_ICON_PATHS)[] = [
   "other",
 ];
 
-function formatETA(ms?: number) {
+function formatETA(ms?: number, nowMs?: number) {
   if (!ms) return "";
-  const now = Date.now();
+  const now = nowMs ?? Date.now();
   if (ms <= now) return "Ready";
   const diff = ms - now;
   const h = Math.floor(diff / 3600000);
@@ -94,6 +94,14 @@ const STATUS_LEGEND: Array<{
 
 export default function RecoveryPage() {
   const [view, setView] = useState<ViewState>({ loading: true, muscles: [] });
+  const musclesByName = useMemo(() => {
+    const map = new Map<MuscleRecoveryState["muscle"], MuscleRecoveryState>();
+    for (const muscle of view.muscles) {
+      map.set(muscle.muscle, muscle);
+    }
+    return map;
+  }, [view.muscles]);
+
   const load = useCallback(async (force?: boolean) => {
     try {
       const data = await getRecovery(force);
@@ -113,6 +121,8 @@ export default function RecoveryPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const etaNow = Date.now();
 
   // Periodic refresh (hourly) + visibility change to keep fresh
   useEffect(() => {
@@ -174,7 +184,7 @@ export default function RecoveryPage() {
       ) : (
       <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
         {ORDER.map((m) => {
-          const rec = view.muscles.find((x) => x.muscle === m);
+          const rec = musclesByName.get(m);
           const pct = rec ? rec.percent : 100;
           const status = rec ? rec.status : "Ready";
           const eta = rec?.etaFull;
@@ -218,7 +228,7 @@ export default function RecoveryPage() {
                     ETA
                   </p>
                   <p className="text-xs font-semibold text-slate-200 tabular-nums">
-                    {formatETA(eta) || "—"}
+                    {formatETA(eta, etaNow) || "—"}
                   </p>
                 </div>
               </div>
