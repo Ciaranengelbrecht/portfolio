@@ -27,6 +27,7 @@ import { ListSkeleton } from "../components/LoadingSkeletons";
 
 type SettingsTabId =
   | "general"
+  | "profile"
   | "appearance"
   | "progress"
   | "library"
@@ -40,7 +41,12 @@ const SETTINGS_TABS: Array<{
   {
     id: "general",
     label: "General",
-    description: "Account, guided setup, and workout defaults.",
+    description: "Guided setup, rest timer, and workout defaults.",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    description: "Identity, sign-in, password, and account security controls.",
   },
   {
     id: "appearance",
@@ -652,6 +658,512 @@ export default function SettingsPage() {
     }
   };
 
+  const profileSettingsContent = (
+    <>
+      <div className="settings-subpanel mb-1">
+        <div className="font-medium">Account (Supabase)</div>
+        <div className="text-sm text-muted">
+          Sign in to sync via Supabase. Offline still works; changes sync when
+          you reconnect.
+        </div>
+        {!authChecked ? (
+          <div className="flex items-center gap-3 mt-2 text-sm text-muted">
+            Checking session…
+          </div>
+        ) : userEmail ? (
+          <div className="space-y-3 mt-2">
+            <div className="settings-inline-field">
+              <div className="min-w-0">
+                <div className="settings-switch-label">Signed in</div>
+                <div className="settings-switch-description truncate">
+                  {userEmail}
+                </div>
+              </div>
+              <button
+                className={`px-3 py-2 rounded-xl ${
+                  busy === "signout" ? "btn-outline" : "btn-primary"
+                }`}
+                disabled={busy === "signout"}
+                onClick={async () => {
+                  setBusy("signout");
+                  try {
+                    await supabase.auth.signOut({ scope: "global" } as any);
+                    setToast("Signed out");
+                    setBigFlash("Signed out successfully");
+                  } finally {
+                    try {
+                      localStorage.removeItem("sb_pw_reset");
+                      clearAuthStorage();
+                    } catch {}
+                    // Verify session gone (resilient)
+                    try {
+                      let tries = 0;
+                      while (tries++ < 10) {
+                        const s = await waitForSession({ timeoutMs: 800 });
+                        if (!s) break;
+                        await new Promise((r) => setTimeout(r, 100));
+                      }
+                    } catch {}
+                    applyAuthIdentity(undefined);
+                    navigate("/");
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "signout" ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+
+            <div className="settings-subpanel space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
+                  Profile
+                </div>
+                <span className="settings-static-pill text-[10px]">Live</span>
+              </div>
+              <label className="space-y-1">
+                <div className="text-xs text-white/80">Display name</div>
+                <input
+                  className="input-app rounded-xl px-3 py-2 w-full"
+                  placeholder="How should we address you?"
+                  maxLength={40}
+                  value={profileNameDraft}
+                  onChange={(e) => setProfileNameDraft(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1">
+                <div className="text-xs text-white/80">Email</div>
+                <input
+                  className="input-app rounded-xl px-3 py-2 w-full"
+                  placeholder="you@example.com"
+                  value={profileEmailDraft}
+                  onChange={(e) => setProfileEmailDraft(e.target.value)}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="btn-primary px-3 py-2 rounded-xl"
+                  disabled={busy === "profile-name" || !profileNameDraft.trim()}
+                  onClick={async () => {
+                    const nextName = profileNameDraft.trim();
+                    if (!nextName) return alert("Enter a display name");
+                    setBusy("profile-name");
+                    try {
+                      const { data: userData } = await supabase.auth.getUser();
+                      const current = userData.user;
+                      if (!current) {
+                        alert("Session expired. Please sign in again.");
+                        return;
+                      }
+                      const metadata = current.user_metadata || {};
+                      const { data, error } = await supabase.auth.updateUser({
+                        data: {
+                          ...metadata,
+                          display_name: nextName,
+                          full_name: nextName,
+                        },
+                      });
+                      if (error) {
+                        alert("Could not update profile name: " + error.message);
+                        return;
+                      }
+                      applyAuthIdentity(data.user);
+                      setToast("Profile name updated");
+                      setBigFlash("Name saved");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "profile-name" ? "Saving…" : "Save name"}
+                </button>
+                <button
+                  className="btn-outline px-3 py-2 rounded-xl"
+                  disabled={busy === "profile-name"}
+                  onClick={async () => {
+                    const { data } = await supabase.auth.getUser();
+                    const metadata = data.user?.user_metadata || {};
+                    const rawName =
+                      metadata.display_name ?? metadata.full_name ?? "";
+                    setProfileNameDraft(typeof rawName === "string" ? rawName : "");
+                  }}
+                >
+                  Reset
+                </button>
+                <button
+                  className="btn-outline px-3 py-2 rounded-xl"
+                  disabled={busy === "profile-email" || !profileEmailDraft.trim()}
+                  onClick={async () => {
+                    const nextEmail = profileEmailDraft.trim().toLowerCase();
+                    if (!/.+@.+\..+/.test(nextEmail)) {
+                      alert("Enter a valid email address");
+                      return;
+                    }
+                    if (nextEmail === (userEmail || "").toLowerCase()) {
+                      alert("Enter a different email address to update");
+                      return;
+                    }
+                    setBusy("profile-email");
+                    try {
+                      const { error } = await supabase.auth.updateUser({
+                        email: nextEmail,
+                      });
+                      if (error) {
+                        alert("Could not update email: " + error.message);
+                        return;
+                      }
+                      setProfileEmailDraft(nextEmail);
+                      setToast("Check your inbox to confirm your new email");
+                      setBigFlash("Email update requested");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "profile-email" ? "Updating…" : "Update email"}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted leading-snug">
+                Name updates sync instantly. Email updates require confirmation
+                via your inbox.
+              </p>
+            </div>
+
+            <div className="settings-subpanel space-y-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
+                Security
+              </div>
+              <div className="grid grid-cols-1 min-[460px]:grid-cols-2 gap-2">
+                <input
+                  className="input-app rounded-xl px-3 py-2"
+                  placeholder="Current password"
+                  type="password"
+                  value={profilePasswordCurrent}
+                  onChange={(e) => setProfilePasswordCurrent(e.target.value)}
+                />
+                <input
+                  className="input-app rounded-xl px-3 py-2"
+                  placeholder="New password"
+                  type="password"
+                  value={profilePasswordNext}
+                  onChange={(e) => setProfilePasswordNext(e.target.value)}
+                />
+                <input
+                  className="input-app rounded-xl px-3 py-2 min-[460px]:col-span-2"
+                  placeholder="Confirm new password"
+                  type="password"
+                  value={profilePasswordConfirm}
+                  onChange={(e) => setProfilePasswordConfirm(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px]">
+                <span
+                  className={`px-2 py-1 rounded-full border ${
+                    profilePasswordNext.length >= 8
+                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
+                      : "border-white/10 bg-white/5 text-white/70"
+                  }`}
+                >
+                  8+ characters
+                </span>
+                <span
+                  className={`px-2 py-1 rounded-full border ${
+                    profilePasswordNext.length > 0 &&
+                    profilePasswordNext === profilePasswordConfirm
+                      ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
+                      : "border-white/10 bg-white/5 text-white/70"
+                  }`}
+                >
+                  Passwords match
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="btn-primary px-3 py-2 rounded-xl"
+                  disabled={
+                    busy === "profile-password" ||
+                    !profilePasswordCurrent ||
+                    profilePasswordNext.length < 8 ||
+                    profilePasswordNext !== profilePasswordConfirm
+                  }
+                  onClick={async () => {
+                    if (!userEmail) return;
+                    if (!profilePasswordCurrent)
+                      return alert("Enter your current password");
+                    if (!profilePasswordNext || profilePasswordNext.length < 8)
+                      return alert("New password must be at least 8 characters");
+                    if (profilePasswordNext !== profilePasswordConfirm)
+                      return alert("New passwords do not match");
+                    if (profilePasswordCurrent === profilePasswordNext)
+                      return alert(
+                        "Use a different password from your current one"
+                      );
+
+                    setBusy("profile-password");
+                    try {
+                      const { error: verifyError } =
+                        await supabase.auth.signInWithPassword({
+                          email: userEmail,
+                          password: profilePasswordCurrent,
+                        });
+                      if (verifyError) {
+                        alert("Current password is incorrect.");
+                        return;
+                      }
+                      const { error } = await supabase.auth.updateUser({
+                        password: profilePasswordNext,
+                      });
+                      if (error) {
+                        alert("Could not update password: " + error.message);
+                        return;
+                      }
+                      setProfilePasswordCurrent("");
+                      setProfilePasswordNext("");
+                      setProfilePasswordConfirm("");
+                      setToast("Password updated");
+                      setBigFlash("Password changed");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "profile-password" ? "Updating…" : "Update password"}
+                </button>
+                <button
+                  className="btn-outline px-3 py-2 rounded-xl"
+                  disabled={busy === "profile-reset-email"}
+                  onClick={async () => {
+                    if (!userEmail) return;
+                    const base = window.location.origin + window.location.pathname;
+                    const redirectTo = base.includes("/dist")
+                      ? base
+                      : base.replace(/\/?$/, "/") + "dist/";
+                    setBusy("profile-reset-email");
+                    try {
+                      const { error } =
+                        await supabase.auth.resetPasswordForEmail(userEmail, {
+                          redirectTo,
+                        });
+                      if (error) {
+                        alert("Reset error: " + error.message);
+                        return;
+                      }
+                      setToast("Password reset email sent");
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  {busy === "profile-reset-email" ? "Sending…" : "Send reset link"}
+                </button>
+              </div>
+              <p className="text-[11px] text-muted leading-snug">
+                For magic-link accounts or re-auth prompts, use Send reset link.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2.5 mt-2">
+            <input
+              className="input-app rounded-xl px-3 py-3 w-full"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              className="input-app rounded-xl px-3 py-3 w-full"
+              placeholder="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+              <button
+                className="btn-primary px-3 py-3 rounded-xl w-full"
+                onClick={async () => {
+                  if (!email || !password)
+                    return alert("Enter email and password");
+                  setBusy("signin");
+                  const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                  });
+                  if (error) alert("Sign-in error: " + error.message);
+                  else {
+                    applyAuthIdentity(data.user);
+                    setToast("Signed in");
+                    setBigFlash("Signed in successfully");
+                  }
+                  setBusy(null);
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                className="btn-outline px-3 py-3 rounded-xl w-full"
+                onClick={async () => {
+                  if (!email || !password)
+                    return alert("Enter email and password");
+                  if (password !== password2)
+                    return alert("Passwords do not match");
+                  const redirectTo = window.location.origin + window.location.pathname;
+                  setBusy("signup");
+                  const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: { emailRedirectTo: redirectTo },
+                  });
+                  if (error) alert("Sign-up error: " + error.message);
+                  else if (!data.session) alert("Check your email to confirm your account.");
+                  else {
+                    applyAuthIdentity(data.user);
+                    setToast("Account created");
+                    setBigFlash("Signed in successfully");
+                  }
+                  setBusy(null);
+                }}
+              >
+                Create account
+              </button>
+              <button
+                className="btn-outline px-3 py-3 rounded-xl w-full"
+                onClick={async () => {
+                  if (!email) return alert("Enter your email");
+                  const redirectTo = window.location.origin + window.location.pathname;
+                  setBusy("otp");
+                  const { error } = await supabase.auth.signInWithOtp({
+                    email,
+                    options: { emailRedirectTo: redirectTo },
+                  });
+                  if (error) alert("Magic link error: " + error.message);
+                  else alert("Magic link sent. Check your email.");
+                  setBusy(null);
+                }}
+              >
+                Send magic link
+              </button>
+              <div className="flex items-center gap-2 min-[420px]:col-span-2">
+                <input
+                  className="input-app rounded-xl px-3 py-3 flex-1"
+                  placeholder="OTP code"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <button
+                  className="btn-outline px-3 py-3 rounded-xl"
+                  onClick={async () => {
+                    if (!email || !otp) return alert("Enter email and OTP code");
+                    setBusy("verify");
+                    const { data, error } = await supabase.auth.verifyOtp({
+                      email,
+                      token: otp,
+                      type: "email" as any,
+                    });
+                    if (error) alert("OTP error: " + error.message);
+                    else {
+                      applyAuthIdentity(data?.user);
+                      setToast("Signed in via OTP");
+                    }
+                    setBusy(null);
+                  }}
+                >
+                  Verify OTP
+                </button>
+              </div>
+              <button
+                className="btn-outline px-3 py-3 rounded-xl w-full min-[420px]:col-span-2"
+                onClick={async () => {
+                  if (!email) return alert("Enter your email");
+                  // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
+                  const base = window.location.origin + window.location.pathname;
+                  // If we're at /progress, send to /progress/dist/; if already /progress/dist, keep it
+                  const redirectTo = base.includes("/dist")
+                    ? base
+                    : base.replace(/\/?$/, "/") + "dist/";
+                  const { error } = await supabase.auth.resetPasswordForEmail(
+                    email,
+                    { redirectTo }
+                  );
+                  if (error) alert("Reset error: " + error.message);
+                  else alert("Password reset email sent. Check your inbox.");
+                }}
+              >
+                Forgot password
+              </button>
+            </div>
+            <input
+              className="input-app rounded-xl px-3 py-3 w-full"
+              placeholder="Confirm password (for create)"
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+            />
+            <div className="text-xs text-muted">
+              To use password sign-in, ensure Email provider is enabled in
+              Supabase Authentication. If email confirmation is on, you'll need
+              to confirm via email after creating an account.
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Password recovery completion (when coming from email link) */}
+      {(() => {
+        const params = new URLSearchParams(
+          window.location.hash.slice(1) || window.location.search
+        );
+        const type = params.get("type") || params.get("event");
+        const isRecovery =
+          type === "recovery" || localStorage.getItem("sb_pw_reset") === "1";
+        if (isRecovery) {
+          return (
+            <div className="settings-subpanel mt-2 space-y-2">
+              <div className="text-sm text-app">Reset your password</div>
+              <input
+                className="input-app rounded-xl px-3 py-3 w-full"
+                placeholder="New password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <button
+                className="btn-primary px-3 py-3 rounded-xl"
+                onClick={async () => {
+                  if (!newPassword) return alert("Enter a new password");
+                  // Ensure Supabase has a valid session (from the email link hash) before updating
+                  const s = await waitForSession({ timeoutMs: 2000 });
+                  if (!s) {
+                    alert(
+                      "Recovery session not established yet. Please re-open the email link in this browser and try again."
+                    );
+                    return;
+                  }
+                  const { error } = await supabase.auth.updateUser({
+                    password: newPassword,
+                  });
+                  if (error) alert("Could not set password: " + error.message);
+                  else {
+                    alert("Password updated. You are now signed in.");
+                    // Clean recovery params so refreshes are clean
+                    const url = new URL(window.location.href);
+                    // Some providers put tokens in hash; remove only after update
+                    url.hash = "";
+                    history.replaceState(null, "", url.toString());
+                    try {
+                      localStorage.removeItem("sb_pw_reset");
+                    } catch {}
+                  }
+                }}
+              >
+                Set new password
+              </button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+    </>
+  );
+
   if (!settingsHydrated) {
     return (
       <div className="p-4 max-w-5xl mx-auto">
@@ -739,8 +1251,8 @@ export default function SettingsPage() {
           id="general"
           eyebrow="Core"
           title="General settings"
-          description="Configure rest timer alerts, Supabase sync, and workout defaults."
-          badge={<span>{userEmail ? "Signed in" : "Offline mode"}</span>}
+          description="Configure guided setup, rest timer behavior, and workout defaults."
+          badge={<span>Training defaults</span>}
         >
         <div className="settings-highlight-card flex flex-col gap-3 min-[560px]:flex-row min-[560px]:items-center min-[560px]:justify-between">
           <div className="space-y-1">
@@ -931,517 +1443,6 @@ export default function SettingsPage() {
             most animations.
           </div>
         </div>
-        <div className="settings-subpanel mb-1">
-          <div className="font-medium">Account (Supabase)</div>
-          <div className="text-sm text-muted">
-            Sign in to sync via Supabase. Offline still works; changes sync when
-            you reconnect.
-          </div>
-          {!authChecked ? (
-            <div className="flex items-center gap-3 mt-2 text-sm text-muted">
-              Checking session…
-            </div>
-          ) : userEmail ? (
-            <div className="space-y-3 mt-2">
-              <div className="settings-inline-field">
-                <div className="min-w-0">
-                  <div className="settings-switch-label">Signed in</div>
-                  <div className="settings-switch-description truncate">
-                    {userEmail}
-                  </div>
-                </div>
-                <button
-                  className={`px-3 py-2 rounded-xl ${
-                    busy === "signout" ? "btn-outline" : "btn-primary"
-                  }`}
-                  disabled={busy === "signout"}
-                  onClick={async () => {
-                    setBusy("signout");
-                    try {
-                      await supabase.auth.signOut({ scope: "global" } as any);
-                      setToast("Signed out");
-                      setBigFlash("Signed out successfully");
-                    } finally {
-                      try {
-                        localStorage.removeItem("sb_pw_reset");
-                        clearAuthStorage();
-                      } catch {}
-                      // Verify session gone (resilient)
-                      try {
-                        let tries = 0;
-                        while (tries++ < 10) {
-                          const s = await waitForSession({ timeoutMs: 800 });
-                          if (!s) break;
-                          await new Promise((r) => setTimeout(r, 100));
-                        }
-                      } catch {}
-                      applyAuthIdentity(undefined);
-                      navigate("/");
-                      setBusy(null);
-                    }
-                  }}
-                >
-                  {busy === "signout" ? "Signing out…" : "Sign out"}
-                </button>
-              </div>
-
-              <div className="settings-subpanel space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
-                    Profile
-                  </div>
-                  <span className="settings-static-pill text-[10px]">Live</span>
-                </div>
-                <label className="space-y-1">
-                  <div className="text-xs text-white/80">Display name</div>
-                  <input
-                    className="input-app rounded-xl px-3 py-2 w-full"
-                    placeholder="How should we address you?"
-                    maxLength={40}
-                    value={profileNameDraft}
-                    onChange={(e) => setProfileNameDraft(e.target.value)}
-                  />
-                </label>
-                <label className="space-y-1">
-                  <div className="text-xs text-white/80">Email</div>
-                  <input
-                    className="input-app rounded-xl px-3 py-2 w-full"
-                    placeholder="you@example.com"
-                    value={profileEmailDraft}
-                    onChange={(e) => setProfileEmailDraft(e.target.value)}
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className="btn-primary px-3 py-2 rounded-xl"
-                    disabled={busy === "profile-name" || !profileNameDraft.trim()}
-                    onClick={async () => {
-                      const nextName = profileNameDraft.trim();
-                      if (!nextName) return alert("Enter a display name");
-                      setBusy("profile-name");
-                      try {
-                        const { data: userData } = await supabase.auth.getUser();
-                        const current = userData.user;
-                        if (!current) {
-                          alert("Session expired. Please sign in again.");
-                          return;
-                        }
-                        const metadata = current.user_metadata || {};
-                        const { data, error } = await supabase.auth.updateUser({
-                          data: {
-                            ...metadata,
-                            display_name: nextName,
-                            full_name: nextName,
-                          },
-                        });
-                        if (error) {
-                          alert("Could not update profile name: " + error.message);
-                          return;
-                        }
-                        applyAuthIdentity(data.user);
-                        setToast("Profile name updated");
-                        setBigFlash("Name saved");
-                      } finally {
-                        setBusy(null);
-                      }
-                    }}
-                  >
-                    {busy === "profile-name" ? "Saving…" : "Save name"}
-                  </button>
-                  <button
-                    className="btn-outline px-3 py-2 rounded-xl"
-                    disabled={busy === "profile-name"}
-                    onClick={async () => {
-                      const { data } = await supabase.auth.getUser();
-                      const metadata = data.user?.user_metadata || {};
-                      const rawName = metadata.display_name ?? metadata.full_name ?? "";
-                      setProfileNameDraft(
-                        typeof rawName === "string" ? rawName : ""
-                      );
-                    }}
-                  >
-                    Reset
-                  </button>
-                  <button
-                    className="btn-outline px-3 py-2 rounded-xl"
-                    disabled={busy === "profile-email" || !profileEmailDraft.trim()}
-                    onClick={async () => {
-                      const nextEmail = profileEmailDraft.trim().toLowerCase();
-                      if (!/.+@.+\..+/.test(nextEmail)) {
-                        alert("Enter a valid email address");
-                        return;
-                      }
-                      if (nextEmail === (userEmail || "").toLowerCase()) {
-                        alert("Enter a different email address to update");
-                        return;
-                      }
-                      setBusy("profile-email");
-                      try {
-                        const { error } = await supabase.auth.updateUser({
-                          email: nextEmail,
-                        });
-                        if (error) {
-                          alert("Could not update email: " + error.message);
-                          return;
-                        }
-                        setProfileEmailDraft(nextEmail);
-                        setToast("Check your inbox to confirm your new email");
-                        setBigFlash("Email update requested");
-                      } finally {
-                        setBusy(null);
-                      }
-                    }}
-                  >
-                    {busy === "profile-email" ? "Updating…" : "Update email"}
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted leading-snug">
-                  Name updates sync instantly. Email updates require confirmation via your inbox.
-                </p>
-              </div>
-
-              <div className="settings-subpanel space-y-2.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/60">
-                  Security
-                </div>
-                <div className="grid grid-cols-1 min-[460px]:grid-cols-2 gap-2">
-                  <input
-                    className="input-app rounded-xl px-3 py-2"
-                    placeholder="Current password"
-                    type="password"
-                    value={profilePasswordCurrent}
-                    onChange={(e) => setProfilePasswordCurrent(e.target.value)}
-                  />
-                  <input
-                    className="input-app rounded-xl px-3 py-2"
-                    placeholder="New password"
-                    type="password"
-                    value={profilePasswordNext}
-                    onChange={(e) => setProfilePasswordNext(e.target.value)}
-                  />
-                  <input
-                    className="input-app rounded-xl px-3 py-2 min-[460px]:col-span-2"
-                    placeholder="Confirm new password"
-                    type="password"
-                    value={profilePasswordConfirm}
-                    onChange={(e) => setProfilePasswordConfirm(e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  <span
-                    className={`px-2 py-1 rounded-full border ${
-                      profilePasswordNext.length >= 8
-                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
-                        : "border-white/10 bg-white/5 text-white/70"
-                    }`}
-                  >
-                    8+ characters
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-full border ${
-                      profilePasswordNext.length > 0 &&
-                      profilePasswordNext === profilePasswordConfirm
-                        ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-100"
-                        : "border-white/10 bg-white/5 text-white/70"
-                    }`}
-                  >
-                    Passwords match
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    className="btn-primary px-3 py-2 rounded-xl"
-                    disabled={
-                      busy === "profile-password" ||
-                      !profilePasswordCurrent ||
-                      profilePasswordNext.length < 8 ||
-                      profilePasswordNext !== profilePasswordConfirm
-                    }
-                    onClick={async () => {
-                      if (!userEmail) return;
-                      if (!profilePasswordCurrent)
-                        return alert("Enter your current password");
-                      if (!profilePasswordNext || profilePasswordNext.length < 8)
-                        return alert("New password must be at least 8 characters");
-                      if (profilePasswordNext !== profilePasswordConfirm)
-                        return alert("New passwords do not match");
-                      if (profilePasswordCurrent === profilePasswordNext)
-                        return alert("Use a different password from your current one");
-
-                      setBusy("profile-password");
-                      try {
-                        const { error: verifyError } =
-                          await supabase.auth.signInWithPassword({
-                            email: userEmail,
-                            password: profilePasswordCurrent,
-                          });
-                        if (verifyError) {
-                          alert("Current password is incorrect.");
-                          return;
-                        }
-                        const { error } = await supabase.auth.updateUser({
-                          password: profilePasswordNext,
-                        });
-                        if (error) {
-                          alert("Could not update password: " + error.message);
-                          return;
-                        }
-                        setProfilePasswordCurrent("");
-                        setProfilePasswordNext("");
-                        setProfilePasswordConfirm("");
-                        setToast("Password updated");
-                        setBigFlash("Password changed");
-                      } finally {
-                        setBusy(null);
-                      }
-                    }}
-                  >
-                    {busy === "profile-password"
-                      ? "Updating…"
-                      : "Update password"}
-                  </button>
-                  <button
-                    className="btn-outline px-3 py-2 rounded-xl"
-                    disabled={busy === "profile-reset-email"}
-                    onClick={async () => {
-                      if (!userEmail) return;
-                      const base =
-                        window.location.origin + window.location.pathname;
-                      const redirectTo = base.includes("/dist")
-                        ? base
-                        : base.replace(/\/?$/, "/") + "dist/";
-                      setBusy("profile-reset-email");
-                      try {
-                        const { error } =
-                          await supabase.auth.resetPasswordForEmail(userEmail, {
-                            redirectTo,
-                          });
-                        if (error) {
-                          alert("Reset error: " + error.message);
-                          return;
-                        }
-                        setToast("Password reset email sent");
-                      } finally {
-                        setBusy(null);
-                      }
-                    }}
-                  >
-                    {busy === "profile-reset-email"
-                      ? "Sending…"
-                      : "Send reset link"}
-                  </button>
-                </div>
-                <p className="text-[11px] text-muted leading-snug">
-                  For magic-link accounts or re-auth prompts, use Send reset link.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2.5 mt-2">
-              <input
-                className="input-app rounded-xl px-3 py-3 w-full"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <input
-                className="input-app rounded-xl px-3 py-3 w-full"
-                placeholder="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
-                <button
-                  className="btn-primary px-3 py-3 rounded-xl w-full"
-                  onClick={async () => {
-                    if (!email || !password)
-                      return alert("Enter email and password");
-                    setBusy("signin");
-                    const { data, error } =
-                      await supabase.auth.signInWithPassword({
-                        email,
-                        password,
-                      });
-                    if (error) alert("Sign-in error: " + error.message);
-                    else {
-                      applyAuthIdentity(data.user);
-                      setToast("Signed in");
-                      setBigFlash("Signed in successfully");
-                    }
-                    setBusy(null);
-                  }}
-                >
-                  Sign in
-                </button>
-                <button
-                  className="btn-outline px-3 py-3 rounded-xl w-full"
-                  onClick={async () => {
-                    if (!email || !password)
-                      return alert("Enter email and password");
-                    if (password !== password2)
-                      return alert("Passwords do not match");
-                    const redirectTo =
-                      window.location.origin + window.location.pathname;
-                    setBusy("signup");
-                    const { data, error } = await supabase.auth.signUp({
-                      email,
-                      password,
-                      options: { emailRedirectTo: redirectTo },
-                    });
-                    if (error) alert("Sign-up error: " + error.message);
-                    else if (!data.session)
-                      alert("Check your email to confirm your account.");
-                    else {
-                      applyAuthIdentity(data.user);
-                      setToast("Account created");
-                      setBigFlash("Signed in successfully");
-                    }
-                    setBusy(null);
-                  }}
-                >
-                  Create account
-                </button>
-                <button
-                  className="btn-outline px-3 py-3 rounded-xl w-full"
-                  onClick={async () => {
-                    if (!email) return alert("Enter your email");
-                    const redirectTo =
-                      window.location.origin + window.location.pathname;
-                    setBusy("otp");
-                    const { error } = await supabase.auth.signInWithOtp({
-                      email,
-                      options: { emailRedirectTo: redirectTo },
-                    });
-                    if (error) alert("Magic link error: " + error.message);
-                    else alert("Magic link sent. Check your email.");
-                    setBusy(null);
-                  }}
-                >
-                  Send magic link
-                </button>
-                <div className="flex items-center gap-2 min-[420px]:col-span-2">
-                  <input
-                    className="input-app rounded-xl px-3 py-3 flex-1"
-                    placeholder="OTP code"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                  <button
-                    className="btn-outline px-3 py-3 rounded-xl"
-                    onClick={async () => {
-                      if (!email || !otp)
-                        return alert("Enter email and OTP code");
-                      setBusy("verify");
-                      const { data, error } = await supabase.auth.verifyOtp({
-                        email,
-                        token: otp,
-                        type: "email" as any,
-                      });
-                      if (error) alert("OTP error: " + error.message);
-                      else {
-                        applyAuthIdentity(data?.user);
-                        setToast("Signed in via OTP");
-                      }
-                      setBusy(null);
-                    }}
-                  >
-                    Verify OTP
-                  </button>
-                </div>
-                <button
-                  className="btn-outline px-3 py-3 rounded-xl w-full min-[420px]:col-span-2"
-                  onClick={async () => {
-                    if (!email) return alert("Enter your email");
-                    // Ensure the redirect points to the exact app entry so Supabase hashes are preserved
-                    const base =
-                      window.location.origin + window.location.pathname;
-                    // If we're at /progress, send to /progress/dist/; if already /progress/dist, keep it
-                    const redirectTo = base.includes("/dist")
-                      ? base
-                      : base.replace(/\/?$/, "/") + "dist/";
-                    const { error } = await supabase.auth.resetPasswordForEmail(
-                      email,
-                      { redirectTo }
-                    );
-                    if (error) alert("Reset error: " + error.message);
-                    else alert("Password reset email sent. Check your inbox.");
-                  }}
-                >
-                  Forgot password
-                </button>
-              </div>
-              <input
-                className="input-app rounded-xl px-3 py-3 w-full"
-                placeholder="Confirm password (for create)"
-                type="password"
-                value={password2}
-                onChange={(e) => setPassword2(e.target.value)}
-              />
-              <div className="text-xs text-muted">
-                To use password sign-in, ensure Email provider is enabled in
-                Supabase Authentication. If email confirmation is on, you’ll
-                need to confirm via email after creating an account.
-              </div>
-            </div>
-          )}
-        </div>
-        {/* Password recovery completion (when coming from email link) */}
-        {(() => {
-          const params = new URLSearchParams(
-            window.location.hash.slice(1) || window.location.search
-          );
-          const type = params.get("type") || params.get("event");
-          const isRecovery =
-            type === "recovery" || localStorage.getItem("sb_pw_reset") === "1";
-          if (isRecovery) {
-            return (
-              <div className="settings-subpanel mt-2 space-y-2">
-                <div className="text-sm text-app">Reset your password</div>
-                <input
-                  className="input-app rounded-xl px-3 py-3 w-full"
-                  placeholder="New password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <button
-                  className="btn-primary px-3 py-3 rounded-xl"
-                  onClick={async () => {
-                    if (!newPassword) return alert("Enter a new password");
-                    // Ensure Supabase has a valid session (from the email link hash) before updating
-                    const s = await waitForSession({ timeoutMs: 2000 });
-                    if (!s) {
-                      alert(
-                        "Recovery session not established yet. Please re-open the email link in this browser and try again."
-                      );
-                      return;
-                    }
-                    const { error } = await supabase.auth.updateUser({
-                      password: newPassword,
-                    });
-                    if (error)
-                      alert("Could not set password: " + error.message);
-                    else {
-                      alert("Password updated. You are now signed in.");
-                      // Clean recovery params so refreshes are clean
-                      const url = new URL(window.location.href);
-                      // Some providers put tokens in hash; remove only after update
-                      url.hash = "";
-                      history.replaceState(null, "", url.toString());
-                      try {
-                        localStorage.removeItem("sb_pw_reset");
-                      } catch {}
-                    }
-                  }}
-                >
-                  Set new password
-                </button>
-              </div>
-            );
-          }
-          return null;
-        })()}
         <div className="grid grid-cols-1 min-[390px]:grid-cols-2 xl:grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <div className="text-sm text-app">Units</div>
@@ -1605,6 +1606,18 @@ export default function SettingsPage() {
         <p className="text-xs text-muted">
           Data import/export and reset actions are under the Data &amp; Safety tab.
         </p>
+        </SectionCard>
+      )}
+
+      {activeTab === "profile" && (
+        <SectionCard
+          id="profile"
+          eyebrow="Identity"
+          title="Profile and account"
+          description="Manage sign-in, profile details, password, and account security in one place."
+          badge={<span>{userEmail ? "Signed in" : "Sign in required"}</span>}
+        >
+          {profileSettingsContent}
         </SectionCard>
       )}
 
