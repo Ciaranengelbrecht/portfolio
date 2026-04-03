@@ -5379,11 +5379,6 @@ export default function Sessions() {
                           optional
                         </span>
                       )}
-                      {isCollapsed && (
-                        <span className={`inline-flex ${collapsedSummaryClass}`}>
-                          {collapsedSummaryContent}
-                        </span>
-                      )}
                       {/* Mobile reorder buttons (shown inline only when expanded to save vertical space) */}
                       {!isCollapsed && (
                         <div className="flex sm:hidden items-center gap-0.5 ml-auto shrink-0">
@@ -5416,7 +5411,13 @@ export default function Sessions() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end gap-0.5 relative min-w-[80px] sm:min-w-[100px]">
+                    <div
+                      className={`shrink-0 flex flex-col items-end gap-0.5 relative ${
+                        isCollapsed
+                          ? "min-w-[104px] sm:min-w-[126px]"
+                          : "min-w-[80px] sm:min-w-[100px]"
+                      }`}
+                    >
                       {isDeloadWeek && (
                         <div className="w-full flex justify-end">
                           <span data-shape="deload">
@@ -5426,6 +5427,13 @@ export default function Sessions() {
                               info={deloadPrescriptions[entry.exerciseId]}
                               unit={settingsState?.unit || "kg"}
                             />
+                          </span>
+                        </div>
+                      )}
+                      {isCollapsed && (
+                        <div className="w-full flex justify-end">
+                          <span className={collapsedSummaryClass}>
+                            {collapsedSummaryContent}
                           </span>
                         </div>
                       )}
