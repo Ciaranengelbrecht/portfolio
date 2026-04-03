@@ -481,6 +481,34 @@ const sessionHasRealWork = (session?: Session | null) => {
   return sessionRealActivityMs(session) > 0;
 };
 
+const sessionNavigationDayMs = (session?: Session | null) => {
+  if (!session || session.deletedAt) return 0;
+  if (session.localDate) {
+    const localMs = toTimestamp(`${session.localDate}T12:00:00`);
+    if (localMs > 0) return localMs;
+  }
+  return toTimestamp(session.dateISO);
+};
+
+const sessionIsFutureDated = (session?: Session | null) => {
+  const sessionDayMs = sessionNavigationDayMs(session);
+  if (sessionDayMs <= 0) return false;
+  const now = new Date();
+  const endOfTodayMs = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999
+  ).getTime();
+  return sessionDayMs > endOfTodayMs;
+};
+
+const sessionEligibleForAutoOpen = (session?: Session | null) =>
+  sessionHasRealWork(session) && !sessionIsFutureDated(session);
+
 const bestSetByLoad = (sets: SetEntry[]) => {
   let best: SetEntry | undefined;
   let bestScore = -1;
@@ -796,7 +824,7 @@ export default function Sessions() {
     setWipeCounts(null);
     (async () => {
       try {
-        const all = await readSessions();
+        const all = await readSessions({ force: true, swr: false });
         const unique = new Map<string, Session>();
         for (const item of all) {
           if (item?.id) unique.set(item.id, item);
@@ -1225,7 +1253,7 @@ export default function Sessions() {
             const sessionId = last.sessionId || `${last.phaseNumber}-${last.weekNumber}-${last.dayId}`;
             candidate = (await db.get<Session>("sessions", sessionId)) || null;
           } catch {}
-          if (!sessionHasRealWork(candidate)) {
+          if (!sessionEligibleForAutoOpen(candidate)) {
             last = undefined;
           }
         }
@@ -1386,23 +1414,20 @@ export default function Sessions() {
           return /^\d{8}$/.test(d) ? Number(d) : 0;
         };
         
-        const withData = all.filter(sessionHasRealWork);
+        const withData = all.filter(sessionEligibleForAutoOpen);
         if (!withData.length) {
           lastRealSessionAppliedRef.current = true;
           return;
         }
         
-        // Prefer the furthest progressed real-work session, then use activity as
-        // a tiebreaker for duplicate positions.
+        // Prefer most recently active sessions and use progress only as a tie-breaker.
         withData.sort((a, b) => {
-          const progressCmp = compareSessionProgressDesc(a, b);
-          if (progressCmp !== 0) return progressCmp;
           const realA = sessionRealActivityMs(a);
           const realB = sessionRealActivityMs(b);
           if (realA !== realB) return realB - realA;
           const dv = dayVal(b) - dayVal(a);
           if (dv !== 0) return dv;
-          return 0;
+          return compareSessionProgressDesc(a, b);
         });
         
         const chosen = withData[0];
@@ -1452,17 +1477,25 @@ export default function Sessions() {
     })();
   }, [initialRouteReady, readSessions]);
 
-  // Auto navigation logic: stay on the furthest progressed week within the
-  // current phase that has any real data (weight or reps > 0).
+  // Auto navigation fallback: only used when startup routing did not already
+  // resolve location. Ignores future-dated sessions.
   // Do not auto-advance to next phase until user manually creates data in week 1 of the next phase.
   useEffect(() => {
     (async () => {
       if (autoNavDone || !initialRouteReady) return;
+      if (pickedLatestRef.current || lastRealSessionAppliedRef.current) {
+        setAutoNavDone(true);
+        return;
+      }
       if (skipAutoNavRef.current) {
         setAutoNavDone(true);
         return;
       }
-      const all = await readSessions();
+      const all = await readSessions({ force: true, swr: false });
+      if (pickedLatestRef.current || lastRealSessionAppliedRef.current) {
+        setAutoNavDone(true);
+        return;
+      }
       if (!all.length) {
         setAutoNavDone(true);
         return;
@@ -1478,8 +1511,8 @@ export default function Sessions() {
       };
       const weekActivity = new Map<number, WeekActivityInfo>();
       const registerWeek = (sess: Session) => {
-        const wk = sess.weekNumber;
-        if (typeof wk !== "number" || Number.isNaN(wk)) return;
+        const wk = getSessionWeekNumber(sess);
+        if (wk == null || Number.isNaN(wk)) return;
         const activity = sessionRealActivityMs(sess);
         const calendar =
           toTimestamp(sess.loggedEndAt) ||
@@ -1508,8 +1541,7 @@ export default function Sessions() {
         }
       };
       for (const s of byPhase) {
-        if (!sessionHasRealWork(s) || typeof s.weekNumber !== "number")
-          continue;
+        if (!sessionEligibleForAutoOpen(s)) continue;
         registerWeek(s);
       }
       if (!weekActivity.size) {
@@ -4476,7 +4508,7 @@ export default function Sessions() {
       {/* Removed mobile floating Add Exercise button (user preference) */}
         <section className="px-2.5 sm:px-4" aria-label="Session controls" ref={toolbarRef}>
           <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-2.5 py-2.5 shadow-[0_16px_34px_rgba(15,23,42,0.45)] backdrop-blur sm:px-4 sm:py-3">
-          {/* Always visible row: Day selector + session timer + expand toggle */}
+          {/* Always visible row: Day selector + session timer + Details/Tools toggles */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
             <div className="flex min-w-0 flex-col gap-0.5 sm:min-w-[110px]">
@@ -4512,19 +4544,34 @@ export default function Sessions() {
                 </span>
               </div>
             )}
-            {/* Toggle for expanded controls */}
-            <button
-              type="button"
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
                 className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
                   toolbarCollapsed
                     ? "border-white/12 bg-slate-800/45 text-slate-300 hover:bg-slate-700/55"
                     : "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
                 }`}
-              onClick={() => setToolbarCollapsed((v) => !v)}
-              aria-expanded={!toolbarCollapsed}
-            >
-                <span>Details</span>
-            </button>
+                onClick={() => setToolbarCollapsed((v) => !v)}
+                aria-expanded={!toolbarCollapsed}
+                aria-controls="session-details-panel"
+              >
+                <span>Details {toolbarCollapsed ? "▸" : "▾"}</span>
+              </button>
+              <button
+                className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
+                  toolsOpen
+                    ? "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
+                    : "border-white/12 bg-slate-800/70 text-slate-200 hover:bg-slate-700/80"
+                }`}
+                onClick={() => setToolsOpen((open) => !open)}
+                aria-expanded={toolsOpen}
+                aria-controls="session-tools-panel"
+                type="button"
+              >
+                <span>Tools {toolsOpen ? "▾" : "▸"}</span>
+              </button>
+            </div>
           </div>
 
           {/* Collapsible section: Week, Phase, Date controls */}
@@ -4532,6 +4579,7 @@ export default function Sessions() {
             {!toolbarCollapsed && (
               <motion.div
                 key="toolbar-expanded"
+                id="session-details-panel"
                   className="mt-2 space-y-2"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
@@ -4696,22 +4744,6 @@ export default function Sessions() {
             )}
           </AnimatePresence>
 
-          {/* Tools toggle button - always visible at bottom */}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
-            <button
-                className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
-                  toolsOpen
-                    ? "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
-                    : "border-white/12 bg-slate-800/70 text-slate-200 hover:bg-slate-700/80"
-                }`}
-              onClick={() => setToolsOpen((open) => !open)}
-              aria-expanded={toolsOpen}
-              aria-controls="session-tools-panel"
-              type="button"
-            >
-                <span>Tools</span>
-            </button>
-          </div>
           <AnimatePresence initial={false}>
             {toolsOpen && (
               <motion.div
