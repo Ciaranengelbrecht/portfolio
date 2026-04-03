@@ -1666,109 +1666,111 @@ export default function SettingsPage() {
           </button>
           <div
             id="theme-presets-panel"
-            className={`transition-all duration-400 ease-out ${
+            className={`grid transition-[grid-template-rows,opacity] duration-400 ease-out ${
               themesCollapsed
-                ? "max-h-0 opacity-0 pointer-events-none"
-                : "max-h-[1400px] opacity-100"
+                ? "grid-rows-[0fr] opacity-0 pointer-events-none"
+                : "grid-rows-[1fr] opacity-100"
             }`}
             aria-hidden={themesCollapsed}
           >
-            <div className="mt-3 space-y-4 px-1 pb-1">
-              {THEME_CATEGORIES.map((category) => {
-                const themesInCategory = (Object.keys(THEMES) as ThemeKey[]).filter(
-                  (k) => THEME_META[k]?.category === category
-                );
-                if (themesInCategory.length === 0) return null;
-                return (
-                  <div key={category}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold text-accent uppercase tracking-wider">
-                        {category}
-                      </span>
-                      <span className="flex-1 h-px bg-card-border/30" />
-                    </div>
-                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-2.5">
-                      {themesInCategory.map((k) => {
-                        const customPreview =
-                          k === "custom" && s.themeV2?.customVars
-                            ? ({ ...THEMES[k], ...s.themeV2.customVars } as Record<string, string>)
-                            : THEMES[k];
-                        const meta = THEME_META[k];
-                        const mode = THEME_MODE[k] || "dark";
-                        return (
-                          <button
-                            key={k}
-                            className={`rounded-xl p-3 text-left border transition-all duration-200 ${
-                              themeKey === k
-                                ? "border-accent bg-accent/10 ring-1 ring-accent/50"
-                                : "border-card card-surface hover:border-accent/40 hover:scale-[1.02]"
-                            }`}
-                            onClick={() => {
-                              setS((prev) => ({
-                                ...prev,
-                                themeV2: {
-                                  ...((prev as any).themeV2 || {}),
-                                  key: k,
-                                },
-                              } as any));
-                              setThemeKey(k);
-                            }}
-                          >
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="min-w-0">
-                                <span className="block font-medium text-sm capitalize truncate">
-                                  {k.replace(/-/g, " ")}
-                                </span>
-                                <span className="text-[10px] text-muted uppercase tracking-[0.18em]">
-                                  {mode}
-                                </span>
+            <div className="overflow-hidden">
+              <div className="mt-3 space-y-4 px-1 pb-1">
+                {THEME_CATEGORIES.map((category) => {
+                  const themesInCategory = (Object.keys(THEMES) as ThemeKey[]).filter(
+                    (k) => THEME_META[k]?.category === category
+                  );
+                  if (themesInCategory.length === 0) return null;
+                  return (
+                    <div key={category}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-accent uppercase tracking-wider">
+                          {category}
+                        </span>
+                        <span className="flex-1 h-px bg-card-border/30" />
+                      </div>
+                      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-2.5">
+                        {themesInCategory.map((k) => {
+                          const customPreview =
+                            k === "custom" && s.themeV2?.customVars
+                              ? ({ ...THEMES[k], ...s.themeV2.customVars } as Record<string, string>)
+                              : THEMES[k];
+                          const meta = THEME_META[k];
+                          const mode = THEME_MODE[k] || "dark";
+                          return (
+                            <button
+                              key={k}
+                              className={`rounded-xl p-3 text-left border transition-all duration-200 ${
+                                themeKey === k
+                                  ? "border-accent bg-accent/10 ring-1 ring-accent/50"
+                                  : "border-card card-surface hover:border-accent/40 hover:scale-[1.02]"
+                              }`}
+                              onClick={() => {
+                                setS((prev) => ({
+                                  ...prev,
+                                  themeV2: {
+                                    ...((prev as any).themeV2 || {}),
+                                    key: k,
+                                  },
+                                } as any));
+                                setThemeKey(k);
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-1.5">
+                                <div className="min-w-0">
+                                  <span className="block font-medium text-sm capitalize truncate">
+                                    {k.replace(/-/g, " ")}
+                                  </span>
+                                  <span className="text-[10px] text-muted uppercase tracking-[0.18em]">
+                                    {mode}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className={`rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                                      mode === "light"
+                                        ? "border border-amber-300/35 bg-amber-300/20 text-amber-900"
+                                        : "border border-slate-300/20 bg-slate-300/10 text-slate-200"
+                                    }`}
+                                  >
+                                    {mode}
+                                  </span>
+                                  {themeKey === k && (
+                                    <span className="settings-static-pill text-[10px]">Active</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
+                              <div className="text-[10px] text-muted truncate mb-2">
+                                {meta?.description || ""}
+                              </div>
+                              <div className="flex gap-1 items-center">
                                 <span
-                                  className={`rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
-                                    mode === "light"
-                                      ? "border border-amber-300/35 bg-amber-300/20 text-amber-900"
-                                      : "border border-slate-300/20 bg-slate-300/10 text-slate-200"
-                                  }`}
-                                >
-                                  {mode}
-                                </span>
-                                {themeKey === k && (
-                                  <span className="settings-static-pill text-[10px]">Active</span>
-                                )}
+                                  className="flex-1 h-5 rounded-l"
+                                  style={{ background: customPreview["--bg-muted"] }}
+                                />
+                                <span
+                                  className="w-5 h-5 rounded border"
+                                  style={{
+                                    background: customPreview["--card"],
+                                    borderColor: customPreview["--card-border"],
+                                  }}
+                                />
+                                <span
+                                  className="w-5 h-5 rounded"
+                                  style={{ background: customPreview["--accent"] }}
+                                />
+                                <span
+                                  className="w-5 h-5 rounded-r"
+                                  style={{ background: customPreview["--chart-2"] }}
+                                />
                               </div>
-                            </div>
-                            <div className="text-[10px] text-muted truncate mb-2">
-                              {meta?.description || ""}
-                            </div>
-                            <div className="flex gap-1 items-center">
-                              <span
-                                className="flex-1 h-5 rounded-l"
-                                style={{ background: customPreview["--bg-muted"] }}
-                              />
-                              <span
-                                className="w-5 h-5 rounded border"
-                                style={{
-                                  background: customPreview["--card"],
-                                  borderColor: customPreview["--card-border"],
-                                }}
-                              />
-                              <span
-                                className="w-5 h-5 rounded"
-                                style={{ background: customPreview["--accent"] }}
-                              />
-                              <span
-                                className="w-5 h-5 rounded-r"
-                                style={{ background: customPreview["--chart-2"] }}
-                              />
-                            </div>
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
           <div className="text-xs text-muted mt-1">
