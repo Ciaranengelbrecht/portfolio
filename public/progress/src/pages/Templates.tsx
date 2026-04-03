@@ -14,6 +14,13 @@ import {
 const TEMPLATE_COLLAPSE_KEY = "templates:collapsedState";
 const SECONDARY_FACTOR = 0.5;
 const TEMPLATE_ADD_EXERCISE_SCOPE = "templates:add-exercise";
+type TemplatePlanEntry = NonNullable<Template["plan"]>[number];
+const ICON_BTN_NEUTRAL =
+  "flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[11px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40";
+const ICON_BTN_DANGER =
+  "flex h-7 w-7 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/15 text-[11px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25";
+const ICON_BTN_DANGER_ALT =
+  "flex h-7 w-7 items-center justify-center rounded-lg border border-red-500/45 bg-red-500/15 text-[11px] text-red-100 transition-colors duration-150 hover:bg-red-500/25";
 
 /** Compute sets per muscle group from a template's planned sets */
 function computeMuscleSets(
@@ -177,7 +184,7 @@ export default function Templates() {
     [exercises]
   );
 
-  const buildDefaultPlan = (ex: Exercise) => ({
+  const buildDefaultPlan = (ex: Exercise): TemplatePlanEntry => ({
     exerciseId: ex.id,
     plannedSets: ex.defaults?.sets || 3,
     repRange: ex.defaults?.targetRepRange || "8-12",
@@ -187,6 +194,23 @@ export default function Templates() {
       addRepsFirst: true,
     },
   });
+
+  const updateTemplatePlanEntry = (
+    template: Template,
+    ex: Exercise,
+    mutate: (entry: TemplatePlanEntry) => TemplatePlanEntry
+  ) => {
+    const nextPlan = [...(template.plan || [])];
+    const idxP = nextPlan.findIndex((p) => p.exerciseId === ex.id);
+    const current: TemplatePlanEntry =
+      idxP >= 0 ? nextPlan[idxP] : buildDefaultPlan(ex);
+    const nextEntry = mutate(current);
+    if (idxP >= 0) nextPlan[idxP] = nextEntry;
+    else nextPlan.push(nextEntry);
+    const nt: Template = { ...template, plan: nextPlan };
+    setTemplates((prev) => prev.map((x) => (x.id === template.id ? nt : x)));
+    void db.put("templates", nt);
+  };
 
   const addTemplate = async () => {
     const raw = name || `Template ${templates.length + 1}`;
@@ -420,36 +444,43 @@ export default function Templates() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Templates</h2>
-      <div className="bg-card rounded-2xl p-3">
-        <div className="flex gap-2">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white">Templates</h2>
+        <p className="text-xs text-white/65 leading-snug max-w-[70ch]">
+          Build reusable workouts with cleaner compact controls. Keep planning
+          inputs minimal, fast, and easy to scan.
+        </p>
+      </div>
+
+      <div className="card-surface rounded-2xl p-3 sm:p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
-            className="bg-slate-800 rounded-xl px-3 py-3 flex-1"
+            className="input-app rounded-xl px-3 py-2.5 flex-1 sm:max-w-[320px]"
             placeholder="New template name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <button
-            className="bg-brand-600 hover:bg-brand-700 px-3 py-3 rounded-xl"
+            className="btn-primary px-3 py-2.5 rounded-xl text-sm font-semibold"
             onClick={addTemplate}
           >
-            Add
+            Add template
           </button>
         </div>
         {templates.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
             <button
-              className="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2"
+              className="btn-outline px-3 py-2 rounded-xl"
               onClick={() => {
                 const next: Record<string, boolean> = {};
                 for (const t of templates) next[t.id] = true;
                 setCollapsed(next);
               }}
             >
-              Collapse All
+              Collapse all
             </button>
             <button
-              className="bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-2"
+              className="btn-outline px-3 py-2 rounded-xl"
               onClick={() => {
                 const next: Record<string, boolean> = {};
                 for (const t of templates) next[t.id] = false;
@@ -457,408 +488,339 @@ export default function Templates() {
               }}
               disabled={Object.keys(collapsed).length === 0}
             >
-              Expand All
+              Expand all
             </button>
           </div>
         )}
       </div>
       <div className="space-y-3">
-        {templates.map((t) => (
-          <div
-            key={t.id}
-            className="bg-card rounded-2xl p-4 shadow-soft relative transition"
-            onClick={(event) => handleTemplateSurfaceClick(event, t.id)}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <button
-                  className="text-xs bg-slate-800 rounded-md px-2 py-1 shrink-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleTemplateCollapsed(t.id);
-                  }}
-                  title={
-                    collapsed[t.id] ? "Expand template" : "Collapse template"
-                  }
-                >
-                  {collapsed[t.id] ? "▶" : "▼"}
-                </button>
-                {collapsed[t.id] ? (
-                  <div
-                    className="font-medium text-sm text-gray-100 truncate"
-                    title={t.name || "Untitled template"}
+        {templates.map((t) => {
+          const muscleCounts = computeMuscleSets(t, exerciseMap);
+          const muscleEntries = Object.entries(muscleCounts)
+            .filter(([_, v]) => v > 0)
+            .sort((a, b) => b[1] - a[1]);
+
+          return (
+            <div
+              key={t.id}
+              className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft relative transition"
+              onClick={(event) => handleTemplateSurfaceClick(event, t.id)}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <button
+                    className={ICON_BTN_NEUTRAL}
+                    onClick={() => toggleTemplateCollapsed(t.id)}
+                    title={
+                      collapsed[t.id] ? "Expand template" : "Collapse template"
+                    }
                   >
-                    {t.name || "Untitled template"}
-                  </div>
-                ) : (
-                  <input
-                    className="bg-transparent font-medium flex-1 min-w-0"
-                    value={t.name}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      const nt = { ...t, name: e.target.value };
-                      setTemplates(
-                        templates.map((x) => (x.id === t.id ? nt : x))
-                      );
-                      db.put("templates", nt);
-                    }}
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-[11px] opacity-70">
-                  {t.exerciseIds.length} ex
+                    {collapsed[t.id] ? "▸" : "▾"}
+                  </button>
+                  {collapsed[t.id] ? (
+                    <div
+                      className="truncate text-sm font-medium text-white/90"
+                      title={t.name || "Untitled template"}
+                    >
+                      {t.name || "Untitled template"}
+                    </div>
+                  ) : (
+                    <input
+                      className="input-app h-9 flex-1 min-w-0 rounded-xl px-3 py-1 text-sm font-medium"
+                      value={t.name}
+                      placeholder="Untitled template"
+                      onChange={(e) => {
+                        const nt = { ...t, name: e.target.value };
+                        setTemplates((prev) =>
+                          prev.map((x) => (x.id === t.id ? nt : x))
+                        );
+                        void db.put("templates", nt);
+                      }}
+                    />
+                  )}
                 </div>
-                <button
-                  className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    duplicate(t);
-                  }}
-                >
-                  Duplicate
-                </button>
-                <button
-                  className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggle(t);
-                  }}
-                >
-                  {t.hidden ? "Show" : "Hide"}
-                </button>
-                <button
-                  className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteTemplate(t);
-                  }}
-                >
-                  Delete
-                </button>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full border border-white/10 bg-slate-900/45 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+                    {t.exerciseIds.length} ex
+                  </span>
+                  <button
+                    className="rounded-lg border border-white/10 bg-slate-800/70 px-2.5 py-1 text-[11px] text-white/80 transition-colors hover:bg-slate-700/70"
+                    onClick={() => duplicate(t)}
+                  >
+                    Duplicate
+                  </button>
+                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/50 px-2 py-1">
+                    <span className="text-[10px] uppercase tracking-wide text-white/55">
+                      Hidden
+                    </span>
+                    <InlineSwitch
+                      checked={Boolean(t.hidden)}
+                      onChange={() => void toggle(t)}
+                      ariaLabel={`Toggle hidden for ${t.name || "template"}`}
+                    />
+                  </div>
+                  <button
+                    className={ICON_BTN_DANGER_ALT}
+                    title="Delete template"
+                    onClick={() => deleteTemplate(t)}
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
-            {collapsed[t.id] ? (
-              <div className="mt-2 space-y-1.5">
-                {/* Muscle set counts */}
-                {(() => {
-                  const counts = computeMuscleSets(t, exerciseMap);
-                  const entries = Object.entries(counts)
-                    .filter(([_, v]) => v > 0)
-                    .sort((a, b) => b[1] - a[1]);
-                  if (!entries.length) return null;
-                  return (
-                    <div className="flex flex-wrap gap-1.5">
-                      {entries.slice(0, 6).map(([m, v]) => (
+
+              {collapsed[t.id] ? (
+                <div className="mt-2 space-y-1.5">
+                  {muscleEntries.length > 0 && (
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      title={formatMuscleCounts(muscleCounts)}
+                    >
+                      {muscleEntries.slice(0, 6).map(([m, v]) => (
                         <span
                           key={m}
-                          className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded-md capitalize"
+                          className="rounded-md bg-indigo-500/20 px-1.5 py-0.5 text-[10px] capitalize text-indigo-300"
                         >
                           {m}: {Math.round(v * 10) / 10}
                         </span>
                       ))}
-                      {entries.length > 6 && (
+                      {muscleEntries.length > 6 && (
                         <span className="text-[10px] text-gray-500">
-                          +{entries.length - 6} more
+                          +{muscleEntries.length - 6} more
                         </span>
                       )}
                     </div>
-                  );
-                })()}
-                {/* Exercise list preview */}
-                <div className="text-[11px] text-gray-400 line-clamp-2">
-                  {t.exerciseIds
-                    .map(
-                      (id) =>
-                        exercises.find((e) => e.id === id)?.name || "Unknown"
-                    )
-                    .filter(Boolean)
-                    .join(", ")}
+                  )}
+                  <div className="line-clamp-2 text-[11px] text-gray-400">
+                    {t.exerciseIds
+                      .map((id) => exerciseMap.get(id)?.name || "Unknown")
+                      .filter(Boolean)
+                      .join(", ")}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                {/* Muscle set counts in expanded view */}
-                {(() => {
-                  const counts = computeMuscleSets(t, exerciseMap);
-                  const entries = Object.entries(counts)
-                    .filter(([_, v]) => v > 0)
-                    .sort((a, b) => b[1] - a[1]);
-                  if (!entries.length) return null;
-                  return (
+              ) : (
+                <>
+                  {muscleEntries.length > 0 && (
                     <div className="mt-2 space-y-1">
                       <div className="text-[10px] uppercase tracking-wide text-gray-500">
                         Projected Sets / Muscle
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {entries.map(([m, v]) => (
+                        {muscleEntries.map(([m, v]) => (
                           <span
                             key={m}
-                            className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md capitalize"
+                            className="rounded-md bg-indigo-500/20 px-2 py-1 text-[10px] capitalize text-indigo-300"
                           >
                             {m}: {Math.round(v * 10) / 10}
                           </span>
                         ))}
                       </div>
                     </div>
-                  );
-                })()}
-                <div className="mt-2 text-sm text-gray-300">
-                  Exercises: {t.exerciseIds.length}
-                </div>
-                <div className="mt-3 space-y-2">
-                  {t.exerciseIds.map((id, idx) => {
-                    const ex = exercises.find((e) => e.id === id);
-                    const planEntry = t.plan?.find((p) => p.exerciseId === id);
-                    return (
-                      <div
-                        key={id}
-                        className="bg-slate-800 rounded-xl px-3 py-3 space-y-2"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                          <div className="w-full sm:flex-1 text-sm sm:text-base break-words">
-                            {ex?.name || "Unknown"}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
-                              disabled={idx === 0}
-                              onClick={() => moveExercise(t, idx, idx - 1)}
-                            >
-                              Up
-                            </button>
-                            <button
-                              className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2 disabled:opacity-50"
-                              disabled={idx === t.exerciseIds.length - 1}
-                              onClick={() => moveExercise(t, idx, idx + 1)}
-                            >
-                              Down
-                            </button>
-                            <button
-                              className="text-[11px] sm:text-xs bg-slate-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                              onClick={() => ex && toggleOptional(ex)}
-                            >
-                              {ex?.isOptional ? (
-                                <>
-                                  <span className="hidden sm:inline">
-                                    Optional ✓
-                                  </span>
-                                  <span className="inline sm:hidden">
-                                    Opt ✓
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="hidden sm:inline">
+                  )}
+
+                  <div className="mt-2 text-[11px] text-white/55">
+                    Exercises: {t.exerciseIds.length}
+                  </div>
+
+                  <div className="mt-3 space-y-2.5">
+                    {t.exerciseIds.map((id, idx) => {
+                      const ex = exerciseMap.get(id);
+                      const planEntry = t.plan?.find((p) => p.exerciseId === id);
+                      const plannedSets =
+                        planEntry?.plannedSets ?? ex?.defaults?.sets ?? 3;
+                      const repRange =
+                        planEntry?.repRange ??
+                        ex?.defaults?.targetRepRange ??
+                        "8-12";
+                      const incrementKg =
+                        planEntry?.progression?.incrementKg ?? 2.5;
+                      const addRepsFirst =
+                        planEntry?.progression?.addRepsFirst ?? true;
+
+                      return (
+                        <div
+                          key={id}
+                          className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2.5"
+                        >
+                          <div className="flex flex-wrap items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium text-white/90">
+                                {ex?.name || "Unknown exercise"}
+                              </div>
+                              {ex?.muscleGroup && (
+                                <div className="mt-0.5 text-[10px] uppercase tracking-wide text-white/45">
+                                  {ex.muscleGroup}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                className={ICON_BTN_NEUTRAL}
+                                disabled={idx === 0}
+                                onClick={() => moveExercise(t, idx, idx - 1)}
+                                title="Move up"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                className={ICON_BTN_NEUTRAL}
+                                disabled={idx === t.exerciseIds.length - 1}
+                                onClick={() => moveExercise(t, idx, idx + 1)}
+                                title="Move down"
+                              >
+                                ↓
+                              </button>
+                              {ex && (
+                                <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/55 px-2 py-1">
+                                  <span className="text-[10px] uppercase tracking-wide text-white/55">
                                     Optional
                                   </span>
-                                  <span className="inline sm:hidden">Opt</span>
-                                </>
+                                  <InlineSwitch
+                                    checked={Boolean(ex.isOptional)}
+                                    onChange={() => void toggleOptional(ex)}
+                                    ariaLabel={`Toggle optional for ${ex.name}`}
+                                  />
+                                </div>
                               )}
-                            </button>
-                            <button
-                              className="text-[11px] sm:text-xs bg-red-600 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                              onClick={() => removeExerciseFromTemplate(t, id)}
-                            >
-                              Remove
-                            </button>
-                            {ex && (
                               <button
-                                className="text-[11px] sm:text-xs bg-red-700 rounded-xl px-2 py-1 sm:px-3 sm:py-2"
-                                onClick={() => deleteExercise(ex)}
+                                className={ICON_BTN_DANGER}
+                                title="Remove from template"
+                                onClick={() => removeExerciseFromTemplate(t, id)}
                               >
-                                <span className="hidden sm:inline">
-                                  Delete exercise
-                                </span>
-                                <span className="inline sm:hidden">Delete</span>
+                                −
                               </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="grid sm:grid-cols-5 gap-2 text-[11px] sm:text-xs bg-slate-900/40 rounded-lg p-2">
-                          <label className="flex flex-col gap-1">
-                            <span className="opacity-70">Sets</span>
-                            <input
-                              type="number"
-                              min={1}
-                              max={10}
-                              value={
-                                planEntry?.plannedSets ?? ex?.defaults.sets ?? 3
-                              }
-                              onChange={(e) => {
-                                const v = Math.min(
-                                  10,
-                                  Math.max(1, Number(e.target.value) || 1)
-                                );
-                                const nextPlan = [...(t.plan || [])];
-                                const idxP = nextPlan.findIndex(
-                                  (p) => p.exerciseId === id
-                                );
-                                if (idxP >= 0)
-                                  nextPlan[idxP] = {
-                                    ...nextPlan[idxP],
-                                    plannedSets: v,
-                                  };
-                                else
-                                  nextPlan.push({
-                                    ...buildDefaultPlan(ex!),
-                                    plannedSets: v,
-                                  });
-                                const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(
-                                  templates.map((x) => (x.id === t.id ? nt : x))
-                                );
-                                db.put("templates", nt);
-                              }}
-                              className="bg-slate-700 rounded px-2 py-1"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="opacity-70">Rep Range</span>
-                            <input
-                              type="text"
-                              value={
-                                planEntry?.repRange ??
-                                ex?.defaults.targetRepRange ??
-                                "8-12"
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value
-                                  .replace(/[^0-9\-–]/g, "")
-                                  .slice(0, 9);
-                                const nextPlan = [...(t.plan || [])];
-                                const idxP = nextPlan.findIndex(
-                                  (p) => p.exerciseId === id
-                                );
-                                if (idxP >= 0)
-                                  nextPlan[idxP] = {
-                                    ...nextPlan[idxP],
-                                    repRange: v,
-                                  };
-                                else
-                                  nextPlan.push({
-                                    ...buildDefaultPlan(ex!),
-                                    repRange: v,
-                                  });
-                                const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(
-                                  templates.map((x) => (x.id === t.id ? nt : x))
-                                );
-                                db.put("templates", nt);
-                              }}
-                              placeholder="8-12"
-                              className="bg-slate-700 rounded px-2 py-1"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="opacity-70">Increment (kg)</span>
-                            <input
-                              type="number"
-                              step={0.5}
-                              value={planEntry?.progression?.incrementKg ?? 2.5}
-                              onChange={(e) => {
-                                const v = Number(e.target.value) || 0;
-                                const nextPlan = [...(t.plan || [])];
-                                const idxP = nextPlan.findIndex(
-                                  (p) => p.exerciseId === id
-                                );
-                                if (idxP >= 0)
-                                  nextPlan[idxP] = {
-                                    ...nextPlan[idxP],
-                                    progression: {
-                                      ...(nextPlan[idxP].progression || {
-                                        scheme: "linear",
-                                      }),
-                                      incrementKg: v,
-                                    },
-                                  };
-                                else
-                                  nextPlan.push({
-                                    ...buildDefaultPlan(ex!),
-                                    progression: {
-                                      scheme: "linear",
-                                      incrementKg: v,
-                                      addRepsFirst: true,
-                                    },
-                                  });
-                                const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(
-                                  templates.map((x) => (x.id === t.id ? nt : x))
-                                );
-                                db.put("templates", nt);
-                              }}
-                              className="bg-slate-700 rounded px-2 py-1"
-                            />
-                          </label>
-                          <label className="flex flex-col gap-1">
-                            <span className="opacity-70">Reps First?</span>
-                            <select
-                              value={String(
-                                planEntry?.progression?.addRepsFirst ?? true
+                              {ex && (
+                                <button
+                                  className={ICON_BTN_DANGER_ALT}
+                                  title="Delete exercise from library"
+                                  onClick={() => deleteExercise(ex)}
+                                >
+                                  ×
+                                </button>
                               )}
-                              onChange={(e) => {
-                                const v = e.target.value === "true";
-                                const nextPlan = [...(t.plan || [])];
-                                const idxP = nextPlan.findIndex(
-                                  (p) => p.exerciseId === id
-                                );
-                                if (idxP >= 0)
-                                  nextPlan[idxP] = {
-                                    ...nextPlan[idxP],
-                                    progression: {
-                                      ...(nextPlan[idxP].progression || {
-                                        scheme: "linear",
-                                      }),
-                                      addRepsFirst: v,
-                                    },
-                                  };
-                                else
-                                  nextPlan.push({
-                                    ...buildDefaultPlan(ex!),
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/70 px-2 py-1.5">
+                              <span className="text-[10px] uppercase tracking-wide text-white/55">
+                                Sets
+                              </span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={plannedSets}
+                                onChange={(e) => {
+                                  if (!ex) return;
+                                  const v = Math.min(
+                                    10,
+                                    Math.max(1, Number(e.target.value) || 1)
+                                  );
+                                  updateTemplatePlanEntry(t, ex, (entry) => ({
+                                    ...entry,
+                                    plannedSets: v,
+                                  }));
+                                }}
+                                className="w-11 rounded-md border border-white/10 bg-slate-900/70 px-1.5 py-1 text-right text-[11px] text-white outline-none focus:border-white/25"
+                              />
+                            </label>
+
+                            <label className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/70 px-2 py-1.5">
+                              <span className="text-[10px] uppercase tracking-wide text-white/55">
+                                Reps
+                              </span>
+                              <input
+                                type="text"
+                                value={repRange}
+                                placeholder="8-12"
+                                onChange={(e) => {
+                                  if (!ex) return;
+                                  const v = e.target.value
+                                    .replace(/[^0-9\-–]/g, "")
+                                    .slice(0, 9);
+                                  updateTemplatePlanEntry(t, ex, (entry) => ({
+                                    ...entry,
+                                    repRange: v,
+                                  }));
+                                }}
+                                className="w-16 rounded-md border border-white/10 bg-slate-900/70 px-1.5 py-1 text-center text-[11px] text-white outline-none focus:border-white/25"
+                              />
+                            </label>
+
+                            <label className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/70 px-2 py-1.5">
+                              <span className="text-[10px] uppercase tracking-wide text-white/55">
+                                +kg
+                              </span>
+                              <input
+                                type="number"
+                                step={0.5}
+                                min={0}
+                                value={incrementKg}
+                                onChange={(e) => {
+                                  if (!ex) return;
+                                  const v = Math.max(0, Number(e.target.value) || 0);
+                                  updateTemplatePlanEntry(t, ex, (entry) => ({
+                                    ...entry,
                                     progression: {
                                       scheme: "linear",
-                                      incrementKg: 2.5,
-                                      addRepsFirst: v,
+                                      incrementKg: v,
+                                      addRepsFirst:
+                                        entry.progression?.addRepsFirst ?? true,
                                     },
-                                  });
-                                const nt: Template = { ...t, plan: nextPlan };
-                                setTemplates(
-                                  templates.map((x) => (x.id === t.id ? nt : x))
-                                );
-                                db.put("templates", nt);
-                              }}
-                              className="bg-slate-700 rounded px-2 py-1"
-                            >
-                              <option value="true">Yes</option>
-                              <option value="false">No</option>
-                            </select>
-                          </label>
-                          <div className="flex flex-col gap-1 text-[10px] sm:text-xs justify-end">
-                            <div className="opacity-60 leading-tight">
-                              Guides next session progression (editable on
-                              import)
+                                  }));
+                                }}
+                                className="w-14 rounded-md border border-white/10 bg-slate-900/70 px-1.5 py-1 text-right text-[11px] text-white outline-none focus:border-white/25"
+                              />
+                            </label>
+
+                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/70 px-2 py-1.5">
+                              <span className="text-[10px] uppercase tracking-wide text-white/55">
+                                Reps first
+                              </span>
+                              <InlineSwitch
+                                checked={addRepsFirst}
+                                onChange={(next) => {
+                                  if (!ex) return;
+                                  updateTemplatePlanEntry(t, ex, (entry) => ({
+                                    ...entry,
+                                    progression: {
+                                      scheme: "linear",
+                                      incrementKg:
+                                        entry.progression?.incrementKg ?? 2.5,
+                                      addRepsFirst: next,
+                                    },
+                                  }));
+                                }}
+                                ariaLabel={`Toggle reps first for ${
+                                  ex?.name || "exercise"
+                                }`}
+                              />
+                            </div>
+
+                            <div className="min-w-[150px] flex-1 text-[10px] leading-tight text-white/40">
+                              Progression guidance can still be adjusted when you
+                              import this template into a session.
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3">
-                  <div className="flex flex-wrap gap-2">
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
                     <button
-                      className="text-xs sm:text-sm bg-slate-800 rounded-xl px-3 py-2"
+                      className="btn-outline rounded-xl px-3 py-2 text-xs sm:text-sm"
                       onClick={() => setShowAddFor(t.id)}
                     >
                       Add exercise
                     </button>
                   </div>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {showAddFor && (
@@ -883,7 +845,7 @@ export default function Templates() {
               </div>
               <input
                 autoFocus
-                className="w-full rounded-xl bg-slate-800 px-3 py-3"
+                className="input-app w-full rounded-xl px-3 py-2.5"
                 placeholder="Search or create exercise"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -899,7 +861,7 @@ export default function Templates() {
                   if (!exact) {
                     return (
                       <button
-                        className="w-full rounded-xl bg-brand-600 px-3 py-3 text-left hover:bg-brand-700"
+                        className="w-full rounded-xl bg-brand-600 px-3 py-2.5 text-left text-sm hover:bg-brand-700"
                         onClick={async () => {
                           const t = templates.find((x) => x.id === showAddFor)!;
                           const e = await createOrGetExercise(q);
@@ -917,7 +879,7 @@ export default function Templates() {
                   return (
                     <button
                       key={exercise.id}
-                      className="w-full rounded-xl bg-slate-800 px-3 py-3 text-left hover:bg-slate-700"
+                      className="w-full rounded-xl border border-white/8 bg-slate-800/80 px-3 py-2.5 text-left text-sm hover:bg-slate-700/80"
                       onClick={() => {
                         const t = templates.find((x) => x.id === showAddFor)!;
                         addExerciseToTemplate(t, exercise);
@@ -946,149 +908,208 @@ export default function Templates() {
       )}
 
       {/* Exercise Library Management */}
-      <div className="bg-card rounded-2xl p-4 shadow-soft">
-        <div className="flex items-center justify-between mb-2 gap-2">
-          <div className="font-medium">Exercise Library</div>
-          <input
-            className="bg-slate-800 rounded-xl px-3 py-3"
-            placeholder="Search"
-            value={exerciseQuery}
-            onChange={(e) => setExerciseQuery(e.target.value)}
-          />
+      <div className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft">
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <div className="font-medium text-white/90">Exercise Library</div>
+            <div className="text-[11px] text-white/55">
+              Keep exercise metadata clean with compact controls.
+            </div>
+          </div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <input
+              className="input-app w-full rounded-xl px-3 py-2 sm:w-[230px]"
+              placeholder="Search exercises"
+              value={exerciseQuery}
+              onChange={(e) => setExerciseQuery(e.target.value)}
+            />
+            <button
+              className="btn-outline rounded-xl px-3 py-2 text-xs"
+              onClick={() => setShowAllExercises((v) => !v)}
+            >
+              {showAllExercises ? "Hide all" : "Show all"}
+            </button>
+          </div>
         </div>
-        <div className="text-xs text-gray-500 mb-2 flex items-center gap-3 flex-wrap">
-          <span>
-            {exerciseQuery
-              ? searchedExercises.length
-              : showAllExercises
-              ? exercises.length
-              : 0}{" "}
-            exercise
-            {(exerciseQuery
-              ? searchedExercises.length
-              : showAllExercises
-              ? exercises.length
-              : 0) === 1
-              ? ""
-              : "s"}{" "}
-            shown
-          </span>
-          <button
-            className="badge-secondary"
-            onClick={() => setShowAllExercises((v) => !v)}
-          >
-            {showAllExercises ? "Hide All" : "Show All"}
-          </button>
+
+        <div className="mb-2 text-[11px] text-white/55">
+          {exerciseQuery
+            ? searchedExercises.length
+            : showAllExercises
+            ? exercises.length
+            : 0}{" "}
+          exercise
+          {(exerciseQuery
+            ? searchedExercises.length
+            : showAllExercises
+            ? exercises.length
+            : 0) === 1
+            ? ""
+            : "s"}{" "}
+          shown
         </div>
-        <div className="grid gap-2">
+
+        <div className="space-y-2">
           {searchedExercises.map((ex) => (
             <div
               key={ex.id}
-              className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-3"
+              className="rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2.5"
             >
-              <div className="flex-1 min-w-[140px]">
-                <div className="truncate text-sm">{ex.name}</div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-gray-400">
-                  <select
-                    value={ex.muscleGroup}
-                    onChange={async (e) => {
-                      const next = {
-                        ...ex,
-                        muscleGroup: e.target.value as any,
-                      };
-                      await db.put("exercises", next);
-                      setExercises((es) =>
-                        es.map((x) => (x.id === ex.id ? next : x))
-                      );
-                    }}
-                    className="bg-slate-700 rounded px-1 py-0.5"
-                  >
-                    {[
-                      "chest",
-                      "back",
-                      "shoulders",
-                      "triceps",
-                      "biceps",
-                      "legs",
-                      "hamstrings",
-                      "quads",
-                      "glutes",
-                      "calves",
-                      "core",
-                      "other",
-                    ].map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {(ex.secondaryMuscles || []).map((sec) => (
-                      <span
-                        key={sec}
-                        className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded flex items-center gap-1"
-                      >
-                        {sec}
-                        <button
-                          className="opacity-70 hover:opacity-100"
-                          onClick={async () => {
-                            const next = {
-                              ...ex,
-                              secondaryMuscles: (
-                                ex.secondaryMuscles || []
-                              ).filter((s) => s !== sec),
-                            };
-                            await db.put("exercises", next);
-                            setExercises((es) =>
-                              es.map((x) => (x.id === ex.id ? next : x))
-                            );
-                          }}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    <SecondaryMusclePicker
-                      ex={ex}
-                      update={async (next) => {
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-white/90">
+                    {ex.name}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-white/60">
+                    <select
+                      value={ex.muscleGroup}
+                      onChange={async (e) => {
+                        const next = {
+                          ...ex,
+                          muscleGroup: e.target.value as MuscleGroup,
+                        };
                         await db.put("exercises", next);
                         setExercises((es) =>
                           es.map((x) => (x.id === ex.id ? next : x))
                         );
                       }}
+                      className="rounded-md border border-white/10 bg-slate-800/80 px-1.5 py-1 text-[10px] capitalize"
+                    >
+                      {[
+                        "chest",
+                        "back",
+                        "shoulders",
+                        "triceps",
+                        "biceps",
+                        "legs",
+                        "hamstrings",
+                        "quads",
+                        "glutes",
+                        "calves",
+                        "core",
+                        "other",
+                      ].map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex flex-wrap items-center gap-1">
+                      {(ex.secondaryMuscles || []).map((sec) => (
+                        <span
+                          key={sec}
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-700/70 px-1.5 py-0.5 text-[10px]"
+                        >
+                          {sec}
+                          <button
+                            className="flex h-4 w-4 items-center justify-center rounded bg-black/20 text-[10px] text-white/75 transition-colors hover:bg-black/35"
+                            onClick={async () => {
+                              const next = {
+                                ...ex,
+                                secondaryMuscles: (ex.secondaryMuscles || []).filter(
+                                  (s) => s !== sec
+                                ),
+                              };
+                              await db.put("exercises", next);
+                              setExercises((es) =>
+                                es.map((x) => (x.id === ex.id ? next : x))
+                              );
+                            }}
+                            title={`Remove ${sec}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      <SecondaryMusclePicker
+                        ex={ex}
+                        update={async (next) => {
+                          await db.put("exercises", next);
+                          setExercises((es) =>
+                            es.map((x) => (x.id === ex.id ? next : x))
+                          );
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {ex.tags && ex.tags.length > 0 && (
+                    <div className="mt-1 flex max-w-full flex-wrap gap-1">
+                      {ex.tags.slice(0, 12).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded bg-slate-700/70 px-1.5 py-0.5 text-[9px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/55 px-2 py-1">
+                    <span className="text-[10px] uppercase tracking-wide text-white/55">
+                      Optional
+                    </span>
+                    <InlineSwitch
+                      checked={Boolean(ex.isOptional)}
+                      onChange={() => void toggleOptional(ex)}
+                      ariaLabel={`Toggle optional for ${ex.name}`}
                     />
                   </div>
+                  <button
+                    className={ICON_BTN_DANGER_ALT}
+                    title="Delete exercise"
+                    onClick={() => deleteExercise(ex)}
+                  >
+                    ×
+                  </button>
                 </div>
-                {ex.tags && ex.tags.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1 max-w-full">
-                    {ex.tags.slice(0, 12).map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[9px] bg-slate-700/70 px-1.5 py-0.5 rounded"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
-              <button
-                className="text-xs sm:text-sm bg-slate-700 rounded-xl px-3 py-2"
-                onClick={() => toggleOptional(ex)}
-              >
-                {ex.isOptional ? "Optional \u2713" : "Optional"}
-              </button>
-              <button
-                className="text-xs sm:text-sm bg-red-600 rounded-xl px-3 py-2"
-                onClick={() => deleteExercise(ex)}
-              >
-                Delete
-              </button>
             </div>
           ))}
+
+          {!searchedExercises.length && exerciseQuery.trim() && (
+            <div className="rounded-xl border border-white/8 bg-slate-900/35 px-3 py-4 text-center text-sm text-white/60">
+              No exercises match your search.
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function InlineSwitch({
+  checked,
+  onChange,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full border transition-colors duration-150 ${
+        checked
+          ? "border-brand-400/65 bg-brand-500/55"
+          : "border-white/18 bg-slate-700/65"
+      }`}
+      onClick={() => onChange(!checked)}
+    >
+      <span
+        className={`h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+          checked ? "translate-x-4" : "translate-x-1"
+        }`}
+      />
+    </button>
   );
 }
 
