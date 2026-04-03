@@ -59,6 +59,9 @@ export default function ProgramSettings() {
   const [volumeByWeek, setVolumeByWeek] = useState<number[]>([]); // logged weighted sets per week (sum of all muscles)
   const [muscleVolume, setMuscleVolume] = useState<Record<string, number>>({}); // logged muscle weighted sets (phase total)
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
+  const [exerciseNameById, setExerciseNameById] = useState<
+    Record<string, string>
+  >({});
   const [showAllocator, setShowAllocator] = useState(false);
   const [weeklySetTargets, setWeeklySetTargets] = useState<
     Record<string, number>
@@ -122,7 +125,21 @@ export default function ProgramSettings() {
     if (program) setWorking(program);
   }, [program]);
   useEffect(() => {
-    db.getAll<Template>("templates").then(setTemplates);
+    let cancelled = false;
+    (async () => {
+      const [templateList, exerciseList] = await Promise.all([
+        db.getAll<Template>("templates"),
+        db.getAll<Exercise>("exercises"),
+      ]);
+      if (cancelled) return;
+      setTemplates(templateList);
+      setExerciseNameById(
+        Object.fromEntries(exerciseList.map((ex) => [ex.id, ex.name]))
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
   useEffect(() => {
     (async () => {
@@ -782,10 +799,11 @@ export default function ProgramSettings() {
           </div>
           <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
             {working.weeklySplit.map((d, i) => {
-              const templateExerciseCount = d.templateId
-                ? templates.find((t) => t.id === d.templateId)?.exerciseIds
-                    .length || 0
-                : 0;
+              const selectedTemplate = d.templateId
+                ? templates.find((t) => t.id === d.templateId)
+                : undefined;
+              const templateExerciseCount =
+                selectedTemplate?.exerciseIds.length || 0;
 
               return (
                 <div
@@ -847,16 +865,11 @@ export default function ProgramSettings() {
                     <select
                       aria-label="Template mapping"
                       value={d.templateId || ""}
-                      onChange={(e) =>
-                        updateSplit(i, { templateId: e.target.value || undefined })
-                      }
-                      onMouseEnter={() => {
-                        if (d.templateId) {
-                          const t = templates.find((t) => t.id === d.templateId);
-                          if (t) setPreviewTemplate(t);
-                        }
+                      onChange={(e) => {
+                        setPreviewTemplate(null);
+                        updateSplit(i, { templateId: e.target.value || undefined });
                       }}
-                      onMouseLeave={() => setPreviewTemplate(null)}
+                      onFocus={() => setPreviewTemplate(null)}
                       className="input-app h-7 w-full rounded-md px-2 py-1 text-[10px]"
                     >
                       <option value="">No template</option>
@@ -867,9 +880,22 @@ export default function ProgramSettings() {
                       ))}
                     </select>
 
-                    <span className="rounded-md border border-white/10 bg-slate-800/70 px-1.5 py-1 text-[10px] text-white/55">
+                    <button
+                      type="button"
+                      disabled={!selectedTemplate}
+                      className="rounded-md border border-white/10 bg-slate-800/70 px-1.5 py-1 text-[10px] text-white/55 transition hover:border-emerald-400/40 hover:text-white disabled:cursor-default disabled:opacity-70"
+                      onClick={() => {
+                        if (!selectedTemplate) return;
+                        setPreviewTemplate(selectedTemplate);
+                      }}
+                      title={
+                        selectedTemplate
+                          ? `Preview ${selectedTemplate.name}`
+                          : "No template selected"
+                      }
+                    >
                       {templateExerciseCount}
-                    </span>
+                    </button>
                   </div>
 
                   {d.type === "Custom" && (
@@ -1207,18 +1233,20 @@ export default function ProgramSettings() {
             </button>
           </div>
           <ul className="max-h-40 space-y-1 overflow-y-auto pb-1 pr-1 text-[11px] text-white/75">
-            {previewTemplate.exerciseIds.map((id) => (
+            {previewTemplate.exerciseIds.map((id, idx) => (
               <li
-                key={id}
+                key={`${id}-${idx}`}
                 className="flex items-center justify-between rounded-md border border-white/8 bg-slate-800/60 px-2 py-1"
               >
-                <span className="font-mono">{id.slice(0, 8)}</span>
-                <span className="opacity-60">id</span>
+                <span className="truncate pr-2">
+                  {exerciseNameById[id] || "Unknown exercise"}
+                </span>
+                <span className="opacity-60">#{idx + 1}</span>
               </li>
             ))}
           </ul>
           <div className="text-[10px] text-white/45">
-            Quick ID preview while hovering day template mapping.
+            Template exercise preview.
           </div>
         </div>
       )}
