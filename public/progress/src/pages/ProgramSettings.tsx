@@ -36,6 +36,11 @@ const LABELS: DayLabel[] = [
   "Custom",
 ];
 
+const PROGRAM_ICON_BTN_NEUTRAL =
+  "flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.05] bg-slate-800/70 text-[11px] text-slate-200 transition-colors duration-150 hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-40";
+const PROGRAM_SEGMENT_BTN =
+  "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors";
+
 export default function ProgramSettings() {
   const {
     program,
@@ -555,79 +560,101 @@ export default function ProgramSettings() {
         onClose={() => setShowGuidedSetup(false)}
         onComplete={() => setToast("Guided setup applied")}
       />
-      <h2 className="text-lg font-semibold">Program</h2>
-      {toast && <div className="text-xs text-emerald-400">{toast}</div>}
-      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3 space-y-3">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white">Program</h2>
+        <p className="max-w-[72ch] text-xs leading-snug text-white/65">
+          Keep your split clean and practical with compact planning controls,
+          quick template mapping, and minimal friction for weekly updates.
+        </p>
+      </div>
+
+      {toast && (
+        <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+          {toast}
+        </div>
+      )}
+
+      <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-3">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Days</div>
+          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
+              Days
+            </div>
             <div className="text-lg font-semibold text-white">{activeTrainingDays}</div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Weeks</div>
+          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
+              Weeks
+            </div>
             <div className="text-lg font-semibold text-white">{working.mesoWeeks}</div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Deload</div>
+          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
+              Deload
+            </div>
             <div className="text-sm font-semibold text-white">{deloadSummary}</div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">Template Days</div>
+          <div className="rounded-xl border border-white/8 bg-slate-900/50 px-3 py-2">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
+              Template Days
+            </div>
             <div className="text-lg font-semibold text-white">{mappedTemplateDays}</div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-basics")}
           >
             Basics
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-weekly-split")}
           >
             Weekly Split
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-allocator")}
           >
             Allocator
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
+            className="rounded-full border border-white/12 bg-slate-900/55 px-3 py-1 text-[11px] text-white/80 transition hover:border-emerald-400/55 hover:bg-emerald-500/15 hover:text-white"
             onClick={() => jumpToProgramSection("program-actions")}
           >
-            Save Actions
+            Save
           </button>
         </div>
       </div>
-      <div className="bg-card rounded-2xl p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+      <div className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <div className="text-sm font-medium text-white">
             Want to refresh your program quickly?
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-white/60">
             Run guided setup to regenerate your split, volume targets, and
             starter templates with cleaner defaults.
           </p>
         </div>
         <button
-          className="inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+          className="btn-primary inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold"
           onClick={() => setShowGuidedSetup(true)}
         >
           Run guided setup
         </button>
       </div>
-      <div className="glass-card rounded-2xl p-4 space-y-4">
+      <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-4">
         {/* Muscle group heatmap */}
         <div id="program-volume-logged" className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
             Muscle Logged Volume (Weighted Sets)
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -639,9 +666,9 @@ export default function ProgramSettings() {
                 return (
                   <div
                     key={m}
-                    className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                    className="rounded-lg border border-white/8 bg-slate-900/45 px-2 py-2 space-y-1"
                   >
-                    <div className="flex items-center justify-between text-[10px] text-gray-400">
+                    <div className="flex items-center justify-between text-[10px] text-white/60">
                       <span className="capitalize inline-flex items-center gap-1">
                         <img
                           src={getMuscleIconPath(m)}
@@ -663,7 +690,7 @@ export default function ProgramSettings() {
                 );
               })}
             {!Object.keys(muscleVolume).length && (
-              <div className="col-span-full text-[11px] text-gray-500">
+              <div className="col-span-full text-[11px] text-white/45">
                 No logged volume yet this phase.
               </div>
             )}
@@ -671,9 +698,9 @@ export default function ProgramSettings() {
         </div>
         {/* Projected weekly volume (planned) */}
         <div id="program-volume-projected" className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400 flex items-center gap-2">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.28em] text-white/45">
             Projected Weekly Volume{" "}
-            <span className="text-[10px] text-gray-500 normal-case">
+            <span className="text-[10px] normal-case tracking-normal text-white/40">
               (based on current templates & defaults)
             </span>
           </div>
@@ -692,7 +719,7 @@ export default function ProgramSettings() {
                   return (
                     <div
                       key={m}
-                      className="bg-white/5 rounded-lg px-2 py-2 space-y-1"
+                      className="rounded-lg border border-white/8 bg-slate-900/45 px-2 py-2 space-y-1"
                       title={
                         diff != null
                           ? `Target ${target}, Diff ${
@@ -701,7 +728,7 @@ export default function ProgramSettings() {
                           : undefined
                       }
                     >
-                      <div className="flex items-center justify-between text-[10px] text-gray-400">
+                      <div className="flex items-center justify-between text-[10px] text-white/60">
                         <span className="capitalize">{m}</span>
                         <span className="tabular-nums flex items-center gap-1">
                           {Math.round(v)}
@@ -727,76 +754,89 @@ export default function ProgramSettings() {
                 })}
             </div>
           ) : (
-            <div className="text-[11px] text-gray-500">
+            <div className="text-[11px] text-white/45">
               No templates linked to compute projection.
             </div>
           )}
         </div>
-        <div id="program-basics" className="flex flex-wrap gap-4">
-          <label className="space-y-1">
-            <span className="text-xs text-gray-400">Name</span>
-            <input
-              value={working.name}
-              onChange={(e) => update({ name: e.target.value })}
-              className="input-app rounded-xl px-3 py-2 bg-white/5 border border-white/10"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs text-gray-400">Mesocycle weeks</span>
-            <input
-              type="number"
-              min={4}
-              max={20}
-              value={working.mesoWeeks}
-              onChange={(e) => update({ mesoWeeks: Number(e.target.value) })}
-              className="input-app rounded-xl px-3 py-2 w-28 bg-white/5 border border-white/10"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs text-gray-400">Week length (days)</span>
-            <select
-              value={working.weekLengthDays}
-              onChange={(e) => changeWeekLen(Number(e.target.value))}
-              className="input-app rounded-xl px-3 py-2 bg-white/5 border border-white/10"
-            >
-              {[5, 6, 7, 8, 9, 10].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="space-y-1">
-            <span className="text-xs text-gray-400">Deload</span>
-            <div className="flex gap-2 text-xs">
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="dl"
-                  checked={working.deload.mode === "none"}
-                  onChange={() =>
+        <div id="program-basics" className="space-y-2">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
+            Program Basics
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="space-y-1">
+              <span className="text-[11px] text-white/55">Name</span>
+              <input
+                value={working.name}
+                onChange={(e) => update({ name: e.target.value })}
+                className="input-app h-9 rounded-xl px-3 py-2"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-[11px] text-white/55">Mesocycle weeks</span>
+              <input
+                type="number"
+                min={4}
+                max={20}
+                value={working.mesoWeeks}
+                onChange={(e) => update({ mesoWeeks: Number(e.target.value) })}
+                className="input-app h-9 w-full rounded-xl px-3 py-2"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-[11px] text-white/55">Week length (days)</span>
+              <select
+                value={working.weekLengthDays}
+                onChange={(e) => changeWeekLen(Number(e.target.value))}
+                className="input-app h-9 rounded-xl px-3 py-2"
+              >
+                {[5, 6, 7, 8, 9, 10].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="space-y-1 sm:col-span-2 lg:col-span-1">
+              <span className="text-[11px] text-white/55">Deload</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  className={`${PROGRAM_SEGMENT_BTN} ${
+                    working.deload.mode === "none"
+                      ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+                      : "border-white/12 bg-slate-900/60 text-white/70 hover:bg-slate-800/70"
+                  }`}
+                  onClick={() =>
                     update({ deload: { mode: "none" } as DeloadConfig })
                   }
-                />
-                None
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="dl"
-                  checked={working.deload.mode === "last-week"}
-                  onChange={() =>
+                >
+                  None
+                </button>
+                <button
+                  type="button"
+                  className={`${PROGRAM_SEGMENT_BTN} ${
+                    working.deload.mode === "last-week"
+                      ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+                      : "border-white/12 bg-slate-900/60 text-white/70 hover:bg-slate-800/70"
+                  }`}
+                  onClick={() =>
                     update({ deload: { mode: "last-week" } as DeloadConfig })
                   }
-                />
-                Last week
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="dl"
-                  checked={working.deload.mode === "interval"}
-                  onChange={() =>
+                >
+                  Last week
+                </button>
+                <button
+                  type="button"
+                  className={`${PROGRAM_SEGMENT_BTN} ${
+                    working.deload.mode === "interval"
+                      ? "border-emerald-400/50 bg-emerald-500/15 text-emerald-200"
+                      : "border-white/12 bg-slate-900/60 text-white/70 hover:bg-slate-800/70"
+                  }`}
+                  onClick={() =>
                     update({
                       deload: {
                         mode: "interval",
@@ -807,38 +847,39 @@ export default function ProgramSettings() {
                       } as DeloadConfig,
                     })
                   }
-                />
-                Every N
-              </label>
-              {working.deload.mode === "interval" && (
-                <input
-                  type="number"
-                  min={4}
-                  max={12}
-                  value={working.deload.everyNWeeks}
-                  onChange={(e) =>
-                    update({
-                      deload: {
-                        mode: "interval",
-                        everyNWeeks: Number(e.target.value) || 4,
-                      } as DeloadConfig,
-                    })
-                  }
-                  className="w-16 input-app rounded px-2 py-1 text-xs bg-white/5 border border-white/10"
-                />
-              )}
+                >
+                  Every N
+                </button>
+                {working.deload.mode === "interval" && (
+                  <input
+                    type="number"
+                    min={4}
+                    max={12}
+                    value={working.deload.everyNWeeks}
+                    onChange={(e) =>
+                      update({
+                        deload: {
+                          mode: "interval",
+                          everyNWeeks: Number(e.target.value) || 4,
+                        } as DeloadConfig,
+                      })
+                    }
+                    className="input-app h-8 w-16 rounded-lg px-2 py-1 text-xs"
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
         <div id="program-weekly-split" className="space-y-2">
-          <div className="text-xs uppercase tracking-wide text-gray-400">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
             Weekly Split
           </div>
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {working.weeklySplit.map((d, i) => (
               <div
                 key={i}
-                className="min-w-0 rounded-xl p-3 bg-white/5 border border-white/10 space-y-2"
+                className="min-w-0 rounded-xl border border-white/8 bg-slate-900/45 p-2.5 space-y-2"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", String(i));
@@ -849,24 +890,26 @@ export default function ProgramSettings() {
                   if (!isNaN(from)) moveDay(from, i);
                 }}
               >
-                <div className="flex items-center justify-between text-[10px] text-gray-400">
-                  <span className="cursor-grab select-none">≡ Day {i + 1}</span>
+                <div className="flex items-center justify-between text-[10px] text-white/50">
+                  <span className="cursor-grab select-none uppercase tracking-wide">
+                    Day {i + 1}
+                  </span>
                   <div className="flex gap-1">
                     <button
-                      aria-label="Move left"
+                      aria-label="Move day up"
                       disabled={i === 0}
-                      className="px-1 rounded bg-white/10 disabled:opacity-30"
+                      className={PROGRAM_ICON_BTN_NEUTRAL}
                       onClick={() => moveDay(i, i - 1)}
                     >
-                      ←
+                      ↑
                     </button>
                     <button
-                      aria-label="Move right"
+                      aria-label="Move day down"
                       disabled={i === working.weeklySplit.length - 1}
-                      className="px-1 rounded bg-white/10 disabled:opacity-30"
+                      className={PROGRAM_ICON_BTN_NEUTRAL}
                       onClick={() => moveDay(i, i + 1)}
                     >
-                      →
+                      ↓
                     </button>
                   </div>
                 </div>
@@ -879,7 +922,7 @@ export default function ProgramSettings() {
                       customLabel: undefined,
                     })
                   }
-                  className="w-full rounded-lg bg-white/10 px-2 py-1 text-xs"
+                  className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-xs"
                 >
                   {LABELS.map((l) => (
                     <option key={l} value={l}>
@@ -895,7 +938,7 @@ export default function ProgramSettings() {
                     onChange={(e) =>
                       updateSplit(i, { customLabel: e.target.value })
                     }
-                    className="w-full rounded-lg bg-white/10 px-2 py-1 text-xs"
+                    className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-xs"
                   />
                 )}
                 <select
@@ -904,7 +947,6 @@ export default function ProgramSettings() {
                   onChange={(e) =>
                     updateSplit(i, { templateId: e.target.value || undefined })
                   }
-                  className="w-full rounded-lg bg-white/10 px-2 py-1 text-[10px]"
                   onMouseEnter={() => {
                     if (d.templateId) {
                       const t = templates.find((t) => t.id === d.templateId);
@@ -912,6 +954,7 @@ export default function ProgramSettings() {
                     }
                   }}
                   onMouseLeave={() => setPreviewTemplate(null)}
+                  className="input-app h-8 w-full rounded-lg px-2.5 py-1 text-[11px]"
                 >
                   <option value="">No template</option>
                   {templates.map((t) => (
@@ -921,7 +964,7 @@ export default function ProgramSettings() {
                   ))}
                 </select>
                 {d.templateId && (
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-[10px] text-white/45">
                     {templates.find((t) => t.id === d.templateId)?.exerciseIds
                       .length || 0}{" "}
                     exercises
@@ -930,21 +973,21 @@ export default function ProgramSettings() {
               </div>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
+          <div className="flex flex-wrap gap-1.5 text-xs">
             <button
-              className="btn-outline px-3 py-1 rounded-lg"
+              className="btn-outline rounded-lg px-3 py-1.5"
               onClick={() => addPreset("default")}
             >
               Default UL x3
             </button>
             <button
-              className="btn-outline px-3 py-1 rounded-lg"
+              className="btn-outline rounded-lg px-3 py-1.5"
               onClick={() => addPreset("ppl+rest")}
             >
               PPL + Rest
             </button>
             <button
-              className="btn-outline px-3 py-1 rounded-lg"
+              className="btn-outline rounded-lg px-3 py-1.5"
               onClick={() => addPreset("fullbody6")}
             >
               Full Body 6
@@ -952,27 +995,32 @@ export default function ProgramSettings() {
           </div>
         </div>
         {!!errors.length && (
-          <ul className="text-xs text-red-400 list-disc pl-5 space-y-1">
-            {errors.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
+          <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3">
+            <ul className="list-disc space-y-1 pl-5 text-xs text-red-200">
+              {errors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </div>
         )}
-        <div id="program-allocator" className="flex flex-wrap gap-2 text-[10px] text-gray-400">
+        <div
+          id="program-allocator"
+          className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-white/45"
+        >
           <span>Planned Volume Allocator (beta)</span>
           <button
-            className="btn-outline px-2 py-1 rounded-lg"
+            className="btn-outline rounded-lg px-2.5 py-1 text-[11px] normal-case tracking-normal"
             onClick={() => setShowAllocator((v) => !v)}
           >
             {showAllocator ? "Hide" : "Open"}
           </button>
         </div>
         {showAllocator && (
-          <div className="rounded-xl bg-white/5 border border-white/10 p-3 space-y-2">
+          <div className="rounded-xl border border-white/8 bg-slate-900/45 p-3 space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {Object.entries(weeklySetTargets).map(([m, val]) => (
                 <label key={m} className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-wide text-gray-500 flex items-center justify-between">
+                  <span className="flex items-center justify-between text-[10px] uppercase tracking-wide text-white/45">
                     <span>{m}</span>
                     <span className="opacity-60">
                       {allocatorData.current[m] || 0}
@@ -989,7 +1037,7 @@ export default function ProgramSettings() {
                         [m]: Number(e.target.value),
                       }))
                     }
-                    className="w-full rounded bg-white/10 px-2 py-1 text-xs"
+                    className="input-app h-8 w-full rounded-lg px-2 py-1 text-xs"
                   />
                   <div
                     className={`text-[10px] ${
@@ -1004,7 +1052,7 @@ export default function ProgramSettings() {
               ))}
             </div>
             <div className="space-y-1">
-              <div className="text-[10px] uppercase tracking-wide text-gray-500">
+              <div className="text-[10px] uppercase tracking-wide text-white/45">
                 Suggestions
               </div>
               {allocatorData.suggestions.length ? (
@@ -1012,7 +1060,7 @@ export default function ProgramSettings() {
                   {allocatorData.suggestions.map((s, i) => (
                     <li
                       key={i}
-                      className="text-[11px] bg-white/5 rounded px-2 py-1 flex justify-between"
+                      className="flex justify-between rounded-lg border border-white/8 bg-slate-800/55 px-2 py-1 text-[11px]"
                     >
                       <span>
                         Day {s.day + 1}: add {s.add} {s.muscle} set
@@ -1025,18 +1073,18 @@ export default function ProgramSettings() {
                   ))}
                 </ul>
               ) : (
-                <div className="text-[11px] text-gray-500">
+                <div className="text-[11px] text-white/45">
                   Targets satisfied.
                 </div>
               )}
             </div>
-            <div className="text-[10px] text-gray-500">
+            <div className="text-[10px] text-white/40">
               (Allocator suggests additional sets for under-target muscles.
               Apply manually by editing templates.)
             </div>
           </div>
         )}
-        <div id="program-actions" className="flex flex-wrap items-center gap-3">
+        <div id="program-actions" className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={save}
             disabled={saving}
@@ -1059,17 +1107,17 @@ export default function ProgramSettings() {
           >
             Apply to future sessions
           </button>
-          <span className="text-[11px] text-gray-400">
+          <span className="text-[11px] text-white/45">
             {programSummary(working)}
           </span>
         </div>
       </div>
       {/* Templates quick access */}
-      <div className="glass-card rounded-2xl p-4 space-y-3">
-        <div className="text-xs uppercase tracking-wide text-gray-400">
+      <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-3">
+        <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
           Templates
         </div>
-        <p className="text-[11px] text-gray-400 leading-relaxed">
+        <p className="text-[11px] leading-relaxed text-white/60">
           Build reusable exercise groupings and import them straight into
           sessions. Keep core lifts consistent while experimenting with
           accessory variations.
@@ -1077,33 +1125,33 @@ export default function ProgramSettings() {
         <div>
           <a
             href="#/templates"
-            className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-black font-medium shadow transition-colors"
+            className="btn-primary inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
           >
-            Manage Templates →
+            Manage Templates
           </a>
         </div>
       </div>
       {history.length > 0 && (
-        <div className="glass-card rounded-2xl p-4 space-y-3">
-          <div className="text-xs uppercase tracking-wide text-gray-400">
+        <div className="card-surface rounded-2xl p-3 sm:p-4 space-y-3">
+          <div className="text-[10px] uppercase tracking-[0.28em] text-white/45">
             Archived Programs
           </div>
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1 pb-1">
             {history.map((h) => (
               <div
                 key={h.id}
-                className="flex items-center justify-between text-xs bg-white/5 rounded-xl px-3 py-2"
+                className="flex items-center justify-between rounded-xl border border-white/8 bg-slate-900/45 px-3 py-2 text-xs"
               >
                 <div className="flex flex-col">
-                  <span className="font-medium">{h.name}</span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="font-medium text-white/90">{h.name}</span>
+                  <span className="text-[10px] text-white/50">
                     {h.summary || h.program?.mesoWeeks + "w"} ·{" "}
                     {new Date(h.archivedAt).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    className="btn-outline px-2 py-1 rounded-lg"
+                    className="btn-outline rounded-lg px-2.5 py-1"
                     disabled={saving}
                     onClick={() => restore(h.id)}
                   >
@@ -1117,50 +1165,49 @@ export default function ProgramSettings() {
       )}
       {previewTemplate && (
         <div
-          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 max-w-xs bg-[var(--surface)]/90 backdrop-blur rounded-xl border border-[var(--border-subtle)] shadow-lg p-3 space-y-2 fade-in"
+          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 max-w-xs rounded-xl border border-white/12 bg-slate-950/90 p-3 shadow-lg backdrop-blur fade-in"
           onMouseLeave={() => setPreviewTemplate(null)}
         >
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-medium">{previewTemplate.name}</span>
+          <div className="flex items-center justify-between text-xs text-white/80">
+            <span className="font-medium text-white">{previewTemplate.name}</span>
             <button
-              className="text-[10px] px-2 py-0.5 rounded bg-slate-700"
+              className="rounded-md border border-white/12 px-2 py-0.5 text-[10px] text-white/70 hover:text-white"
               onClick={() => setPreviewTemplate(null)}
             >
               Close
             </button>
           </div>
-          <ul className="space-y-1 max-h-40 overflow-y-auto pr-1 pb-1 text-[11px]">
+          <ul className="max-h-40 space-y-1 overflow-y-auto pb-1 pr-1 text-[11px] text-white/75">
             {previewTemplate.exerciseIds.map((id) => (
               <li
                 key={id}
-                className="bg-white/5 rounded px-2 py-1 flex items-center justify-between"
+                className="flex items-center justify-between rounded-md border border-white/8 bg-slate-800/60 px-2 py-1"
               >
-                <span>{id.slice(0, 6)}</span>
-                <span className="opacity-60">set×?</span>
+                <span className="font-mono">{id.slice(0, 8)}</span>
+                <span className="opacity-60">id</span>
               </li>
             ))}
           </ul>
-          <div className="text-[10px] text-gray-500">
-            (Template preview placeholder; replace id slices with exercise names
-            & planned sets)
+          <div className="text-[10px] text-white/45">
+            Quick ID preview while hovering day template mapping.
           </div>
         </div>
       )}
       {showDiffConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)] p-4 w-full max-w-md space-y-3 fade-in">
-            <div className="text-sm font-medium">Confirm Archive & Switch</div>
-            <div className="text-[11px] text-gray-400">
+          <div className="w-full max-w-md space-y-3 rounded-xl border border-white/12 bg-slate-950/92 p-4 fade-in">
+            <div className="text-sm font-medium text-white">Confirm Archive & Switch</div>
+            <div className="text-[11px] text-white/60">
               Review changes before archiving current program:
             </div>
-            <ul className="text-[11px] list-disc pl-4 space-y-1 max-h-40 overflow-y-auto pr-1 pb-1">
+            <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pb-1 pl-4 pr-1 text-[11px] text-white/75">
               {diffItems.map((d, i) => (
                 <li key={i}>{d}</li>
               ))}
             </ul>
-            <div className="flex gap-2 justify-end text-xs">
+            <div className="flex justify-end gap-2 text-xs">
               <button
-                className="btn-outline px-3 py-1 rounded-lg"
+                className="btn-outline rounded-lg px-3 py-1"
                 onClick={() => {
                   setShowDiffConfirm(false);
                   setDiffItems([]);
@@ -1169,7 +1216,7 @@ export default function ProgramSettings() {
                 Cancel
               </button>
               <button
-                className="btn-primary px-3 py-1 rounded-lg"
+                className="btn-primary rounded-lg px-3 py-1"
                 onClick={() => {
                   setShowDiffConfirm(false); // run archive again will skip diff modal
                   setTimeout(() => archiveAndSwitch(), 0);
