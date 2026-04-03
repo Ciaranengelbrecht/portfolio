@@ -30,6 +30,11 @@ export type ThemeKey =
   // === MINIMAL / CLEAN ===
   | "paper"              // Light mode inspired
   | "mono"               // Pure grayscale
+  // === LIGHT / DAY ===
+  | "daylight"           // Full light neutral
+  | "studio-blue"        // Light blue workspace
+  | "mint-lift"          // Light mint fresh theme
+  | "sunrise-pop"        // Bright warm playful
   // === CUSTOM ===
   | "custom";            // User customizable
 
@@ -483,24 +488,25 @@ export const THEMES: Record<ThemeKey, ThemeVars> = {
   // ============================================================
 
   paper: {
-    "--bg": "hsl(220 15% 14%)",
-    "--bg-muted": "hsl(220 12% 18%)",
-    "--card": "hsl(220 10% 20%)",
-    "--card-border": "hsla(220 20% 50% / 0.12)",
-    "--text": "hsl(0 0% 92%)",
-    "--text-muted": "hsl(220 10% 58%)",
-    "--accent": "hsl(220 70% 55%)",
+    "--bg": "hsl(210 25% 97%)",
+    "--bg-muted": "hsl(210 20% 93%)",
+    "--card": "hsl(0 0% 100%)",
+    "--card-border": "hsla(215 22% 28% / 0.14)",
+    "--text": "hsl(220 26% 18%)",
+    "--text-muted": "hsl(220 12% 42%)",
+    "--accent": "hsl(220 64% 50%)",
     "--accent-contrast": "hsl(0 0% 100%)",
-    "--ring": "hsl(220 70% 55%)",
-    "--shadow": "0 4px 16px hsla(0 0% 0% / 0.2)",
+    "--ring": "hsl(220 64% 50%)",
+    "--shadow": "0 10px 24px -16px hsla(215 26% 22% / 0.32)",
     "--glow": "none",
-    "--chart-1": "hsl(220 70% 55%)",
-    "--chart-2": "hsl(150 60% 45%)",
-    "--chart-grid": "hsla(220 15% 50% / 0.08)",
-    "--success": "hsl(152 69% 45%)",
-    "--warning": "hsl(38 92% 50%)",
-    "--danger": "hsl(0 84% 60%)",
+    "--chart-1": "hsl(220 64% 50%)",
+    "--chart-2": "hsl(160 58% 40%)",
+    "--chart-grid": "hsla(215 22% 34% / 0.14)",
+    "--success": "hsl(152 62% 40%)",
+    "--warning": "hsl(36 90% 46%)",
+    "--danger": "hsl(0 70% 52%)",
     "--card-backdrop": "none",
+    "--bg-layer": "linear-gradient(160deg, hsla(214 100% 94% / 0.5), hsla(0 0% 100% / 0.8))",
   },
 
   mono: {
@@ -522,6 +528,98 @@ export const THEMES: Record<ThemeKey, ThemeVars> = {
     "--warning": "hsl(0 0% 60%)",
     "--danger": "hsl(0 0% 50%)",
     "--card-backdrop": "none",
+  },
+
+  // ============================================================
+  // LIGHT / DAY - Full bright alternatives
+  // ============================================================
+
+  daylight: {
+    "--bg": "hsl(210 35% 97%)",
+    "--bg-muted": "hsl(210 32% 93%)",
+    "--card": "hsl(0 0% 100%)",
+    "--card-border": "hsla(215 30% 35% / 0.16)",
+    "--text": "hsl(220 32% 16%)",
+    "--text-muted": "hsl(215 16% 42%)",
+    "--accent": "hsl(221 83% 54%)",
+    "--accent-contrast": "hsl(0 0% 100%)",
+    "--ring": "hsl(221 83% 54%)",
+    "--shadow": "0 10px 24px -16px hsla(219 30% 20% / 0.32)",
+    "--glow": "none",
+    "--chart-1": "hsl(221 83% 54%)",
+    "--chart-2": "hsl(172 62% 42%)",
+    "--chart-grid": "hsla(215 24% 42% / 0.16)",
+    "--success": "hsl(152 61% 40%)",
+    "--warning": "hsl(34 92% 46%)",
+    "--danger": "hsl(0 72% 52%)",
+    "--card-backdrop": "none",
+    "--bg-layer": "linear-gradient(135deg, hsla(208 100% 92% / 0.55), hsla(220 100% 98% / 0.8))",
+  },
+
+  "studio-blue": {
+    "--bg": "hsl(210 55% 95%)",
+    "--bg-muted": "hsl(210 45% 90%)",
+    "--card": "hsl(210 38% 99%)",
+    "--card-border": "hsla(213 45% 42% / 0.2)",
+    "--text": "hsl(217 38% 18%)",
+    "--text-muted": "hsl(216 18% 44%)",
+    "--accent": "hsl(205 88% 48%)",
+    "--accent-contrast": "hsl(0 0% 100%)",
+    "--ring": "hsl(205 88% 48%)",
+    "--shadow": "0 12px 26px -18px hsla(209 44% 26% / 0.35)",
+    "--glow": "none",
+    "--chart-1": "hsl(205 88% 48%)",
+    "--chart-2": "hsl(252 76% 60%)",
+    "--chart-grid": "hsla(212 30% 42% / 0.18)",
+    "--success": "hsl(155 65% 40%)",
+    "--warning": "hsl(38 90% 48%)",
+    "--danger": "hsl(0 70% 52%)",
+    "--card-backdrop": "none",
+    "--bg-layer": "radial-gradient(circle at 16% 18%, hsla(198 100% 78% / 0.45), transparent 52%), radial-gradient(circle at 84% 76%, hsla(238 100% 84% / 0.3), transparent 50%)",
+  },
+
+  "mint-lift": {
+    "--bg": "hsl(156 45% 95%)",
+    "--bg-muted": "hsl(156 34% 89%)",
+    "--card": "hsl(156 38% 99%)",
+    "--card-border": "hsla(156 36% 36% / 0.2)",
+    "--text": "hsl(164 32% 17%)",
+    "--text-muted": "hsl(165 18% 40%)",
+    "--accent": "hsl(158 72% 38%)",
+    "--accent-contrast": "hsl(0 0% 100%)",
+    "--ring": "hsl(158 72% 38%)",
+    "--shadow": "0 12px 24px -16px hsla(158 30% 22% / 0.34)",
+    "--glow": "none",
+    "--chart-1": "hsl(158 72% 38%)",
+    "--chart-2": "hsl(202 72% 50%)",
+    "--chart-grid": "hsla(164 22% 36% / 0.16)",
+    "--success": "hsl(156 66% 38%)",
+    "--warning": "hsl(34 90% 48%)",
+    "--danger": "hsl(0 68% 52%)",
+    "--card-backdrop": "none",
+    "--bg-layer": "linear-gradient(160deg, hsla(148 80% 80% / 0.35), hsla(186 78% 86% / 0.32), transparent)",
+  },
+
+  "sunrise-pop": {
+    "--bg": "hsl(32 100% 95%)",
+    "--bg-muted": "hsl(26 90% 90%)",
+    "--card": "hsl(0 0% 100%)",
+    "--card-border": "hsla(18 52% 44% / 0.24)",
+    "--text": "hsl(14 42% 18%)",
+    "--text-muted": "hsl(18 20% 42%)",
+    "--accent": "hsl(12 86% 56%)",
+    "--accent-contrast": "hsl(0 0% 100%)",
+    "--ring": "hsl(12 86% 56%)",
+    "--shadow": "0 12px 24px -16px hsla(18 42% 24% / 0.3)",
+    "--glow": "none",
+    "--chart-1": "hsl(12 86% 56%)",
+    "--chart-2": "hsl(214 78% 54%)",
+    "--chart-grid": "hsla(20 32% 44% / 0.17)",
+    "--success": "hsl(150 64% 38%)",
+    "--warning": "hsl(39 95% 48%)",
+    "--danger": "hsl(0 68% 52%)",
+    "--card-backdrop": "none",
+    "--bg-layer": "radial-gradient(circle at 22% 18%, hsla(40 100% 74% / 0.55), transparent 56%), radial-gradient(circle at 80% 75%, hsla(344 92% 76% / 0.35), transparent 52%)",
   },
 
   // ============================================================
@@ -574,8 +672,42 @@ export const THEME_META: Record<ThemeKey, { category: string; description: strin
   coffee: { category: "Warm", description: "Rich brown" },
   paper: { category: "Minimal", description: "Clean & simple" },
   mono: { category: "Minimal", description: "Pure grayscale" },
+  daylight: { category: "Light", description: "Neutral bright" },
+  "studio-blue": { category: "Light", description: "Clean blue light" },
+  "mint-lift": { category: "Light", description: "Fresh mint light" },
+  "sunrise-pop": { category: "Light", description: "Warm bright" },
   custom: { category: "Custom", description: "Your colors" },
 };
 
+export const THEME_MODE: Record<ThemeKey, "dark" | "light"> = {
+  midnight: "dark",
+  obsidian: "dark",
+  charcoal: "dark",
+  amoled: "dark",
+  "amoled-cyan": "dark",
+  "amoled-purple": "dark",
+  "amoled-rose": "dark",
+  "electric-blue": "dark",
+  "cyber-pink": "dark",
+  "neon-mint": "dark",
+  sunset: "dark",
+  aurora: "dark",
+  arctic: "dark",
+  ocean: "dark",
+  lavender: "dark",
+  slate: "dark",
+  ember: "dark",
+  crimson: "dark",
+  forest: "dark",
+  coffee: "dark",
+  paper: "light",
+  mono: "dark",
+  daylight: "light",
+  "studio-blue": "light",
+  "mint-lift": "light",
+  "sunrise-pop": "light",
+  custom: "dark",
+};
+
 // Ordered categories for display
-export const THEME_CATEGORIES = ["Dark", "OLED", "Neon", "Cool", "Warm", "Minimal", "Custom"] as const;
+export const THEME_CATEGORIES = ["Dark", "OLED", "Neon", "Cool", "Warm", "Minimal", "Light", "Custom"] as const;

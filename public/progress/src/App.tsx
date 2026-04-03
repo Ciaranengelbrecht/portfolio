@@ -211,19 +211,22 @@ function Shell() {
           root.style.setProperty("--ecg-custom-color", s.ecg.color);
         }
       } else document.body.dataset.ecg = "off";
-      // Theme mode handling: app is dark-only
-      const applyThemeMode = () => {
-        document.body.dataset.theme = "dark";
-        try {
-          document.documentElement.setAttribute("data-theme", "dark");
-          document.documentElement.style.colorScheme = "dark";
-        } catch {}
-      };
       if (!s.ui?.instantThemeTransition) {
         document.body.classList.add("theme-animate");
         setTimeout(() => document.body.classList.remove("theme-animate"), 600);
       }
-      applyThemeMode();
+      // Keep shell attributes aligned with ThemeProvider-selected mode.
+      try {
+        const mode =
+          (document.documentElement.getAttribute("data-theme-mode") as
+            | "dark"
+            | "light"
+            | null) || "dark";
+        document.body.dataset.theme = mode;
+        document.body.dataset.themeMode = mode;
+        document.documentElement.setAttribute("data-theme", mode);
+        document.documentElement.style.colorScheme = mode;
+      } catch {}
       // Compact mode
       if (s.ui?.compactMode) document.body.dataset.density = "compact";
       else delete document.body.dataset.density;

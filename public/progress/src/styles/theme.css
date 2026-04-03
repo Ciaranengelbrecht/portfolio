@@ -1231,3 +1231,204 @@ body.rest-screen-flash::after {
     padding: 1.1rem;
   }
 }
+
+/* --- Light-mode compatibility for legacy dark utility usage --- */
+body[data-theme-mode="light"] {
+  color: var(--text);
+}
+
+body[data-theme-mode="light"] .sticky-toolbar {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bg) 84%, white 16%),
+    color-mix(in srgb, var(--bg-muted) 80%, white 20%)
+  );
+  border-color: color-mix(in srgb, var(--card-border) 72%, rgba(15 23 42 / 0.14));
+}
+
+body[data-theme-mode="light"] :where(
+    [class*="bg-slate-"],
+    [class*="bg-gray-"],
+    [class*="bg-zinc-"],
+    [class*="bg-neutral-"],
+    [class*="bg-stone-"]
+  ) {
+  background-color: color-mix(in srgb, var(--card) 86%, var(--bg-muted) 14%) !important;
+}
+
+body[data-theme-mode="light"] :where([class*="bg-white/"]) {
+  background-color: color-mix(in srgb, var(--card) 92%, rgba(15 23 42 / 0.05) 8%) !important;
+}
+
+body[data-theme-mode="light"] :where([class*="border-white/"]) {
+  border-color: color-mix(in srgb, var(--card-border) 70%, rgba(15 23 42 / 0.18)) !important;
+}
+
+body[data-theme-mode="light"] :where([class*="text-white"]) {
+  color: color-mix(in srgb, var(--text) 95%, black 5%) !important;
+}
+
+body[data-theme-mode="light"] :where(
+    [class*="text-slate-"],
+    [class*="text-gray-"],
+    [class*="text-zinc-"],
+    [class*="text-neutral-"],
+    [class*="text-stone-"]
+  ) {
+  color: color-mix(in srgb, var(--text) 78%, var(--text-muted) 22%) !important;
+}
+
+body[data-theme-mode="light"] :where(
+    [class*="from-slate-"],
+    [class*="from-gray-"],
+    [class*="from-zinc-"],
+    [class*="from-neutral-"],
+    [class*="from-stone-"]
+  ) {
+  --tw-gradient-from: color-mix(in srgb, var(--bg-muted) 76%, white 24%) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--card) 90%, white 10%) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+body[data-theme-mode="light"] :where(
+    [class*="via-slate-"],
+    [class*="via-gray-"],
+    [class*="via-zinc-"],
+    [class*="via-neutral-"],
+    [class*="via-stone-"]
+  ) {
+  --tw-gradient-stops: var(--tw-gradient-from),
+    color-mix(in srgb, var(--bg-muted) 82%, white 18%),
+    var(--tw-gradient-to) !important;
+}
+
+body[data-theme-mode="light"] :where(
+    [class*="to-slate-"],
+    [class*="to-gray-"],
+    [class*="to-zinc-"],
+    [class*="to-neutral-"],
+    [class*="to-stone-"]
+  ) {
+  --tw-gradient-to: color-mix(in srgb, var(--bg) 90%, white 10%) !important;
+}
+
+/* Settings surfaces should fully follow light themes */
+body[data-theme-mode="light"] .settings-page {
+  --settings-edge: rgba(15 23 42 / 0.14);
+  --settings-panel: color-mix(in srgb, var(--card) 88%, var(--bg-muted) 12%);
+}
+
+body[data-theme-mode="light"] .settings-shell {
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--card) 94%, white 6%),
+    color-mix(in srgb, var(--bg-muted) 86%, white 14%)
+  );
+  box-shadow: 0 18px 34px -26px rgba(15 23 42 / 0.32),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.12),
+    0 0 20px -16px rgba(var(--accent-rgb, 59 130 246) / 0.26);
+}
+
+body[data-theme-mode="light"] .settings-tab-chip {
+  border-color: rgba(15 23 42 / 0.15);
+  background: rgba(255 255 255 / 0.78);
+  color: color-mix(in srgb, var(--text) 82%, var(--text-muted) 18%);
+}
+
+body[data-theme-mode="light"] .settings-tab-chip[data-active="true"] {
+  color: var(--accent-contrast);
+}
+
+body[data-theme-mode="light"] .settings-status-strip {
+  border-color: rgba(15 23 42 / 0.1);
+  background: color-mix(in srgb, var(--card) 86%, var(--bg-muted) 14%);
+}
+
+body[data-theme-mode="light"] .settings-status-strip .btn-outline {
+  background: rgba(255 255 255 / 0.82);
+  border-color: rgba(15 23 42 / 0.16);
+}
+
+body[data-theme-mode="light"] .settings-panel {
+  border-color: rgba(15 23 42 / 0.1);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--card) 92%, white 8%),
+    color-mix(in srgb, var(--bg-muted) 88%, white 12%)
+  );
+  box-shadow: 0 16px 30px -26px rgba(15 23 42 / 0.32),
+    0 0 0 1px rgba(var(--accent-rgb, 59 130 246) / 0.1);
+}
+
+body[data-theme-mode="light"] .settings-panel-head {
+  border-bottom-color: rgba(15 23 42 / 0.08);
+}
+
+body[data-theme-mode="light"] .settings-panel-eyebrow {
+  color: color-mix(in srgb, var(--text-muted) 78%, rgba(15 23 42 / 0.5));
+}
+
+body[data-theme-mode="light"] :where(
+    .settings-inline-field,
+    .settings-static-row,
+    .settings-switch-row,
+    .settings-subpanel
+  ) {
+  border-color: rgba(15 23 42 / 0.12);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 90%, white 10%),
+    color-mix(in srgb, var(--bg-muted) 86%, white 14%)
+  );
+}
+
+body[data-theme-mode="light"] .settings-inline-label,
+body[data-theme-mode="light"] .settings-switch-description {
+  color: color-mix(in srgb, var(--text-muted) 84%, rgba(15 23 42 / 0.45));
+}
+
+body[data-theme-mode="light"] .settings-switch-label,
+body[data-theme-mode="light"] .settings-static-row {
+  color: color-mix(in srgb, var(--text) 90%, black 10%);
+}
+
+body[data-theme-mode="light"] .settings-segmented {
+  border-color: rgba(15 23 42 / 0.12);
+  background: color-mix(in srgb, var(--card) 88%, var(--bg-muted) 12%);
+}
+
+body[data-theme-mode="light"] .settings-segmented-option {
+  color: color-mix(in srgb, var(--text) 82%, var(--text-muted) 18%);
+}
+
+body[data-theme-mode="light"] .settings-switch {
+  border-color: rgba(15 23 42 / 0.22);
+  background: rgba(148 163 184 / 0.5);
+}
+
+body[data-theme-mode="light"] .settings-page .btn-outline {
+  border-color: rgba(15 23 42 / 0.16);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 94%, white 6%),
+    color-mix(in srgb, var(--bg-muted) 88%, white 12%)
+  );
+  color: color-mix(in srgb, var(--text) 92%, black 8%);
+}
+
+body[data-theme-mode="light"] .settings-page .input-app {
+  border-color: rgba(15 23 42 / 0.14);
+  background: color-mix(in srgb, var(--card) 90%, var(--bg-muted) 10%);
+}
+
+body[data-theme-mode="light"] :where(
+    .settings-input-compact,
+    .settings-select-compact,
+    .settings-select-medium
+  ) {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 94%, white 6%),
+    color-mix(in srgb, var(--bg-muted) 90%, white 10%)
+  ) !important;
+}

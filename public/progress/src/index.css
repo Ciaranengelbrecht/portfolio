@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: dark light;
   --accent: #22c55e; /* default accent */
   --accent-hover: #16a34a;
   --card-bg: #111826;

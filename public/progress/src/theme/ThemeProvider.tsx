@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { THEMES, ThemeKey, ThemeVars } from "./themes";
+import { THEMES, ThemeKey, ThemeVars, THEME_MODE } from "./themes";
 import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
@@ -23,6 +23,19 @@ function setMetaTheme(bg: string) {
       'meta[name="theme-color"]'
     ) as HTMLMetaElement | null;
     if (meta) meta.content = bg;
+  } catch {}
+}
+
+function applyThemeMode(mode: "dark" | "light") {
+  try {
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.toggle("dark", mode === "dark");
+    root.setAttribute("data-theme-mode", mode);
+    root.setAttribute("data-theme", mode);
+    root.style.colorScheme = mode;
+    body.dataset.theme = mode;
+    body.dataset.themeMode = mode;
   } catch {}
 }
 
@@ -101,8 +114,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
     applyVars(vars);
-    // Toggle dark mode class: all current themes are dark-styled; keep dark class on
-    document.documentElement.classList.add("dark");
+    applyThemeMode(THEME_MODE[key] || "dark");
     const root = document.getElementById("root");
     if (root) {
       root.style.transition = "opacity 200ms ease";
@@ -205,7 +217,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           }
         } catch {}
         applyVars(vars);
-        document.documentElement.classList.add("dark");
+        applyThemeMode(THEME_MODE[key as ThemeKey] || "dark");
         try {
           window.dispatchEvent(
             new CustomEvent("theme-change", { detail: { key } })
@@ -213,6 +225,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       } catch {
         applyVars(THEMES["midnight"]);
+        applyThemeMode("dark");
       }
     })();
   }, []);

@@ -7,7 +7,13 @@ import {
   useState,
 } from "react";
 import { useAppTheme } from "../theme/ThemeProvider";
-import { THEMES, ThemeKey, THEME_META, THEME_CATEGORIES } from "../theme/themes";
+import {
+  THEMES,
+  ThemeKey,
+  THEME_META,
+  THEME_CATEGORIES,
+  THEME_MODE,
+} from "../theme/themes";
 import { useNavigate } from "react-router-dom";
 import BigFlash from "../components/BigFlash";
 import { db } from "../lib/db";
@@ -105,6 +111,7 @@ const EXERCISE_LIBRARY_MUSCLES = [
 
 export default function SettingsPage() {
   const { themeKey, setThemeKey } = useAppTheme();
+  const currentThemeMode = THEME_MODE[themeKey] || "dark";
   const [themeSaved, setThemeSaved] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
@@ -1460,8 +1467,8 @@ export default function SettingsPage() {
           <div className="space-y-1.5">
             <div className="text-sm text-app">Theme mode</div>
             <div className="settings-static-row">
-              <span>Dark</span>
-              <span className="settings-static-pill">Locked</span>
+              <span className="capitalize">{currentThemeMode}</span>
+              <span className="settings-static-pill">Theme-driven</span>
             </div>
           </div>
           <label className="space-y-1">
@@ -1680,13 +1687,14 @@ export default function SettingsPage() {
                       </span>
                       <span className="flex-1 h-px bg-card-border/30" />
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-4 gap-2.5">
                       {themesInCategory.map((k) => {
                         const customPreview =
                           k === "custom" && s.themeV2?.customVars
                             ? ({ ...THEMES[k], ...s.themeV2.customVars } as Record<string, string>)
                             : THEMES[k];
                         const meta = THEME_META[k];
+                        const mode = THEME_MODE[k] || "dark";
                         return (
                           <button
                             key={k}
@@ -1706,13 +1714,29 @@ export default function SettingsPage() {
                               setThemeKey(k);
                             }}
                           >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-medium text-sm capitalize truncate">
-                                {k.replace(/-/g, " ")}
-                              </span>
-                              {themeKey === k && (
-                                <span className="settings-static-pill text-[10px]">Active</span>
-                              )}
+                            <div className="flex items-center justify-between gap-1.5">
+                              <div className="min-w-0">
+                                <span className="block font-medium text-sm capitalize truncate">
+                                  {k.replace(/-/g, " ")}
+                                </span>
+                                <span className="text-[10px] text-muted uppercase tracking-[0.18em]">
+                                  {mode}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span
+                                  className={`rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
+                                    mode === "light"
+                                      ? "border border-amber-300/35 bg-amber-300/20 text-amber-900"
+                                      : "border border-slate-300/20 bg-slate-300/10 text-slate-200"
+                                  }`}
+                                >
+                                  {mode}
+                                </span>
+                                {themeKey === k && (
+                                  <span className="settings-static-pill text-[10px]">Active</span>
+                                )}
+                              </div>
                             </div>
                             <div className="text-[10px] text-muted truncate mb-2">
                               {meta?.description || ""}
@@ -1800,11 +1824,15 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
+                          className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/55 backdrop-blur-sm p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
+                          onClick={closePicker}
                         >
-                          <div className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+                          <div
+                            className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">{label}</div>
                               <button
@@ -1900,11 +1928,15 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
+                          className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/55 backdrop-blur-sm p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
+                          onClick={closePicker}
                         >
-                          <div className="w-full max-w-[min(92vw,420px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+                          <div
+                            className="w-full max-w-[min(92vw,420px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">{label}</div>
                               <button
@@ -2039,11 +2071,15 @@ export default function SettingsPage() {
                       </button>
                       {openPicker === key && pickerLoaded && (
                         <div
-                          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
+                          className="fixed inset-0 z-[220] flex items-start justify-center overflow-y-auto bg-black/55 backdrop-blur-sm p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center"
                           role="dialog"
                           aria-modal="true"
+                          onClick={closePicker}
                         >
-                          <div className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+                          <div
+                            className="w-full max-w-[min(90vw,380px)] max-h-[min(90dvh,calc(100dvh-2rem))] overflow-auto rounded-2xl border border-card bg-card shadow-soft p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4"
+                            onClick={(event) => event.stopPropagation()}
+                          >
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-sm font-medium">
                                 Glow color
@@ -2165,136 +2201,150 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-          <div className="flex items-center gap-3 flex-wrap mt-2">
-            <button
-              className="btn-primary px-3 py-2 rounded-xl"
-              onClick={async () => {
-                const ok = await saveProfileTheme(s.themeV2);
-                setThemeSaved(ok);
-                setToast(
-                  ok ? "Theme saved to profile" : "Failed to save theme"
-                );
-              }}
-            >
-              Save Theme
-            </button>
-            {/* Theme fine tuning */}
-            <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
-              <span className="settings-inline-label">Accent intensity</span>
-              <div className="flex items-center gap-2 w-full">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="settings-range"
-                  value={s.themeV2?.accentIntensity ?? 50}
-                  onChange={(e) => {
-                    const accentIntensity = Number(e.target.value);
-                    const next: Settings = {
-                      ...s,
-                      themeV2: {
-                        key: s.themeV2?.key || themeKey,
-                        ...(s.themeV2 || {}),
-                        accentIntensity,
-                      },
-                    } as any;
-                    setS(next);
-                    // re-apply theme with new intensity
-                    setThemeKey((next.themeV2?.key || themeKey) as any);
-                  }}
-                />
-                <span className="text-xs tabular-nums w-8 text-right text-white/85">
-                  {s.themeV2?.accentIntensity ?? 50}
-                </span>
-              </div>
-            </label>
-            <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
-              <span className="settings-inline-label">Glow strength</span>
-              <div className="flex items-center gap-2 w-full">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  className="settings-range"
-                  value={s.themeV2?.glowStrength ?? 50}
-                  onChange={(e) => {
-                    const glowStrength = Number(e.target.value);
-                    const next: Settings = {
-                      ...s,
-                      themeV2: {
-                        key: s.themeV2?.key || themeKey,
-                        ...(s.themeV2 || {}),
-                        glowStrength,
-                      },
-                    } as any;
-                    setS(next);
-                    setThemeKey((next.themeV2?.key || themeKey) as any);
-                  }}
-                />
-                <span className="text-xs tabular-nums w-8 text-right text-white/85">
-                  {s.themeV2?.glowStrength ?? 50}
-                </span>
-              </div>
-            </label>
-            {themeSaved === true && (
-              <span className="text-xs text-emerald-400">Saved ✓</span>
-            )}
-            {themeSaved === false && (
-              <span className="text-xs text-red-400">Not saved</span>
-            )}
-            <div className="settings-switch-grid w-full">
-              <SettingsSwitchRow
-                label="Reduce motion"
-                checked={!!s.reducedMotion}
-                onChange={(checked) => {
-                  setS({ ...s, reducedMotion: checked });
-                  if (checked)
-                    document.documentElement.setAttribute(
-                      "data-reduced-motion",
-                      "true"
+          <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+            <div className="card-surface rounded-2xl border border-card p-3 space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="btn-primary px-3 py-2 rounded-xl"
+                  onClick={async () => {
+                    const ok = await saveProfileTheme(s.themeV2);
+                    setThemeSaved(ok);
+                    setToast(
+                      ok ? "Theme saved to profile" : "Failed to save theme"
                     );
-                  else
-                    document.documentElement.removeAttribute(
-                      "data-reduced-motion"
-                    );
-                }}
-              />
+                  }}
+                >
+                  Save Theme
+                </button>
+                {themeSaved === true && (
+                  <span className="text-xs text-emerald-400">Saved ✓</span>
+                )}
+                {themeSaved === false && (
+                  <span className="text-xs text-red-400">Not saved</span>
+                )}
+              </div>
+              <div className="text-xs text-muted leading-relaxed">
+                Themes autosave locally as you tweak. Use Save Theme to sync the
+                current look to your profile.
+              </div>
               <div className="settings-static-row">
                 <span>Theme mode</span>
-                <span className="settings-static-pill">Dark locked</span>
+                <span className="settings-static-pill capitalize">
+                  {currentThemeMode}
+                </span>
               </div>
-              <SettingsSwitchRow
-                label="Compact UI"
-                checked={!!s.ui?.compactMode}
-                onChange={(checked) => {
-                  const next = {
-                    ...s,
-                    ui: { ...(s.ui || {}), compactMode: checked },
-                  };
-                  setS(next);
-                  document.documentElement.setAttribute(
-                    "data-density",
-                    checked ? "compact" : "normal"
-                  );
-                }}
-              />
-              <SettingsSwitchRow
-                label="Instant theme"
-                checked={!!s.ui?.instantThemeTransition}
-                onChange={(checked) => {
-                  const next = {
-                    ...s,
-                    ui: { ...(s.ui || {}), instantThemeTransition: checked },
-                  };
-                  setS(next);
-                  if (checked)
-                    document.documentElement.classList.remove("theme-animate");
-                  else
-                    document.documentElement.classList.add("theme-animate");
-                }}
-              />
+            </div>
+
+            <div className="card-surface rounded-2xl border border-card p-3 space-y-3">
+              <div className="grid grid-cols-1 min-[520px]:grid-cols-2 gap-3">
+                <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
+                  <span className="settings-inline-label">Accent intensity</span>
+                  <div className="flex items-center gap-2 w-full">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="settings-range"
+                      value={s.themeV2?.accentIntensity ?? 50}
+                      onChange={(e) => {
+                        const accentIntensity = Number(e.target.value);
+                        const next: Settings = {
+                          ...s,
+                          themeV2: {
+                            key: s.themeV2?.key || themeKey,
+                            ...(s.themeV2 || {}),
+                            accentIntensity,
+                          },
+                        } as any;
+                        setS(next);
+                        // re-apply theme with new intensity
+                        setThemeKey((next.themeV2?.key || themeKey) as any);
+                      }}
+                    />
+                    <span className="text-xs tabular-nums w-8 text-right text-app">
+                      {s.themeV2?.accentIntensity ?? 50}
+                    </span>
+                  </div>
+                </label>
+                <label className="settings-inline-field settings-inline-field-stack min-w-[220px]">
+                  <span className="settings-inline-label">Glow strength</span>
+                  <div className="flex items-center gap-2 w-full">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="settings-range"
+                      value={s.themeV2?.glowStrength ?? 50}
+                      onChange={(e) => {
+                        const glowStrength = Number(e.target.value);
+                        const next: Settings = {
+                          ...s,
+                          themeV2: {
+                            key: s.themeV2?.key || themeKey,
+                            ...(s.themeV2 || {}),
+                            glowStrength,
+                          },
+                        } as any;
+                        setS(next);
+                        setThemeKey((next.themeV2?.key || themeKey) as any);
+                      }}
+                    />
+                    <span className="text-xs tabular-nums w-8 text-right text-app">
+                      {s.themeV2?.glowStrength ?? 50}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="settings-switch-grid w-full">
+                <SettingsSwitchRow
+                  label="Reduce motion"
+                  checked={!!s.reducedMotion}
+                  onChange={(checked) => {
+                    setS({ ...s, reducedMotion: checked });
+                    if (checked)
+                      document.documentElement.setAttribute(
+                        "data-reduced-motion",
+                        "true"
+                      );
+                    else
+                      document.documentElement.removeAttribute(
+                        "data-reduced-motion"
+                      );
+                  }}
+                />
+                <SettingsSwitchRow
+                  label="Compact UI"
+                  checked={!!s.ui?.compactMode}
+                  onChange={(checked) => {
+                    const next = {
+                      ...s,
+                      ui: { ...(s.ui || {}), compactMode: checked },
+                    };
+                    setS(next);
+                    document.documentElement.setAttribute(
+                      "data-density",
+                      checked ? "compact" : "normal"
+                    );
+                  }}
+                />
+                <SettingsSwitchRow
+                  label="Instant theme"
+                  checked={!!s.ui?.instantThemeTransition}
+                  onChange={(checked) => {
+                    const next = {
+                      ...s,
+                      ui: { ...(s.ui || {}), instantThemeTransition: checked },
+                    };
+                    setS(next);
+                    if (checked)
+                      document.documentElement.classList.remove("theme-animate");
+                    else
+                      document.documentElement.classList.add("theme-animate");
+                  }}
+                />
               <SettingsSwitchRow
                 label="Smoothing default"
                 checked={!!s.ui?.smoothingDefault}
@@ -2492,6 +2542,7 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+        </div>
         </div>
         </SectionCard>
       )}
