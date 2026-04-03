@@ -1,14 +1,11 @@
 import { getMuscleIconPath } from "../lib/muscles";
 import {
-  MouseEvent,
   ReactNode,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useTheme, THEME_PRESETS } from "../lib/theme";
 import { useAppTheme } from "../theme/ThemeProvider";
 import { THEMES, ThemeKey, THEME_META, THEME_CATEGORIES } from "../theme/themes";
 import { useNavigate } from "react-router-dom";
@@ -22,46 +19,49 @@ import {
   defaultExercises,
   defaultTemplates,
 } from "../lib/defaults";
-import { playRestBeep, unlockAudio, setBeepVolumeScalar } from "../lib/audio";
+import { unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
 import { getSettings, setSettings } from "../lib/helpers";
 import { ListSkeleton } from "../components/LoadingSkeletons";
 
-const SETTINGS_SECTION_COLLAPSE_KEY = "settings:sectionCollapsed";
-const INTERACTIVE_ELEMENT_SELECTOR =
-  "button, input, textarea, select, a, label, [data-prevent-card-toggle='true'], [contenteditable='true']";
-
-type SettingsSectionId =
+type SettingsTabId =
   | "general"
   | "appearance"
-  | "safety"
   | "progress"
-  | "exerciseOverrides"
-  | "exerciseLibrary"
-  | "volumeTargets";
+  | "library"
+  | "safety";
 
-const DEFAULT_SETTINGS_SECTION_STATE: Record<SettingsSectionId, boolean> = {
-  general: true,
-  appearance: true,
-  safety: true,
-  progress: true,
-  exerciseOverrides: true,
-  exerciseLibrary: true,
-  volumeTargets: true,
-};
-
-const SETTINGS_SECTION_ORDER: Array<{
-  id: SettingsSectionId;
+const SETTINGS_TABS: Array<{
+  id: SettingsTabId;
   label: string;
+  description: string;
 }> = [
-  { id: "general", label: "General" },
-  { id: "appearance", label: "Appearance" },
-  { id: "safety", label: "Safety" },
-  { id: "progress", label: "Progress" },
-  { id: "exerciseOverrides", label: "Overrides" },
-  { id: "exerciseLibrary", label: "Library" },
-  { id: "volumeTargets", label: "Targets" },
+  {
+    id: "general",
+    label: "General",
+    description: "Account, guided setup, and workout defaults.",
+  },
+  {
+    id: "appearance",
+    label: "Appearance",
+    description: "Theme presets, visual tuning, and motion settings.",
+  },
+  {
+    id: "progress",
+    label: "Progress",
+    description: "Weekly targets, hints, and progression behavior.",
+  },
+  {
+    id: "library",
+    label: "Exercise Library",
+    description: "Exercise metadata, deload overrides, and tags.",
+  },
+  {
+    id: "safety",
+    label: "Data & Safety",
+    description: "Destructive action protection and data import/export.",
+  },
 ];
 
 const VOLUME_TARGET_MUSCLES = [
@@ -98,17 +98,12 @@ const EXERCISE_LIBRARY_MUSCLES = [
 ] as const;
 
 export default function SettingsPage() {
-  const { applyPreset } = useTheme();
   const { themeKey, setThemeKey } = useAppTheme();
   const [themeSaved, setThemeSaved] = useState<boolean | null>(null);
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("general");
   const [s, setS] = useState<Settings>(defaultSettings);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<{
-    lastPull?: string;
-    lastPush?: string;
-    error?: string;
-  }>({});
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -126,97 +121,21 @@ export default function SettingsPage() {
   const [exerciseLibraryCount, setExerciseLibraryCount] = useState<
     number | null
   >(null);
-  const [sectionCollapsed, setSectionCollapsed] = useState<
-    Record<SettingsSectionId, boolean>
-  >(DEFAULT_SETTINGS_SECTION_STATE);
+  const [undoSnapshot, setUndoSnapshot] = useState<Settings | null>(null);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
   const lastSavedSettingsRef = useRef<string>("");
   const pendingSaveRef = useRef<number | null>(null);
 
-  const openSectionCount = useMemo(
-    () =>
-      SETTINGS_SECTION_ORDER.reduce((count, section) => {
-        const collapsed =
-          sectionCollapsed[section.id] ?? DEFAULT_SETTINGS_SECTION_STATE[section.id];
-        return collapsed ? count : count + 1;
-      }, 0),
-    [sectionCollapsed]
+  const activeTabMeta = useMemo(
+    () => SETTINGS_TABS.find((tab) => tab.id === activeTab) || SETTINGS_TABS[0],
+    [activeTab]
   );
 
   const hasPendingAutosave =
     settingsHydrated && JSON.stringify(s) !== lastSavedSettingsRef.current;
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SETTINGS_SECTION_COLLAPSE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<
-        Record<SettingsSectionId, boolean>
-      >;
-      setSectionCollapsed((prev) => ({
-        ...DEFAULT_SETTINGS_SECTION_STATE,
-        ...prev,
-        ...parsed,
-      }));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        SETTINGS_SECTION_COLLAPSE_KEY,
-        JSON.stringify(sectionCollapsed)
-      );
-    } catch {}
-  }, [sectionCollapsed]);
-
-  const toggleSectionCollapsed = useCallback(
-    (id: SettingsSectionId, forced?: boolean) => {
-      setSectionCollapsed((prev) => {
-        const current = prev[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
-        const nextValue = typeof forced === "boolean" ? forced : !current;
-        return { ...DEFAULT_SETTINGS_SECTION_STATE, ...prev, [id]: nextValue };
-      });
-    },
-    []
-  );
-
-  const setAllSectionsCollapsed = useCallback((collapsed: boolean) => {
-    const next = SETTINGS_SECTION_ORDER.reduce((acc, section) => {
-      acc[section.id] = collapsed;
-      return acc;
-    }, {} as Record<SettingsSectionId, boolean>);
-    setSectionCollapsed(next);
-  }, []);
-
-  const jumpToSection = useCallback((id: SettingsSectionId) => {
-    const target = document.getElementById(`settings-${id}`);
-    if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
-
-  const handleSectionHeaderClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>, id: SettingsSectionId) => {
-      event.stopPropagation();
-      toggleSectionCollapsed(id);
-    },
-    [toggleSectionCollapsed]
-  );
-
-  const handleSectionSurfaceClick = useCallback(
-    (event: MouseEvent<HTMLElement>, id: SettingsSectionId) => {
-      const collapsed =
-        sectionCollapsed[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
-      if (!collapsed) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) return;
-      toggleSectionCollapsed(id, false);
-    },
-    [sectionCollapsed, toggleSectionCollapsed]
-  );
-
   type SectionCardProps = {
-    id: SettingsSectionId;
+    id: string;
     eyebrow?: string;
     title: string;
     description?: string;
@@ -232,32 +151,12 @@ export default function SettingsPage() {
     badge,
     children,
   }: SectionCardProps) => {
-    const collapsed =
-      sectionCollapsed[id] ?? DEFAULT_SETTINGS_SECTION_STATE[id];
     return (
       <section
         id={`settings-${id}`}
-        className={`bg-card rounded-2xl shadow-soft border border-white/5 transition-colors ${
-          collapsed ? "cursor-pointer hover:border-white/10" : ""
-        }`}
-        onClick={(event) => handleSectionSurfaceClick(event, id)}
-        aria-expanded={!collapsed}
+        className="bg-card rounded-2xl shadow-soft border border-white/5"
       >
         <div className="flex flex-wrap items-start gap-3 px-4 py-4">
-          <button
-            type="button"
-            aria-label={collapsed ? "Expand section" : "Collapse section"}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
-            onClick={(event) => handleSectionHeaderClick(event, id)}
-          >
-            <span
-              className={`inline-block transform text-base transition-transform duration-150 ${
-                collapsed ? "-rotate-90" : ""
-              }`}
-            >
-              ▾
-            </span>
-          </button>
           <div className="min-w-0 flex-1 space-y-1">
             {eyebrow && (
               <div className="text-[10px] uppercase tracking-[0.32em] text-white/40">
@@ -275,7 +174,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-        {!collapsed && <div className="px-4 pb-4 space-y-4">{children}</div>}
+        <div className="px-4 pb-4 space-y-4">{children}</div>
       </section>
     );
   };
@@ -436,10 +335,12 @@ export default function SettingsPage() {
         }
         setS(current);
         lastSavedSettingsRef.current = JSON.stringify(current);
+        setUndoSnapshot(null);
       } catch (err) {
         // Keep app usable even if remote read fails; autosave will write back when available.
         setS(defaultSettings);
         lastSavedSettingsRef.current = JSON.stringify(defaultSettings);
+        setUndoSnapshot(null);
         console.warn("[settings] initial hydrate failed; using defaults", err);
       } finally {
         setSettingsHydrated(true);
@@ -447,15 +348,28 @@ export default function SettingsPage() {
     })();
   }, []);
 
+  const parseSerializedSettings = (serialized: string): Settings | null => {
+    if (!serialized) return null;
+    try {
+      return JSON.parse(serialized) as Settings;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!settingsHydrated) return;
     const serialized = JSON.stringify(s);
     if (serialized === lastSavedSettingsRef.current) return;
+    const previousSaved = parseSerializedSettings(lastSavedSettingsRef.current);
 
     const timer = window.setTimeout(async () => {
       try {
         await setSettings(s);
         lastSavedSettingsRef.current = serialized;
+        if (previousSaved) {
+          setUndoSnapshot(previousSaved);
+        }
       } catch (err) {
         console.warn("[settings] autosave failed", err);
       }
@@ -475,9 +389,13 @@ export default function SettingsPage() {
     const flushSettingsNow = async () => {
       const serialized = JSON.stringify(s);
       if (serialized === lastSavedSettingsRef.current) return;
+      const previousSaved = parseSerializedSettings(lastSavedSettingsRef.current);
       try {
         await setSettings(s);
         lastSavedSettingsRef.current = serialized;
+        if (previousSaved) {
+          setUndoSnapshot(previousSaved);
+        }
       } catch (err) {
         console.warn("[settings] flush save failed", err);
       }
@@ -558,9 +476,29 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const save = async () => {
+  const saveNow = async (message = "Settings saved") => {
+    if (pendingSaveRef.current != null) {
+      clearTimeout(pendingSaveRef.current);
+      pendingSaveRef.current = null;
+    }
+    const serialized = JSON.stringify(s);
+    const previousSaved = parseSerializedSettings(lastSavedSettingsRef.current);
     await setSettings(s);
-    lastSavedSettingsRef.current = JSON.stringify(s);
+    lastSavedSettingsRef.current = serialized;
+    if (previousSaved) {
+      setUndoSnapshot(previousSaved);
+    }
+    setToast(message);
+  };
+
+  const undoLastSave = async () => {
+    if (!undoSnapshot) return;
+    const serialized = JSON.stringify(undoSnapshot);
+    await setSettings(undoSnapshot);
+    lastSavedSettingsRef.current = serialized;
+    setS(undoSnapshot);
+    setUndoSnapshot(null);
+    setToast("Reverted to previous saved settings");
   };
 
   // testSync removed with Gist sync
@@ -705,89 +643,62 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Settings</h2>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-            Sections
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white">
-            {openSectionCount}/{SETTINGS_SECTION_ORDER.length} open
-          </p>
-          <p className="text-xs text-white/60">Expand/collapse controls saved</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-            Overrides
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white">
-            {exerciseOverrideCount == null ? "Loading" : exerciseOverrideCount}
-          </p>
-          <p className="text-xs text-white/60">Per-exercise deload profiles</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-            Library
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white">
-            {exerciseLibraryCount == null ? "Loading" : exerciseLibraryCount}
-          </p>
-          <p className="text-xs text-white/60">Exercises in catalog</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-3 py-2.5">
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-            Sync
-          </p>
-          <p className="mt-1 text-sm font-semibold text-white">
-            {userEmail ? "Supabase" : "Offline mode"}
-          </p>
-          <p className="text-xs text-white/60">
-            {hasPendingAutosave ? "Autosave pending" : "Autosave up to date"}
-          </p>
-        </div>
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3 space-y-3">
-        <div className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-          Quick navigation
+      <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-4 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-white">Settings</h2>
+            <p className="text-sm text-white/70">
+              Choose a category, edit what you need, and changes autosave.
+            </p>
+          </div>
+          <div className="text-xs text-white/65 sm:text-right">
+            <div>{userEmail ? `Sync: ${userEmail}` : "Sync: Offline mode"}</div>
+            <div>
+              {hasPendingAutosave ? "Autosave pending" : "Autosave up to date"}
+            </div>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {SETTINGS_SECTION_ORDER.map((section) => {
-            const collapsed =
-              sectionCollapsed[section.id] ??
-              DEFAULT_SETTINGS_SECTION_STATE[section.id];
-            return (
-              <button
-                key={section.id}
-                type="button"
-                className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                  collapsed
-                    ? "border-white/12 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10"
-                    : "border-emerald-400/55 bg-emerald-500/15 text-white"
-                }`}
-                onClick={() => jumpToSection(section.id)}
-              >
-                <span className="font-medium">{section.label}</span>
-                <span className="ml-1.5 text-[10px] uppercase tracking-wide text-white/55">
-                  {collapsed ? "Closed" : "Open"}
-                </span>
-              </button>
-            );
-          })}
+          {SETTINGS_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                activeTab === tab.id
+                  ? "border-emerald-400/70 bg-emerald-500/15 text-white"
+                  : "border-white/12 bg-white/5 text-white/75 hover:border-white/30 hover:bg-white/10"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+              aria-pressed={activeTab === tab.id}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-white/65">{activeTabMeta.description}</p>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-slate-950/55 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs text-white/70">
+          {hasPendingAutosave
+            ? "Autosave is running. You can still force-save now."
+            : "All visible settings are saved."}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/10"
-            onClick={() => setAllSectionsCollapsed(false)}
+            className="btn-outline px-3 py-2 rounded-xl text-xs"
+            onClick={() => void saveNow()}
           >
-            Expand all
+            Save now
           </button>
           <button
             type="button"
-            className="rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition hover:bg-white/10"
-            onClick={() => setAllSectionsCollapsed(true)}
+            className="btn-outline px-3 py-2 rounded-xl text-xs disabled:opacity-50"
+            onClick={() => void undoLastSave()}
+            disabled={!undoSnapshot}
           >
-            Collapse all
+            Undo last save
           </button>
         </div>
       </div>
@@ -810,13 +721,14 @@ export default function SettingsPage() {
         message={bigFlash || ""}
         onClose={() => setBigFlash(null)}
       />
-      <SectionCard
-        id="general"
-        eyebrow="Core"
-        title="General settings"
-        description="Configure rest timer alerts, Supabase sync, and global units."
-        badge={<span>{userEmail ? "Signed in" : "Offline mode"}</span>}
-      >
+      {activeTab === "general" && (
+        <SectionCard
+          id="general"
+          eyebrow="Core"
+          title="General settings"
+          description="Configure rest timer alerts, Supabase sync, and workout defaults."
+          badge={<span>{userEmail ? "Signed in" : "Offline mode"}</span>}
+        >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
           <div className="space-y-1">
             <div className="text-sm font-semibold text-white">
@@ -1001,16 +913,8 @@ export default function SettingsPage() {
             <BeepTester
               styleKey={s.restTimerBeepStyle || "gentle"}
               count={Math.max(1, Math.min(5, s.restTimerBeepCount ?? 2))}
+              volumePct={Math.max(50, Math.min(300, s.restTimerBeepVolume ?? 140))}
             />
-            <button
-              className="btn-primary px-3 py-2 rounded-xl text-xs"
-              onClick={async () => {
-                await db.put("settings", { ...s, id: "app" } as any);
-                setToast("Rest timer saved");
-              }}
-            >
-              Save
-            </button>
           </div>
           <div className="text-[10px] text-muted mt-1 leading-snug max-w-[580px]">
             Strong pulse enlarges and pulses the timer once target is reached.
@@ -1442,73 +1346,25 @@ export default function SettingsPage() {
             </select>
           </label>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button className="btn-primary px-3 py-2 rounded-xl" onClick={save}>
-            Save
-          </button>
-          <button
-            className="btn-outline px-3 py-2 rounded-xl"
-            onClick={exportData}
-          >
-            Export JSON & CSV
-          </button>
-          <input
-            type="file"
-            hidden
-            ref={fileRef}
-            accept="application/json"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) importData(f);
-            }}
-          />
-          <button
-            className="btn-outline px-3 py-2 rounded-xl"
-            onClick={() => fileRef.current?.click()}
-          >
-            Import JSON
-          </button>
-          <button
-            className="px-3 py-2 rounded-xl text-white"
-            style={{ background: "var(--danger)" }}
-            onClick={resetData}
-          >
-            Reset data
-          </button>
-          <a
-            className="btn-outline px-3 py-2 rounded-xl"
-            href="https://ciaranengelbrecht.com/delete-account-liftlog.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Deletion info
-          </a>
-          {userEmail && (
-            <button
-              className="px-3 py-2 rounded-xl text-white"
-              style={{ background: "#ef4444" }}
-              disabled={busy === "delete"}
-              onClick={deleteAccountAndData}
-            >
-              {busy === "delete" ? "Deleting…" : "Delete account & data"}
-            </button>
-          )}
-        </div>
-        {/* Cloud Sync (Gist) removed. Supabase sync runs automatically when signed in. */}
-      </SectionCard>
+        <p className="text-xs text-muted">
+          Data import/export and reset actions are under the Data &amp; Safety tab.
+        </p>
+        </SectionCard>
+      )}
 
       {/* Appearance */}
-      <SectionCard
-        id="appearance"
-        eyebrow="Customization"
-        title="Appearance"
-        description="Adjust theme presets, fine-tune visuals, and control motion preferences."
-        badge={
-          <span className="text-xs text-muted">
-            {Object.keys(THEMES).length} themes
-          </span>
-        }
-      >
+      {activeTab === "appearance" && (
+        <SectionCard
+          id="appearance"
+          eyebrow="Customization"
+          title="Appearance"
+          description="Adjust theme presets, fine-tune visuals, and control motion preferences."
+          badge={
+            <span className="text-xs text-muted">
+              {Object.keys(THEMES).length} themes
+            </span>
+          }
+        >
         <div className="space-y-2">
           <button
             type="button"
@@ -1570,13 +1426,14 @@ export default function SettingsPage() {
                                 ? "border-accent bg-accent/10 ring-1 ring-accent/50"
                                 : "border-card card-surface hover:border-accent/40 hover:scale-[1.02]"
                             }`}
-                            onClick={async () => {
-                              const cur = await db.get("settings", "app");
-                              await db.put("settings", {
-                                ...(cur || {}),
-                                id: "app",
-                                themeV2: { ...((cur as any)?.themeV2 || {}), key: k },
-                              });
+                            onClick={() => {
+                              setS((prev) => ({
+                                ...prev,
+                                themeV2: {
+                                  ...((prev as any).themeV2 || {}),
+                                  key: k,
+                                },
+                              } as any));
                               setThemeKey(k);
                             }}
                           >
@@ -1622,7 +1479,8 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="text-xs text-muted mt-1">
-            Changes are local until you press <strong>Save Theme</strong>.
+            Theme changes autosave locally. Use <strong>Save Theme</strong> to
+            sync to your profile.
           </div>
           {/* Custom Theme editor — visible only when the 'custom' theme is selected */}
           {themeKey === "custom" && (
@@ -1690,7 +1548,7 @@ export default function SettingsPage() {
                             {ColorPicker.Comp && (
                               <ColorPicker.Comp
                                 color={hex}
-                                onChange={async (v: string) => {
+                                onChange={(v: string) => {
                                   const hs = hexToHsl(v);
                                   const cssVal = `hsl(${hs.h} ${hs.s}% ${hs.l}%)`;
                                   const next: Settings = {
@@ -1705,10 +1563,6 @@ export default function SettingsPage() {
                                     },
                                   } as any;
                                   setS(next);
-                                  await db.put("settings", {
-                                    ...next,
-                                    id: "app",
-                                  } as any);
                                   if (themeKey === "custom")
                                     setThemeKey("custom");
                                 }}
@@ -1796,7 +1650,7 @@ export default function SettingsPage() {
                                 color={hslToHex(
                                   formatHslA(hsla.h, hsla.s, hsla.l, undefined)
                                 )}
-                                onChange={async (v: string) => {
+                                onChange={(v: string) => {
                                   const hs = hexToHsl(v);
                                   const nextVal = formatHslA(
                                     hs.h,
@@ -1816,10 +1670,6 @@ export default function SettingsPage() {
                                     },
                                   } as any;
                                   setS(next);
-                                  await db.put("settings", {
-                                    ...next,
-                                    id: "app",
-                                  } as any);
                                   if (themeKey === "custom")
                                     setThemeKey("custom");
                                 }}
@@ -1840,7 +1690,7 @@ export default function SettingsPage() {
                                 defaultValue={Math.round(
                                   (hsla.a ?? 0.08) * 100
                                 )}
-                                onChange={async (e) => {
+                                onChange={(e) => {
                                   const a = Number(e.target.value) / 100;
                                   const nextVal = formatHslA(
                                     hsla.h,
@@ -1860,10 +1710,6 @@ export default function SettingsPage() {
                                     },
                                   } as any;
                                   setS(next);
-                                  await db.put("settings", {
-                                    ...next,
-                                    id: "app",
-                                  } as any);
                                   if (themeKey === "custom")
                                     setThemeKey("custom");
                                 }}
@@ -1945,7 +1791,7 @@ export default function SettingsPage() {
                                 color={hslToHex(
                                   formatHslA(col.h, col.s, col.l)
                                 )}
-                                onChange={async (v: string) => {
+                                onChange={(v: string) => {
                                   const hs = hexToHsl(v);
                                   const nextColor = formatHslA(
                                     hs.h,
@@ -1969,10 +1815,6 @@ export default function SettingsPage() {
                                     },
                                   } as any;
                                   setS(next);
-                                  await db.put("settings", {
-                                    ...next,
-                                    id: "app",
-                                  } as any);
                                   if (themeKey === "custom")
                                     setThemeKey("custom");
                                 }}
@@ -1981,7 +1823,7 @@ export default function SettingsPage() {
                             <div className="flex justify-between items-center gap-2 mt-3">
                               <button
                                 className="btn-outline px-2 py-1 rounded-md text-xs"
-                                onClick={async () => {
+                                onClick={() => {
                                   const acc =
                                     s.themeV2?.customVars?.["--accent"] ||
                                     THEMES["custom"]["--accent"];
@@ -2009,10 +1851,6 @@ export default function SettingsPage() {
                                     },
                                   } as any;
                                   setS(next);
-                                  await db.put("settings", {
-                                    ...next,
-                                    id: "app",
-                                  } as any);
                                   if (themeKey === "custom")
                                     setThemeKey("custom");
                                 }}
@@ -2036,17 +1874,15 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <button
                   className="btn-primary px-3 py-2 rounded-xl"
-                  onClick={async () => {
-                    const cur = await db.get("settings", "app");
-                    await db.put("settings", {
-                      ...(cur || {}),
-                      id: "app",
+                  onClick={() => {
+                    setS((prev) => ({
+                      ...prev,
                       themeV2: {
-                        ...(cur?.themeV2 || {}),
+                        ...((prev as any).themeV2 || {}),
                         key: "custom",
                         customVars: s.themeV2?.customVars || {},
                       },
-                    } as any);
+                    } as any));
                     setThemeKey("custom");
                     setToast("Applied custom theme");
                   }}
@@ -2064,8 +1900,7 @@ export default function SettingsPage() {
             <button
               className="btn-primary px-3 py-2 rounded-xl"
               onClick={async () => {
-                const cur = await db.get<Settings>("settings", "app");
-                const ok = await saveProfileTheme(cur?.themeV2);
+                const ok = await saveProfileTheme(s.themeV2);
                 setThemeSaved(ok);
                 setToast(
                   ok ? "Theme saved to profile" : "Failed to save theme"
@@ -2083,7 +1918,7 @@ export default function SettingsPage() {
                 max={100}
                 step={1}
                 value={s.themeV2?.accentIntensity ?? 50}
-                onChange={async (e) => {
+                onChange={(e) => {
                   const accentIntensity = Number(e.target.value);
                   const next: Settings = {
                     ...s,
@@ -2094,7 +1929,6 @@ export default function SettingsPage() {
                     },
                   } as any;
                   setS(next);
-                  await db.put("settings", { ...next, id: "app" } as any);
                   // re-apply theme with new intensity
                   setThemeKey((next.themeV2?.key || themeKey) as any);
                 }}
@@ -2111,7 +1945,7 @@ export default function SettingsPage() {
                 max={100}
                 step={1}
                 value={s.themeV2?.glowStrength ?? 50}
-                onChange={async (e) => {
+                onChange={(e) => {
                   const glowStrength = Number(e.target.value);
                   const next: Settings = {
                     ...s,
@@ -2122,7 +1956,6 @@ export default function SettingsPage() {
                     },
                   } as any;
                   setS(next);
-                  await db.put("settings", { ...next, id: "app" } as any);
                   setThemeKey((next.themeV2?.key || themeKey) as any);
                 }}
               />
@@ -2168,14 +2001,13 @@ export default function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={!!s.ui?.compactMode}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const val = e.target.checked;
                     const next = {
                       ...s,
                       ui: { ...(s.ui || {}), compactMode: val },
                     };
                     setS(next);
-                    await db.put("settings", { ...next, id: "app" } as any);
                     document.documentElement.setAttribute(
                       "data-density",
                       val ? "compact" : "normal"
@@ -2188,14 +2020,13 @@ export default function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={!!s.ui?.instantThemeTransition}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const val = e.target.checked;
                     const next = {
                       ...s,
                       ui: { ...(s.ui || {}), instantThemeTransition: val },
                     };
                     setS(next);
-                    await db.put("settings", { ...next, id: "app" } as any);
                     if (val)
                       document.documentElement.classList.remove(
                         "theme-animate"
@@ -2210,14 +2041,13 @@ export default function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={!!s.ui?.smoothingDefault}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const val = e.target.checked;
                     const next = {
                       ...s,
                       ui: { ...(s.ui || {}), smoothingDefault: val },
                     };
                     setS(next);
-                    await db.put("settings", { ...next, id: "app" } as any);
                   }}
                 />
               </label>
@@ -2227,11 +2057,10 @@ export default function SettingsPage() {
                 <input
                   type="checkbox"
                   checked={!!s.ecg?.enabled}
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const enabled = e.target.checked;
                     const next = { ...s, ecg: { ...(s.ecg || {}), enabled } };
                     setS(next);
-                    await db.put("settings", { ...next, id: "app" } as any);
                     document.body.dataset.ecg = enabled ? "on" : "off";
                   }}
                 />
@@ -2243,14 +2072,13 @@ export default function SettingsPage() {
                     <select
                       className="bg-transparent outline-none"
                       value={s.ecg?.intensity || "low"}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const intensity = e.target.value as any;
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), intensity, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", { ...next, id: "app" } as any);
                         const root = document.documentElement;
                         const map: Record<
                           string,
@@ -2300,17 +2128,13 @@ export default function SettingsPage() {
                     <select
                       className="bg-transparent outline-none"
                       value={s.ecg?.shape || "classic"}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const shape = e.target.value as any;
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), shape, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", {
-                          ...next,
-                          id: "app",
-                        } as any); /* rerender component picks up shape via settings */
                       }}
                     >
                       <option value="classic">Classic</option>
@@ -2327,14 +2151,13 @@ export default function SettingsPage() {
                       max={180000}
                       step={1000}
                       value={s.ecg?.speedMs || 42000}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const speedMs = Number(e.target.value);
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), speedMs, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", { ...next, id: "app" } as any);
                         document.documentElement.style.setProperty(
                           "--ecg-custom-speed-ms",
                           String(speedMs)
@@ -2351,14 +2174,13 @@ export default function SettingsPage() {
                       max={8000}
                       step={100}
                       value={s.ecg?.trailMs || 2000}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const trailMs = Number(e.target.value);
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), trailMs, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", { ...next, id: "app" } as any);
                         document.documentElement.style.setProperty(
                           "--ecg-trail-ms",
                           String(trailMs)
@@ -2374,17 +2196,13 @@ export default function SettingsPage() {
                       max={5}
                       step={1}
                       value={s.ecg?.spikes || 1}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const spikes = Number(e.target.value);
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), spikes, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", {
-                          ...next,
-                          id: "app",
-                        } as any); /* waveform picks up via settings fetch on next animation cycle */
                       }}
                     />
                     <span className="text-xs opacity-70">
@@ -2396,14 +2214,13 @@ export default function SettingsPage() {
                     <input
                       type="color"
                       value={s.ecg?.color || "#22c55e"}
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const color = e.target.value;
                         const next = {
                           ...s,
                           ecg: { ...(s.ecg || {}), color, enabled: true },
                         };
                         setS(next);
-                        await db.put("settings", { ...next, id: "app" } as any);
                         document.documentElement.style.setProperty(
                           "--ecg-custom-color",
                           color
@@ -2416,158 +2233,231 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </SectionCard>
+        </SectionCard>
+      )}
 
       {/* Safety */}
-      <SectionCard
-        id="safety"
-        eyebrow="Guard rails"
-        title="Safety"
-        description="Control destructive action confirmations before data gets wiped."
-      >
-        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-          <span className="text-sm text-app">
-            Confirm before deleting items
-          </span>
-          <input
-            type="checkbox"
-            checked={!!s.confirmDestructive}
-            onChange={(e) =>
-              setS({ ...s, confirmDestructive: e.target.checked })
-            }
-          />
-        </label>
-        <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>
-          Save Safety Settings
-        </button>
-      </SectionCard>
+      {activeTab === "safety" && (
+        <SectionCard
+          id="safety"
+          eyebrow="Guard rails"
+          title="Data and safety"
+          description="Control destructive actions and manage import/export/reset workflows."
+        >
+          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <span className="text-sm text-app">
+              Confirm before deleting items
+            </span>
+            <input
+              type="checkbox"
+              checked={!!s.confirmDestructive}
+              onChange={(e) =>
+                setS({ ...s, confirmDestructive: e.target.checked })
+              }
+            />
+          </label>
+          <div className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-3 text-xs text-white/70">
+            Export creates a full backup. Import merges data from a previous export. Reset and account deletion are permanent.
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              className="btn-outline px-3 py-2 rounded-xl"
+              onClick={exportData}
+            >
+              Export JSON & CSV
+            </button>
+            <input
+              type="file"
+              hidden
+              ref={fileRef}
+              accept="application/json"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) importData(f);
+              }}
+            />
+            <button
+              className="btn-outline px-3 py-2 rounded-xl"
+              onClick={() => fileRef.current?.click()}
+            >
+              Import JSON
+            </button>
+            <button
+              className="px-3 py-2 rounded-xl text-white"
+              style={{ background: "var(--danger)" }}
+              onClick={resetData}
+            >
+              Reset data
+            </button>
+            <a
+              className="btn-outline px-3 py-2 rounded-xl"
+              href="https://ciaranengelbrecht.com/delete-account-liftlog.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Deletion info
+            </a>
+            {userEmail && (
+              <button
+                className="px-3 py-2 rounded-xl text-white"
+                style={{ background: "#ef4444" }}
+                disabled={busy === "delete"}
+                onClick={deleteAccountAndData}
+              >
+                {busy === "delete" ? "Deleting…" : "Delete account & data"}
+              </button>
+            )}
+          </div>
+        </SectionCard>
+      )}
 
       {/* Progress */}
-      <SectionCard
-        id="progress"
-        eyebrow="Motivation"
-        title="Progress"
-        description="Tune weekly targets and gameplay effects that keep training fresh."
-      >
-        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-          <span className="text-sm text-app">Weekly target days</span>
-          <input
-            className="input-app rounded px-2 py-1 w-16 text-center"
-            inputMode="numeric"
-            value={s.progress?.weeklyTargetDays ?? 6}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (!/^\d*$/.test(v)) return;
-              const n = Math.max(3, Math.min(6, Number(v || "6")));
-              setS({
-                ...s,
-                progress: { ...(s.progress || {}), weeklyTargetDays: n },
-              });
-            }}
-          />
-        </label>
-        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-          <span className="text-sm text-app">Gamification effects</span>
-          <input
-            type="checkbox"
-            checked={s.progress?.gamification ?? true}
-            onChange={(e) =>
-              setS({
-                ...s,
-                progress: {
-                  ...(s.progress || {}),
-                  gamification: e.target.checked,
-                },
-              })
-            }
-          />
-        </label>
-        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-          <span className="text-sm text-app">Show deload hints</span>
-          <input
-            type="checkbox"
-            checked={s.progress?.showDeloadHints ?? true}
-            onChange={(e) =>
-              setS({
-                ...s,
-                progress: {
-                  ...(s.progress || {}),
-                  showDeloadHints: e.target.checked,
-                },
-              })
-            }
-          />
-        </label>
-        <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
-          <span className="text-sm text-app">Show previous week hints</span>
-          <input
-            type="checkbox"
-            checked={s.progress?.showPrevHints ?? true}
-            onChange={(e) =>
-              setS({
-                ...s,
-                progress: {
-                  ...(s.progress || {}),
-                  showPrevHints: e.target.checked,
-                },
-              })
-            }
-          />
-        </label>
-        <button className="btn-primary px-3 py-3 rounded-xl" onClick={save}>
-          Save Progress Settings
-        </button>
-      </SectionCard>
+      {activeTab === "progress" && (
+        <SectionCard
+          id="progress"
+          eyebrow="Motivation"
+          title="Progress"
+          description="Tune weekly targets and gameplay effects that keep training fresh."
+        >
+          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <span className="text-sm text-app">Weekly target days</span>
+            <input
+              className="input-app rounded px-2 py-1 w-16 text-center"
+              inputMode="numeric"
+              value={s.progress?.weeklyTargetDays ?? 6}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!/^\d*$/.test(v)) return;
+                const n = Math.max(3, Math.min(6, Number(v || "6")));
+                setS({
+                  ...s,
+                  progress: { ...(s.progress || {}), weeklyTargetDays: n },
+                });
+              }}
+            />
+          </label>
+          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <span className="text-sm text-app">Gamification effects</span>
+            <input
+              type="checkbox"
+              checked={s.progress?.gamification ?? true}
+              onChange={(e) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    gamification: e.target.checked,
+                  },
+                })
+              }
+            />
+          </label>
+          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <span className="text-sm text-app">Show deload hints</span>
+            <input
+              type="checkbox"
+              checked={s.progress?.showDeloadHints ?? true}
+              onChange={(e) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    showDeloadHints: e.target.checked,
+                  },
+                })
+              }
+            />
+          </label>
+          <label className="flex items-center justify-between input-app rounded-xl px-3 py-3">
+            <span className="text-sm text-app">Show previous week hints</span>
+            <input
+              type="checkbox"
+              checked={s.progress?.showPrevHints ?? true}
+              onChange={(e) =>
+                setS({
+                  ...s,
+                  progress: {
+                    ...(s.progress || {}),
+                    showPrevHints: e.target.checked,
+                  },
+                })
+              }
+            />
+          </label>
+          <p className="text-xs text-muted">Changes in this section autosave.</p>
+        </SectionCard>
+      )}
 
-      <SectionCard
-        id="exerciseOverrides"
-        eyebrow="Deload"
-        title="Exercise overrides"
-        description="Set per-exercise deload load and set percentages to override the global defaults."
-        badge={
-          <span className="text-xs text-muted">
-            {exerciseOverrideCount == null
-              ? "Loading"
-              : `${exerciseOverrideCount} exercise${
-                  exerciseOverrideCount === 1 ? "" : "s"
-                }`}
-          </span>
-        }
-      >
-        <ExerciseOverrides onCountChange={setExerciseOverrideCount} />
-      </SectionCard>
+      {activeTab === "library" && (
+        <>
+          <SectionCard
+            id="exerciseOverrides"
+            eyebrow="Deload"
+            title="Exercise overrides"
+            description="Set per-exercise deload load and set percentages to override the global defaults."
+            badge={
+              <span className="text-xs text-muted">
+                {exerciseOverrideCount == null
+                  ? "Loading"
+                  : `${exerciseOverrideCount} exercise${
+                      exerciseOverrideCount === 1 ? "" : "s"
+                    }`}
+              </span>
+            }
+          >
+            <ExerciseOverrides onCountChange={setExerciseOverrideCount} />
+          </SectionCard>
 
-      <SectionCard
-        id="exerciseLibrary"
-        eyebrow="Library"
-        title="Exercise library"
-        description="Search, edit, and tag exercises with primary and secondary muscles."
-        badge={
-          <span className="text-xs text-muted">
-            {exerciseLibraryCount == null
-              ? "Loading"
-              : `${exerciseLibraryCount} exercise${
-                  exerciseLibraryCount === 1 ? "" : "s"
-                }`}
-          </span>
-        }
-      >
-        <ExerciseLibraryManager onCountChange={setExerciseLibraryCount} />
-      </SectionCard>
+          <SectionCard
+            id="exerciseLibrary"
+            eyebrow="Library"
+            title="Exercise library"
+            description="Search, edit, and tag exercises with primary and secondary muscles."
+            badge={
+              <span className="text-xs text-muted">
+                {exerciseLibraryCount == null
+                  ? "Loading"
+                  : `${exerciseLibraryCount} exercise${
+                      exerciseLibraryCount === 1 ? "" : "s"
+                    }`}
+              </span>
+            }
+          >
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2">
+              <div className="text-xs text-white/70">
+                Program split and workout structure live in Program settings.
+              </div>
+              <button
+                type="button"
+                className="btn-outline px-3 py-1.5 rounded-lg text-xs"
+                onClick={() => navigate("/settings/program")}
+              >
+                Open Program settings
+              </button>
+            </div>
+            <ExerciseLibraryManager onCountChange={setExerciseLibraryCount} />
+          </SectionCard>
+        </>
+      )}
 
-      <SectionCard
-        id="volumeTargets"
-        eyebrow="Targets"
-        title="Weekly volume targets"
-        description="Define set targets per muscle group to guide programming and dashboards."
-        badge={
-          <span className="text-xs text-muted">
-            {VOLUME_TARGET_MUSCLES.length} muscle groups
-          </span>
-        }
-      >
-        <WeeklyVolumeTargets />
-      </SectionCard>
+      {activeTab === "progress" && (
+        <SectionCard
+          id="volumeTargets"
+          eyebrow="Targets"
+          title="Weekly volume targets"
+          description="Define set targets per muscle group to guide programming and dashboards."
+          badge={
+            <span className="text-xs text-muted">
+              {VOLUME_TARGET_MUSCLES.length} muscle groups
+            </span>
+          }
+        >
+          <WeeklyVolumeTargets
+            targets={s.volumeTargets || {}}
+            onChange={(volumeTargets) => setS((prev) => ({ ...prev, volumeTargets }))}
+          />
+        </SectionCard>
+      )}
     </div>
   );
 }
@@ -2575,9 +2465,11 @@ export default function SettingsPage() {
 function BeepTester({
   styleKey,
   count,
+  volumePct,
 }: {
   styleKey: "gentle" | "chime" | "digital" | "alarm" | "click";
   count: number;
+  volumePct: number;
 }) {
   return (
     <button
@@ -2586,11 +2478,7 @@ function BeepTester({
       onClick={async () => {
         try {
           await unlockAudio();
-          const s = await (await import("../lib/db")).db.get("settings", "app");
-          const volPct = Math.max(
-            30,
-            Math.min(300, (s as any)?.restTimerBeepVolume ?? 140)
-          );
+          const volPct = Math.max(30, Math.min(300, volumePct));
           setBeepVolumeScalar(volPct / 100);
           (await import("../lib/audio")).playBeepStyle(styleKey, count);
         } catch {}
@@ -2599,14 +2487,6 @@ function BeepTester({
       Test beep
     </button>
   );
-}
-
-function download(name: string, content: string, type: string) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], { type }));
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
 }
 
 // lightweight inline snackbar for Settings page
@@ -2936,27 +2816,20 @@ function ExerciseLibraryManager({
   );
 }
 
-function WeeklyVolumeTargets() {
-  const [targets, setTargets] = useState<Record<string, number>>({});
-  useEffect(() => {
-    (async () => {
-      const s = await db.get("settings", "app");
-      setTargets(s?.volumeTargets || {});
-    })();
-  }, []);
-  const save = async () => {
-    const cur = await db.get("settings", "app");
-    await db.put("settings", {
-      ...(cur || {}),
-      id: "app",
-      volumeTargets: targets,
-    });
-  };
+type WeeklyVolumeTargetsProps = {
+  targets: Record<string, number>;
+  onChange: (next: Record<string, number>) => void;
+};
+
+function WeeklyVolumeTargets({
+  targets,
+  onChange,
+}: WeeklyVolumeTargetsProps) {
   return (
     <div className="space-y-3">
       <div className="text-sm text-muted">
         Set desired weighted set targets per muscle. Used for allocator and
-        dashboard progress bars.
+        dashboard progress bars. Changes autosave.
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {VOLUME_TARGET_MUSCLES.map((m) => (
@@ -2967,17 +2840,23 @@ function WeeklyVolumeTargets() {
               min={0}
               max={40}
               value={targets[m] ?? ""}
-              onChange={(e) =>
-                setTargets((t) => ({ ...t, [m]: Number(e.target.value) }))
-              }
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") {
+                  const next = { ...targets };
+                  delete next[m];
+                  onChange(next);
+                  return;
+                }
+                const n = Number(raw);
+                if (!Number.isFinite(n)) return;
+                onChange({ ...targets, [m]: Math.max(0, Math.min(40, n)) });
+              }}
               className="input-app rounded-xl px-2 py-2 w-full text-sm"
             />
           </label>
         ))}
       </div>
-      <button className="btn-primary px-3 py-2 rounded-xl" onClick={save}>
-        Save Volume Targets
-      </button>
     </div>
   );
 }
