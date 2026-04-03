@@ -420,6 +420,37 @@ export default function Measurements() {
   const [caliperRowsOpen, setCaliperRowsOpen] = useState<
     Record<string, boolean>
   >({});
+  const [caliperGuideOpen, setCaliperGuideOpen] = useState(false);
+  const restoreScrollAfterToggle = useCallback(
+    (anchor: HTMLElement | null, mutate: () => void) => {
+      if (typeof window === "undefined") {
+        mutate();
+        return;
+      }
+      const anchorTop = anchor?.getBoundingClientRect().top;
+      const fallbackY = window.scrollY;
+      mutate();
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          if (
+            anchor &&
+            document.body.contains(anchor) &&
+            typeof anchorTop === "number"
+          ) {
+            const delta = anchor.getBoundingClientRect().top - anchorTop;
+            if (Math.abs(delta) > 1) {
+              window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+            }
+            return;
+          }
+          if (Math.abs(window.scrollY - fallbackY) > 1) {
+            window.scrollTo({ top: fallbackY, left: 0, behavior: "auto" });
+          }
+        });
+      });
+    },
+    []
+  );
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
     () => {
       if (typeof window === "undefined") return {};
@@ -525,9 +556,11 @@ export default function Measurements() {
   const handleSectionHeaderClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>, id: MeasurementSectionId) => {
       event.stopPropagation();
-      toggleSectionCollapsed(id);
+      restoreScrollAfterToggle(event.currentTarget, () => {
+        toggleSectionCollapsed(id);
+      });
     },
-    [toggleSectionCollapsed]
+    [restoreScrollAfterToggle, toggleSectionCollapsed]
   );
 
   const handleSectionSurfaceClick = useCallback(
@@ -536,24 +569,32 @@ export default function Measurements() {
       if (!collapsed) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) return;
-      toggleSectionCollapsed(id, false);
+      restoreScrollAfterToggle(event.currentTarget, () => {
+        toggleSectionCollapsed(id, false);
+      });
     },
-    [sectionCollapsed, toggleSectionCollapsed]
+    [restoreScrollAfterToggle, sectionCollapsed, toggleSectionCollapsed]
   );
 
-  const toggleMeasurementCollapsed = (id: string, forced?: boolean) => {
-    const nextValue =
-      typeof forced === "boolean" ? forced : !(collapsedRows[id] ?? true);
-    if (nextValue) {
-      setCaliperRowsOpen((prev) => {
-        if (!prev[id]) return prev;
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-    }
-    setCollapsedRows((prev) => ({ ...prev, [id]: nextValue }));
-  };
+  const toggleMeasurementCollapsed = useCallback(
+    (id: string, forced?: boolean, anchor?: HTMLElement | null) => {
+      const applyToggle = () => {
+        const nextValue =
+          typeof forced === "boolean" ? forced : !(collapsedRows[id] ?? true);
+        if (nextValue) {
+          setCaliperRowsOpen((prev) => {
+            if (!prev[id]) return prev;
+            const copy = { ...prev };
+            delete copy[id];
+            return copy;
+          });
+        }
+        setCollapsedRows((prev) => ({ ...prev, [id]: nextValue }));
+      };
+      restoreScrollAfterToggle(anchor ?? null, applyToggle);
+    },
+    [collapsedRows, restoreScrollAfterToggle]
+  );
 
   const handleMeasurementSurfaceClick = (
     event: MouseEvent<HTMLDivElement>,
@@ -565,7 +606,7 @@ export default function Measurements() {
     if (target?.closest(INTERACTIVE_ELEMENT_SELECTOR)) {
       return;
     }
-    toggleMeasurementCollapsed(id, false);
+    toggleMeasurementCollapsed(id, false, event.currentTarget);
   };
 
   type SectionCardProps = {
@@ -1373,33 +1414,46 @@ export default function Measurements() {
                   );
                 })}
               </div>
-              <details className="group rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">
-                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.28em] text-white/60 group-open:text-white">
-                  Caliper measuring guide
-                </summary>
-                <div className="mt-3 space-y-3">
-                  <ul className="list-disc space-y-1 pl-4 text-xs text-slate-300/90">
-                    {SKINFOLD_GENERAL_TIPS.map((tip) => (
-                      <li key={tip}>{tip}</li>
-                    ))}
-                  </ul>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {SKINFOLD_SITES.map((site) => (
-                      <div
-                        key={site.key}
-                        className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2"
-                      >
-                        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                          {site.label}
+              <div className="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 text-left text-xs font-semibold uppercase tracking-[0.28em] text-white/60 transition hover:text-white"
+                  onClick={(event) => {
+                    restoreScrollAfterToggle(event.currentTarget, () => {
+                      setCaliperGuideOpen((prev) => !prev);
+                    });
+                  }}
+                  aria-expanded={caliperGuideOpen}
+                  aria-controls="caliper-guide-panel"
+                >
+                  <span>Caliper measuring guide</span>
+                  <span aria-hidden="true">{caliperGuideOpen ? "▼" : "▶"}</span>
+                </button>
+                {caliperGuideOpen && (
+                  <div id="caliper-guide-panel" className="mt-3 space-y-3">
+                    <ul className="list-disc space-y-1 pl-4 text-xs text-slate-300/90">
+                      {SKINFOLD_GENERAL_TIPS.map((tip) => (
+                        <li key={tip}>{tip}</li>
+                      ))}
+                    </ul>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {SKINFOLD_SITES.map((site) => (
+                        <div
+                          key={site.key}
+                          className="rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2"
+                        >
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
+                            {site.label}
+                          </div>
+                          <p className="mt-1 text-[11px] leading-5 text-slate-300/90">
+                            {site.description}
+                          </p>
                         </div>
-                        <p className="mt-1 text-[11px] leading-5 text-slate-300/90">
-                          {site.description}
-                        </p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </details>
+                )}
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -2102,7 +2156,11 @@ export default function Measurements() {
                       className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-2 py-1"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleMeasurementCollapsed(row.id);
+                        toggleMeasurementCollapsed(
+                          row.id,
+                          undefined,
+                          e.currentTarget
+                        );
                       }}
                       aria-label={
                         isCollapsed
@@ -2155,10 +2213,12 @@ export default function Measurements() {
                         className="text-xs bg-slate-700 hover:bg-slate-600 rounded px-3 py-2"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setCaliperRowsOpen((prev) => ({
-                            ...prev,
-                            [row.id]: !prev[row.id],
-                          }));
+                          restoreScrollAfterToggle(e.currentTarget, () => {
+                            setCaliperRowsOpen((prev) => ({
+                              ...prev,
+                              [row.id]: !prev[row.id],
+                            }));
+                          });
                         }}
                       >
                         {isCaliperOpen ? "Hide calipers" : "Calipers"}
