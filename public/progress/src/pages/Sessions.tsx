@@ -40,7 +40,10 @@ import {
   setBeepVolumeScalar,
 } from "../lib/audio";
 import { fadeSlideUp, maybeDisable } from "../lib/motion";
-import { computeSessionPacing } from "../lib/pacing";
+import {
+  computeSessionPacing,
+  type SessionPacingSummary,
+} from "../lib/pacing";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
 import { rollingPRs } from "../lib/helpers";
@@ -225,6 +228,17 @@ type SessionAnalytics = {
     order: number;
     workingSets: number;
   }>;
+};
+
+type PacingExerciseRow = {
+  exerciseId: string;
+  name: string;
+  count: number;
+  loggedSetCount: number;
+  timedSetCount: number;
+  averageMs: number;
+  medianMs: number;
+  longestMs: number;
 };
 
 type WipeScope = "day" | "week" | "phase";
@@ -4447,7 +4461,7 @@ export default function Sessions() {
   // Pacing metrics derived from completedAt stamps
   const pacing = useMemo(
     () => (session ? computeSessionPacing(session) : null),
-    [session?.id, session?.entries.length]
+    [session]
   );
   const canOpenWipe = Boolean(session) && !wipeBusy;
   const eraseButtonTitle = session
@@ -4462,20 +4476,30 @@ export default function Sessions() {
     if (m >= 1) return `${m}m ${s.toString().padStart(2, "0")}s`;
     return `${s}s`;
   };
-  const [showPacingDetails, setShowPacingDetails] = useState(false);
-  const [pacingCollapsed, setPacingCollapsed] = useState(false);
-  const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>(
-    {}
-  );
-  const pacedExercises = useMemo(
-    () =>
-      (pacing?.exercises || [])
-        .filter((entry) => entry.count > 0)
-        .sort((a, b) => b.count - a.count),
-    [pacing?.exercises]
-  );
-  const toggleName = (id: string) =>
-    setExpandedNames((p) => ({ ...p, [id]: !p[id] }));
+  const pacedExercises = useMemo<PacingExerciseRow[]>(() => {
+    if (!pacing) return [];
+    return pacing.exercises
+      .map((entry) => ({
+        exerciseId: entry.exerciseId,
+        name:
+          exMap.get(entry.exerciseId)?.name ||
+          exNameCache[entry.exerciseId] ||
+          entry.exerciseId,
+        count: entry.count,
+        loggedSetCount: entry.loggedSetCount,
+        timedSetCount: entry.timedSetCount,
+        averageMs: entry.averageMs,
+        medianMs: entry.medianMs,
+        longestMs: entry.longestMs,
+      }))
+      .filter((entry) => entry.loggedSetCount > 0 || entry.count > 0)
+      .sort(
+        (a, b) =>
+          b.loggedSetCount - a.loggedSetCount ||
+          b.count - a.count ||
+          b.timedSetCount - a.timedSetCount
+      );
+  }, [pacing, exMap, exNameCache]);
 
   // Map entry IDs to exercise names for FloatingRestTimer
   const entryIdToExerciseName = useMemo(() => {
@@ -4924,144 +4948,12 @@ export default function Sessions() {
       {!initialLoading && session && analytics && (
         <SessionMomentumPanel
           analytics={analytics}
+          pacing={pacing}
+          pacedExercises={pacedExercises}
+          formatMs={formatMs}
           onFocusRequest={activateFocus}
           focusedEntryId={focusedEntryId}
         />
-      )}
-      {session && pacing && pacing.overall.count > 0 && (
-        <div className="mx-4 mt-3 bg-[rgba(30,41,59,0.65)] rounded-xl border border-white/5 overflow-hidden">
-          {/* Collapsible pacing header */}
-          <button
-            onClick={() => setPacingCollapsed(!pacingCollapsed)}
-            className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-3 text-[11px] text-slate-300">
-              <span className="font-semibold tracking-wide">Pacing</span>
-              <span className="text-slate-400">
-                {pacing.overall.count} sets · avg {formatMs(pacing.overall.averageMs)}
-              </span>
-            </div>
-            <svg
-              className={`w-4 h-4 text-slate-400 transition-transform ${pacingCollapsed ? "" : "rotate-180"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          {/* Expanded pacing content */}
-          <AnimatePresence initial={false}>
-            {!pacingCollapsed && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="px-3 pb-3 space-y-2">
-                  <div className="flex flex-wrap gap-3 text-[10px] text-slate-400">
-                    <div>
-                      Sets:{" "}
-                      <span className="text-slate-200 font-medium">
-                        {pacing.overall.count}
-                      </span>
-                    </div>
-                    <div>
-                      Avg Rest:{" "}
-                      <span className="text-slate-200 font-medium">
-                        {formatMs(pacing.overall.averageMs)}
-                      </span>
-                    </div>
-                    <div>
-                      Median:{" "}
-                      <span className="text-slate-200 font-medium">
-                        {formatMs(pacing.overall.medianMs)}
-                      </span>
-                    </div>
-                    <div>
-                      Longest:{" "}
-                      <span className="text-slate-200 font-medium">
-                        {formatMs(pacing.overall.longestMs)}
-                      </span>
-                    </div>
-                    {sessionDuration && (
-                      <div>
-                        Session Span:{" "}
-                        <span className="text-slate-200 font-medium">
-                          {sessionDuration}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <button
-                    className="text-[10px] underline text-slate-400 hover:text-slate-300"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowPacingDetails((s) => !s);
-                    }}
-                  >
-                    {showPacingDetails ? "Hide exercise breakdown" : "Show exercise breakdown"}
-                  </button>
-                  
-                  {showPacingDetails && (
-                    <div className="space-y-1 max-h-64 overflow-auto pr-1">
-                      {pacedExercises
-                        .slice(0, 8)
-                        .map((e) => {
-                          const ex = exMap.get(e.exerciseId);
-                          const name =
-                            ex?.name || exNameCache[e.exerciseId] || e.exerciseId;
-                          return (
-                            <div
-                              key={e.exerciseId}
-                              className="flex items-center justify-between gap-2 text-[10px] bg-slate-800/50 rounded-lg px-2 py-1"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <button
-                                  onClick={() => toggleName(e.exerciseId)}
-                                  className="text-left w-full truncate hover:whitespace-normal hover:line-clamp-none focus:outline-none"
-                                >
-                                  <span
-                                    className={`capitalize ${
-                                      expandedNames[e.exerciseId]
-                                        ? "whitespace-normal break-words"
-                                        : ""
-                                    }`}
-                                  >
-                                    {name}
-                                  </span>
-                                </button>
-                              </div>
-                              <div className="flex gap-3 text-[9px] tabular-nums text-slate-300">
-                                <span>n{e.count}</span>
-                                <span>avg {formatMs(e.averageMs)}</span>
-                                <span>med {formatMs(e.medianMs)}</span>
-                                <span>max {formatMs(e.longestMs)}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      {!pacedExercises.length && (
-                        <div className="text-[10px] text-slate-500">
-                          No rest intervals yet.
-                        </div>
-                      )}
-                      {pacedExercises.length > 8 && (
-                        <div className="text-[10px] text-slate-500 px-1 pt-1">
-                          Showing top 8 by set count ({pacedExercises.length} total).
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
       )}
       {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
       <div
@@ -6941,16 +6833,28 @@ function DaySelector({
 
 function SessionMomentumPanel({
   analytics,
+  pacing,
+  pacedExercises,
+  formatMs,
   onFocusRequest,
   focusedEntryId,
   defaultCollapsed = true,
 }: {
   analytics: SessionAnalytics;
+  pacing: SessionPacingSummary | null;
+  pacedExercises: PacingExerciseRow[];
+  formatMs: (ms: number) => string;
   onFocusRequest?: (entryId: string) => void;
   focusedEntryId?: string | null;
   defaultCollapsed?: boolean;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [showPacingDetails, setShowPacingDetails] = useState(false);
+  const [expandedNames, setExpandedNames] = useState<Record<string, boolean>>(
+    {}
+  );
+  const toggleName = (id: string) =>
+    setExpandedNames((prev) => ({ ...prev, [id]: !prev[id] }));
   const completion = Math.max(0, Math.min(100, analytics.completionPct));
   const activeMuscleCount = analytics.muscleLoad.filter(
     (m) => m.workingSets > 0
@@ -7081,6 +6985,107 @@ function SessionMomentumPanel({
                       </span>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Pacing details integrated into momentum */}
+              {pacing && pacing.overall.loggedSetCount > 0 && (
+                <div className="rounded-lg border border-white/12 bg-white/5 px-2.5 py-2 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 text-[9px] text-slate-200">
+                    <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.2em] text-cyan-200">
+                      Pacing
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Sets</span>
+                      <span className="font-medium text-white/90">
+                        {pacing.overall.loggedSetCount}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Timed</span>
+                      <span className="font-medium text-white/90">
+                        {pacing.overall.timedSetCount}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Intervals</span>
+                      <span className="font-medium text-white/90">
+                        {pacing.overall.count}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Avg</span>
+                      <span className="font-medium text-white/90">
+                        {formatMs(pacing.overall.averageMs)}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Med</span>
+                      <span className="font-medium text-white/90">
+                        {formatMs(pacing.overall.medianMs)}
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2 py-0.5">
+                      <span className="text-slate-400">Max</span>
+                      <span className="font-medium text-white/90">
+                        {formatMs(pacing.overall.longestMs)}
+                      </span>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="text-[10px] underline text-slate-400 hover:text-slate-300"
+                    onClick={() => setShowPacingDetails((open) => !open)}
+                  >
+                    {showPacingDetails
+                      ? "Hide pacing exercise breakdown"
+                      : "Show pacing exercise breakdown"}
+                  </button>
+
+                  {showPacingDetails && (
+                    <div className="space-y-1 max-h-56 overflow-auto pr-1">
+                      {pacedExercises.slice(0, 8).map((entry) => (
+                        <div
+                          key={entry.exerciseId}
+                          className="flex items-center justify-between gap-2 rounded-md border border-white/8 bg-slate-800/50 px-2 py-1 text-[10px]"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <button
+                              type="button"
+                              onClick={() => toggleName(entry.exerciseId)}
+                              className="w-full text-left truncate hover:whitespace-normal focus:outline-none"
+                            >
+                              <span
+                                className={`capitalize ${
+                                  expandedNames[entry.exerciseId]
+                                    ? "whitespace-normal break-words"
+                                    : ""
+                                }`}
+                              >
+                                {entry.name}
+                              </span>
+                            </button>
+                          </div>
+                          <div className="flex gap-2 text-[9px] tabular-nums text-slate-300">
+                            <span>{entry.loggedSetCount} sets</span>
+                            <span>{entry.count} int</span>
+                            <span>avg {formatMs(entry.averageMs)}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {!pacedExercises.length && (
+                        <div className="text-[10px] text-slate-500">
+                          No completed-set pacing samples yet.
+                        </div>
+                      )}
+                      {pacedExercises.length > 8 && (
+                        <div className="px-1 pt-1 text-[10px] text-slate-500">
+                          Showing top 8 by logged set count ({pacedExercises.length} total).
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

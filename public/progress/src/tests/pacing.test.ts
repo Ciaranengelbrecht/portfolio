@@ -26,7 +26,13 @@ describe('computeSessionPacing', () => {
     expect(exA.intervals).toHaveLength(2); // 2→5 min intervals
     expect(exA.averageMs).toBe( (2*60*1000 + 3*60*1000)/2 );
     expect(exA.longestMs).toBe(3*60*1000);
+    expect(exA.loggedSetCount).toBe(3);
+    expect(exA.timedSetCount).toBe(3);
     expect(exB.intervals[0]).toBe(3*60*1000);
+    expect(exB.loggedSetCount).toBe(2);
+    expect(exB.timedSetCount).toBe(2);
     expect(pacing.overall.count).toBe(3);
+    expect(pacing.overall.loggedSetCount).toBe(5);
+    expect(pacing.overall.timedSetCount).toBe(5);
   });
 });
