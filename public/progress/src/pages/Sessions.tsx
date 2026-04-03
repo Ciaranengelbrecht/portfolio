@@ -4474,8 +4474,8 @@ export default function Sessions() {
         style={{ position: "relative", height: 0 }}
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
-      <section className="px-2.5 sm:px-4" aria-label="Session controls" ref={toolbarRef}>
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-3 py-3 shadow-[0_20px_48px_rgba(15,23,42,0.55)] backdrop-blur sm:px-5 sm:py-4">
+        <section className="px-2.5 sm:px-4" aria-label="Session controls" ref={toolbarRef}>
+          <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-2.5 py-2.5 shadow-[0_16px_34px_rgba(15,23,42,0.45)] backdrop-blur sm:px-4 sm:py-3">
           {/* Always visible row: Day selector + session timer + expand toggle */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
@@ -4515,19 +4515,15 @@ export default function Sessions() {
             {/* Toggle for expanded controls */}
             <button
               type="button"
-              className="flex items-center gap-1 rounded-md border border-white/10 bg-slate-800/50 px-2 py-1.5 text-[10px] text-slate-400 transition hover:bg-slate-700/60"
+                className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
+                  toolbarCollapsed
+                    ? "border-white/12 bg-slate-800/45 text-slate-300 hover:bg-slate-700/55"
+                    : "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
+                }`}
               onClick={() => setToolbarCollapsed((v) => !v)}
               aria-expanded={!toolbarCollapsed}
             >
-              <span>{toolbarCollapsed ? "Show details" : "Hide details"}</span>
-              <span
-                className={`text-[10px] leading-none transition-transform duration-150 ${
-                  toolbarCollapsed ? "" : "rotate-180"
-                }`}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
+                <span>Details</span>
             </button>
           </div>
 
@@ -4536,13 +4532,13 @@ export default function Sessions() {
             {!toolbarCollapsed && (
               <motion.div
                 key="toolbar-expanded"
-                className="mt-3 space-y-3"
+                  className="mt-2 space-y-2"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.32, 0.72, 0.33, 1] }}
               >
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-end">
+                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:items-end">
                   {/* Week & Phase */}
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
@@ -4598,7 +4594,7 @@ export default function Sessions() {
                         )}
                       </div>
                       <div
-                        className="flex max-w-full flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-slate-900/70 px-2.5 py-1.5 text-[11px] text-slate-100"
+                          className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-[11px] text-slate-100"
                         title="Current assigned date (edit or stamp)"
                       >
                         {editingDate ? (
@@ -4672,18 +4668,18 @@ export default function Sessions() {
                   )}
                 </div>
                 {session && (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       onClick={() => setShowImport(true)}
                       title="Import from template"
                     >
-                      Import Template
+                        Import
                     </button>
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       disabled={!session.entries.length}
                       onClick={() => setShowSaveTemplate(true)}
                       title={
@@ -4692,7 +4688,7 @@ export default function Sessions() {
                           : "No exercises to save"
                       }
                     >
-                      Save Template
+                        Save tpl
                     </button>
                   </div>
                 )}
@@ -4701,23 +4697,19 @@ export default function Sessions() {
           </AnimatePresence>
 
           {/* Tools toggle button - always visible at bottom */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-200">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
             <button
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-800/70 px-3 py-1.5 font-medium text-slate-100 shadow-sm transition hover:bg-slate-700/80"
+                className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
+                  toolsOpen
+                    ? "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
+                    : "border-white/12 bg-slate-800/70 text-slate-200 hover:bg-slate-700/80"
+                }`}
               onClick={() => setToolsOpen((open) => !open)}
               aria-expanded={toolsOpen}
               aria-controls="session-tools-panel"
               type="button"
             >
-              <span>{toolsOpen ? "Hide tools" : "Show tools"}</span>
-              <span
-                className={`text-base leading-none transition-transform duration-150 ${
-                  toolsOpen ? "rotate-180" : ""
-                }`}
-                aria-hidden="true"
-              >
-                ▾
-              </span>
+                <span>Tools</span>
             </button>
           </div>
           <AnimatePresence initial={false}>
@@ -4725,7 +4717,7 @@ export default function Sessions() {
               <motion.div
                 key="session-tools"
                 id="session-tools-panel"
-                className="flex flex-wrap items-center gap-2 text-[11px] text-slate-200"
+                  className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200"
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
@@ -4741,16 +4733,16 @@ export default function Sessions() {
                     <button
                       type="button"
                       data-testid="erase-session-tools"
-                      className="tool-btn !border-rose-400/60 !bg-rose-500/15 !px-3 !py-1.5 !font-semibold !text-rose-100 !shadow-[0_0_10px_rgba(244,63,94,0.28)] hover:!bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="tool-btn tool-btn-danger disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={!canOpenWipe}
                       onClick={openEraseSheet}
                       title={eraseButtonTitle}
                     >
-                      Erase Data
+                        Erase
                     </button>
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       onClick={() => {
                         setStampAnimating(true);
                         setTimeout(() => setStampAnimating(false), 360);
@@ -4762,23 +4754,23 @@ export default function Sessions() {
                     </button>
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       onClick={() => collapseAll()}
                       title="Collapse all exercises"
                     >
-                      Collapse All
+                        Collapse
                     </button>
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       onClick={() => expandAll()}
                       title="Expand all exercises"
                     >
-                      Expand All
+                        Expand
                     </button>
                     <button
                       type="button"
-                      className="tool-btn !px-3 !py-1.5"
+                        className="tool-btn"
                       onClick={async () => {
                         const prevId = `${phase}-${Math.max(
                           1,
@@ -4814,7 +4806,7 @@ export default function Sessions() {
                   </>
                 )}
                 <button
-                  className="tool-btn !px-3 !py-1.5"
+                  className="tool-btn"
                   onClick={async () => {
                     // Move UI to next phase without committing until data is logged
                     const s = await getSettings();
@@ -4838,11 +4830,11 @@ export default function Sessions() {
                   }}
                   title="Next phase"
                 >
-                  Next →
+                  Next
                 </button>
                 {phase > 1 && (
                   <button
-                    className="tool-btn !px-3 !py-1.5"
+                    className="tool-btn"
                     onClick={async () => {
                       if (
                         !window.confirm(`Go to phase ${phase - 1} (view only)?`)
@@ -4870,11 +4862,11 @@ export default function Sessions() {
                     }}
                     title="Previous phase"
                   >
-                    ← Prev
+                    Prev
                   </button>
                 )}
                 {sessionDuration && (
-                  <span className="ml-auto rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-indigo-200">
+                  <span className="ml-auto rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] text-indigo-200">
                     ⏱ {sessionDuration}
                   </span>
                 )}
@@ -5045,23 +5037,23 @@ export default function Sessions() {
           hasMomentumPanel ? "mt-0" : "-mt-6"
         } sm:mt-0`}
       >
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-1.5">
           <button
-            className="btn-primary-enhanced btn-enhanced px-4 py-2.5 rounded-xl font-medium text-white"
+            className="rounded-lg border border-emerald-400/45 bg-emerald-500/18 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/26"
             onClick={() => setShowImport(true)}
           >
-            Import from Template
+            Import
           </button>
           <button
-            className="bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl disabled:opacity-40 font-medium transition-all duration-200 hover:scale-[1.02] active:scale-95"
+            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80 disabled:opacity-40"
             disabled={!session || !session.entries.length}
             onClick={() => setShowSaveTemplate(true)}
             title="Save current session as a reusable template"
           >
-            Save as Template
+            Save tpl
           </button>
           <button
-            className="bg-emerald-700 px-3 py-2 rounded-xl"
+            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
             title="Start next 9-week phase"
             onClick={async () => {
               const all = await readSessions({ force: true, swr: false });
@@ -5092,11 +5084,11 @@ export default function Sessions() {
               setDay(0);
             }}
           >
-            Next phase →
+            Next phase
           </button>
           {phase > 1 && (
             <button
-              className="bg-slate-700 px-3 py-2 rounded-xl"
+              className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
               title="Revert to previous phase"
               onClick={async () => {
                 if (!window.confirm("Revert to phase " + (phase - 1) + "?"))
@@ -5109,11 +5101,11 @@ export default function Sessions() {
                 setDay(0);
               }}
             >
-              ← Prev phase
+              Prev phase
             </button>
           )}
           <button
-            className="bg-slate-700 px-3 py-2 rounded-xl"
+            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
             onClick={async () => {
               if (!session) return;
               const prevId = `${phase}-${Math.max(
@@ -5141,7 +5133,7 @@ export default function Sessions() {
               }
             }}
           >
-            Copy last session
+            Copy last
           </button>
           {/* Apply-to-future moved to Program Settings */}
         </div>

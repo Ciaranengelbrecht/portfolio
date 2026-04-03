@@ -469,24 +469,24 @@ input[type="number"] {
   }
 }
 
-/* Compact tool buttons (mobile tools panel) */
+/* Minimal tool buttons (sessions details/tools panel) */
 .tool-btn {
-  padding: 0.55rem 0.7rem;
-  min-height: 2.5rem;
-  min-width: 2.5rem;
-  border-radius: 0.75rem;
-  background: rgba(51, 65, 85, 0.8); /* slate-700/80 */
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.38rem 0.58rem;
+  min-height: 2rem;
+  min-width: 2rem;
+  border-radius: 0.6rem;
+  background: rgba(51, 65, 85, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: -0.01em;
-  line-height: 1.1;
+  line-height: 1;
   transition: background 0.18s ease, transform 0.18s ease;
   backdrop-filter: blur(4px);
 }
 .tool-btn:hover {
-  background: rgba(71, 85, 105, 0.8);
+  background: rgba(71, 85, 105, 0.7);
 }
 .tool-btn:active {
   transform: scale(0.96);
@@ -494,8 +494,13 @@ input[type="number"] {
 .tool-btn.col-span-2 {
   background: rgba(51, 65, 85, 0.6);
 }
-.tool-btn:hover {
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
+.tool-btn-danger {
+  border-color: rgba(251, 113, 133, 0.55);
+  background: rgba(244, 63, 94, 0.16);
+  color: rgba(255, 228, 230, 0.96);
+}
+.tool-btn-danger:hover {
+  background: rgba(244, 63, 94, 0.24);
 }
 
 /* Skeleton shimmer */
