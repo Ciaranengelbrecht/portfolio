@@ -1,0 +1,110 @@
+@charset "utf-8";
+
+.footer-overflow-container { display: flex; background-color: rgb(0, 0, 0); position: relative; }
+
+.footer-container { flex-grow: 1; position: relative; display: flex; flex-direction: row; gap: 8px; padding: 6px; }
+
+.footer-pill-link { appearance: none; text-decoration: none; }
+
+.footer-pill { display: flex; flex-direction: row; justify-content: center; align-items: center; border-radius: 1000px; border: none; background: none; padding: 4px 8px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; white-space: nowrap; text-decoration: none; font-weight: 600; font-style: normal; font-size: calc(12px * var(--rfso, var(--bfso, 1))); color: rgb(255, 255, 255); transition: background-color 0.2s; }
+
+.footer-pill:hover { cursor: pointer; }
+
+.footer-pill-end { margin-left: auto; }
+
+.footer-pill-primary { position: relative; z-index: 1; background-color: rgba(255, 255, 255, 0.1); }
+
+.footer-pill-primary:hover > .footer-pill-primary-background { opacity: 1; }
+
+.footer-pill-primary-background { position: absolute; z-index: -1; border-radius: 1000px; top: 0px; left: 0px; width: 100%; height: 100%; background: linear-gradient(90deg, rgb(0, 196, 204) 0%, rgb(125, 42, 232) 100%); opacity: 0; overflow: hidden; transition: opacity 0.2s; }
+
+.footer-pill-primary-background::after { content: ""; position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; background: linear-gradient(to right, rgba(125, 42, 232, 0) 0%, rgb(26, 26, 26) calc(20% + 50px), rgb(26, 26, 26) 100%); transform: translateX(0px); transition: transform 0.7s; }
+
+.footer-pill-primary:hover > .footer-pill-primary-background::after { transform: translateX(110%); }
+
+.footer-pill-primary-background > svg { position: absolute; top: 50%; left: 0px; right: 0px; transform-origin: center center; transform: translateY(-50%); width: 100%; }
+
+.animation-container { animation: 12s linear 0s infinite normal none paused spin; }
+
+.footer-pill-primary:hover > .footer-pill-primary-background .animation-container { animation-play-state: running; }
+
+.footer-pill-secondary { background-color: rgba(255, 255, 255, 0); }
+
+.footer-pill-secondary:hover { background-color: rgba(255, 255, 255, 0.1); }
+
+.footer-pill-secondary:active, .footer-pill-secondary.active { background-color: rgba(255, 255, 255, 0.15); }
+
+.inline-icon-logo { display: inline-block; height: 15px; margin-left: 5px; }
+
+.inline-icon-logo > svg { height: 100%; }
+
+.modal-backdrop { position: fixed; inset: 0px; width: 100%; height: 100%; z-index: 9999; transition: opacity 0.35s, visibility 0.35s; opacity: 0; visibility: hidden; pointer-events: none; }
+
+.modal-backdrop.active { opacity: 1; visibility: visible; pointer-events: all; }
+
+.report-form-modal { display: block; box-sizing: border-box; position: absolute; left: 6px; width: 367px; transform: translate3d(0px, calc(-100% + 24px), 0px); z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background-color: rgb(255, 255, 255); border-radius: 8px; margin: 0px; box-shadow: rgba(14, 19, 24, 0.25) 0px 2px 18px 0px, rgba(14, 19, 24, 0.02) 0px 0px 1px 0px; transition-duration: 0.35s; transition-property: opacity, transform, visibility; opacity: 0; visibility: hidden; pointer-events: none; }
+
+.report-form-modal.active { transform: translate3d(0px, calc(-100% + 8px), 0px); opacity: 1; visibility: visible; pointer-events: all; }
+
+.form-content { margin: 32px; outline-offset: 34px; }
+
+.form-content > * { margin: 16px 0px; }
+
+.form-title { font-size: calc(24px * var(--rfso, var(--bfso, 1))); font-weight: 700; }
+
+.form-body { font-size: calc(14px * var(--rfso, var(--bfso, 1))); font-weight: 400; color: rgba(14, 19, 24, 0.7); }
+
+.form-buttons { margin-top: 32px; display: grid; gap: 8px; grid-template-columns: auto auto; justify-content: flex-end; }
+
+.tertiary-button { border: 2px solid transparent; box-sizing: border-box; background-color: rgba(13, 18, 22, 0); border-radius: 4px; color: rgb(13, 18, 22); cursor: pointer; display: inline-flex; height: 40px; margin: 0px; max-width: 100%; min-width: 80px; width: 100%; padding: 0px 6px; vertical-align: middle; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-weight: 400; line-height: 1.6; outline-offset: 2px; transition: background-color 0.2s; }
+
+.tertiary-button:hover { background-color: rgba(64, 87, 109, 0.07); }
+
+.tertiary-button:active { background-color: rgba(57, 76, 96, 0.15); }
+
+.button { border: 2px solid transparent; box-sizing: border-box; background-color: rgba(64, 87, 109, 0.07); border-radius: 4px; color: rgb(14, 19, 24); cursor: pointer; display: inline-flex; height: 40px; margin: 0px; max-width: 100%; min-width: 80px; width: 100%; padding: 0px 6px; vertical-align: middle; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-weight: 400; line-height: 1.6; outline-offset: 2px; transition: background-color 0.2s; }
+
+.button:hover { background-color: rgba(57, 76, 96, 0.15); }
+
+.button:active { background-color: rgba(53, 71, 90, 0.2); }
+
+.button-text { font-size: calc(14px * var(--rfso, var(--bfso, 1))); display: inline-block; max-width: 100%; overflow: hidden; padding: 0px 8px; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; transition: 0.2s; }
+
+@keyframes spin { 
+  0% { transform: rotate(0turn); }
+  100% { transform: rotate(1turn); }
+}
+
+@supports selector(:focus-visible) {
+  .footer-pill-primary:focus-visible > .footer-pill-primary-background::after { transform: translateX(110%); }
+  .footer-pill-primary:focus-visible > .footer-pill-primary-background { opacity: 1; }
+  .footer-pill-primary:focus-visible > .footer-pill-primary-background .animation-container { animation-play-state: running; }
+}
+
+@supports not selector(:focus-visible) {
+  .footer-pill-primary:focus > .footer-pill-primary-background::after { transform: translateX(110%); }
+  .footer-pill-primary:focus > .footer-pill-primary-background { opacity: 1; }
+  .footer-pill-primary:focus > .footer-pill-primary-background .animation-container { animation-play-state: running; }
+}
+
+@media only screen and (max-width: 600px) {
+  .modal-backdrop { background-color: rgba(14, 19, 24, 0.45); backdrop-filter: blur(4px); }
+  .report-form-modal { width: 100%; position: fixed; left: 0px; right: 0px; bottom: 0px; border-radius: 8px 8px 0px 0px; transform: translate3d(0px, 33%, 0px); }
+  .report-form-modal.active { transform: translate3d(0px, 0px, 0px); }
+  .form-content { margin: 16px; }
+  .form-buttons { display: grid; gap: 8px; grid-template-columns: 1fr; }
+  @supports (padding: env(safe-area-inset-bottom)) {
+  .footer-container { padding: 6px 6px calc(6px + env(safe-area-inset-bottom)) 6px; }
+  .form-content { margin: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px; }
+}
+}
+
+@media (prefers-reduced-motion) {
+  .report-form-modal, .report-form-modal.active { transition-property: opacity, visibility; transform: translate3d(0px, calc(-100% + 8px), 0px); }
+  @media only screen and (max-width: 600px) {
+  .report-form-modal, .report-form-modal.active { transform: translate3d(0px, 0px, 0px); }
+}
+  .animation-container { animation-play-state: paused !important; }
+  .footer-pill-primary-background::after { transform: translateX(0px); opacity: 0; transition: opacity 0.7s; }
+  .footer-pill-primary-background > svg { display: none; }
+}

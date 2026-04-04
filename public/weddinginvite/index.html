@@ -3,144 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ciaran &amp; Cheylin | Save the Date</title>
-    <meta
-      name="description"
-      content="Save the Date invitation for Ciaran Engelbrecht and Cheylin Manuel." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap"
-      rel="stylesheet" />
+    <title>Ciaran &amp; Cheylin | Invitation</title>
+    <meta name="description" content="Wedding invitation for Ciaran and Cheylin." />
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body class="invite-page" data-step="0">
-    <main class="invite-shell" aria-label="Wedding save the date invitation">
-      <section class="stage-wrap" aria-label="Envelope reveal stage">
-        <section class="stage" id="inviteStage">
-          <div class="atmosphere" aria-hidden="true"></div>
+  <body class="mirror-page" data-step="closed">
+    <main class="mirror-shell" aria-label="Wedding invitation mirror">
+      <section class="mirror-stage" aria-live="polite">
+        <article class="mirror-view mirror-view-closed" id="closedView" aria-hidden="false">
+          <iframe
+            class="mirror-frame"
+            src="./mirror/invitation/index.html"
+            title="Closed invitation"
+            loading="eager"></iframe>
+          <button class="open-overlay" id="openOverlay" type="button" aria-label="Open invitation"></button>
+        </article>
 
-          <div class="floral-layer" aria-hidden="true">
-            <img class="asset bloom bloom-left-large" src="./assets/3daboveflowers.png" alt="" />
-            <img class="asset bloom bloom-left-small" src="./assets/3daboveflowers.png" alt="" />
-            <img class="asset bloom bloom-right" src="./assets/3daboveflowers.png" alt="" />
-            <img class="asset bloom bloom-mid-right" src="./assets/3daboveflowers.png" alt="" />
-
-            <img class="asset orchid orchid-left" src="./assets/backgroundorchids1.png" alt="" />
-            <img class="asset orchid orchid-right" src="./assets/backgroundorchids2.png" alt="" />
-            <img class="asset orchid orchid-mid" src="./assets/orchid.png" alt="" />
-          </div>
-
-          <div class="scene scene-closed" aria-hidden="false">
-            <div class="closed-envelope-group">
-              <img class="asset envelope envelope-front" src="./assets/closedletter.png" alt="" />
-              <img class="asset wax-seal" src="./assets/stampoverlay.png" alt="" />
-
-              <div class="closed-copy">
-                <h1>You are invited</h1>
-                <p>Tap to open</p>
-              </div>
-
-              <button
-                class="scene-hitbox closed-hitbox"
-                id="closedHitbox"
-                type="button"
-                aria-label="Open invitation"
-                aria-expanded="false"
-                aria-controls="openedLetterPreview">
-                <span class="visually-hidden">Open invitation</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="scene scene-opened" aria-hidden="true">
-            <div class="opened-envelope-group" id="openedLetterPreview" aria-label="Opened envelope reveal">
-              <img class="asset open-envelope-back" src="./assets/openbottomletter.png" alt="" />
-
-              <div class="insert-preview" aria-hidden="true">
-                <div class="insert-paper">
-                  <p class="insert-eyebrow">Save the Date</p>
-                  <p class="insert-names">Ciaran &amp; Cheylin</p>
-                  <p class="insert-date">26 September 2027</p>
-                </div>
-              </div>
-
-              <img class="asset open-envelope-front" src="./assets/openlettertop.png" alt="" />
-
-              <button
-                class="scene-hitbox opened-hitbox"
-                id="openedHitbox"
-                type="button"
-                aria-label="Reveal invitation details"
-                aria-controls="invitationCard"
-                aria-expanded="false">
-                <span class="visually-hidden">Reveal invitation details</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div class="controls" role="group" aria-label="Invitation controls">
-          <button class="action-button" id="primaryAction" type="button" aria-pressed="false">
-            Open invitation
-          </button>
-          <button class="secondary-button" id="secondaryAction" type="button" hidden>
-            Back to top
-          </button>
-        </div>
-      </section>
-
-      <section class="details-section" id="detailsSection" aria-hidden="true" aria-label="Invitation details">
-        <article class="invitation-card" id="invitationCard" tabindex="-1" aria-label="Invitation details">
-          <div class="card-texture" aria-hidden="true"></div>
-
-          <div class="card-content">
-            <p class="eyebrow">Save the Date</p>
-            <p class="family-line">TOGETHER WITH THEIR FAMILLIES</p>
-
-            <div class="name-row">
-              <div class="name-group">
-                <h2>Ciaran</h2>
-                <p>Engelbrecht</p>
-              </div>
-              <div class="ampersand">&amp;</div>
-              <div class="name-group">
-                <h2>Cheylin</h2>
-                <p>Manuel</p>
-              </div>
-            </div>
-
-            <p class="invite-line">Invite you to celebrate their wedding</p>
-            <p class="date-line">SUNDAY, 26<sup>TH</sup> SEPTEMBER 2027</p>
-            <p class="location-line">Perth, Western Australia</p>
-            <p class="note-line">Formal Invitation to follow</p>
-          </div>
-
-          <span class="corner corner-top-left" aria-hidden="true"></span>
-          <span class="corner corner-top-right" aria-hidden="true"></span>
-          <span class="corner corner-bottom-left" aria-hidden="true"></span>
-          <span class="corner corner-bottom-right" aria-hidden="true"></span>
+        <article class="mirror-view mirror-view-open" id="openView" aria-hidden="true">
+          <iframe
+            class="mirror-frame"
+            src="./mirror/open-invitation/index.html"
+            title="Open invitation"
+            loading="eager"></iframe>
         </article>
       </section>
 
-      <noscript>
-        <p class="no-script-note">
-          JavaScript is disabled. Enable JavaScript to view the opening invitation animation.
-        </p>
-      </noscript>
+      <div class="mirror-controls" role="group" aria-label="Invitation controls">
+        <button class="mirror-button" id="openButton" type="button">Open Invitation</button>
+        <button class="mirror-button" id="backButton" type="button" hidden>Return</button>
+      </div>
     </main>
-
-    <!-- Asset usage map:
-      3daboveflowers.png: white floral flourish
-      backgroundorchids1.png: left orchid background cluster
-      backgroundorchids2.png: right orchid background branch
-      orchid.png: foreground orchid accent
-      closedletter.png: sealed envelope
-      stampoverlay.png: wax seal overlay
-      openbottomletter.png: opened envelope back layer
-      openlettertop.png: opened envelope front layer
-      backgroundpaper.jpg: invitation paper texture
-    -->
 
     <script src="./script.js" defer></script>
   </body>
