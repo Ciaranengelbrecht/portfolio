@@ -45,11 +45,11 @@ body {
   width: min(96vw, 1450px);
   aspect-ratio: 15 / 8;
   position: relative;
-  overflow: hidden;
-  border-radius: 16px;
+  overflow: visible;
+  border-radius: 0;
   isolation: isolate;
-  border: 1px solid rgba(198, 151, 68, 0.26);
-  box-shadow: var(--stage-shadow);
+  border: none;
+  box-shadow: none;
 }
 
 .stage::after {
@@ -58,8 +58,8 @@ body {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
-  z-index: 25;
+  box-shadow: none;
+  z-index: 0;
 }
 
 .atmosphere {
@@ -135,10 +135,10 @@ body {
 
 .orchid-branch {
   width: clamp(10rem, 20vw, 28rem);
-  right: 17%;
-  top: 15%;
-  transform: rotate(23deg);
-  z-index: 2;
+  right: 20%;
+  top: 33%;
+  transform: rotate(12deg);
+  z-index: 9;
   filter: drop-shadow(0 10px 16px rgba(40, 33, 26, 0.16));
 }
 
@@ -186,9 +186,9 @@ body {
 .closed-copy {
   position: absolute;
   left: 50%;
-  top: 40%;
+  top: 49%;
   transform: translateX(-50%);
-  width: min(72%, 24rem);
+  width: min(62%, 20rem);
   text-align: center;
   z-index: 7;
   transition: opacity 420ms ease, transform 560ms var(--ease-soft);
@@ -198,7 +198,7 @@ body {
   margin: 0;
   color: var(--gold-deep);
   font-family: "Allura", cursive;
-  font-size: clamp(2rem, 3.4vw, 3.4rem);
+  font-size: clamp(1.75rem, 3vw, 2.9rem);
   font-weight: 400;
   letter-spacing: 0.01em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -206,7 +206,7 @@ body {
 
 .closed-copy p {
   margin: 0.02rem 0 0;
-  font-size: clamp(0.9rem, 1.05vw, 1.15rem);
+  font-size: clamp(0.84rem, 0.95vw, 1.04rem);
   color: rgba(149, 81, 0, 0.74);
   text-decoration: underline;
   text-underline-offset: 0.2rem;
@@ -257,9 +257,9 @@ body {
 }
 
 .open-envelope {
-  width: clamp(22rem, 44vw, 37rem);
+  width: clamp(20rem, 39vw, 33rem);
   left: 50%;
-  bottom: 8%;
+  bottom: 10%;
   transform: translateX(-50%);
   z-index: 7;
   filter: drop-shadow(0 22px 36px rgba(45, 34, 21, 0.22));
@@ -268,17 +268,17 @@ body {
 .insert-preview {
   position: absolute;
   left: 50%;
-  top: 55%;
-  width: clamp(15rem, 30vw, 25rem);
+  top: 48%;
+  width: clamp(13.5rem, 26vw, 22rem);
   aspect-ratio: 634 / 687;
-  transform: translate(-50%, 22%) scale(0.88);
+  transform: translate(-50%, 34%) scale(0.86);
   opacity: 0;
   border-radius: 9px;
   overflow: hidden;
   border: 1px solid rgba(198, 151, 68, 0.32);
   box-shadow: 0 18px 30px rgba(50, 38, 24, 0.22);
   transition: transform 820ms var(--ease-lift), opacity 650ms ease;
-  z-index: 6;
+  z-index: 8;
 }
 
 .insert-preview img {
@@ -288,12 +288,12 @@ body {
 }
 
 .invite-page[data-step="1"] .insert-preview {
-  transform: translate(-50%, -6%) scale(1);
+  transform: translate(-50%, -24%) scale(1);
   opacity: 1;
 }
 
 .invite-page[data-step="2"] .scene-opened .insert-preview {
-  transform: translate(-50%, -42%) scale(1.03);
+  transform: translate(-50%, -46%) scale(1.03);
   opacity: 0;
 }
 
@@ -301,10 +301,10 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, 12%) scale(0.92);
-  width: clamp(22rem, 43vw, 40rem);
-  min-height: clamp(18rem, 27vw, 26rem);
-  max-height: 86%;
+  transform: translate(-50%, -50%) scale(0.9);
+  width: clamp(18rem, 33vw, 30rem);
+  min-height: 0;
+  max-height: min(74vh, 30rem);
   overflow-y: auto;
   background-color: var(--card-ivory);
   border-radius: 8px;
@@ -316,7 +316,7 @@ body {
 }
 
 .invite-page[data-step="2"] .invitation-card {
-  transform: translate(-50%, -34%) scale(1);
+  transform: translate(-50%, -50%) scale(1);
   opacity: 1;
 }
 
@@ -565,10 +565,10 @@ body {
   }
 
   .orchid-branch {
-    right: 3%;
-    top: 20%;
+    right: 10%;
+    top: 40%;
     width: clamp(7.8rem, 35vw, 14rem);
-    transform: rotate(15deg);
+    transform: rotate(7deg);
   }
 
   .envelope-front {
@@ -582,47 +582,46 @@ body {
   }
 
   .closed-copy {
-    top: 31%;
-    width: min(82%, 20rem);
+    top: 47%;
+    width: min(72%, 17.2rem);
   }
 
   .closed-copy h1 {
-    font-size: clamp(1.65rem, 8vw, 2.25rem);
+    font-size: clamp(1.45rem, 7.2vw, 2rem);
   }
 
   .closed-copy p {
-    font-size: clamp(0.84rem, 4.2vw, 1rem);
+    font-size: clamp(0.78rem, 3.8vw, 0.92rem);
   }
 
   .open-envelope {
-    width: min(80%, 20.8rem);
-    bottom: 15%;
+    width: min(82%, 20.2rem);
+    bottom: 12%;
   }
 
   .insert-preview {
-    width: min(67%, 14.4rem);
-    top: 60%;
+    width: min(58%, 13.6rem);
+    top: 52%;
   }
 
   .invite-page[data-step="1"] .insert-preview {
-    transform: translate(-50%, 3%) scale(1);
+    transform: translate(-50%, -26%) scale(1);
   }
 
   .opened-hitbox {
-    width: min(68%, 15rem);
-    top: 36%;
+    width: min(64%, 14rem);
+    top: 30%;
     height: clamp(10rem, 30vw, 13rem);
   }
 
   .invitation-card {
-    width: min(91%, 21.8rem);
-    min-height: 21rem;
-    max-height: 84%;
-    top: 54%;
+    width: min(84%, 19.2rem);
+    max-height: min(72vh, 24rem);
+    top: 50%;
   }
 
   .invite-page[data-step="2"] .invitation-card {
-    transform: translate(-50%, -18%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 
   .card-content {
@@ -651,7 +650,7 @@ body {
   }
 
   .closed-copy {
-    top: 28.5%;
+    top: 48%;
   }
 
   .envelope-front,
@@ -660,19 +659,21 @@ body {
   }
 
   .open-envelope {
-    bottom: 16.5%;
+    bottom: 10.5%;
   }
 
   .insert-preview {
-    top: 62%;
+    width: min(57%, 12.5rem);
+    top: 53%;
   }
 
   .invitation-card {
-    min-height: 20rem;
-    top: 56%;
+    width: min(86%, 18.2rem);
+    max-height: min(70vh, 22.5rem);
+    top: 50%;
   }
 
   .invite-page[data-step="2"] .invitation-card {
-    transform: translate(-50%, -14%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
