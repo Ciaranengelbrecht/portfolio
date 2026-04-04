@@ -16,102 +16,108 @@
   </head>
   <body class="invite-page" data-step="0">
     <main class="invite-shell" aria-label="Wedding save the date invitation">
-      <section class="stage" id="inviteStage">
-        <div class="atmosphere" aria-hidden="true"></div>
+      <section class="stage-wrap" aria-label="Envelope reveal stage">
+        <section class="stage" id="inviteStage">
+          <div class="atmosphere" aria-hidden="true"></div>
 
-        <img class="asset bloom bloom-left-large" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
-        <img class="asset bloom bloom-left-small" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
-        <img class="asset bloom bloom-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+          <div class="floral-layer" aria-hidden="true">
+            <img class="asset bloom bloom-left-large" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+            <img class="asset bloom bloom-left-small" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+            <img class="asset bloom bloom-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+            <img class="asset bloom bloom-mid-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
 
-        <img class="asset orchid orchid-left" src="./assets/d94095d04c23e8a117f510fbb58922a2.png" alt="" />
-        <img class="asset orchid orchid-right" src="./assets/763b634f32e7bca7e099ef48484cde26.png" alt="" />
-        <img class="asset orchid-branch" src="./assets/ae9f4b32654dfda7447bd84a8000e8c6.png" alt="" />
-
-        <div class="scene scene-closed" aria-hidden="false">
-          <img class="asset envelope envelope-front" src="./assets/968c3d7fe66755ba37156839207faa3f.png" alt="" />
-
-          <div class="closed-copy">
-            <h1>You are invited</h1>
-            <p>Tap to open</p>
+            <img class="asset orchid orchid-left" src="./assets/d94095d04c23e8a117f510fbb58922a2.png" alt="" />
+            <img class="asset orchid orchid-right" src="./assets/763b634f32e7bca7e099ef48484cde26.png" alt="" />
+            <img class="asset orchid-branch" src="./assets/ae9f4b32654dfda7447bd84a8000e8c6.png" alt="" />
           </div>
 
-          <button
-            class="scene-hitbox closed-hitbox"
-            id="closedHitbox"
-            type="button"
-            aria-label="Open invitation"
-            aria-expanded="false"
-            aria-controls="openedLetterPreview">
-            <span class="visually-hidden">Open invitation</span>
-          </button>
-        </div>
+          <div class="scene scene-closed" aria-hidden="false">
+            <div class="closed-envelope-group">
+              <img class="asset envelope envelope-front" src="./assets/968c3d7fe66755ba37156839207faa3f.png" alt="" />
+              <img class="asset wax-seal" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
 
-        <div class="scene scene-opened" aria-hidden="true">
-          <div class="opened-stack" id="openedLetterPreview" aria-label="Opened letter preview">
-            <img class="asset open-envelope-back" src="./assets/ffba30e10ca900070adadb88de7ec9d4.png" alt="" />
-
-            <div class="insert-preview">
-              <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="Invitation insert artwork" />
-            </div>
-
-            <img class="asset open-envelope-front" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
-          </div>
-
-          <button
-            class="scene-hitbox opened-hitbox"
-            id="openedHitbox"
-            type="button"
-            aria-label="Reveal invitation details"
-            aria-controls="invitationCard">
-            <span class="visually-hidden">Reveal invitation details</span>
-          </button>
-        </div>
-
-        <div class="scene scene-details" aria-hidden="true">
-
-          <article class="invitation-card" id="invitationCard" aria-label="Invitation details">
-            <div class="card-texture" aria-hidden="true"></div>
-
-            <div class="card-content">
-              <p class="eyebrow">Save the Date</p>
-              <p class="family-line">Together with their families</p>
-
-              <div class="name-row">
-                <div class="name-group">
-                  <h2>Ciaran</h2>
-                  <p>Engelbrecht</p>
-                </div>
-                <div class="ampersand">&amp;</div>
-                <div class="name-group">
-                  <h2>Cheylin</h2>
-                  <p>Manuel</p>
-                </div>
+              <div class="closed-copy">
+                <h1>You are invited</h1>
+                <p>Tap to open</p>
               </div>
 
-              <p class="invite-line">Invite you to celebrate their wedding</p>
-              <p class="date-line">Sunday, 26<sup>th</sup> September 2027</p>
-              <p class="location-line">Perth, Western Australia</p>
-              <p class="note-line">Formal invitation to follow</p>
+              <button
+                class="scene-hitbox closed-hitbox"
+                id="closedHitbox"
+                type="button"
+                aria-label="Open invitation"
+                aria-expanded="false"
+                aria-controls="openedLetterPreview">
+                <span class="visually-hidden">Open invitation</span>
+              </button>
             </div>
+          </div>
 
-            <span class="corner corner-top-left" aria-hidden="true"></span>
-            <span class="corner corner-top-right" aria-hidden="true"></span>
-            <span class="corner corner-bottom-left" aria-hidden="true"></span>
-            <span class="corner corner-bottom-right" aria-hidden="true"></span>
-          </article>
+          <div class="scene scene-opened" aria-hidden="true">
+            <div class="opened-envelope-group" id="openedLetterPreview" aria-label="Opened letter preview">
+              <img class="asset open-envelope-back" src="./assets/ffba30e10ca900070adadb88de7ec9d4.png" alt="" />
+
+              <div class="insert-preview">
+                <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="Invitation insert artwork" />
+              </div>
+
+              <img class="asset open-envelope-front" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
+
+              <button
+                class="scene-hitbox opened-hitbox"
+                id="openedHitbox"
+                type="button"
+                aria-label="Reveal invitation details"
+                aria-controls="invitationCard"
+                aria-expanded="false">
+                <span class="visually-hidden">Reveal invitation details</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div class="controls" role="group" aria-label="Invitation controls">
+          <button class="action-button" id="primaryAction" type="button" aria-pressed="false">
+            Tap to open
+          </button>
+          <button class="secondary-button" id="secondaryAction" type="button" hidden>
+            Back
+          </button>
         </div>
-
-        <img class="asset bloom bloom-mid-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
       </section>
 
-      <div class="controls" role="group" aria-label="Invitation controls">
-        <button class="action-button" id="primaryAction" type="button" aria-pressed="false">
-          Tap to open
-        </button>
-        <button class="secondary-button" id="secondaryAction" type="button" hidden>
-          Back
-        </button>
-      </div>
+      <section class="details-section" id="detailsSection" aria-hidden="true" aria-label="Invitation details">
+        <article class="invitation-card" id="invitationCard" tabindex="-1" aria-label="Invitation details">
+          <div class="card-texture" aria-hidden="true"></div>
+
+          <div class="card-content">
+            <p class="eyebrow">Save the Date</p>
+            <p class="family-line">Together with their families</p>
+
+            <div class="name-row">
+              <div class="name-group">
+                <h2>Ciaran</h2>
+                <p>Engelbrecht</p>
+              </div>
+              <div class="ampersand">&amp;</div>
+              <div class="name-group">
+                <h2>Cheylin</h2>
+                <p>Manuel</p>
+              </div>
+            </div>
+
+            <p class="invite-line">Invite you to celebrate their wedding</p>
+            <p class="date-line">Sunday, 26<sup>th</sup> September 2027</p>
+            <p class="location-line">Perth, Western Australia</p>
+            <p class="note-line">Formal invitation to follow</p>
+          </div>
+
+          <span class="corner corner-top-left" aria-hidden="true"></span>
+          <span class="corner corner-top-right" aria-hidden="true"></span>
+          <span class="corner corner-bottom-left" aria-hidden="true"></span>
+          <span class="corner corner-bottom-right" aria-hidden="true"></span>
+        </article>
+      </section>
 
       <noscript>
         <p class="no-script-note">
