@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ciaran &amp; Cheylin | Save the Date</title>
+    <meta
+      name="description"
+      content="Save the Date invitation for Ciaran Engelbrecht and Cheylin Manuel." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body class="invite-page">
+    <main class="invite-shell" aria-label="Wedding save the date invitation">
+      <section class="stage" id="inviteStage">
+        <div class="atmosphere" aria-hidden="true"></div>
+
+        <img class="asset bloom bloom-left-large" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+        <img class="asset bloom bloom-left-small" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+        <img class="asset bloom bloom-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+
+        <img class="asset orchid orchid-left" src="./assets/d94095d04c23e8a117f510fbb58922a2.png" alt="" />
+        <img class="asset orchid orchid-right" src="./assets/763b634f32e7bca7e099ef48484cde26.png" alt="" />
+        <img class="asset orchid-branch" src="./assets/ae9f4b32654dfda7447bd84a8000e8c6.png" alt="" />
+
+        <div class="closed-composition" aria-hidden="false">
+          <img class="asset envelope envelope-back" src="./assets/ffba30e10ca900070adadb88de7ec9d4.png" alt="" />
+          <img class="asset envelope envelope-front" src="./assets/968c3d7fe66755ba37156839207faa3f.png" alt="" />
+
+          <div class="closed-copy">
+            <h1>You are invited</h1>
+            <p>Tap to open</p>
+          </div>
+
+          <button
+            class="envelope-hitbox"
+            id="envelopeButton"
+            type="button"
+            aria-label="Open invitation"
+            aria-expanded="false"
+            aria-controls="invitationCard">
+            <span class="visually-hidden">Open invitation</span>
+          </button>
+        </div>
+
+        <div class="open-composition" aria-hidden="true">
+          <img class="asset wax-top" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
+          <img class="asset open-envelope" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
+
+          <article class="invitation-card" id="invitationCard" aria-label="Invitation details">
+            <div class="card-venue-art" aria-hidden="true">
+              <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="" />
+            </div>
+
+            <div class="card-texture" aria-hidden="true"></div>
+
+            <div class="card-content">
+              <p class="eyebrow">Save the Date</p>
+              <p class="family-line">Together with their families</p>
+
+              <div class="name-row">
+                <div class="name-group">
+                  <h2>Ciaran</h2>
+                  <p>Engelbrecht</p>
+                </div>
+                <div class="ampersand">&amp;</div>
+                <div class="name-group">
+                  <h2>Cheylin</h2>
+                  <p>Manuel</p>
+                </div>
+              </div>
+
+              <p class="invite-line">Invite you to celebrate their wedding</p>
+              <p class="date-line">Sunday, 26<sup>th</sup> September 2027</p>
+              <p class="location-line">Perth, Western Australia</p>
+              <p class="note-line">Formal invitation to follow</p>
+            </div>
+
+            <span class="corner corner-top-left" aria-hidden="true"></span>
+            <span class="corner corner-top-right" aria-hidden="true"></span>
+            <span class="corner corner-bottom-left" aria-hidden="true"></span>
+            <span class="corner corner-bottom-right" aria-hidden="true"></span>
+          </article>
+        </div>
+
+        <img class="asset bloom bloom-mid-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+      </section>
+
+      <div class="controls" role="group" aria-label="Invitation controls">
+        <button class="action-button" id="toggleInvite" type="button" aria-pressed="false">
+          Tap to open
+        </button>
+      </div>
+
+      <noscript>
+        <p class="no-script-note">
+          JavaScript is disabled. Enable JavaScript to view the opening invitation animation.
+        </p>
+      </noscript>
+    </main>
+
+    <!-- Asset usage map:
+      3831...png: white bloom florals
+      763b...png: right orchid bouquet
+      968c...png: sealed envelope front
+      9eff...png: venue artwork inside card
+      ae9...png: orchid branch flourish
+      af83...jpg: invitation paper texture base
+      beff...png: opened envelope shell
+      d769...png: wax seal
+      d940...png: orchid + perfume bouquet
+      ffba...png: envelope back layer
+    -->
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>
