@@ -3,10 +3,9 @@
   const closedScene = document.getElementById('closedScene');
   const openScene = document.getElementById('openScene');
   const overlay = document.getElementById('openOverlay');
-  const openButton = document.getElementById('openButton');
-  const backButton = document.getElementById('backButton');
+  const returnLink = document.getElementById('returnLink');
 
-  if (!page || !closedScene || !openScene || !overlay || !openButton || !backButton) {
+  if (!page || !closedScene || !openScene || !overlay || !returnLink) {
     return;
   }
 
@@ -17,8 +16,7 @@
     page.dataset.step = nextStep;
     closedScene.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
     openScene.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-    openButton.hidden = isOpen;
-    backButton.hidden = !isOpen;
+    returnLink.hidden = !isOpen;
   }
 
   function openInvite() {
@@ -30,8 +28,7 @@
   }
 
   overlay.addEventListener('click', openInvite);
-  openButton.addEventListener('click', openInvite);
-  backButton.addEventListener('click', closeInvite);
+  returnLink.addEventListener('click', closeInvite);
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {

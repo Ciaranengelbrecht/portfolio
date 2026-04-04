@@ -15,41 +15,42 @@
   <body class="invite-page" data-step="closed">
     <main class="invite-shell" aria-label="Wedding invitation">
       <section class="stage" aria-live="polite">
-        <div class="atmosphere" aria-hidden="true"></div>
-
-        <div class="floral-layer" aria-hidden="true">
-          <img class="asset bloom bloom-left-large" src="./assets/3daboveflowers.png" alt="" />
-          <img class="asset bloom bloom-left-small" src="./assets/3daboveflowers.png" alt="" />
-          <img class="asset bloom bloom-right" src="./assets/3daboveflowers.png" alt="" />
-          <img class="asset bloom bloom-mid-right" src="./assets/3daboveflowers.png" alt="" />
-
-          <img class="asset orchid orchid-left" src="./assets/backgroundorchids1.png" alt="" />
-          <img class="asset orchid orchid-right" src="./assets/backgroundorchids2.png" alt="" />
-          <img class="asset orchid orchid-mid" src="./assets/orchid.png" alt="" />
-        </div>
-
         <article class="scene scene-closed" id="closedScene" aria-hidden="false">
-          <div class="envelope-closed">
-            <img class="asset envelope-front" src="./assets/closedletter.png" alt="Closed envelope" />
-            <img class="asset wax-seal" src="./assets/stampoverlay.png" alt="" />
+          <div class="canvas canvas-closed">
+            <img class="asset flower flower-c1" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-c2" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-c3" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-c4" src="./assets/3daboveflowers.png" alt="" />
 
-            <div class="closed-copy">
-              <h1>You are invited</h1>
-              <p>Tap to open</p>
+            <img class="asset orchid orchid-c1" src="./assets/backgroundorchids1.png" alt="" />
+            <img class="asset orchid orchid-c2" src="./assets/backgroundorchids2.png" alt="" />
+
+            <div class="closed-envelope-wrap">
+              <img class="asset envelope-front" src="./assets/closedletter.png" alt="Closed envelope" />
+              <img class="asset wax-seal" src="./assets/stampoverlay.png" alt="" />
+              <span class="seal-text" aria-hidden="true">C &amp; C</span>
+
+              <button id="openOverlay" class="overlay-button" type="button" aria-label="Open invitation"></button>
             </div>
-
-            <button id="openOverlay" class="overlay-button" type="button" aria-label="Open invitation"></button>
           </div>
         </article>
 
         <article class="scene scene-open" id="openScene" aria-hidden="true">
-          <div class="envelope-open">
+          <div class="canvas canvas-open">
+            <img class="asset flower flower-o1" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-o2" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-o3" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset flower flower-o4" src="./assets/3daboveflowers.png" alt="" />
+
+            <img class="asset orchid orchid-o1" src="./assets/backgroundorchids1.png" alt="" />
+            <img class="asset orchid orchid-o2" src="./assets/backgroundorchids2.png" alt="" />
+
             <img class="asset envelope-back" src="./assets/openbottomletter.png" alt="Opened envelope" />
 
             <section class="invite-paper" aria-label="Invitation text">
               <div class="paper-inner">
                 <p class="eyebrow">Save the Date</p>
-                <p class="family">TOGETHER WITH THEIR FAMILIES</p>
+                <p class="family">TOGETHER WITH THEIR FAMILLIES</p>
 
                 <div class="names">
                   <div class="person">
@@ -78,12 +79,9 @@
             <img class="asset envelope-front-open" src="./assets/openlettertop.png" alt="" />
           </div>
         </article>
-      </section>
 
-      <div class="controls" role="group" aria-label="Invitation controls">
-        <button id="openButton" class="action" type="button">Open Invitation</button>
-        <button id="backButton" class="action secondary" type="button" hidden>Return</button>
-      </div>
+        <button id="returnLink" class="return-link" type="button" hidden>&lt; Return</button>
+      </section>
     </main>
 
     <script src="./script.js" defer></script>
