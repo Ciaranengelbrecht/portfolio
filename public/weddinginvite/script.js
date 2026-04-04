@@ -1,43 +1,43 @@
 (function () {
-  const body = document.body;
+  const page = document.querySelector('.invite-page');
+  const closedScene = document.getElementById('closedScene');
+  const openScene = document.getElementById('openScene');
+  const overlay = document.getElementById('openOverlay');
   const openButton = document.getElementById('openButton');
   const backButton = document.getElementById('backButton');
-  const openOverlay = document.getElementById('openOverlay');
-  const closedView = document.getElementById('closedView');
-  const openView = document.getElementById('openView');
 
-  if (!openButton || !backButton || !openOverlay || !closedView || !openView) {
+  if (!page || !closedScene || !openScene || !overlay || !openButton || !backButton) {
     return;
   }
 
   function setStep(step) {
-    const isOpen = step === 'open';
+    const nextStep = step === 'open' ? 'open' : 'closed';
+    const isOpen = nextStep === 'open';
 
-    body.setAttribute('data-step', isOpen ? 'open' : 'closed');
-    closedView.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
-    openView.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-
+    page.dataset.step = nextStep;
+    closedScene.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+    openScene.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     openButton.hidden = isOpen;
     backButton.hidden = !isOpen;
   }
 
-  function openInvitation() {
+  function openInvite() {
     setStep('open');
   }
 
-  function returnInvitation() {
+  function closeInvite() {
     setStep('closed');
   }
 
-  openOverlay.addEventListener('click', openInvitation);
-  openButton.addEventListener('click', openInvitation);
-  backButton.addEventListener('click', returnInvitation);
+  overlay.addEventListener('click', openInvite);
+  openButton.addEventListener('click', openInvite);
+  backButton.addEventListener('click', closeInvite);
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' && body.getAttribute('data-step') === 'open') {
-      returnInvitation();
+    if (event.key === 'Escape') {
+      closeInvite();
     }
   });
 
-  setStep('closed');
+  setStep(page.dataset.step);
 })();

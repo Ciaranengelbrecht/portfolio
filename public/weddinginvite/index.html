@@ -3,34 +3,86 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ciaran &amp; Cheylin | Invitation</title>
+    <title>Ciaran &amp; Cheylin | Save the Date</title>
     <meta name="description" content="Wedding invitation for Ciaran and Cheylin." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap"
+      rel="stylesheet" />
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body class="mirror-page" data-step="closed">
-    <main class="mirror-shell" aria-label="Wedding invitation mirror">
-      <section class="mirror-stage" aria-live="polite">
-        <article class="mirror-view mirror-view-closed" id="closedView" aria-hidden="false">
-          <iframe
-            class="mirror-frame"
-            src="./mirror/invitation/index.html"
-            title="Closed invitation"
-            loading="eager"></iframe>
-          <button class="open-overlay" id="openOverlay" type="button" aria-label="Open invitation"></button>
+  <body class="invite-page" data-step="closed">
+    <main class="invite-shell" aria-label="Wedding invitation">
+      <section class="stage" aria-live="polite">
+        <div class="atmosphere" aria-hidden="true"></div>
+
+        <div class="floral-layer" aria-hidden="true">
+          <img class="asset bloom bloom-left-large" src="./assets/3daboveflowers.png" alt="" />
+          <img class="asset bloom bloom-left-small" src="./assets/3daboveflowers.png" alt="" />
+          <img class="asset bloom bloom-right" src="./assets/3daboveflowers.png" alt="" />
+          <img class="asset bloom bloom-mid-right" src="./assets/3daboveflowers.png" alt="" />
+
+          <img class="asset orchid orchid-left" src="./assets/backgroundorchids1.png" alt="" />
+          <img class="asset orchid orchid-right" src="./assets/backgroundorchids2.png" alt="" />
+          <img class="asset orchid orchid-mid" src="./assets/orchid.png" alt="" />
+        </div>
+
+        <article class="scene scene-closed" id="closedScene" aria-hidden="false">
+          <div class="envelope-closed">
+            <img class="asset envelope-front" src="./assets/closedletter.png" alt="Closed envelope" />
+            <img class="asset wax-seal" src="./assets/stampoverlay.png" alt="" />
+
+            <div class="closed-copy">
+              <h1>You are invited</h1>
+              <p>Tap to open</p>
+            </div>
+
+            <button id="openOverlay" class="overlay-button" type="button" aria-label="Open invitation"></button>
+          </div>
         </article>
 
-        <article class="mirror-view mirror-view-open" id="openView" aria-hidden="true">
-          <iframe
-            class="mirror-frame"
-            src="./mirror/open-invitation/index.html"
-            title="Open invitation"
-            loading="eager"></iframe>
+        <article class="scene scene-open" id="openScene" aria-hidden="true">
+          <div class="envelope-open">
+            <img class="asset envelope-back" src="./assets/openbottomletter.png" alt="Opened envelope" />
+
+            <section class="invite-paper" aria-label="Invitation text">
+              <div class="paper-inner">
+                <p class="eyebrow">Save the Date</p>
+                <p class="family">TOGETHER WITH THEIR FAMILLIES</p>
+
+                <div class="names">
+                  <div class="person">
+                    <h2>Ciaran</h2>
+                    <p>Engelbrecht</p>
+                  </div>
+                  <span class="amp">&amp;</span>
+                  <div class="person">
+                    <h2>Cheylin</h2>
+                    <p>Manuel</p>
+                  </div>
+                </div>
+
+                <p class="line italic">Invite you to celebrate their wedding</p>
+                <p class="line strong">SUNDAY, 26<sup>TH</sup> SEPTEMBER 2027</p>
+                <p class="line">Perth, Western Australia</p>
+                <p class="line italic">Formal Invitation to follow</p>
+              </div>
+
+              <span class="paper-corner tl" aria-hidden="true"></span>
+              <span class="paper-corner tr" aria-hidden="true"></span>
+              <span class="paper-corner bl" aria-hidden="true"></span>
+              <span class="paper-corner br" aria-hidden="true"></span>
+            </section>
+
+            <img class="asset envelope-front-open" src="./assets/openlettertop.png" alt="" />
+          </div>
         </article>
       </section>
 
-      <div class="mirror-controls" role="group" aria-label="Invitation controls">
-        <button class="mirror-button" id="openButton" type="button">Open Invitation</button>
-        <button class="mirror-button" id="backButton" type="button" hidden>Return</button>
+      <div class="controls" role="group" aria-label="Invitation controls">
+        <button id="openButton" class="action" type="button">Open Invitation</button>
+        <button id="backButton" class="action secondary" type="button" hidden>Return</button>
       </div>
     </main>
 
