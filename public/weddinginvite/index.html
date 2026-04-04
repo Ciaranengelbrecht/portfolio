@@ -21,20 +21,20 @@
           <div class="atmosphere" aria-hidden="true"></div>
 
           <div class="floral-layer" aria-hidden="true">
-            <img class="asset bloom bloom-left-large" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
-            <img class="asset bloom bloom-left-small" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
-            <img class="asset bloom bloom-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
-            <img class="asset bloom bloom-mid-right" src="./assets/3831c98cd18a8af50d5cc76d0ab9a913.png" alt="" />
+            <img class="asset bloom bloom-left-large" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset bloom bloom-left-small" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset bloom bloom-right" src="./assets/3daboveflowers.png" alt="" />
+            <img class="asset bloom bloom-mid-right" src="./assets/3daboveflowers.png" alt="" />
 
-            <img class="asset orchid orchid-left" src="./assets/d94095d04c23e8a117f510fbb58922a2.png" alt="" />
-            <img class="asset orchid orchid-right" src="./assets/763b634f32e7bca7e099ef48484cde26.png" alt="" />
-            <img class="asset orchid-branch" src="./assets/ae9f4b32654dfda7447bd84a8000e8c6.png" alt="" />
+            <img class="asset orchid orchid-left" src="./assets/backgroundorchids1.png" alt="" />
+            <img class="asset orchid orchid-right" src="./assets/backgroundorchids2.png" alt="" />
+            <img class="asset orchid orchid-mid" src="./assets/orchid.png" alt="" />
           </div>
 
           <div class="scene scene-closed" aria-hidden="false">
             <div class="closed-envelope-group">
-              <img class="asset envelope envelope-front" src="./assets/968c3d7fe66755ba37156839207faa3f.png" alt="" />
-              <img class="asset wax-seal" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
+              <img class="asset envelope envelope-front" src="./assets/closedletter.png" alt="" />
+              <img class="asset wax-seal" src="./assets/stampoverlay.png" alt="" />
 
               <div class="closed-copy">
                 <h1>You are invited</h1>
@@ -54,14 +54,18 @@
           </div>
 
           <div class="scene scene-opened" aria-hidden="true">
-            <div class="opened-envelope-group" id="openedLetterPreview" aria-label="Opened letter preview">
-              <img class="asset open-envelope-back" src="./assets/ffba30e10ca900070adadb88de7ec9d4.png" alt="" />
+            <div class="opened-envelope-group" id="openedLetterPreview" aria-label="Opened envelope reveal">
+              <img class="asset open-envelope-back" src="./assets/openbottomletter.png" alt="" />
 
-              <div class="insert-preview">
-                <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="Invitation insert artwork" />
+              <div class="insert-preview" aria-hidden="true">
+                <div class="insert-paper">
+                  <p class="insert-eyebrow">Save the Date</p>
+                  <p class="insert-names">Ciaran &amp; Cheylin</p>
+                  <p class="insert-date">26 September 2027</p>
+                </div>
               </div>
 
-              <img class="asset open-envelope-front" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
+              <img class="asset open-envelope-front" src="./assets/openlettertop.png" alt="" />
 
               <button
                 class="scene-hitbox opened-hitbox"
@@ -78,10 +82,10 @@
 
         <div class="controls" role="group" aria-label="Invitation controls">
           <button class="action-button" id="primaryAction" type="button" aria-pressed="false">
-            Tap to open
+            Open invitation
           </button>
           <button class="secondary-button" id="secondaryAction" type="button" hidden>
-            Back
+            Back to top
           </button>
         </div>
       </section>
@@ -127,16 +131,15 @@
     </main>
 
     <!-- Asset usage map:
-      3831...png: white bloom florals
-      763b...png: right orchid bouquet
-      968c...png: sealed envelope front
-      9eff...png: opened-letter preview insert
-      ae9...png: orchid branch flourish
-      af83...jpg: invitation paper texture base
-      beff...png: opened envelope shell
-      d769...png: wax seal
-      d940...png: orchid + perfume bouquet
-      ffba...png: envelope back layer
+      3daboveflowers.png: white floral flourish
+      backgroundorchids1.png: left orchid background cluster
+      backgroundorchids2.png: right orchid background branch
+      orchid.png: foreground orchid accent
+      closedletter.png: sealed envelope
+      stampoverlay.png: wax seal overlay
+      openbottomletter.png: opened envelope back layer
+      openlettertop.png: opened envelope front layer
+      backgroundpaper.jpg: invitation paper texture
     -->
 
     <script src="./script.js" defer></script>
