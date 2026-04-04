@@ -32,23 +32,18 @@
     2: "Start again",
   };
 
-  let step = Number(body.getAttribute("data-step"));
-  if (!Number.isInteger(step) || step < 0 || step > 2) {
-    step = 0;
-  }
-
-  let revealTimer = null;
-
   const fixedLayoutItemsConfig = [
     {
       key: "closed-copy",
       selector: ".closed-copy",
       containerSelector: ".closed-envelope-group",
+      baseTransform: "translate(-50%, -50%)",
     },
     {
       key: "wax-seal",
       selector: ".wax-seal",
       containerSelector: ".closed-envelope-group",
+      baseTransform: "translate(-50%, -50%)",
     },
   ];
 
@@ -74,7 +69,14 @@
     "backgroundpaper.jpg",
   ];
 
-  const layoutStoreKey = "weddinginvite-layout-v2";
+  const layoutStoreKey = "weddinginvite-layout-v3";
+
+  let step = Number(body.getAttribute("data-step"));
+  if (!Number.isInteger(step) || step < 0 || step > 2) {
+    step = 0;
+  }
+
+  let revealTimer = null;
 
   function prefersReducedMotion() {
     return (
@@ -89,6 +91,11 @@
 
   function round(value) {
     return Math.round(value * 100) / 100;
+  }
+
+  function composeTransform(baseTransform, rotate, scale) {
+    const base = baseTransform ? baseTransform + " " : "";
+    return base + "rotate(" + round(rotate || 0) + "deg) scale(" + round(scale || 1) + ")";
   }
 
   function getRevealDelay() {
@@ -255,6 +262,19 @@
     target.style.bottom = "auto";
   }
 
+  function applyFixedVisual(target, fixedState, baseTransform) {
+    applyLayoutPosition(target, fixedState);
+    target.style.transform = composeTransform(baseTransform || "", fixedState.rotate || 0, fixedState.scale || 1);
+    target.style.transformOrigin = "center center";
+  }
+
+  function applyFlowerVisual(target, flowerState) {
+    applyLayoutPosition(target, flowerState);
+    target.style.transform = composeTransform("", flowerState.rotate || 0, flowerState.scale || 1);
+    target.style.transformOrigin = "center center";
+    target.style.display = flowerState.hidden ? "none" : "";
+  }
+
   function computePercentPosition(target, container) {
     const tr = target.getBoundingClientRect();
     const cr = container.getBoundingClientRect();
@@ -310,14 +330,6 @@
     return "asset bloom layout-custom-flower";
   }
 
-  function applyFlowerVisual(target, flowerState) {
-    applyLayoutPosition(target, flowerState);
-    target.style.transform =
-      "rotate(" + round(flowerState.rotate || 0) + "deg) scale(" + round(flowerState.scale || 1) + ")";
-    target.style.transformOrigin = "center center";
-    target.style.display = flowerState.hidden ? "none" : "";
-  }
-
   function buildCssSnippet(state, dragItems) {
     const lines = [];
 
@@ -333,7 +345,9 @@
           round(pos.left) +
           "%; top: " +
           round(pos.top) +
-          "%; right: auto; bottom: auto; }"
+          "%; right: auto; bottom: auto; transform: " +
+          composeTransform(item.baseTransform || "", pos.rotate || 0, pos.scale || 1) +
+          "; }"
       );
     });
 
@@ -359,11 +373,9 @@
             round(flower.left) +
             "%; top: " +
             round(flower.top) +
-            "%; right: auto; bottom: auto; transform: rotate(" +
-            round(flower.rotate || 0) +
-            "deg) scale(" +
-            round(flower.scale || 1) +
-            "); }"
+            "%; right: auto; bottom: auto; transform: " +
+            composeTransform("", flower.rotate || 0, flower.scale || 1) +
+            "; }"
         );
       });
 
@@ -428,13 +440,18 @@
     const style = document.createElement("style");
     style.textContent =
       "body[data-layout-mode=\"true\"] .layout-panel {" +
-      "position: fixed; top: 10px; left: 10px; z-index: 9999; width: min(340px, 92vw);" +
+      "position: fixed; right: 10px; bottom: 10px; left: auto; top: auto; z-index: 9999; width: min(340px, 86vw);" +
+      "max-height: min(72vh, 560px); overflow: auto;" +
       "padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(130,95,36,0.45);" +
       "background: rgba(255,255,255,0.96); box-shadow: 0 8px 22px rgba(39,30,17,0.22);" +
       "font-family: \"Cinzel\", serif; color: #5d3d0f;" +
       "}" +
+      "body[data-layout-mode=\"true\"] .layout-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.32rem; }" +
+      "body[data-layout-mode=\"true\"] .layout-panel-header button { border-radius: 999px; border: 1px solid rgba(130,95,36,0.42); background: #fff; padding: 0.22rem 0.6rem; font-family: \"Cinzel\", serif; font-size: 0.66rem; color: #7b4f11; cursor: pointer; }" +
+      "body[data-layout-mode=\"true\"] .layout-panel.collapsed { width: auto; max-height: none; overflow: visible; }" +
+      "body[data-layout-mode=\"true\"] .layout-panel.collapsed #layoutPanelBody { display: none; }" +
       "body[data-layout-mode=\"true\"] .layout-panel p { margin: 0; }" +
-      "body[data-layout-mode=\"true\"] .layout-title { font-size: 0.9rem; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.34rem; }" +
+      "body[data-layout-mode=\"true\"] .layout-title { font-size: 0.9rem; letter-spacing: 0.04em; text-transform: uppercase; }" +
       "body[data-layout-mode=\"true\"] .layout-help { font-family: \"Cormorant Garamond\", serif; font-size: 1rem; line-height: 1.1; margin-bottom: 0.4rem; }" +
       "body[data-layout-mode=\"true\"] .layout-active { font-family: \"Cormorant Garamond\", serif; font-size: 1rem; margin-bottom: 0.5rem; }" +
       "body[data-layout-mode=\"true\"] .layout-label { display: block; margin: 0.28rem 0 0.12rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; }" +
@@ -449,7 +466,8 @@
       "body[data-layout-mode=\"true\"] .floral-layer { pointer-events: auto !important; z-index: 60 !important; }" +
       "body[data-layout-mode=\"true\"] .layout-draggable { outline: 2px dashed rgba(207,160,67,0.55); outline-offset: 2px; cursor: grab; pointer-events: auto !important; touch-action: none; z-index: 70 !important; }" +
       "body[data-layout-mode=\"true\"] .layout-draggable.layout-active-item { outline-color: rgba(143,103,40,0.95); z-index: 90 !important; }" +
-      "body[data-layout-mode=\"true\"] .controls { opacity: 0.35; pointer-events: none; }";
+      "body[data-layout-mode=\"true\"] .controls { opacity: 0.35; pointer-events: none; }" +
+      "@media (max-width: 700px) { body[data-layout-mode=\"true\"] .layout-panel { width: min(300px, 72vw); right: 8px; bottom: 8px; } }";
 
     document.head.appendChild(style);
   }
@@ -461,18 +479,22 @@
     panel.setAttribute("aria-label", "Layout mode controls");
 
     panel.innerHTML =
+      '<div class="layout-panel-header">' +
       '<p class="layout-title">Layout mode</p>' +
-      '<p class="layout-help">Drag to reposition. Select flower to resize, rotate, add, or delete.</p>' +
+      '<button type="button" id="togglePanelButton">Hide</button>' +
+      "</div>" +
+      '<div id="layoutPanelBody">' +
+      '<p class="layout-help">Drag to reposition. Select any element to move, scale, and rotate.</p>' +
       '<p class="layout-active" id="layoutActive">Selected: none</p>' +
       '<label class="layout-label" for="flowerAssetSelect">Add flower asset</label>' +
       '<div class="layout-row">' +
       '<select id="flowerAssetSelect"></select>' +
       '<button type="button" id="addFlowerButton">Add</button>' +
       "</div>" +
-      '<label class="layout-label" for="flowerScaleInput">Scale</label>' +
-      '<input type="range" id="flowerScaleInput" min="0.3" max="2.8" step="0.01" value="1" />' +
-      '<label class="layout-label" for="flowerRotateInput">Rotate</label>' +
-      '<input type="range" id="flowerRotateInput" min="-180" max="180" step="1" value="0" />' +
+      '<label class="layout-label" for="itemScaleInput">Scale (selected item)</label>' +
+      '<input type="range" id="itemScaleInput" min="0.3" max="2.8" step="0.01" value="1" />' +
+      '<label class="layout-label" for="itemRotateInput">Rotate (selected item)</label>' +
+      '<input type="range" id="itemRotateInput" min="-180" max="180" step="1" value="0" />' +
       '<button type="button" id="deleteFlowerButton">Delete selected flower</button>' +
       '<div class="layout-actions">' +
       '<button type="button" id="copyLayoutButton">Copy CSS</button>' +
@@ -480,15 +502,17 @@
       '<button type="button" id="copyJsonButton">Copy JSON</button>' +
       '<button type="button" id="resetLayoutButton">Reset</button>' +
       "</div>" +
-      '<p class="layout-help layout-note">Open normal mode by removing ?layout=1 from URL.</p>';
+      '<p class="layout-help layout-note">Use Hide while editing behind panel. Remove ?layout=1 for normal mode.</p>' +
+      "</div>";
 
     document.body.appendChild(panel);
 
+    const togglePanelButton = panel.querySelector("#togglePanelButton");
     const activeLabel = panel.querySelector("#layoutActive");
     const assetSelect = panel.querySelector("#flowerAssetSelect");
     const addFlowerButton = panel.querySelector("#addFlowerButton");
-    const scaleInput = panel.querySelector("#flowerScaleInput");
-    const rotateInput = panel.querySelector("#flowerRotateInput");
+    const scaleInput = panel.querySelector("#itemScaleInput");
+    const rotateInput = panel.querySelector("#itemRotateInput");
     const deleteFlowerButton = panel.querySelector("#deleteFlowerButton");
     const copyLayoutButton = panel.querySelector("#copyLayoutButton");
     const copyHardcodeButton = panel.querySelector("#copyHardcodeButton");
@@ -500,6 +524,11 @@
       option.value = assetName;
       option.textContent = assetName;
       assetSelect.appendChild(option);
+    });
+
+    togglePanelButton.addEventListener("click", function () {
+      const collapsed = panel.classList.toggle("collapsed");
+      togglePanelButton.textContent = collapsed ? "Show" : "Hide";
     });
 
     addFlowerButton.addEventListener("click", function () {
@@ -539,11 +568,11 @@
       syncActiveLabel: function (activeLabelValue) {
         activeLabel.textContent = "Selected: " + (activeLabelValue || "none");
       },
-      syncFlowerControls: function (activeFlower) {
-        const enabled = Boolean(activeFlower);
+      syncTransformControls: function (activeState, selectedItemFixed) {
+        const enabled = Boolean(activeState);
         scaleInput.disabled = !enabled;
         rotateInput.disabled = !enabled;
-        deleteFlowerButton.disabled = !enabled;
+        deleteFlowerButton.disabled = !enabled || Boolean(selectedItemFixed);
 
         if (!enabled) {
           scaleInput.value = "1";
@@ -551,8 +580,8 @@
           return;
         }
 
-        scaleInput.value = String(round(activeFlower.scale || 1));
-        rotateInput.value = String(round(activeFlower.rotate || 0));
+        scaleInput.value = String(round(activeState.scale || 1));
+        rotateInput.value = String(round(activeState.rotate || 0));
       },
     };
   }
@@ -574,12 +603,20 @@
     let activeEl = null;
     let panel = null;
 
-    function getActiveFlowerState() {
-      if (!activeId || activeType !== "flower") {
+    function getActiveState() {
+      if (!activeId) {
         return null;
       }
 
-      return state.flowers[activeId] || null;
+      if (activeType === "fixed") {
+        return state.fixed[activeId] || null;
+      }
+
+      if (activeType === "flower") {
+        return state.flowers[activeId] || null;
+      }
+
+      return null;
     }
 
     function syncPanelSelection() {
@@ -588,7 +625,7 @@
       }
 
       panel.syncActiveLabel(activeId || null);
-      panel.syncFlowerControls(getActiveFlowerState());
+      panel.syncTransformControls(getActiveState(), activeType === "fixed");
     }
 
     function setActive(item) {
@@ -642,8 +679,13 @@
           const top = clamp(round(dragSession.startTop + dy), -20, 120);
 
           if (item.type === "fixed") {
-            state.fixed[item.id] = { left: left, top: top };
-            applyLayoutPosition(item.target, state.fixed[item.id]);
+            if (!state.fixed[item.id]) {
+              state.fixed[item.id] = { left: left, top: top, scale: 1, rotate: 0 };
+            }
+
+            state.fixed[item.id].left = left;
+            state.fixed[item.id].top = top;
+            applyFixedVisual(item.target, state.fixed[item.id], item.baseTransform || "");
             saveLayoutState(state);
             return;
           }
@@ -682,17 +724,23 @@
       }
 
       if (!state.fixed[config.key]) {
-        state.fixed[config.key] = computePercentPosition(target, container);
+        const initial = computePercentPosition(target, container);
+        state.fixed[config.key] = {
+          left: initial.left,
+          top: initial.top,
+          scale: 1,
+          rotate: 0,
+        };
       }
 
-      applyLayoutPosition(target, state.fixed[config.key]);
-
+      applyFixedVisual(target, state.fixed[config.key], config.baseTransform || "");
       registerDragItem({
         id: config.key,
         type: "fixed",
         selector: config.selector,
         target: target,
         container: container,
+        baseTransform: config.baseTransform || "",
       });
     });
 
@@ -719,9 +767,10 @@
         return;
       }
 
+      const pos = computePercentPosition(target, floralLayer);
       ensureFlowerState(flowerDef.id, {
-        left: computePercentPosition(target, floralLayer).left,
-        top: computePercentPosition(target, floralLayer).top,
+        left: pos.left,
+        top: pos.top,
         scale: 1,
         rotate: parseRotationDegrees(target),
         hidden: false,
@@ -812,10 +861,28 @@
       saveLayoutState(state);
     }
 
-    function updateActiveFlowerTransform(nextScale, nextRotate) {
-      const flower = getActiveFlowerState();
+    function updateActiveTransform(nextScale, nextRotate) {
       const item = activeId ? dragItems[activeId] : null;
-      if (!flower || !item) {
+      if (!item) {
+        return;
+      }
+
+      if (item.type === "fixed") {
+        const fixed = state.fixed[item.id];
+        if (!fixed) {
+          return;
+        }
+
+        fixed.scale = clamp(round(nextScale), 0.3, 2.8);
+        fixed.rotate = clamp(round(nextRotate), -180, 180);
+        applyFixedVisual(item.target, fixed, item.baseTransform || "");
+        saveLayoutState(state);
+        syncPanelSelection();
+        return;
+      }
+
+      const flower = state.flowers[item.id];
+      if (!flower) {
         return;
       }
 
@@ -843,20 +910,20 @@
       onAddFlower: addFlower,
       onDeleteSelectedFlower: deleteSelectedFlower,
       onScaleChange: function (nextScale) {
-        const flower = getActiveFlowerState();
-        if (!flower) {
+        const current = getActiveState();
+        if (!current) {
           return;
         }
 
-        updateActiveFlowerTransform(nextScale, flower.rotate || 0);
+        updateActiveTransform(nextScale, current.rotate || 0);
       },
       onRotateChange: function (nextRotate) {
-        const flower = getActiveFlowerState();
-        if (!flower) {
+        const current = getActiveState();
+        if (!current) {
           return;
         }
 
-        updateActiveFlowerTransform(flower.scale || 1, nextRotate);
+        updateActiveTransform(current.scale || 1, nextRotate);
       },
       getCssSnippet: getCssSnippet,
       getHardcodeSnippet: getHardcodeSnippet,
@@ -872,9 +939,13 @@
     saveLayoutState(state);
 
     document.addEventListener("keydown", function (event) {
-      const flower = getActiveFlowerState();
       const item = activeId ? dragItems[activeId] : null;
-      if (!flower || !item) {
+      if (!item) {
+        return;
+      }
+
+      const current = getActiveState();
+      if (!current) {
         return;
       }
 
@@ -882,16 +953,16 @@
       let moved = false;
 
       if (event.key === "ArrowLeft") {
-        flower.left = clamp(round(flower.left - moveStep), -20, 120);
+        current.left = clamp(round(current.left - moveStep), -20, 120);
         moved = true;
       } else if (event.key === "ArrowRight") {
-        flower.left = clamp(round(flower.left + moveStep), -20, 120);
+        current.left = clamp(round(current.left + moveStep), -20, 120);
         moved = true;
       } else if (event.key === "ArrowUp") {
-        flower.top = clamp(round(flower.top - moveStep), -20, 120);
+        current.top = clamp(round(current.top - moveStep), -20, 120);
         moved = true;
       } else if (event.key === "ArrowDown") {
-        flower.top = clamp(round(flower.top + moveStep), -20, 120);
+        current.top = clamp(round(current.top + moveStep), -20, 120);
         moved = true;
       }
 
@@ -900,7 +971,13 @@
       }
 
       event.preventDefault();
-      applyFlowerVisual(item.target, flower);
+
+      if (item.type === "fixed") {
+        applyFixedVisual(item.target, current, item.baseTransform || "");
+      } else {
+        applyFlowerVisual(item.target, current);
+      }
+
       saveLayoutState(state);
       syncPanelSelection();
     });
