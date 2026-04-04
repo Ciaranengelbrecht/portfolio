@@ -488,7 +488,7 @@
       "body[data-layout-mode=\"true\"] .layout-actions button { border-radius: 999px; border: 1px solid rgba(130,95,36,0.42); background: #fff; padding: 0.3rem 0.65rem; font-family: \"Cinzel\", serif; font-size: 0.72rem; color: #7b4f11; cursor: pointer; }" +
       "body[data-layout-mode=\"true\"] .layout-note { font-size: 0.92rem; margin-top: 0.2rem; }" +
       "body[data-layout-mode=\"true\"] .scene-hitbox { display: none !important; }" +
-      "body[data-layout-mode=\"true\"] .floral-layer { pointer-events: auto !important; z-index: 60 !important; }" +
+      "body[data-layout-mode=\"true\"] .floral-layer { pointer-events: none !important; z-index: 60 !important; }" +
       "body[data-layout-mode=\"true\"] .layout-draggable { outline: 2px dashed rgba(207,160,67,0.55); outline-offset: 2px; cursor: grab; pointer-events: auto !important; touch-action: none; z-index: 70 !important; }" +
       "body[data-layout-mode=\"true\"] .layout-draggable.layout-active-item { outline-color: rgba(143,103,40,0.95); z-index: 90 !important; }" +
       "body[data-layout-mode=\"true\"] .controls { opacity: 0.35; pointer-events: none; }" +
