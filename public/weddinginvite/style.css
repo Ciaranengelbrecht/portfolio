@@ -106,28 +106,28 @@ body {
 }
 
 .bloom-left-large {
-  width: clamp(9.8rem, 16vw, 19.5rem);
-  left: 18%;
-  bottom: 14%;
+  width: clamp(12rem, 22vw, 26rem);
+  left: 5%;
+  bottom: 8%;
 }
 
 .bloom-left-small {
-  width: clamp(7.4rem, 10vw, 12.8rem);
-  left: 27%;
-  bottom: 24%;
+  width: clamp(9rem, 15vw, 18rem);
+  left: 18%;
+  top: 8%;
   opacity: 0.94;
 }
 
 .bloom-right {
-  width: clamp(10.4rem, 17vw, 22rem);
-  right: 16%;
-  top: 12%;
+  width: clamp(12rem, 23vw, 26rem);
+  right: 4%;
+  top: 4%;
 }
 
 .bloom-mid-right {
-  width: clamp(6.8rem, 11vw, 13rem);
-  right: 24%;
-  bottom: 16%;
+  width: clamp(9rem, 14vw, 17rem);
+  right: 17%;
+  bottom: 8%;
   opacity: 0.88;
 }
 
@@ -136,23 +136,23 @@ body {
 }
 
 .orchid-left {
-  width: clamp(8rem, 14vw, 17rem);
-  left: 12%;
-  top: 42%;
+  width: clamp(10rem, 18vw, 22rem);
+  left: -1%;
+  top: 44%;
   transform: rotate(9deg);
 }
 
 .orchid-right {
-  width: clamp(8.4rem, 15vw, 18rem);
-  right: 12%;
-  top: 38%;
+  width: clamp(10rem, 18vw, 22rem);
+  right: -2%;
+  top: 40%;
   transform: rotate(-5deg);
 }
 
 .orchid-mid {
-  width: clamp(7.8rem, 12vw, 13rem);
-  right: 31%;
-  top: 30%;
+  width: clamp(9rem, 15vw, 18rem);
+  right: 33%;
+  top: 20%;
   transform: rotate(-10deg);
 }
 
@@ -216,9 +216,9 @@ body {
 }
 
 .wax-seal {
-  width: clamp(4.1rem, 7.8vw, 6.1rem);
+  width: clamp(5rem, 9.5vw, 7.4rem);
   left: 50%;
-  top: 56%;
+  top: 52%;
   transform: translate(-50%, -50%);
   filter: drop-shadow(0 8px 12px rgba(30, 23, 15, 0.3));
   z-index: 3;
@@ -232,16 +232,16 @@ body {
   }
 
   50% {
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: translate(-50%, -50%) scale(1.1);
   }
 }
 
 .closed-copy {
   position: absolute;
   left: 50%;
-  top: 34%;
+  top: 25%;
   transform: translate(-50%, -50%);
-  width: min(72%, 22rem);
+  width: min(70%, 21rem);
   text-align: center;
   z-index: 2;
   transition:
@@ -650,28 +650,38 @@ body {
   }
 
   .bloom-left-large {
-    left: 11%;
-    bottom: 12%;
+    left: 2%;
+    bottom: 8%;
+  }
+
+  .bloom-left-small {
+    left: 14%;
+    top: 10%;
   }
 
   .bloom-right {
-    right: 12%;
-    top: 12%;
+    right: 2%;
+    top: 4%;
+  }
+
+  .bloom-mid-right {
+    right: 14%;
+    bottom: 8%;
   }
 
   .orchid-left {
-    left: 9%;
+    left: -3%;
     top: 44%;
   }
 
   .orchid-right {
-    right: 9%;
-    top: 42%;
+    right: -3%;
+    top: 40%;
   }
 
   .orchid-mid {
-    right: 27%;
-    top: 32%;
+    right: 30%;
+    top: 22%;
   }
 }
 
@@ -690,45 +700,45 @@ body {
   }
 
   .bloom-left-large {
-    width: clamp(8rem, 28vw, 13rem);
-    left: 6%;
-    bottom: 14%;
+    width: clamp(10rem, 36vw, 15.2rem);
+    left: -2%;
+    bottom: 10%;
   }
 
   .bloom-left-small {
-    width: clamp(6.2rem, 20vw, 10rem);
-    left: 18%;
-    bottom: 24%;
+    width: clamp(7.8rem, 28vw, 12rem);
+    left: 10%;
+    top: 11%;
   }
 
   .bloom-right {
-    width: clamp(8.4rem, 28vw, 14rem);
-    right: 6%;
-    top: 12%;
+    width: clamp(10rem, 38vw, 16rem);
+    right: -2%;
+    top: 5%;
   }
 
   .bloom-mid-right {
-    width: clamp(5.8rem, 18vw, 9rem);
-    right: 16%;
-    bottom: 16%;
+    width: clamp(7rem, 24vw, 11rem);
+    right: 8%;
+    bottom: 10%;
   }
 
   .orchid-left {
-    width: clamp(7rem, 24vw, 11rem);
-    left: 4%;
-    top: 48%;
+    width: clamp(8.2rem, 30vw, 13rem);
+    left: -5%;
+    top: 45%;
   }
 
   .orchid-right {
-    width: clamp(7rem, 22vw, 11rem);
-    right: 4%;
-    top: 46%;
+    width: clamp(8.2rem, 30vw, 13rem);
+    right: -6%;
+    top: 43%;
   }
 
   .orchid-mid {
-    width: clamp(6rem, 18vw, 9rem);
-    right: 21%;
-    top: 40%;
+    width: clamp(6.8rem, 24vw, 10.6rem);
+    right: 22%;
+    top: 29%;
   }
 
   .invitation-card {
@@ -767,9 +777,56 @@ body {
     font-size: clamp(0.56rem, 2.5vw, 0.76rem);
   }
 
+  .closed-copy {
+    top: 23%;
+    width: min(72%, 18rem);
+  }
+
   .wax-seal {
-    width: clamp(3.3rem, 15vw, 5rem);
-    top: 56%;
+    width: clamp(4.2rem, 19vw, 6.2rem);
+    top: 51%;
+  }
+
+  .bloom-left-large {
+    width: clamp(10rem, 42vw, 15rem);
+    left: -4%;
+    bottom: 8%;
+  }
+
+  .bloom-left-small {
+    width: clamp(8rem, 30vw, 12rem);
+    left: 9%;
+    top: 13%;
+  }
+
+  .bloom-right {
+    width: clamp(10rem, 42vw, 16rem);
+    right: -5%;
+    top: 6%;
+  }
+
+  .bloom-mid-right {
+    width: clamp(7.5rem, 27vw, 11rem);
+    right: 9%;
+    bottom: 8%;
+  }
+
+  .orchid-left {
+    width: clamp(8.5rem, 33vw, 13rem);
+    left: -7%;
+    top: 43%;
+  }
+
+  .orchid-right {
+    width: clamp(8.5rem, 32vw, 13rem);
+    right: -8%;
+    top: 41%;
+  }
+
+  .orchid-mid {
+    width: clamp(7.2rem, 26vw, 10.5rem);
+    right: 24%;
+    top: 31%;
   }
 
   .insert-preview {
@@ -827,21 +884,51 @@ body {
 
   .bloom-mid-right,
   .orchid-mid {
-    opacity: 0.72;
+    opacity: 0.84;
+  }
+
+  .closed-copy {
+    top: 22%;
+  }
+
+  .wax-seal {
+    width: clamp(4.4rem, 22vw, 6.3rem);
+    top: 50%;
+  }
+
+  .bloom-left-large {
+    left: -8%;
+    bottom: 7%;
+  }
+
+  .bloom-left-small {
+    left: 6%;
+    top: 14%;
   }
 
   .bloom-right {
-    right: 3%;
+    right: -8%;
+    top: 7%;
+  }
+
+  .bloom-mid-right {
+    right: 6%;
+    bottom: 9%;
   }
 
   .orchid-left {
-    left: 2%;
-    top: 49%;
+    left: -10%;
+    top: 45%;
   }
 
   .orchid-right {
-    right: 2%;
-    top: 49%;
+    right: -10%;
+    top: 44%;
+  }
+
+  .orchid-mid {
+    right: 20%;
+    top: 30%;
   }
 
   .controls {
