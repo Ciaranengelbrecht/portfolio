@@ -456,14 +456,15 @@ body {
 }
 
 .invitation-card {
-  width: min(94vw, 900px);
+  width: min(92vw, 760px);
   margin-inline: auto;
-  min-height: clamp(32rem, 80vh, 56rem);
+  aspect-ratio: 749 / 500;
+  min-height: auto;
   position: relative;
-  border-radius: clamp(1.1rem, 2.2vw, 1.7rem);
-  border: 1px solid rgba(196, 160, 95, 0.46);
+  border-radius: clamp(0.7rem, 1.4vw, 1.1rem);
+  border: 1px solid rgba(186, 154, 99, 0.45);
   background-color: var(--paper);
-  box-shadow: var(--shadow-strong);
+  box-shadow: 0 22px 54px rgba(38, 28, 18, 0.26);
   overflow: hidden;
   opacity: 0;
   transform: translateY(24px) scale(0.985);
@@ -482,8 +483,9 @@ body {
   inset: 0;
   z-index: 1;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.95)),
-    radial-gradient(circle at 22% 12%, rgba(203, 166, 88, 0.1), rgba(203, 166, 88, 0)),
+    linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.96)),
+    radial-gradient(circle at 20% 10%, rgba(203, 166, 88, 0.16), rgba(203, 166, 88, 0)),
+    radial-gradient(circle at 84% 88%, rgba(203, 166, 88, 0.1), rgba(203, 166, 88, 0)),
     url("./assets/backgroundpaper.jpg");
   background-size: cover;
 }
@@ -493,75 +495,78 @@ body {
   z-index: 2;
   text-align: center;
   min-height: 100%;
-  padding: clamp(2.2rem, 5.4vw, 4.4rem) clamp(1.15rem, 4vw, 4.3rem);
+  padding: clamp(1.2rem, 2.9vw, 2rem) clamp(1rem, 3vw, 2rem);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .eyebrow {
   margin: 0;
   font-family: "Allura", cursive;
   font-weight: 400;
-  font-size: clamp(2.6rem, 6.6vw, 4.9rem);
+  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
   line-height: 0.9;
-  color: #19120b;
+  color: #4b331a;
 }
 
 .family-line {
-  margin: 0.6rem 0 0;
+  margin: 0.45rem 0 0;
   font-family: "Cinzel", serif;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
-  font-size: clamp(0.72rem, 1.4vw, 1rem);
+  letter-spacing: 0.11em;
+  font-size: clamp(0.62rem, 1.15vw, 0.88rem);
   color: rgba(31, 25, 19, 0.84);
 }
 
 .name-row {
-  margin-top: clamp(1.1rem, 2.2vw, 2rem);
+  margin-top: clamp(0.7rem, 1.5vw, 1.15rem);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: end;
-  column-gap: clamp(0.5rem, 1vw, 1.2rem);
+  column-gap: clamp(0.4rem, 0.9vw, 1rem);
+  max-width: 36rem;
+  margin-inline: auto;
 }
 
 .name-group h2 {
   margin: 0;
   font-family: "Allura", cursive;
   font-weight: 400;
-  font-size: clamp(2.8rem, 7.4vw, 5.8rem);
+  font-size: clamp(2.2rem, 5.2vw, 3.6rem);
   line-height: 0.9;
+  color: #1b140d;
 }
 
 .name-group p {
-  margin: 0.22rem 0 0;
+  margin: 0.12rem 0 0;
   font-style: italic;
-  font-size: clamp(1.02rem, 1.95vw, 1.6rem);
+  font-size: clamp(0.88rem, 1.5vw, 1.2rem);
   color: rgba(34, 28, 22, 0.9);
 }
 
 .ampersand {
   font-family: "Cormorant Garamond", serif;
-  font-size: clamp(3.1rem, 7vw, 5.8rem);
+  font-size: clamp(2.7rem, 5vw, 4rem);
   line-height: 1;
-  font-weight: 500;
-  opacity: 0.9;
+  font-weight: 700;
+  opacity: 0.85;
 }
 
 .invite-line,
 .note-line {
-  margin: clamp(0.95rem, 1.9vw, 1.42rem) 0 0;
-  font-size: clamp(1.08rem, 2vw, 1.62rem);
+  margin: clamp(0.45rem, 1.2vw, 0.7rem) 0 0;
+  font-size: clamp(0.94rem, 1.22vw, 1.08rem);
   font-style: italic;
   color: var(--ink-soft);
 }
 
 .date-line {
-  margin: clamp(0.94rem, 1.8vw, 1.3rem) 0 0;
+  margin: clamp(0.55rem, 1.25vw, 0.85rem) 0 0;
   font-family: "Cinzel", serif;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: clamp(1.14rem, 2.3vw, 2rem);
+  letter-spacing: 0.05em;
+  font-size: clamp(1.02rem, 1.7vw, 1.28rem);
   font-weight: 700;
 }
 
@@ -572,45 +577,50 @@ body {
 }
 
 .location-line {
-  margin: clamp(0.68rem, 1.4vw, 1rem) 0 0;
-  font-size: clamp(1.08rem, 2vw, 1.62rem);
+  margin: clamp(0.42rem, 0.85vw, 0.6rem) 0 0;
+  font-size: clamp(0.92rem, 1.22vw, 1.08rem);
 }
 
 .note-line {
-  margin-top: clamp(1.05rem, 2.1vw, 1.6rem);
+  margin-top: clamp(0.42rem, 0.85vw, 0.58rem);
 }
 
 .corner {
   position: absolute;
   z-index: 3;
-  width: clamp(1.5rem, 2.7vw, 2.4rem);
-  height: clamp(1.5rem, 2.7vw, 2.4rem);
-  border-color: rgba(197, 151, 66, 0.9);
-  border-style: solid;
+  width: clamp(3.8rem, 8.2vw, 5.3rem);
+  height: clamp(3.8rem, 8.2vw, 5.3rem);
+  background-image: url("./assets/stampoverlay.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border: none;
+  opacity: 0.4;
+  filter: sepia(0.7) saturate(0.52) hue-rotate(-6deg);
 }
 
 .corner-top-left {
-  top: clamp(0.84rem, 1.6vw, 1.35rem);
-  left: clamp(0.84rem, 1.6vw, 1.35rem);
-  border-width: 2px 0 0 2px;
+  top: clamp(-0.58rem, -0.8vw, -0.38rem);
+  left: clamp(-0.48rem, -0.7vw, -0.32rem);
+  transform: rotate(-88deg);
 }
 
 .corner-top-right {
-  top: clamp(0.84rem, 1.6vw, 1.35rem);
-  right: clamp(0.84rem, 1.6vw, 1.35rem);
-  border-width: 2px 2px 0 0;
+  top: clamp(-0.52rem, -0.7vw, -0.3rem);
+  right: clamp(-0.54rem, -0.78vw, -0.36rem);
+  transform: rotate(178deg);
 }
 
 .corner-bottom-left {
-  left: clamp(0.84rem, 1.6vw, 1.35rem);
-  bottom: clamp(0.84rem, 1.6vw, 1.35rem);
-  border-width: 0 0 2px 2px;
+  left: clamp(-0.56rem, -0.8vw, -0.34rem);
+  bottom: clamp(-0.58rem, -0.8vw, -0.4rem);
+  transform: rotate(0deg);
 }
 
 .corner-bottom-right {
-  right: clamp(0.84rem, 1.6vw, 1.35rem);
-  bottom: clamp(0.84rem, 1.6vw, 1.35rem);
-  border-width: 0 2px 2px 0;
+  right: clamp(-0.58rem, -0.82vw, -0.4rem);
+  bottom: clamp(-0.58rem, -0.8vw, -0.4rem);
+  transform: rotate(90deg);
 }
 
 .scene-hitbox:focus-visible,
