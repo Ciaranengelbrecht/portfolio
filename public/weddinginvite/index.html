@@ -14,7 +14,7 @@
       rel="stylesheet" />
     <link rel="stylesheet" href="./style.css" />
   </head>
-  <body class="invite-page">
+  <body class="invite-page" data-step="0">
     <main class="invite-shell" aria-label="Wedding save the date invitation">
       <section class="stage" id="inviteStage">
         <div class="atmosphere" aria-hidden="true"></div>
@@ -27,9 +27,10 @@
         <img class="asset orchid orchid-right" src="./assets/763b634f32e7bca7e099ef48484cde26.png" alt="" />
         <img class="asset orchid-branch" src="./assets/ae9f4b32654dfda7447bd84a8000e8c6.png" alt="" />
 
-        <div class="closed-composition" aria-hidden="false">
+        <div class="scene scene-closed" aria-hidden="false">
           <img class="asset envelope envelope-back" src="./assets/ffba30e10ca900070adadb88de7ec9d4.png" alt="" />
           <img class="asset envelope envelope-front" src="./assets/968c3d7fe66755ba37156839207faa3f.png" alt="" />
+          <img class="asset wax-seal-closed" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
 
           <div class="closed-copy">
             <h1>You are invited</h1>
@@ -37,25 +38,39 @@
           </div>
 
           <button
-            class="envelope-hitbox"
-            id="envelopeButton"
+            class="scene-hitbox closed-hitbox"
+            id="closedHitbox"
             type="button"
             aria-label="Open invitation"
             aria-expanded="false"
-            aria-controls="invitationCard">
+            aria-controls="openedLetterPreview">
             <span class="visually-hidden">Open invitation</span>
           </button>
         </div>
 
-        <div class="open-composition" aria-hidden="true">
+        <div class="scene scene-opened" aria-hidden="true">
           <img class="asset wax-top" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
           <img class="asset open-envelope" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
 
-          <article class="invitation-card" id="invitationCard" aria-label="Invitation details">
-            <div class="card-venue-art" aria-hidden="true">
-              <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="" />
-            </div>
+          <div class="insert-preview" id="openedLetterPreview" aria-label="Opened letter preview">
+            <img src="./assets/9effcd1663cfae60ce817ea819df6b9f.png" alt="Invitation insert artwork" />
+          </div>
 
+          <button
+            class="scene-hitbox opened-hitbox"
+            id="openedHitbox"
+            type="button"
+            aria-label="Reveal invitation details"
+            aria-controls="invitationCard">
+            <span class="visually-hidden">Reveal invitation details</span>
+          </button>
+        </div>
+
+        <div class="scene scene-details" aria-hidden="true">
+          <img class="asset wax-top detail-wax" src="./assets/d7698293f849088f30a42a51f11c27c5.png" alt="" />
+          <img class="asset open-envelope detail-envelope" src="./assets/beff2a6f83a5c620e3f38614ec1ee01e.png" alt="" />
+
+          <article class="invitation-card" id="invitationCard" aria-label="Invitation details">
             <div class="card-texture" aria-hidden="true"></div>
 
             <div class="card-content">
@@ -91,8 +106,11 @@
       </section>
 
       <div class="controls" role="group" aria-label="Invitation controls">
-        <button class="action-button" id="toggleInvite" type="button" aria-pressed="false">
+        <button class="action-button" id="primaryAction" type="button" aria-pressed="false">
           Tap to open
+        </button>
+        <button class="secondary-button" id="secondaryAction" type="button" hidden>
+          Back
         </button>
       </div>
 
@@ -107,7 +125,7 @@
       3831...png: white bloom florals
       763b...png: right orchid bouquet
       968c...png: sealed envelope front
-      9eff...png: venue artwork inside card
+      9eff...png: opened-letter preview insert
       ae9...png: orchid branch flourish
       af83...jpg: invitation paper texture base
       beff...png: opened envelope shell

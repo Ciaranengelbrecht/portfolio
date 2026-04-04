@@ -1,51 +1,94 @@
 (function () {
   const body = document.body;
-  const toggleButton = document.getElementById("toggleInvite");
-  const envelopeButton = document.getElementById("envelopeButton");
-  const closedComposition = document.querySelector(".closed-composition");
-  const openComposition = document.querySelector(".open-composition");
+  const primaryAction = document.getElementById("primaryAction");
+  const secondaryAction = document.getElementById("secondaryAction");
+  const closedHitbox = document.getElementById("closedHitbox");
+  const openedHitbox = document.getElementById("openedHitbox");
+  const scenes = Array.from(document.querySelectorAll(".scene"));
 
-  if (!toggleButton || !envelopeButton) {
+  if (!primaryAction || !secondaryAction || !closedHitbox || !openedHitbox || scenes.length !== 3) {
     return;
   }
 
-  let isOpen = false;
+  const labels = {
+    0: "Tap to open",
+    1: "Pull out invitation",
+    2: "Start again",
+  };
 
-  function applyState(nextOpen) {
-    isOpen = nextOpen;
-    body.classList.toggle("is-open", isOpen);
-    toggleButton.textContent = isOpen ? "< Return" : "Tap to open";
-    toggleButton.setAttribute("aria-pressed", isOpen ? "true" : "false");
-    envelopeButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    envelopeButton.setAttribute("aria-label", isOpen ? "Invitation opened" : "Open invitation");
+  let step = Number(body.getAttribute("data-step"));
+  if (!Number.isInteger(step) || step < 0 || step > 2) {
+    step = 0;
+  }
 
-    if (closedComposition) {
-      closedComposition.setAttribute("aria-hidden", isOpen ? "true" : "false");
+  function clampStep(value) {
+    return Math.max(0, Math.min(2, value));
+  }
+
+  function syncSceneVisibility() {
+    scenes.forEach(function (scene, index) {
+      scene.setAttribute("aria-hidden", index === step ? "false" : "true");
+    });
+  }
+
+  function applyStep(nextStep) {
+    step = clampStep(nextStep);
+    body.setAttribute("data-step", String(step));
+    primaryAction.textContent = labels[step];
+    primaryAction.setAttribute("aria-label", labels[step]);
+    primaryAction.setAttribute("aria-pressed", step === 2 ? "true" : "false");
+
+    if (step === 0) {
+      secondaryAction.hidden = true;
+      secondaryAction.disabled = true;
+      secondaryAction.setAttribute("aria-hidden", "true");
+    } else {
+      secondaryAction.hidden = false;
+      secondaryAction.disabled = false;
+      secondaryAction.setAttribute("aria-hidden", "false");
     }
 
-    if (openComposition) {
-      openComposition.setAttribute("aria-hidden", isOpen ? "false" : "true");
+    closedHitbox.setAttribute("aria-expanded", step >= 1 ? "true" : "false");
+    openedHitbox.setAttribute("aria-expanded", step === 2 ? "true" : "false");
+    syncSceneVisibility();
+  }
+
+  function goForward() {
+    if (step < 2) {
+      applyStep(step + 1);
+      return;
+    }
+
+    applyStep(0);
+  }
+
+  function goBackward() {
+    if (step > 0) {
+      applyStep(step - 1);
     }
   }
 
-  function toggleState() {
-    applyState(!isOpen);
-  }
-
-  envelopeButton.addEventListener("click", function () {
-    if (!isOpen) {
-      applyState(true);
+  closedHitbox.addEventListener("click", function () {
+    if (step === 0) {
+      applyStep(1);
     }
   });
 
-  toggleButton.addEventListener("click", toggleState);
+  openedHitbox.addEventListener("click", function () {
+    if (step === 1) {
+      applyStep(2);
+    }
+  });
+
+  primaryAction.addEventListener("click", goForward);
+  secondaryAction.addEventListener("click", goBackward);
 
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && isOpen) {
-      applyState(false);
-      toggleButton.focus();
+    if (event.key === "Escape" && step > 0) {
+      goBackward();
+      primaryAction.focus();
     }
   });
 
-  applyState(false);
+  applyStep(step);
 })();
