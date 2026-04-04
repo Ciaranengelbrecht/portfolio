@@ -24,7 +24,9 @@
     return;
   }
 
-  const layoutMode = new URLSearchParams(window.location.search).get("layout") === "1";
+  const layoutQuery = new URLSearchParams(window.location.search);
+  const layoutMode = layoutQuery.get("layout") === "1";
+  const layoutStartBlank = layoutMode && layoutQuery.get("seed") !== "1";
 
   const labels = {
     0: "Open invitation",
@@ -69,7 +71,20 @@
     "backgroundpaper.jpg",
   ];
 
-  const layoutStoreKey = "weddinginvite-layout-v3";
+  const layoutStoreKey = "weddinginvite-layout-v4";
+  const fixedItemLabels = {
+    "closed-copy": "Closed text",
+    "wax-seal": "Stamp",
+  };
+  const flowerItemLabels = {
+    "bloom-left-large": "Flower left large",
+    "bloom-left-small": "Flower left small",
+    "bloom-right": "Flower right",
+    "bloom-mid-right": "Flower mid-right",
+    "orchid-left": "Orchid left",
+    "orchid-right": "Orchid right",
+    "orchid-mid": "Orchid mid",
+  };
 
   let step = Number(body.getAttribute("data-step"));
   if (!Number.isInteger(step) || step < 0 || step > 2) {
@@ -266,6 +281,7 @@
     applyLayoutPosition(target, fixedState);
     target.style.transform = composeTransform(baseTransform || "", fixedState.rotate || 0, fixedState.scale || 1);
     target.style.transformOrigin = "center center";
+    target.style.display = fixedState.hidden ? "none" : "";
   }
 
   function applyFlowerVisual(target, flowerState) {
@@ -321,13 +337,22 @@
     return "./assets/" + name;
   }
 
-  function defaultFlowerClassFromAsset(assetName) {
+  function defaultItemClassFromAsset(assetName) {
     const lower = (assetName || "").toLowerCase();
-    if (lower.includes("orchid")) {
-      return "asset orchid layout-custom-flower";
+
+    if (lower.includes("stamp")) {
+      return "asset wax-seal layout-custom-item";
     }
 
-    return "asset bloom layout-custom-flower";
+    if (lower.includes("letter") || lower.includes("paper")) {
+      return "asset layout-custom-item";
+    }
+
+    if (lower.includes("orchid")) {
+      return "asset orchid layout-custom-item";
+    }
+
+    return "asset bloom layout-custom-item";
   }
 
   function buildCssSnippet(state, dragItems) {
@@ -360,7 +385,7 @@
           return;
         }
 
-        const selector = item.selector || '.layout-custom-flower[data-layout-id="' + id + '"]';
+        const selector = item.selector || '.layout-custom-item[data-layout-id="' + id + '"]';
 
         if (flower.hidden) {
           lines.push(selector + " { display: none; }");
@@ -393,7 +418,7 @@
 
         return (
           '<img class="' +
-          (flower.classes || "asset bloom layout-custom-flower") +
+          (flower.classes || "asset bloom layout-custom-item") +
           '" data-layout-id="' +
           id +
           '" src="' +
@@ -456,9 +481,9 @@
       "body[data-layout-mode=\"true\"] .layout-active { font-family: \"Cormorant Garamond\", serif; font-size: 1rem; margin-bottom: 0.5rem; }" +
       "body[data-layout-mode=\"true\"] .layout-label { display: block; margin: 0.28rem 0 0.12rem; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; }" +
       "body[data-layout-mode=\"true\"] .layout-row { display: grid; grid-template-columns: 1fr auto; gap: 0.3rem; margin-bottom: 0.34rem; }" +
-      "body[data-layout-mode=\"true\"] .layout-row select, body[data-layout-mode=\"true\"] .layout-row button, body[data-layout-mode=\"true\"] #deleteFlowerButton { border-radius: 9px; border: 1px solid rgba(130,95,36,0.38); background: #fff; color: #684311; min-height: 30px; font-family: \"Cormorant Garamond\", serif; font-size: 0.9rem; }" +
-      "body[data-layout-mode=\"true\"] #deleteFlowerButton { width: 100%; margin-top: 0.32rem; margin-bottom: 0.3rem; }" +
-      "body[data-layout-mode=\"true\"] #flowerScaleInput, body[data-layout-mode=\"true\"] #flowerRotateInput { width: 100%; margin-bottom: 0.2rem; }" +
+      "body[data-layout-mode=\"true\"] .layout-row select, body[data-layout-mode=\"true\"] .layout-row button, body[data-layout-mode=\"true\"] #deleteItemButton { border-radius: 9px; border: 1px solid rgba(130,95,36,0.38); background: #fff; color: #684311; min-height: 30px; font-family: \"Cormorant Garamond\", serif; font-size: 0.9rem; }" +
+      "body[data-layout-mode=\"true\"] #deleteItemButton { width: 100%; margin-top: 0.32rem; margin-bottom: 0.3rem; }" +
+      "body[data-layout-mode=\"true\"] #itemScaleInput, body[data-layout-mode=\"true\"] #itemRotateInput { width: 100%; margin-bottom: 0.2rem; }" +
       "body[data-layout-mode=\"true\"] .layout-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.34rem; }" +
       "body[data-layout-mode=\"true\"] .layout-actions button { border-radius: 999px; border: 1px solid rgba(130,95,36,0.42); background: #fff; padding: 0.3rem 0.65rem; font-family: \"Cinzel\", serif; font-size: 0.72rem; color: #7b4f11; cursor: pointer; }" +
       "body[data-layout-mode=\"true\"] .layout-note { font-size: 0.92rem; margin-top: 0.2rem; }" +
@@ -467,6 +492,7 @@
       "body[data-layout-mode=\"true\"] .layout-draggable { outline: 2px dashed rgba(207,160,67,0.55); outline-offset: 2px; cursor: grab; pointer-events: auto !important; touch-action: none; z-index: 70 !important; }" +
       "body[data-layout-mode=\"true\"] .layout-draggable.layout-active-item { outline-color: rgba(143,103,40,0.95); z-index: 90 !important; }" +
       "body[data-layout-mode=\"true\"] .controls { opacity: 0.35; pointer-events: none; }" +
+      "body[data-layout-mode=\"true\"] .layout-custom-item { z-index: 68 !important; }" +
       "@media (max-width: 700px) { body[data-layout-mode=\"true\"] .layout-panel { width: min(300px, 72vw); right: 8px; bottom: 8px; } }";
 
     document.head.appendChild(style);
@@ -486,34 +512,41 @@
       '<div id="layoutPanelBody">' +
       '<p class="layout-help">Drag to reposition. Select any element to move, scale, and rotate.</p>' +
       '<p class="layout-active" id="layoutActive">Selected: none</p>' +
-      '<label class="layout-label" for="flowerAssetSelect">Add flower asset</label>' +
+      '<label class="layout-label" for="existingItemSelect">Add built-in item</label>' +
+      '<div class="layout-row">' +
+      '<select id="existingItemSelect"></select>' +
+      '<button type="button" id="addExistingButton">Add</button>' +
+      "</div>" +
+      '<label class="layout-label" for="flowerAssetSelect">Add image asset</label>' +
       '<div class="layout-row">' +
       '<select id="flowerAssetSelect"></select>' +
-      '<button type="button" id="addFlowerButton">Add</button>' +
+      '<button type="button" id="addImageButton">Add</button>' +
       "</div>" +
       '<label class="layout-label" for="itemScaleInput">Scale (selected item)</label>' +
       '<input type="range" id="itemScaleInput" min="0.3" max="2.8" step="0.01" value="1" />' +
       '<label class="layout-label" for="itemRotateInput">Rotate (selected item)</label>' +
       '<input type="range" id="itemRotateInput" min="-180" max="180" step="1" value="0" />' +
-      '<button type="button" id="deleteFlowerButton">Delete selected flower</button>' +
+      '<button type="button" id="deleteItemButton">Delete selected item</button>' +
       '<div class="layout-actions">' +
       '<button type="button" id="copyLayoutButton">Copy CSS</button>' +
       '<button type="button" id="copyHardcodeButton">Copy HTML+CSS</button>' +
       '<button type="button" id="copyJsonButton">Copy JSON</button>' +
       '<button type="button" id="resetLayoutButton">Reset</button>' +
       "</div>" +
-      '<p class="layout-help layout-note">Use Hide while editing behind panel. Remove ?layout=1 for normal mode.</p>' +
+      '<p class="layout-help layout-note">Starts blank by default. Use ?layout=1&seed=1 to preload default scene.</p>' +
       "</div>";
 
     document.body.appendChild(panel);
 
     const togglePanelButton = panel.querySelector("#togglePanelButton");
     const activeLabel = panel.querySelector("#layoutActive");
+    const existingItemSelect = panel.querySelector("#existingItemSelect");
+    const addExistingButton = panel.querySelector("#addExistingButton");
     const assetSelect = panel.querySelector("#flowerAssetSelect");
-    const addFlowerButton = panel.querySelector("#addFlowerButton");
+    const addImageButton = panel.querySelector("#addImageButton");
     const scaleInput = panel.querySelector("#itemScaleInput");
     const rotateInput = panel.querySelector("#itemRotateInput");
-    const deleteFlowerButton = panel.querySelector("#deleteFlowerButton");
+    const deleteItemButton = panel.querySelector("#deleteItemButton");
     const copyLayoutButton = panel.querySelector("#copyLayoutButton");
     const copyHardcodeButton = panel.querySelector("#copyHardcodeButton");
     const copyJsonButton = panel.querySelector("#copyJsonButton");
@@ -531,8 +564,12 @@
       togglePanelButton.textContent = collapsed ? "Show" : "Hide";
     });
 
-    addFlowerButton.addEventListener("click", function () {
-      callbacks.onAddFlower(assetSelect.value);
+    addExistingButton.addEventListener("click", function () {
+      callbacks.onAddExistingItem(existingItemSelect.value);
+    });
+
+    addImageButton.addEventListener("click", function () {
+      callbacks.onAddImage(assetSelect.value);
     });
 
     scaleInput.addEventListener("input", function () {
@@ -543,8 +580,8 @@
       callbacks.onRotateChange(Number(rotateInput.value));
     });
 
-    deleteFlowerButton.addEventListener("click", function () {
-      callbacks.onDeleteSelectedFlower();
+    deleteItemButton.addEventListener("click", function () {
+      callbacks.onDeleteSelectedItem();
     });
 
     copyLayoutButton.addEventListener("click", function () {
@@ -572,7 +609,7 @@
         const enabled = Boolean(activeState);
         scaleInput.disabled = !enabled;
         rotateInput.disabled = !enabled;
-        deleteFlowerButton.disabled = !enabled || Boolean(selectedItemFixed);
+        deleteItemButton.disabled = !enabled || Boolean(selectedItemFixed && !callbacks.canDeleteFixed());
 
         if (!enabled) {
           scaleInput.value = "1";
@@ -583,12 +620,25 @@
         scaleInput.value = String(round(activeState.scale || 1));
         rotateInput.value = String(round(activeState.rotate || 0));
       },
+      refreshAddableItems: function (items) {
+        existingItemSelect.innerHTML = "";
+
+        items.forEach(function (item) {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.label;
+          existingItemSelect.appendChild(option);
+        });
+
+        addExistingButton.disabled = items.length === 0;
+      },
     };
   }
 
   function initLayoutMode() {
     body.setAttribute("data-layout-mode", "true");
 
+    const storedStateExists = Boolean(window.localStorage.getItem(layoutStoreKey));
     const state = readLayoutState();
     const floralLayer = document.querySelector(".floral-layer");
     if (!floralLayer) {
@@ -626,6 +676,27 @@
 
       panel.syncActiveLabel(activeId || null);
       panel.syncTransformControls(getActiveState(), activeType === "fixed");
+      panel.refreshAddableItems(getHiddenBuiltInItems());
+    }
+
+    function getHiddenBuiltInItems() {
+      const items = [];
+
+      fixedLayoutItemsConfig.forEach(function (config) {
+        const fixed = state.fixed[config.key];
+        if (fixed && fixed.hidden) {
+          items.push({ id: config.key, label: fixedItemLabels[config.key] || config.key });
+        }
+      });
+
+      baseFlowerItemsConfig.forEach(function (flowerDef) {
+        const flower = state.flowers[flowerDef.id];
+        if (flower && flower.hidden) {
+          items.push({ id: flowerDef.id, label: flowerItemLabels[flowerDef.id] || flowerDef.id });
+        }
+      });
+
+      return items;
     }
 
     function setActive(item) {
@@ -730,7 +801,12 @@
           top: initial.top,
           scale: 1,
           rotate: 0,
+          hidden: layoutStartBlank && !storedStateExists,
         };
+      }
+
+      if (typeof state.fixed[config.key].hidden !== "boolean") {
+        state.fixed[config.key].hidden = false;
       }
 
       applyFixedVisual(target, state.fixed[config.key], config.baseTransform || "");
@@ -773,7 +849,7 @@
         top: pos.top,
         scale: 1,
         rotate: parseRotationDegrees(target),
-        hidden: false,
+        hidden: layoutStartBlank && !storedStateExists,
         custom: false,
         asset: filenameFromSrc(target.getAttribute("src") || ""),
         classes: target.className,
@@ -794,7 +870,7 @@
         floralLayer.appendChild(target);
       }
 
-      target.className = flowerState.classes || defaultFlowerClassFromAsset(flowerState.asset);
+      target.className = flowerState.classes || defaultItemClassFromAsset(flowerState.asset);
       target.setAttribute("src", assetPathFromFilename(flowerState.asset));
       applyFlowerVisual(target, flowerState);
       registerDragItem(createFlowerItemRecord(id, null, target, true));
@@ -809,7 +885,7 @@
       mountCustomFlower(id, flowerState);
     });
 
-    function addFlower(assetName) {
+    function addImage(assetName) {
       const id =
         "custom-" +
         Date.now().toString(36) +
@@ -824,7 +900,7 @@
         hidden: false,
         custom: true,
         asset: assetName,
-        classes: defaultFlowerClassFromAsset(assetName),
+        classes: defaultItemClassFromAsset(assetName),
       };
 
       mountCustomFlower(id, state.flowers[id]);
@@ -832,8 +908,50 @@
       setActive(dragItems[id]);
     }
 
-    function deleteSelectedFlower() {
-      if (!activeId || activeType !== "flower") {
+    function revealBuiltInItem(itemId) {
+      if (!itemId) {
+        return;
+      }
+
+      if (state.fixed[itemId] && dragItems[itemId]) {
+        state.fixed[itemId].hidden = false;
+        applyFixedVisual(dragItems[itemId].target, state.fixed[itemId], dragItems[itemId].baseTransform || "");
+        setActive(dragItems[itemId]);
+        saveLayoutState(state);
+        syncPanelSelection();
+        return;
+      }
+
+      if (state.flowers[itemId] && dragItems[itemId]) {
+        state.flowers[itemId].hidden = false;
+        applyFlowerVisual(dragItems[itemId].target, state.flowers[itemId]);
+        setActive(dragItems[itemId]);
+        saveLayoutState(state);
+        syncPanelSelection();
+      }
+    }
+
+    function deleteSelectedItem() {
+      if (!activeId) {
+        return;
+      }
+
+      if (activeType === "fixed") {
+        const fixed = state.fixed[activeId];
+        const fixedItem = dragItems[activeId];
+        if (!fixed || !fixedItem) {
+          return;
+        }
+
+        fixed.hidden = true;
+        applyFixedVisual(fixedItem.target, fixed, fixedItem.baseTransform || "");
+        setActive(null);
+        saveLayoutState(state);
+        syncPanelSelection();
+        return;
+      }
+
+      if (activeType !== "flower") {
         return;
       }
 
@@ -859,6 +977,7 @@
       applyFlowerVisual(item.target, flower);
       setActive(null);
       saveLayoutState(state);
+      syncPanelSelection();
     }
 
     function updateActiveTransform(nextScale, nextRotate) {
@@ -907,8 +1026,12 @@
     }
 
     panel = createLayoutPanel(state, {
-      onAddFlower: addFlower,
-      onDeleteSelectedFlower: deleteSelectedFlower,
+      onAddExistingItem: revealBuiltInItem,
+      onAddImage: addImage,
+      onDeleteSelectedItem: deleteSelectedItem,
+      canDeleteFixed: function () {
+        return true;
+      },
       onScaleChange: function (nextScale) {
         const current = getActiveState();
         if (!current) {
