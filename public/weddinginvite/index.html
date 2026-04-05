@@ -92,7 +92,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 10px;
+        gap: 8px;
       }
 
       .crest {
@@ -122,8 +122,9 @@
       }
 
       .stage-shell {
-        width: min(98vw, 470px);
-        height: min(146vw, 86dvh);
+        width: min(97vw, 450px);
+        height: min(124vw, calc(100dvh - 188px));
+        max-height: 68dvh;
         border-radius: 26px;
         padding: clamp(5px, 1.3vw, 10px);
         position: relative;
@@ -158,8 +159,9 @@
       }
 
       .stage-shell.is-expanded {
-        width: min(99vw, 560px);
-        height: min(168vw, 92dvh);
+        width: min(98vw, 540px);
+        height: min(134vw, calc(100dvh - 176px));
+        max-height: 74dvh;
       }
 
       .stage {
@@ -795,12 +797,12 @@
 
       .tap-hint {
         margin: 0;
-        min-height: 22px;
+        min-height: 18px;
         text-align: center;
         font-family: "Cinzel", serif;
         text-transform: uppercase;
         letter-spacing: 0.13em;
-        font-size: 0.62rem;
+        font-size: 0.56rem;
         color: rgba(247, 232, 197, 0.86);
       }
 
@@ -809,9 +811,9 @@
       }
 
       .stage-actions {
-        min-height: 44px;
+        min-height: 38px;
         display: flex;
-        gap: 10px;
+        gap: 8px;
         align-items: center;
         justify-content: center;
       }
@@ -821,11 +823,11 @@
         color: #fbe7bd;
         background: linear-gradient(180deg, rgba(46, 28, 19, 0.88), rgba(28, 18, 13, 0.9));
         border-radius: 999px;
-        padding: 10px 16px;
+        padding: 8px 13px;
         font-family: "Cinzel", serif;
         text-transform: uppercase;
         letter-spacing: 0.12em;
-        font-size: 0.58rem;
+        font-size: 0.52rem;
         cursor: pointer;
         transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease;
       }
@@ -882,21 +884,24 @@
 
       @media (min-width: 820px) {
         .invite-app {
-          gap: 14px;
+          gap: 10px;
         }
 
         .stage-shell {
-          width: min(86vw, 520px);
-          height: min(126vw, 88dvh);
+          width: min(84vw, 500px);
+          height: min(104vw, calc(100dvh - 196px));
+          max-height: 72dvh;
         }
 
         .stage-shell.is-expanded {
-          width: min(90vw, 640px);
-          height: min(132vw, 94dvh);
+          width: min(88vw, 620px);
+          height: min(112vw, calc(100dvh - 178px));
+          max-height: 78dvh;
         }
 
         .stage-action {
-          font-size: 0.62rem;
+          font-size: 0.56rem;
+          padding: 8px 14px;
         }
 
         .invitation-panel {
