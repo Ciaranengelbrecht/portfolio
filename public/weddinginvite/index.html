@@ -378,7 +378,7 @@
       }
 
       .copy-line.is-writing .char {
-        animation: inkCharacterFlow 700ms cubic-bezier(0.17, 0.82, 0.22, 1) both;
+        animation: inkCharacterFlow var(--char-duration, 560ms) cubic-bezier(0.17, 0.82, 0.22, 1) both;
         animation-delay: var(--char-delay, 0ms);
       }
 
@@ -1320,41 +1320,46 @@
 
         function lineTiming(line) {
           if (line.classList.contains("save-date")) {
-            return { step: 54, pause: 210 };
+            return { step: 24, lineGap: 42, duration: 560 };
           }
 
           if (line.classList.contains("name")) {
-            return { step: 34, pause: 220 };
+            return { step: 16, lineGap: 30, duration: 540 };
           }
 
-          if (line.classList.contains("amp") || line.classList.contains("year")) {
-            return { step: 44, pause: 170 };
+          if (line.classList.contains("year")) {
+            return { step: 18, lineGap: 26, duration: 520 };
           }
 
-          return { step: 30, pause: 150 };
+          return { step: 14, lineGap: 24, duration: 500 };
         }
 
         function animateLineCharacters(line, startDelay) {
           const lineChars = line._chars || [];
+          const charCount = lineChars.length;
 
           line.classList.remove("is-writing", "is-line-visible", "is-complete");
 
           if (reducedMotion) {
             line.classList.add("is-line-visible", "is-complete");
-            return startDelay + 75;
+            return { nextStart: startDelay + 24, lineEnd: startDelay + 24 };
           }
 
           const timing = lineTiming(line);
 
           lineChars.forEach((char, charIndex) => {
-            char.style.setProperty("--char-delay", `${startDelay + charIndex * timing.step}ms`);
+            char.style.setProperty("--char-delay", `${charIndex * timing.step}ms`);
+            char.style.setProperty("--char-duration", `${timing.duration}ms`);
           });
 
           queueInvitationTimer(() => {
             line.classList.add("is-line-visible", "is-writing");
-          }, Math.max(0, startDelay - 90));
+          }, Math.max(0, startDelay - 40));
 
-          return startDelay + lineChars.length * timing.step + timing.pause;
+          const lastCharOffset = Math.max(0, (charCount - 1) * timing.step);
+          const lineEnd = startDelay + lastCharOffset + timing.duration;
+          const nextStart = startDelay + charCount * timing.step + timing.lineGap;
+          return { nextStart, lineEnd };
         }
 
         function revealInvitation() {
@@ -1368,9 +1373,13 @@
           void invitationPanel.offsetWidth;
           invitationPanel.classList.add("is-revealed");
 
-          let delay = reducedMotion ? 0 : 270;
+          let nextStart = reducedMotion ? 0 : 110;
+          let maxLineEnd = 0;
+
           copyLines.forEach((line) => {
-            delay = animateLineCharacters(line, delay);
+            const result = animateLineCharacters(line, nextStart);
+            nextStart = result.nextStart;
+            maxLineEnd = Math.max(maxLineEnd, result.lineEnd);
           });
 
           queueInvitationTimer(() => {
@@ -1378,7 +1387,7 @@
               line.classList.remove("is-writing");
               line.classList.add("is-complete");
             });
-          }, delay + 120);
+          }, maxLineEnd + 80);
         }
 
         function openInviteModal() {
