@@ -1,9 +1,12 @@
 :root {
   --auth-title-font: "Sora", "Avenir Next", "Trebuchet MS", sans-serif;
   --auth-body-font: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-  --auth-panel-bg: rgba(7, 17, 27, 0.76);
-  --auth-panel-border: rgba(255, 255, 255, 0.13);
+  --auth-panel-bg: rgba(6, 14, 22, 0.84);
+  --auth-panel-border: rgba(255, 255, 255, 0.16);
   --auth-soft-text: color-mix(in srgb, var(--text, #ecf5ff) 72%, transparent);
+  --auth-gym-mobile: url("../theme/dark%20gym%20mobile.png");
+  --auth-gym-desktop: url("../theme/dark%20gym%20desktop.png");
+  --auth-gym-image: var(--auth-gym-mobile);
 }
 
 .auth-hero {
@@ -15,10 +18,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(circle at 12% 14%, rgba(34, 197, 94, 0.22), transparent 42%),
-    radial-gradient(circle at 86% 76%, rgba(56, 189, 248, 0.22), transparent 44%),
-    linear-gradient(145deg, #06101a 0%, #091826 42%, #0a111a 100%);
+  background-image:
+    linear-gradient(145deg, rgba(2, 9, 14, 0.62), rgba(2, 10, 16, 0.74)),
+    radial-gradient(circle at 12% 14%, rgba(34, 197, 94, 0.16), transparent 44%),
+    radial-gradient(circle at 86% 76%, rgba(56, 189, 248, 0.16), transparent 46%),
+    var(--auth-gym-image);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-size: auto, auto, auto, cover;
+  background-position: center, top left, bottom right, center;
+  background-blend-mode: normal, screen, screen, normal;
   color: var(--text, #ecf5ff);
   font-family: var(--auth-body-font);
 }
@@ -34,22 +42,23 @@
 .auth-hero::before {
   background-image: linear-gradient(
       to right,
-      rgba(255, 255, 255, 0.05) 1px,
+      rgba(255, 255, 255, 0.035) 1px,
       transparent 1px
     ),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: radial-gradient(circle at center, black 30%, transparent 85%);
-  opacity: 0.35;
+  opacity: 0.24;
   animation: authGridShift 28s linear infinite;
 }
 
 .auth-hero::after {
   background:
-    radial-gradient(circle at 24% 30%, rgba(34, 197, 94, 0.2), transparent 44%),
-    radial-gradient(circle at 75% 66%, rgba(16, 185, 129, 0.16), transparent 48%);
+    linear-gradient(170deg, rgba(1, 6, 10, 0.52), rgba(2, 8, 14, 0.76)),
+    radial-gradient(circle at 24% 30%, rgba(34, 197, 94, 0.16), transparent 44%),
+    radial-gradient(circle at 75% 66%, rgba(16, 185, 129, 0.12), transparent 48%);
   filter: blur(42px);
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
 .auth-shell {
@@ -249,13 +258,13 @@
 .glass-card {
   background: linear-gradient(
       160deg,
-      rgba(255, 255, 255, 0.09),
-      rgba(255, 255, 255, 0.02)
+      rgba(255, 255, 255, 0.11),
+      rgba(255, 255, 255, 0.03)
     ),
-    rgba(12, 24, 34, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    rgba(7, 17, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow:
-    0 24px 38px -24px rgba(0, 0, 0, 0.82),
+    0 30px 42px -28px rgba(0, 0, 0, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
 
@@ -458,6 +467,13 @@
 
   .auth-form-panel {
     justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .auth-hero {
+    --auth-gym-image: var(--auth-gym-desktop);
+    background-position: center, 12% 8%, 86% 88%, center;
   }
 }
 
