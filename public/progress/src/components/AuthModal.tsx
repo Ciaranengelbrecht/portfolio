@@ -18,6 +18,9 @@ export default function AuthModal({
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [pendingSignupEmail, setPendingSignupEmail] = useState<string | null>(
+    null
+  );
   const doneRef = useRef(false);
 
   useEffect(() => {
@@ -29,6 +32,7 @@ export default function AuthModal({
     setOtp("");
     setBusy(null);
     setMsg(null);
+    setPendingSignupEmail(null);
   }, [open]);
 
   // Close modal as soon as a session is detected (faster feedback)
@@ -86,7 +90,10 @@ export default function AuthModal({
             className="bg-slate-800 rounded-xl px-3 py-2 w-full"
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setPendingSignupEmail(null);
+            }}
           />
           <input
             className="bg-slate-800 rounded-xl px-3 py-2 w-full"
@@ -109,6 +116,7 @@ export default function AuthModal({
                 });
                 if (error) setMsg("Sign-in error: " + error.message);
                 else {
+                  setPendingSignupEmail(null);
                   setMsg("Signed in");
                   if (!doneRef.current) {
                     doneRef.current = true;
@@ -131,14 +139,19 @@ export default function AuthModal({
                 setBusy("signup");
                 const redirectTo =
                   window.location.origin + window.location.pathname;
+                const normalizedEmail = email.trim().toLowerCase();
                 const { data, error } = await supabase.auth.signUp({
-                  email,
+                  email: normalizedEmail,
                   password,
                   options: { emailRedirectTo: redirectTo },
                 });
                 if (error) setMsg("Sign-up error: " + error.message);
-                else if (!data.session)
-                  setMsg("Check your email to confirm your account");
+                else if (!data.session) {
+                  setPendingSignupEmail(normalizedEmail);
+                  setMsg(
+                    "Account created. Check inbox and spam to confirm your email."
+                  );
+                }
                 else {
                   setMsg("Account created");
                   onSignedIn();
@@ -168,6 +181,35 @@ export default function AuthModal({
               Send magic link
             </GlossyButton>
           </div>
+          {pendingSignupEmail && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+              <div className="text-[11px] text-gray-300">
+                Missing confirmation email?
+              </div>
+              <button
+                className="text-xs underline decoration-dotted text-emerald-300 disabled:opacity-50"
+                disabled={busy === "resend"}
+                onClick={async () => {
+                  setBusy("resend");
+                  const redirectTo =
+                    window.location.origin + window.location.pathname;
+                  const { error } = await supabase.auth.resend({
+                    type: "signup",
+                    email: pendingSignupEmail,
+                    options: { emailRedirectTo: redirectTo },
+                  });
+                  if (error) setMsg("Resend error: " + error.message);
+                  else
+                    setMsg(
+                      "Confirmation email resent. Check inbox, promotions, and spam."
+                    );
+                  setBusy(null);
+                }}
+              >
+                {busy === "resend" ? "Resending..." : "Resend email"}
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <input
               className="bg-slate-800 rounded-xl px-3 py-2 flex-1"

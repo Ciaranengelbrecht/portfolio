@@ -122,6 +122,9 @@ export default function SettingsPage() {
   const [password2, setPassword2] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [pendingSignupEmail, setPendingSignupEmail] = useState<string | null>(
+    null
+  );
   const [userEmail, setUserEmail] = useState<string | undefined>();
   const [profileNameDraft, setProfileNameDraft] = useState("");
   const [profileEmailDraft, setProfileEmailDraft] = useState("");
@@ -975,7 +978,10 @@ export default function SettingsPage() {
               className="input-app rounded-xl px-3 py-3 w-full"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setPendingSignupEmail(null);
+              }}
             />
             <input
               className="input-app rounded-xl px-3 py-3 w-full"
@@ -997,6 +1003,7 @@ export default function SettingsPage() {
                   });
                   if (error) alert("Sign-in error: " + error.message);
                   else {
+                    setPendingSignupEmail(null);
                     applyAuthIdentity(data.user);
                     setToast("Signed in");
                     setBigFlash("Signed in successfully");
@@ -1014,15 +1021,23 @@ export default function SettingsPage() {
                   if (password !== password2)
                     return alert("Passwords do not match");
                   const redirectTo = window.location.origin + window.location.pathname;
+                  const normalizedEmail = email.trim().toLowerCase();
                   setBusy("signup");
+                  setPendingSignupEmail(null);
                   const { data, error } = await supabase.auth.signUp({
-                    email,
+                    email: normalizedEmail,
                     password,
                     options: { emailRedirectTo: redirectTo },
                   });
                   if (error) alert("Sign-up error: " + error.message);
-                  else if (!data.session) alert("Check your email to confirm your account.");
+                  else if (!data.session) {
+                    setPendingSignupEmail(normalizedEmail);
+                    alert(
+                      "Account created. Check inbox, promotions, and spam to confirm your email."
+                    );
+                  }
                   else {
+                    setPendingSignupEmail(null);
                     applyAuthIdentity(data.user);
                     setToast("Account created");
                     setBigFlash("Signed in successfully");
@@ -1032,6 +1047,31 @@ export default function SettingsPage() {
               >
                 Create account
               </button>
+              {pendingSignupEmail && (
+                <button
+                  className="btn-outline px-3 py-3 rounded-xl w-full min-[420px]:col-span-2"
+                  onClick={async () => {
+                    const redirectTo =
+                      window.location.origin + window.location.pathname;
+                    setBusy("resend-signup");
+                    const { error } = await supabase.auth.resend({
+                      type: "signup",
+                      email: pendingSignupEmail,
+                      options: { emailRedirectTo: redirectTo },
+                    });
+                    if (error) alert("Resend error: " + error.message);
+                    else
+                      alert(
+                        "Confirmation email resent. Check inbox, promotions, and spam."
+                      );
+                    setBusy(null);
+                  }}
+                >
+                  {busy === "resend-signup"
+                    ? "Resending…"
+                    : "Resend confirmation email"}
+                </button>
+              )}
               <button
                 className="btn-outline px-3 py-3 rounded-xl w-full"
                 onClick={async () => {
@@ -1107,8 +1147,9 @@ export default function SettingsPage() {
             />
             <div className="text-xs text-muted">
               To use password sign-in, ensure Email provider is enabled in
-              Supabase Authentication. If email confirmation is on, you'll need
-              to confirm via email after creating an account.
+              Supabase Authentication. If email confirmation is on, check
+              inbox, promotions, and spam after creating an account, or use the
+              resend button above.
             </div>
           </div>
         )}

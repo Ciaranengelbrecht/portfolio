@@ -16,6 +16,17 @@ export async function signUp(
   });
 }
 
+export async function resendSignupConfirmation(
+  email: string,
+  redirectTo?: string
+) {
+  return await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+  });
+}
+
 export async function sendPasswordReset(email: string, redirectTo?: string) {
   return await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 }

@@ -25,7 +25,12 @@
 5. Enable Email auth
 
 - Go to Authentication > Providers
-- Ensure Email is enabled; optional: disable Confirm email for faster dev
+- Ensure Email is enabled
+- To allow instant account creation (no inbox confirmation step):
+  - Go to Authentication > Providers > Email
+  - Turn off `Confirm email`
+  - Save changes
+- If you keep confirmation enabled, users must confirm via email after sign-up (the app now supports resending confirmation emails)
 - Under URL Configuration, add your site URL: `https://<yourname>.github.io/portfolio/progress/`
   - For local dev add: `http://localhost:5173`
 

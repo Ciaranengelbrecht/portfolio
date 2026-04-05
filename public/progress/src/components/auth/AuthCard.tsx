@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { signIn, signUp } from "../../lib/auth";
+import { resendSignupConfirmation, signIn, signUp } from "../../lib/auth";
 import { sendPasswordReset } from "../../lib/auth";
 
 interface Props {
@@ -15,6 +15,10 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [pendingSignupEmail, setPendingSignupEmail] = useState<string | null>(
+    null
+  );
+  const [resending, setResending] = useState(false);
 
   const emailValid = /.+@.+/.test(email);
   const pwStrength =
@@ -29,10 +33,11 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   const act = async () => {
     setError(null);
     setInfo(null);
+    setPendingSignupEmail(null);
     setBusy(true);
     try {
       if (mode === "login") {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(email.trim().toLowerCase(), password);
         if (error) setError(error.message);
         else onSignedIn();
       } else {
@@ -41,10 +46,19 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
           return;
         }
         const redirectTo = window.location.origin + window.location.pathname;
-        const { data, error } = await signUp(email, password, redirectTo);
+        const normalizedEmail = email.trim().toLowerCase();
+        const { data, error } = await signUp(
+          normalizedEmail,
+          password,
+          redirectTo
+        );
         if (error) setError(error.message);
-        else if (!data.session)
-          setInfo("Check your email to confirm your account");
+        else if (!data.session) {
+          setPendingSignupEmail(normalizedEmail);
+          setInfo(
+            "Account created. Check your inbox and spam folder to confirm your email."
+          );
+        }
         else onSignedIn();
       }
     } finally {
@@ -69,7 +83,12 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
                 ? "bg-white/10 text-white"
                 : "text-gray-400 hover:text-white"
             }`}
-            onClick={() => setMode(m)}
+            onClick={() => {
+              setMode(m);
+              setError(null);
+              setInfo(null);
+              if (m === "login") setPendingSignupEmail(null);
+            }}
             disabled={busy}
           >
             {m === "login" ? "Login" : "Sign Up"}
@@ -163,6 +182,38 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
         )}
         {error && <div className="text-xs text-red-400">{error}</div>}
         {info && <div className="text-xs text-emerald-400">{info}</div>}
+        {mode === "signup" && pendingSignupEmail && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <div className="text-[10px] text-gray-300">
+              Not seeing it? Check Junk/Spam or resend confirmation.
+            </div>
+            <button
+              type="button"
+              disabled={resending || busy}
+              className="text-[11px] font-medium text-emerald-300 underline decoration-dotted disabled:opacity-50"
+              onClick={async () => {
+                setError(null);
+                setResending(true);
+                const redirectTo =
+                  window.location.origin + window.location.pathname;
+                const { error } = await resendSignupConfirmation(
+                  pendingSignupEmail,
+                  redirectTo
+                );
+                if (error) {
+                  setError("Could not resend confirmation: " + error.message);
+                } else {
+                  setInfo(
+                    "Confirmation email resent. Check inbox, promotions, and spam."
+                  );
+                }
+                setResending(false);
+              }}
+            >
+              {resending ? "Resending..." : "Resend email"}
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-between pt-2">
           <button
             type="submit"
