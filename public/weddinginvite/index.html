@@ -232,6 +232,20 @@
         transform: translateY(-4%) scale(1.34);
       }
 
+      .scene-closed.is-active .scene-art img {
+        animation: envelopeReadyPulse 2.2s ease-in-out infinite;
+        transition: transform 220ms ease, filter 220ms ease;
+      }
+
+      .stage:hover .scene-closed.is-active .scene-art img,
+      .stage:focus-visible .scene-closed.is-active .scene-art img,
+      .stage:active .scene-closed.is-active .scene-art img,
+      .stage.is-pressing .scene-closed.is-active .scene-art img {
+        animation-play-state: paused;
+        transform: translateY(-6%) scale(1.375);
+        filter: drop-shadow(0 0 14px rgba(246, 221, 165, 0.45));
+      }
+
       .scene-full .scene-art img {
         transform: translateY(1.2%) scale(1.16);
       }
@@ -1019,6 +1033,18 @@
           text-shadow: 0 0 0 rgba(213, 179, 113, 0);
         }
       }
+
+      @keyframes envelopeReadyPulse {
+        0%,
+        100% {
+          transform: translateY(-4%) scale(1.34);
+          filter: drop-shadow(0 0 0 rgba(246, 221, 165, 0));
+        }
+        50% {
+          transform: translateY(-5.1%) scale(1.355);
+          filter: drop-shadow(0 0 8px rgba(246, 221, 165, 0.32));
+        }
+      }
     </style>
   </head>
 
@@ -1410,7 +1436,6 @@
             inviteModal.classList.add("is-open");
           });
           document.body.style.overflow = "hidden";
-          setHint("Enlarged invitation open. Close to return.", true);
         }
 
         function closeInviteModal(immediate = false) {
@@ -1534,6 +1559,20 @@
         }
 
         stage.addEventListener("click", handleStageAdvance);
+
+        stage.addEventListener("pointerdown", () => {
+          if (currentScene === SCENES.closed) {
+            stage.classList.add("is-pressing");
+          }
+        });
+
+        const clearPressState = () => {
+          stage.classList.remove("is-pressing");
+        };
+
+        stage.addEventListener("pointerup", clearPressState);
+        stage.addEventListener("pointercancel", clearPressState);
+        stage.addEventListener("pointerleave", clearPressState);
 
         stage.addEventListener("keydown", (event) => {
           if (modalOpen) {
