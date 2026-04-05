@@ -20,10 +20,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   const [resending, setResending] = useState(false);
 
   const emailValid = /.+@.+/.test(email);
-  const pwStrength =
-    password.length >= 12 ? "strong" : password.length >= 8 ? "ok" : "weak";
   const confirmMismatch = mode === "signup" && password2.length > 0 && password !== password2;
-  const isSignup = mode === "signup";
   const canSubmit =
     emailValid &&
     password.length >= 6 &&
@@ -67,21 +64,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   };
 
   return (
-    <div className="auth-card glass-card fade-in-pop rounded-3xl p-6 w-full max-w-md mx-auto text-sm relative">
-      <div className="auth-card-head">
-        <p className="auth-card-eyebrow">
-          {isSignup ? "Start your progress journey" : "Training dashboard access"}
-        </p>
-        <h2 className="auth-card-title">
-          {isSignup ? "Create your LiftLog account" : "Welcome back"}
-        </h2>
-        <p className="auth-card-description">
-          {isSignup
-            ? "Save sessions, monitor strength trends, and keep momentum week over week."
-            : "Pick up where you left off and keep your performance data in sync."}
-        </p>
-      </div>
-
+    <div className="auth-card glass-card fade-in-pop rounded-2xl p-4 sm:p-5 w-full max-w-[360px] mx-auto text-sm relative">
       <div className="auth-mode-switch" role="tablist" aria-label="Authentication mode">
         {(["login", "signup"] as const).map((m) => (
           <button
@@ -145,24 +128,6 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
                 : "border-white/10"
             }`}
           />
-          {mode === "signup" && (
-            <div className="auth-input-note text-[10px] mt-1 flex items-center gap-2">
-              <span
-                className={`font-medium ${
-                  pwStrength === "weak"
-                    ? "text-red-400"
-                    : pwStrength === "ok"
-                    ? "text-amber-300"
-                    : "text-emerald-400"
-                }`}
-              >
-                {pwStrength}
-              </span>
-              <span className="text-gray-400">
-                Use at least 12 chars for strong
-              </span>
-            </div>
-          )}
         </label>
         {mode === "signup" && (
           <label className="auth-field block space-y-1">
@@ -221,7 +186,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             disabled={!canSubmit}
             className="auth-submit btn-primary min-h-[48px] rounded-xl px-4 py-3 text-sm font-medium disabled:opacity-40"
           >
-            {busy ? "Please wait..." : mode === "login" ? "Sign in to LiftLog" : "Create my account"}
+            {busy ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
           </button>
           {mode === "login" && (
             <button
@@ -232,12 +197,6 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
               Forgot password?
             </button>
           )}
-        </div>
-
-        <div className="auth-pill-row" aria-hidden="true">
-          <span>Offline-first logging</span>
-          <span>Progress analytics</span>
-          <span>Cloud sync ready</span>
         </div>
       </form>
     </div>
