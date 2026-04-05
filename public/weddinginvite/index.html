@@ -28,7 +28,7 @@
         --ivory: #f5ecda;
         --mist: rgba(255, 244, 220, 0.14);
         --shadow: rgba(10, 8, 7, 0.48);
-        --scene-duration: 900ms;
+        --scene-duration: 620ms;
         --scene-ease: cubic-bezier(0.19, 0.85, 0.24, 1);
       }
 
@@ -181,6 +181,10 @@
         cursor: progress;
       }
 
+      .stage.is-transitioning {
+        pointer-events: none;
+      }
+
       .stage:focus-visible {
         outline: 2px solid rgba(243, 206, 134, 0.94);
         outline-offset: 4px;
@@ -228,6 +232,17 @@
 
       .scene-full .scene-art img {
         transform: scale(1.03);
+      }
+
+      .scene-full .scene-art img,
+      .scene-countdown .scene-art img {
+        opacity: 0;
+        transition: opacity 220ms ease, transform 300ms ease;
+      }
+
+      .scene-full.is-asset-ready .scene-art img,
+      .scene-countdown.is-asset-ready .scene-art img {
+        opacity: 1;
       }
 
       .scene-countdown .scene-art img {
@@ -359,7 +374,12 @@
         filter: blur(8px);
         transform: translateY(8px) rotate(-5deg) scale(0.94);
         text-shadow: 0 0 0 rgba(213, 179, 113, 0);
+        animation: none;
+      }
+
+      .copy-line.is-writing .char {
         animation: inkCharacterFlow 700ms cubic-bezier(0.17, 0.82, 0.22, 1) both;
+        animation-delay: var(--char-delay, 0ms);
       }
 
       .copy-line .char.space {
@@ -902,6 +922,10 @@
           transform: none !important;
         }
 
+        .copy-line.is-writing .char {
+          animation: none !important;
+        }
+
         .invite-modal,
         .invite-modal-dialog {
           transition: none !important;
@@ -1147,6 +1171,8 @@
 
         const dots = Array.from(document.querySelectorAll("#progressDots span"));
         const scenes = Array.from(document.querySelectorAll(".scene"));
+        const fullSceneElement = document.querySelector(".scene-full");
+        const countdownSceneElement = document.querySelector(".scene-countdown");
         const invitationPanel = document.getElementById("invitationPanel");
         const copyLines = Array.from(document.querySelectorAll(".copy-line"));
         const fullSceneImage = document.querySelector(".scene-full img");
@@ -1167,6 +1193,25 @@
             line.dataset.text = line.textContent.trim();
           }
         });
+
+        function initializeInvitationCharacters() {
+          copyLines.forEach((line) => {
+            const lineText = (line.dataset.text || "").replace(/&amp;/g, "&");
+            line.textContent = "";
+
+            const fragment = document.createDocumentFragment();
+            const chars = Array.from(lineText);
+            chars.forEach((character) => {
+              const span = document.createElement("span");
+              span.className = character === " " ? "char space" : "char";
+              span.textContent = character === " " ? "\u00A0" : character;
+              fragment.appendChild(span);
+            });
+
+            line.appendChild(fragment);
+            line._chars = Array.from(line.querySelectorAll(".char"));
+          });
+        }
 
         function clearInvitationTimers() {
           while (invitationTimers.length) {
@@ -1213,6 +1258,8 @@
             () => {
               fullSceneReady = true;
               stage.classList.remove("is-busy");
+              fullSceneElement.classList.add("is-asset-ready");
+              countdownSceneElement.classList.add("is-asset-ready");
 
               if (currentScene === SCENES.closed) {
                 setHint("Tap to open the envelope");
@@ -1256,46 +1303,53 @@
         }
 
         function updateShellSize(index) {
-          stageShell.classList.toggle("is-expanded", index > SCENES.closed);
+          stageShell.classList.toggle("is-expanded", index === SCENES.countdown);
         }
 
-        function buildLineCharacters(line, startDelay) {
-          const lineText = (line.dataset.text || "").replace(/&amp;/g, "&");
-
-          if (reducedMotion) {
-            line.textContent = lineText;
-            line.classList.add("is-line-visible", "is-complete");
-            return startDelay + 80;
+        function lineTiming(line) {
+          if (line.classList.contains("save-date")) {
+            return { step: 54, pause: 210 };
           }
 
-          const chars = Array.from(lineText);
-          const charStep = line.classList.contains("save-date") ? 58 : 34;
-          const tailPause = line.classList.contains("name") ? 260 : 170;
+          if (line.classList.contains("name")) {
+            return { step: 34, pause: 220 };
+          }
 
-          line.textContent = "";
-          line.classList.remove("is-line-visible", "is-complete");
+          if (line.classList.contains("amp") || line.classList.contains("year")) {
+            return { step: 44, pause: 170 };
+          }
 
-          chars.forEach((character, charIndex) => {
-            const span = document.createElement("span");
-            span.className = character === " " ? "char space" : "char";
-            span.textContent = character === " " ? "\u00A0" : character;
-            span.style.animationDelay = `${startDelay + charIndex * charStep}ms`;
-            line.appendChild(span);
+          return { step: 30, pause: 150 };
+        }
+
+        function animateLineCharacters(line, startDelay) {
+          const lineChars = line._chars || [];
+
+          line.classList.remove("is-writing", "is-line-visible", "is-complete");
+
+          if (reducedMotion) {
+            line.classList.add("is-line-visible", "is-complete");
+            return startDelay + 75;
+          }
+
+          const timing = lineTiming(line);
+
+          lineChars.forEach((char, charIndex) => {
+            char.style.setProperty("--char-delay", `${startDelay + charIndex * timing.step}ms`);
           });
 
           queueInvitationTimer(() => {
-            line.classList.add("is-line-visible");
-          }, Math.max(0, startDelay - 110));
+            line.classList.add("is-line-visible", "is-writing");
+          }, Math.max(0, startDelay - 90));
 
-          return startDelay + chars.length * charStep + tailPause;
+          return startDelay + lineChars.length * timing.step + timing.pause;
         }
 
         function revealInvitation() {
           clearInvitationTimers();
 
           copyLines.forEach((line) => {
-            line.classList.remove("is-line-visible", "is-complete");
-            line.textContent = (line.dataset.text || "").replace(/&amp;/g, "&");
+            line.classList.remove("is-writing", "is-line-visible", "is-complete");
           });
 
           invitationPanel.classList.remove("is-revealed");
@@ -1304,11 +1358,12 @@
 
           let delay = reducedMotion ? 0 : 270;
           copyLines.forEach((line) => {
-            delay = buildLineCharacters(line, delay);
+            delay = animateLineCharacters(line, delay);
           });
 
           queueInvitationTimer(() => {
             copyLines.forEach((line) => {
+              line.classList.remove("is-writing");
               line.classList.add("is-complete");
             });
           }, delay + 120);
@@ -1387,6 +1442,7 @@
           }
 
           isTransitioning = true;
+          stage.classList.add("is-transitioning");
 
           if (targetIndex !== SCENES.full) {
             closeInviteModal(true);
@@ -1414,6 +1470,7 @@
             previous.classList.remove("is-leaving");
             currentScene = targetIndex;
             isTransitioning = false;
+            stage.classList.remove("is-transitioning");
 
             if (currentScene === SCENES.closed) {
               setHint("Tap to open the envelope");
@@ -1497,6 +1554,7 @@
         setHint("Preparing your invitation...", true);
         updateCountdown();
         window.setInterval(updateCountdown, 1000);
+        initializeInvitationCharacters();
         prepareSceneAssets();
       })();
     </script>
