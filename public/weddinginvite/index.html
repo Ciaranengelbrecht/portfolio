@@ -304,10 +304,10 @@
       .invitation-panel {
         position: absolute;
         left: 50%;
-        top: 51.5%;
-        transform: translate(-50%, -50%) scale(0.95);
-        width: min(63%, 250px);
-        max-height: 70%;
+        top: 51.2%;
+        transform: translate(-50%, -50%) scale(0.72);
+        width: min(52%, 190px);
+        max-height: 56%;
         overflow: hidden;
         padding: 0;
         border: 0;
@@ -326,7 +326,7 @@
 
       .invitation-panel.is-revealed {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        transform: translate(-50%, -50%) scale(0.79);
         filter: blur(0);
         animation: invitationBloom 880ms var(--scene-ease) both;
       }
@@ -334,7 +334,7 @@
       .copy-line {
         margin: 0;
         text-align: center;
-        min-height: 1.02em;
+        min-height: 0.98em;
         color: var(--wine);
         opacity: 0;
         filter: blur(4px);
@@ -343,7 +343,7 @@
       }
 
       .copy-line + .copy-line {
-        margin-top: clamp(2px, 0.8vw, 6px);
+        margin-top: clamp(1px, 0.45vw, 3px);
       }
 
       .copy-line.is-line-visible {
@@ -375,61 +375,61 @@
       .copy-line.family {
         font-family: "Cinzel", serif;
         text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: clamp(0.33rem, 1.55vw, 0.54rem);
+        letter-spacing: 0.12em;
+        font-size: clamp(0.24rem, 1.15vw, 0.4rem);
       }
 
       .copy-line.save-date {
-        margin-top: clamp(4px, 1.2vw, 8px);
+        margin-top: clamp(3px, 0.9vw, 5px);
         font-family: "Alex Brush", cursive;
-        font-size: clamp(1.04rem, 4.7vw, 1.82rem);
+        font-size: clamp(0.72rem, 3.2vw, 1.22rem);
         line-height: 1;
         color: #7f4320;
       }
 
       .copy-line.invite {
-        font-size: clamp(0.54rem, 2.3vw, 0.82rem);
-        letter-spacing: 0.03em;
+        font-size: clamp(0.38rem, 1.6vw, 0.56rem);
+        letter-spacing: 0.025em;
       }
 
       .copy-line.amp {
         margin-top: clamp(1px, 0.6vw, 3px);
         font-family: "Alex Brush", cursive;
-        font-size: clamp(0.8rem, 3.4vw, 1.24rem);
+        font-size: clamp(0.58rem, 2.4vw, 0.9rem);
       }
 
       .copy-line.name {
         font-family: "Cinzel", serif;
-        font-size: clamp(0.72rem, 3.2vw, 1.2rem);
-        letter-spacing: 0.045em;
+        font-size: clamp(0.5rem, 2.2vw, 0.8rem);
+        letter-spacing: 0.036em;
         text-transform: uppercase;
       }
 
       .copy-line.date {
-        margin-top: clamp(4px, 1vw, 7px);
+        margin-top: clamp(3px, 0.7vw, 5px);
         font-family: "Cinzel", serif;
-        font-size: clamp(0.5rem, 2.2vw, 0.76rem);
-        letter-spacing: 0.07em;
+        font-size: clamp(0.34rem, 1.5vw, 0.54rem);
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       .copy-line.year {
         font-family: "Cinzel", serif;
-        font-size: clamp(0.9rem, 4vw, 1.42rem);
-        letter-spacing: 0.16em;
+        font-size: clamp(0.62rem, 2.7vw, 0.98rem);
+        letter-spacing: 0.13em;
       }
 
       .copy-line.location {
-        font-size: clamp(0.5rem, 2.2vw, 0.76rem);
-        letter-spacing: 0.04em;
+        font-size: clamp(0.34rem, 1.5vw, 0.54rem);
+        letter-spacing: 0.03em;
       }
 
       .copy-line.note {
-        margin-top: clamp(4px, 1.2vw, 8px);
+        margin-top: clamp(3px, 0.8vw, 5px);
         font-family: "Cinzel", serif;
-        font-size: clamp(0.4rem, 1.8vw, 0.62rem);
+        font-size: clamp(0.28rem, 1.2vw, 0.42rem);
         text-transform: uppercase;
-        letter-spacing: 0.11em;
+        letter-spacing: 0.09em;
       }
 
       .invite-modal {
@@ -468,13 +468,43 @@
         position: relative;
         width: min(95vw, 620px);
         height: min(168vw, 92dvh);
-        border-radius: 24px;
-        padding: 8px;
-        background: linear-gradient(150deg, rgba(243, 223, 182, 0.4), rgba(86, 52, 35, 0.5));
-        box-shadow: 0 24px 65px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 242, 212, 0.5);
+        border-radius: 26px;
+        padding: 12px;
+        background: radial-gradient(circle at 50% 0%, rgba(242, 211, 147, 0.18), rgba(242, 211, 147, 0) 42%),
+          linear-gradient(145deg, rgba(39, 24, 18, 0.96), rgba(20, 13, 10, 0.96));
+        border: 1px solid rgba(246, 220, 164, 0.34);
+        box-shadow: 0 28px 72px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(213, 176, 103, 0.22),
+          inset 0 1px 0 rgba(255, 242, 212, 0.42), inset 0 0 42px rgba(210, 168, 94, 0.12);
         transform: translateY(16px) scale(0.96);
         opacity: 0;
         transition: transform 320ms ease, opacity 320ms ease;
+      }
+
+      .invite-modal-dialog::before,
+      .invite-modal-dialog::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+      }
+
+      .invite-modal-dialog::before {
+        inset: 5px;
+        border-radius: 21px;
+        border: 1px solid rgba(241, 210, 147, 0.34);
+      }
+
+      .invite-modal-dialog::after {
+        inset: 18px;
+        border-radius: 15px;
+        border: 1px solid rgba(194, 146, 62, 0.28);
+        box-shadow: inset 0 0 22px rgba(236, 196, 120, 0.08);
+        background: linear-gradient(
+          90deg,
+          rgba(241, 210, 147, 0) 0%,
+          rgba(241, 210, 147, 0.08) 50%,
+          rgba(241, 210, 147, 0) 100%
+        );
+        mix-blend-mode: screen;
       }
 
       .invite-modal.is-open .invite-modal-dialog {
@@ -484,19 +514,27 @@
 
       .invite-modal-close {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 16px;
+        right: 16px;
         z-index: 3;
-        border: 1px solid rgba(243, 211, 146, 0.62);
+        border: 1px solid rgba(243, 211, 146, 0.74);
         border-radius: 999px;
-        padding: 8px 12px;
+        padding: 8px 13px;
         font-family: "Cinzel", serif;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
         font-size: 0.54rem;
         color: #f8e7be;
-        background: rgba(23, 15, 11, 0.78);
+        background: linear-gradient(180deg, rgba(80, 47, 29, 0.9), rgba(34, 22, 16, 0.92));
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 236, 198, 0.26);
         cursor: pointer;
+        transition: transform 220ms ease, box-shadow 220ms ease;
+      }
+
+      .invite-modal-close:hover,
+      .invite-modal-close:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.34), 0 0 16px rgba(216, 180, 105, 0.3);
       }
 
       .invite-modal-card {
@@ -505,7 +543,31 @@
         height: 100%;
         border-radius: 18px;
         overflow: hidden;
-        background: rgba(22, 14, 12, 0.86);
+        background: radial-gradient(circle at 50% 8%, rgba(212, 169, 93, 0.2), rgba(212, 169, 93, 0) 48%),
+          rgba(22, 14, 12, 0.9);
+      }
+
+      .invite-modal-card::before,
+      .invite-modal-card::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .invite-modal-card::before {
+        inset: 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(244, 213, 149, 0.35);
+      }
+
+      .invite-modal-card::after {
+        left: 28px;
+        right: 28px;
+        top: 20px;
+        bottom: 20px;
+        border-top: 1px solid rgba(244, 213, 149, 0.2);
+        border-bottom: 1px solid rgba(244, 213, 149, 0.2);
       }
 
       .invite-modal-card img {
@@ -526,9 +588,10 @@
         overflow: hidden;
         padding: clamp(12px, 2.4vw, 22px) clamp(12px, 2.8vw, 24px);
         border-radius: 14px;
-        border: 1px solid rgba(195, 147, 63, 0.45);
+        border: 1px solid rgba(195, 147, 63, 0.52);
         background: linear-gradient(180deg, rgba(247, 235, 212, 0.82), rgba(236, 217, 178, 0.74));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58), 0 10px 34px rgba(51, 33, 22, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58), 0 10px 34px rgba(51, 33, 22, 0.2),
+          0 0 0 1px rgba(243, 208, 132, 0.2), 0 0 28px rgba(203, 156, 74, 0.2);
       }
 
       .invite-modal-panel::before,
@@ -803,7 +866,13 @@
         }
 
         .invitation-panel {
-          width: min(60%, 280px);
+          width: min(48%, 220px);
+          max-height: 50%;
+          transform: translate(-50%, -50%) scale(0.69);
+        }
+
+        .invitation-panel.is-revealed {
+          transform: translate(-50%, -50%) scale(0.74);
         }
 
         .invite-modal-dialog {
