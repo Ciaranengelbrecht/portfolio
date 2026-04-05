@@ -227,7 +227,7 @@
       }
 
       .scene-full .scene-art img {
-        transform: scale(1.14);
+        transform: scale(1.03);
       }
 
       .scene-countdown .scene-art img {
@@ -304,37 +304,24 @@
       .invitation-panel {
         position: absolute;
         left: 50%;
-        top: 52%;
+        top: 51.5%;
         transform: translate(-50%, -50%) scale(0.95);
-        width: min(84%, 500px);
-        max-height: 86%;
+        width: min(63%, 250px);
+        max-height: 70%;
         overflow: hidden;
-        padding: clamp(12px, 2.4vw, 22px) clamp(12px, 2.8vw, 24px);
-        border-radius: 14px;
-        border: 1px solid rgba(195, 147, 63, 0.45);
-        background: linear-gradient(180deg, rgba(247, 235, 212, 0.78), rgba(236, 217, 178, 0.72));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 10px 34px rgba(51, 33, 22, 0.2);
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
         opacity: 0;
         transition: opacity 520ms ease, transform 760ms var(--scene-ease), filter 760ms var(--scene-ease);
         filter: blur(4px);
+        pointer-events: none;
       }
 
       .invitation-panel::before,
       .invitation-panel::after {
-        content: "";
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(177, 123, 44, 0.75), transparent);
-      }
-
-      .invitation-panel::before {
-        top: 8px;
-      }
-
-      .invitation-panel::after {
-        bottom: 8px;
+        display: none;
       }
 
       .invitation-panel.is-revealed {
@@ -347,15 +334,16 @@
       .copy-line {
         margin: 0;
         text-align: center;
-        min-height: 1.08em;
+        min-height: 1.02em;
         color: var(--wine);
         opacity: 0;
         filter: blur(4px);
         transform: translateY(10px);
+        text-shadow: 0 1px 0 rgba(248, 239, 218, 0.55), 0 0 9px rgba(210, 176, 106, 0.22);
       }
 
       .copy-line + .copy-line {
-        margin-top: clamp(4px, 1vw, 8px);
+        margin-top: clamp(2px, 0.8vw, 6px);
       }
 
       .copy-line.is-line-visible {
@@ -387,11 +375,200 @@
       .copy-line.family {
         font-family: "Cinzel", serif;
         text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: clamp(0.33rem, 1.55vw, 0.54rem);
+      }
+
+      .copy-line.save-date {
+        margin-top: clamp(4px, 1.2vw, 8px);
+        font-family: "Alex Brush", cursive;
+        font-size: clamp(1.04rem, 4.7vw, 1.82rem);
+        line-height: 1;
+        color: #7f4320;
+      }
+
+      .copy-line.invite {
+        font-size: clamp(0.54rem, 2.3vw, 0.82rem);
+        letter-spacing: 0.03em;
+      }
+
+      .copy-line.amp {
+        margin-top: clamp(1px, 0.6vw, 3px);
+        font-family: "Alex Brush", cursive;
+        font-size: clamp(0.8rem, 3.4vw, 1.24rem);
+      }
+
+      .copy-line.name {
+        font-family: "Cinzel", serif;
+        font-size: clamp(0.72rem, 3.2vw, 1.2rem);
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+      }
+
+      .copy-line.date {
+        margin-top: clamp(4px, 1vw, 7px);
+        font-family: "Cinzel", serif;
+        font-size: clamp(0.5rem, 2.2vw, 0.76rem);
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .copy-line.year {
+        font-family: "Cinzel", serif;
+        font-size: clamp(0.9rem, 4vw, 1.42rem);
+        letter-spacing: 0.16em;
+      }
+
+      .copy-line.location {
+        font-size: clamp(0.5rem, 2.2vw, 0.76rem);
+        letter-spacing: 0.04em;
+      }
+
+      .copy-line.note {
+        margin-top: clamp(4px, 1.2vw, 8px);
+        font-family: "Cinzel", serif;
+        font-size: clamp(0.4rem, 1.8vw, 0.62rem);
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+      }
+
+      .invite-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+          max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 320ms ease;
+      }
+
+      .invite-modal[hidden] {
+        display: none;
+      }
+
+      .invite-modal.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .invite-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background: rgba(11, 8, 10, 0.72);
+        backdrop-filter: blur(5px);
+      }
+
+      .invite-modal-dialog {
+        position: relative;
+        width: min(95vw, 620px);
+        height: min(168vw, 92dvh);
+        border-radius: 24px;
+        padding: 8px;
+        background: linear-gradient(150deg, rgba(243, 223, 182, 0.4), rgba(86, 52, 35, 0.5));
+        box-shadow: 0 24px 65px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 242, 212, 0.5);
+        transform: translateY(16px) scale(0.96);
+        opacity: 0;
+        transition: transform 320ms ease, opacity 320ms ease;
+      }
+
+      .invite-modal.is-open .invite-modal-dialog {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+
+      .invite-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 3;
+        border: 1px solid rgba(243, 211, 146, 0.62);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-family: "Cinzel", serif;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 0.54rem;
+        color: #f8e7be;
+        background: rgba(23, 15, 11, 0.78);
+        cursor: pointer;
+      }
+
+      .invite-modal-card {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 18px;
+        overflow: hidden;
+        background: rgba(22, 14, 12, 0.86);
+      }
+
+      .invite-modal-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        transform: scale(1.08);
+      }
+
+      .invite-modal-panel {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        width: min(84%, 500px);
+        max-height: 86%;
+        overflow: hidden;
+        padding: clamp(12px, 2.4vw, 22px) clamp(12px, 2.8vw, 24px);
+        border-radius: 14px;
+        border: 1px solid rgba(195, 147, 63, 0.45);
+        background: linear-gradient(180deg, rgba(247, 235, 212, 0.82), rgba(236, 217, 178, 0.74));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58), 0 10px 34px rgba(51, 33, 22, 0.2);
+      }
+
+      .invite-modal-panel::before,
+      .invite-modal-panel::after {
+        content: "";
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(177, 123, 44, 0.75), transparent);
+      }
+
+      .invite-modal-panel::before {
+        top: 8px;
+      }
+
+      .invite-modal-panel::after {
+        bottom: 8px;
+      }
+
+      .modal-line {
+        margin: 0;
+        min-height: 1.06em;
+        text-align: center;
+        color: var(--wine);
+        text-shadow: none;
+      }
+
+      .modal-line + .modal-line {
+        margin-top: clamp(4px, 1vw, 8px);
+      }
+
+      .modal-line.family {
+        font-family: "Cinzel", serif;
+        text-transform: uppercase;
         letter-spacing: 0.17em;
         font-size: clamp(0.43rem, 2.1vw, 0.76rem);
       }
 
-      .copy-line.save-date {
+      .modal-line.save-date {
         margin-top: clamp(8px, 2.2vw, 14px);
         font-family: "Alex Brush", cursive;
         font-size: clamp(1.7rem, 7.5vw, 2.9rem);
@@ -399,25 +576,25 @@
         color: #7f4320;
       }
 
-      .copy-line.invite {
+      .modal-line.invite {
         font-size: clamp(0.74rem, 3.3vw, 1.08rem);
         letter-spacing: 0.03em;
       }
 
-      .copy-line.amp {
+      .modal-line.amp {
         margin-top: clamp(2px, 0.8vw, 5px);
         font-family: "Alex Brush", cursive;
         font-size: clamp(1.16rem, 5vw, 1.68rem);
       }
 
-      .copy-line.name {
+      .modal-line.name {
         font-family: "Cinzel", serif;
         font-size: clamp(1.04rem, 4.8vw, 1.96rem);
         letter-spacing: 0.05em;
         text-transform: uppercase;
       }
 
-      .copy-line.date {
+      .modal-line.date {
         margin-top: clamp(6px, 1.6vw, 10px);
         font-family: "Cinzel", serif;
         font-size: clamp(0.72rem, 3.1vw, 1.05rem);
@@ -425,18 +602,18 @@
         text-transform: uppercase;
       }
 
-      .copy-line.year {
+      .modal-line.year {
         font-family: "Cinzel", serif;
         font-size: clamp(1.28rem, 5.8vw, 2rem);
         letter-spacing: 0.21em;
       }
 
-      .copy-line.location {
+      .modal-line.location {
         font-size: clamp(0.72rem, 3.2vw, 1.04rem);
         letter-spacing: 0.04em;
       }
 
-      .copy-line.note {
+      .modal-line.note {
         margin-top: clamp(8px, 2.1vw, 14px);
         font-family: "Cinzel", serif;
         font-size: clamp(0.58rem, 2.5vw, 0.9rem);
@@ -624,6 +801,15 @@
         .stage-action {
           font-size: 0.62rem;
         }
+
+        .invitation-panel {
+          width: min(60%, 280px);
+        }
+
+        .invite-modal-dialog {
+          width: min(86vw, 700px);
+          height: min(140vw, 94dvh);
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -645,6 +831,11 @@
           opacity: 1 !important;
           filter: blur(0) !important;
           transform: none !important;
+        }
+
+        .invite-modal,
+        .invite-modal-dialog {
+          transition: none !important;
         }
       }
 
@@ -819,6 +1010,38 @@
         </button>
       </div>
 
+      <div
+        class="invite-modal"
+        id="inviteModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inviteModalTitle"
+        hidden>
+        <button class="invite-modal-backdrop" id="inviteModalBackdrop" type="button" aria-label="Close enlarged invitation"></button>
+        <div class="invite-modal-dialog" role="document">
+          <button class="invite-modal-close" id="inviteModalClose" type="button" aria-label="Close enlarged invitation">
+            Close
+          </button>
+
+          <div class="invite-modal-card">
+            <img src="./images/Invitation%20full.png" alt="Large invitation preview" loading="eager" />
+
+            <div class="invite-modal-panel">
+              <p class="modal-line family" id="inviteModalTitle">TOGETHER WITH THEIR FAMILIES</p>
+              <p class="modal-line save-date">Save the Date</p>
+              <p class="modal-line invite">Invite you to celebrate their wedding</p>
+              <p class="modal-line amp">&amp;</p>
+              <p class="modal-line name">Ciaran Engelbrecht</p>
+              <p class="modal-line name">Cheylin Manuel</p>
+              <p class="modal-line date">SUNDAY, 26TH SEPTEMBER</p>
+              <p class="modal-line year">2027</p>
+              <p class="modal-line location">Perth, Western Australia</p>
+              <p class="modal-line note">Formal Invitation to follow</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="progress-dots" id="progressDots" aria-hidden="true">
         <span class="is-on"></span>
         <span></span>
@@ -843,6 +1066,9 @@
         const tapHint = document.getElementById("tapHint");
         const countdownBtn = document.getElementById("countdownBtn");
         const invitationBtn = document.getElementById("invitationBtn");
+        const inviteModal = document.getElementById("inviteModal");
+        const inviteModalBackdrop = document.getElementById("inviteModalBackdrop");
+        const inviteModalClose = document.getElementById("inviteModalClose");
 
         const countDays = document.getElementById("countDays");
         const countHours = document.getElementById("countHours");
@@ -862,6 +1088,7 @@
         let isTransitioning = false;
         let fullSceneReady = false;
         let queuedReveal = false;
+        let modalOpen = false;
         const invitationTimers = [];
 
         const weddingTarget = new Date("2027-09-26T14:00:00+08:00").getTime();
@@ -948,7 +1175,7 @@
         function setAriaLabel(index) {
           const labels = [
             "Closed envelope. Tap to open.",
-            "Full invitation displayed. Use Open Live Countdown button when ready.",
+            "Full invitation displayed. Tap to open enlarged view or use countdown button.",
             "Countdown scene displayed."
           ];
           stage.setAttribute("aria-label", labels[index] || labels[0]);
@@ -1018,6 +1245,43 @@
           }, delay + 120);
         }
 
+        function openInviteModal() {
+          if (modalOpen || currentScene !== SCENES.full) {
+            return;
+          }
+
+          modalOpen = true;
+          inviteModal.hidden = false;
+          requestAnimationFrame(() => {
+            inviteModal.classList.add("is-open");
+          });
+          document.body.style.overflow = "hidden";
+          setHint("Enlarged invitation open. Close to return.", true);
+        }
+
+        function closeInviteModal(immediate = false) {
+          if (!modalOpen && inviteModal.hidden) {
+            return;
+          }
+
+          modalOpen = false;
+          inviteModal.classList.remove("is-open");
+
+          const finalizeClose = () => {
+            inviteModal.hidden = true;
+            document.body.style.overflow = "";
+            if (currentScene === SCENES.full) {
+              setHint("Tap the invitation for full-screen preview, or use countdown button below");
+            }
+          };
+
+          if (immediate || reducedMotion) {
+            finalizeClose();
+          } else {
+            window.setTimeout(finalizeClose, 260);
+          }
+        }
+
         function updateCountdown() {
           const now = Date.now();
           const diff = Math.max(weddingTarget - now, 0);
@@ -1055,6 +1319,10 @@
 
           isTransitioning = true;
 
+          if (targetIndex !== SCENES.full) {
+            closeInviteModal(true);
+          }
+
           if (targetIndex === SCENES.full) {
             clearInvitationTimers();
             invitationPanel.classList.remove("is-revealed");
@@ -1081,7 +1349,7 @@
             if (currentScene === SCENES.closed) {
               setHint("Tap to open the envelope");
             } else if (currentScene === SCENES.full) {
-              setHint("Use the button below when you are ready for the countdown");
+              setHint("Tap the invitation for full-screen preview, or use countdown button below");
               revealInvitation();
             } else {
               setHint("Live countdown to Sunday, 26 September 2027 at 2:00 PM", true);
@@ -1101,18 +1369,39 @@
               return;
             }
             transitionToScene(SCENES.full);
+            return;
+          }
+
+          if (currentScene === SCENES.full) {
+            openInviteModal();
           }
         }
 
         stage.addEventListener("click", handleStageAdvance);
 
         stage.addEventListener("keydown", (event) => {
+          if (modalOpen) {
+            return;
+          }
+
           if (
             (event.key === "Enter" || event.key === " " || event.key === "ArrowRight") &&
             currentScene === SCENES.closed
           ) {
             event.preventDefault();
             handleStageAdvance();
+          }
+
+          if ((event.key === "Enter" || event.key === " ") && currentScene === SCENES.full) {
+            event.preventDefault();
+            openInviteModal();
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && modalOpen) {
+            event.preventDefault();
+            closeInviteModal();
           }
         });
 
@@ -1122,6 +1411,14 @@
 
         invitationBtn.addEventListener("click", () => {
           transitionToScene(SCENES.full);
+        });
+
+        inviteModalBackdrop.addEventListener("click", () => {
+          closeInviteModal();
+        });
+
+        inviteModalClose.addEventListener("click", () => {
+          closeInviteModal();
         });
 
         setActiveDots(SCENES.closed);
