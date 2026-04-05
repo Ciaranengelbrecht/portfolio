@@ -239,7 +239,7 @@
       .scene-full .scene-art img,
       .scene-countdown .scene-art img {
         opacity: 0;
-        transition: opacity 220ms ease, transform 300ms ease;
+        transition: opacity 180ms linear;
       }
 
       .scene-full.is-asset-ready .scene-art img,
@@ -723,13 +723,12 @@
       .countdown-wrap {
         position: absolute;
         left: 50%;
-        bottom: clamp(14px, 3vw, 24px);
-        transform: translateX(-50%);
-        width: min(92%, 500px);
+        top: 52%;
+        transform: translate(-50%, -50%);
+        width: min(88%, 470px);
         border-radius: 14px;
         border: 1px solid rgba(238, 206, 137, 0.52);
-        background: linear-gradient(180deg, rgba(14, 8, 5, 0.7), rgba(14, 9, 8, 0.5));
-        backdrop-filter: blur(2px);
+        background: linear-gradient(180deg, rgba(14, 8, 5, 0.76), rgba(14, 9, 8, 0.58));
         padding: clamp(10px, 2.2vw, 14px);
         box-shadow: 0 0 24px rgba(210, 176, 106, 0.24);
       }
@@ -1072,7 +1071,12 @@
 
           <div class="scene scene-countdown" data-scene="countdown" data-index="2">
             <div class="scene-art">
-              <img src="./images/Countdown.png" alt="Wedding countdown" loading="lazy" />
+              <img
+                src="./images/Countdown.png"
+                alt="Wedding countdown"
+                loading="eager"
+                fetchpriority="low"
+                decoding="sync" />
             </div>
             <div class="scene-sheen" aria-hidden="true"></div>
 
@@ -1320,7 +1324,7 @@
         }
 
         function updateShellSize(index) {
-          stageShell.classList.toggle("is-expanded", index === SCENES.countdown);
+          stageShell.classList.remove("is-expanded");
         }
 
         function lineTiming(line) {
