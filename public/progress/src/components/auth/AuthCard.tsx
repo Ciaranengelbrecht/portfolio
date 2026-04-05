@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { resendSignupConfirmation, signIn, signUp } from "../../lib/auth";
-import { sendPasswordReset } from "../../lib/auth";
 
 interface Props {
   onSignedIn: () => void;
@@ -24,6 +23,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   const pwStrength =
     password.length >= 12 ? "strong" : password.length >= 8 ? "ok" : "weak";
   const confirmMismatch = mode === "signup" && password2.length > 0 && password !== password2;
+  const isSignup = mode === "signup";
   const canSubmit =
     emailValid &&
     password.length >= 6 &&
@@ -67,22 +67,28 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
   };
 
   return (
-    <div className="glass-card fade-in-pop rounded-2xl p-6 w-full max-w-md mx-auto text-sm relative">
-      <div
-        className="flex items-center gap-2 mb-6"
-        role="tablist"
-        aria-label="Authentication mode"
-      >
+    <div className="auth-card glass-card fade-in-pop rounded-3xl p-6 w-full max-w-md mx-auto text-sm relative">
+      <div className="auth-card-head">
+        <p className="auth-card-eyebrow">
+          {isSignup ? "Start your progress journey" : "Training dashboard access"}
+        </p>
+        <h2 className="auth-card-title">
+          {isSignup ? "Create your LiftLog account" : "Welcome back"}
+        </h2>
+        <p className="auth-card-description">
+          {isSignup
+            ? "Save sessions, monitor strength trends, and keep momentum week over week."
+            : "Pick up where you left off and keep your performance data in sync."}
+        </p>
+      </div>
+
+      <div className="auth-mode-switch" role="tablist" aria-label="Authentication mode">
         {(["login", "signup"] as const).map((m) => (
           <button
             key={m}
             role="tab"
             aria-selected={mode === m}
-            className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${
-              mode === m
-                ? "bg-white/10 text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
+            className={`auth-mode-tab ${mode === m ? "is-active" : ""}`}
             onClick={() => {
               setMode(m);
               setError(null);
@@ -95,24 +101,23 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
           </button>
         ))}
       </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (canSubmit) act();
         }}
-        className="space-y-4"
+        className="auth-form-grid"
       >
-        <label className="block space-y-1">
-          <span className="text-xs uppercase tracking-wide text-gray-400">
-            Email
-          </span>
+        <label className="auth-field block space-y-1">
+          <span className="auth-field-label">Email</span>
           <input
             autoComplete="email"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+            className={`auth-input input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
               email.length === 0
                 ? "border-white/10"
                 : emailValid
@@ -121,13 +126,11 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             }`}
           />
           {email.length > 0 && !emailValid && (
-            <span className="text-[10px] text-rose-300">Enter a valid email address.</span>
+            <span className="auth-input-note text-[10px] text-rose-300">Enter a valid email address.</span>
           )}
         </label>
-        <label className="block space-y-1">
-          <span className="text-xs uppercase tracking-wide text-gray-400">
-            Password
-          </span>
+        <label className="auth-field block space-y-1">
+          <span className="auth-field-label">Password</span>
           <input
             autoComplete={
               mode === "login" ? "current-password" : "new-password"
@@ -136,14 +139,14 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+            className={`auth-input input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
               mode === "signup" && password.length > 0 && password.length < 8
                 ? "border-amber-500/45"
                 : "border-white/10"
             }`}
           />
           {mode === "signup" && (
-            <div className="text-[10px] mt-1 flex items-center gap-2">
+            <div className="auth-input-note text-[10px] mt-1 flex items-center gap-2">
               <span
                 className={`font-medium ${
                   pwStrength === "weak"
@@ -162,35 +165,33 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
           )}
         </label>
         {mode === "signup" && (
-          <label className="block space-y-1">
-            <span className="text-xs uppercase tracking-wide text-gray-400">
-              Confirm Password
-            </span>
+          <label className="auth-field block space-y-1">
+            <span className="auth-field-label">Confirm Password</span>
             <input
               type="password"
               required
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
-              className={`input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+              className={`auth-input input-app w-full rounded-xl px-3 py-3 bg-white/5 border focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
                 confirmMismatch ? "border-rose-500/45" : "border-white/10"
               }`}
             />
             {confirmMismatch && (
-              <span className="text-[10px] text-rose-300">Passwords do not match yet.</span>
+              <span className="auth-input-note text-[10px] text-rose-300">Passwords do not match yet.</span>
             )}
           </label>
         )}
-        {error && <div className="text-xs text-red-400">{error}</div>}
-        {info && <div className="text-xs text-emerald-400">{info}</div>}
+        {error && <div className="auth-message auth-message-error text-xs">{error}</div>}
+        {info && <div className="auth-message auth-message-info text-xs">{info}</div>}
         {mode === "signup" && pendingSignupEmail && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+          <div className="auth-resend-panel flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
             <div className="text-[10px] text-gray-300">
               Not seeing it? Check Junk/Spam or resend confirmation.
             </div>
             <button
               type="button"
               disabled={resending || busy}
-              className="text-[11px] font-medium text-emerald-300 underline decoration-dotted disabled:opacity-50"
+              className="auth-resend-btn text-[11px] font-medium text-emerald-300 underline decoration-dotted disabled:opacity-50"
               onClick={async () => {
                 setError(null);
                 setResending(true);
@@ -214,23 +215,29 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
             </button>
           </div>
         )}
-        <div className="flex items-center justify-between pt-2">
+        <div className="auth-actions pt-2">
           <button
             type="submit"
             disabled={!canSubmit}
-            className="btn-primary min-h-[44px] rounded-xl px-4 py-3 text-sm font-medium transition-transform disabled:opacity-40 hover:translate-y-[-2px] active:translate-y-[0]"
+            className="auth-submit btn-primary min-h-[48px] rounded-xl px-4 py-3 text-sm font-medium disabled:opacity-40"
           >
-            {busy ? "..." : mode === "login" ? "Sign In" : "Create Account"}
+            {busy ? "Please wait..." : mode === "login" ? "Sign in to LiftLog" : "Create my account"}
           </button>
           {mode === "login" && (
             <button
               type="button"
               onClick={onForgot}
-              className="text-xs text-gray-400 hover:text-gray-200 underline decoration-dotted"
+              className="auth-forgot text-xs text-gray-400 hover:text-gray-200 underline decoration-dotted"
             >
               Forgot password?
             </button>
           )}
+        </div>
+
+        <div className="auth-pill-row" aria-hidden="true">
+          <span>Offline-first logging</span>
+          <span>Progress analytics</span>
+          <span>Cloud sync ready</span>
         </div>
       </form>
     </div>
