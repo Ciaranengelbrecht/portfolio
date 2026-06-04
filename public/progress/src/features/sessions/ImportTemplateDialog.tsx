@@ -110,6 +110,11 @@ export default function ImportTemplateDialog({
               onChange={(e) => setQuery(e.target.value)}
               type="search"
               spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              inputMode="search"
+              enterKeyHint="search"
             />
           </label>
           <div className="rounded-xl border border-white/10 bg-slate-900/40 p-1">

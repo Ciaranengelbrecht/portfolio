@@ -78,11 +78,23 @@ export default function OptionSheet({
   const lastActive = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const onCloseRef = useRef(onClose);
+  const activeIndexRef = useRef(-1);
+  const optionsRef = useRef(options);
+  const firstEnabledIndexRef = useRef(-1);
+  const selectedEnabledIndexRef = useRef(-1);
   const [activeIndex, setActiveIndex] = useState(-1);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
 
   const firstEnabledIndex = useMemo(
     () => options.findIndex((option) => !option.disabled),
@@ -94,15 +106,16 @@ export default function OptionSheet({
   );
 
   useEffect(() => {
-    optionRefs.current = optionRefs.current.slice(0, options.length);
-  }, [options.length]);
+    firstEnabledIndexRef.current = firstEnabledIndex;
+  }, [firstEnabledIndex]);
 
   useEffect(() => {
-    if (!open) return;
-    const nextIndex =
-      selectedEnabledIndex >= 0 ? selectedEnabledIndex : firstEnabledIndex;
-    setActiveIndex(nextIndex);
-  }, [open, selectedEnabledIndex, firstEnabledIndex]);
+    selectedEnabledIndexRef.current = selectedEnabledIndex;
+  }, [selectedEnabledIndex]);
+
+  useEffect(() => {
+    optionRefs.current = optionRefs.current.slice(0, options.length);
+  }, [options.length]);
 
   const focusOption = useCallback((index: number) => {
     if (index < 0) return;
@@ -115,33 +128,35 @@ export default function OptionSheet({
 
   const moveActiveIndex = useCallback(
     (direction: 1 | -1) => {
-      if (!options.length) return;
-      let idx = activeIndex;
-      for (let i = 0; i < options.length; i += 1) {
-        idx = (idx + direction + options.length) % options.length;
-        if (!options[idx]?.disabled) {
+      const currentOptions = optionsRef.current;
+      if (!currentOptions.length) return;
+      let idx = activeIndexRef.current;
+      for (let i = 0; i < currentOptions.length; i += 1) {
+        idx = (idx + direction + currentOptions.length) % currentOptions.length;
+        if (!currentOptions[idx]?.disabled) {
           focusOption(idx);
           return;
         }
       }
     },
-    [activeIndex, options, focusOption]
+    [focusOption]
   );
 
   const focusBoundary = useCallback(
     (boundary: "start" | "end") => {
+      const currentOptions = optionsRef.current;
       const indexes =
         boundary === "start"
-          ? options.map((_, idx) => idx)
-          : options.map((_, idx) => options.length - 1 - idx);
+          ? currentOptions.map((_, idx) => idx)
+          : currentOptions.map((_, idx) => currentOptions.length - 1 - idx);
       for (const idx of indexes) {
-        if (!options[idx]?.disabled) {
+        if (!currentOptions[idx]?.disabled) {
           focusOption(idx);
           break;
         }
       }
     },
-    [options, focusOption]
+    [focusOption]
   );
 
   // Check if click is on empty/background area (not interactive content)
@@ -189,13 +204,16 @@ export default function OptionSheet({
         return;
       }
 
-      if (!options.length) return;
+      const currentOptions = optionsRef.current;
+      if (!currentOptions.length) return;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
         if (isTextInput) {
           const startIndex =
-            activeIndex >= 0 ? activeIndex : firstEnabledIndex;
+            activeIndexRef.current >= 0
+              ? activeIndexRef.current
+              : firstEnabledIndexRef.current;
           focusOption(startIndex);
           return;
         }
@@ -207,7 +225,9 @@ export default function OptionSheet({
         e.preventDefault();
         if (isTextInput) {
           const startIndex =
-            activeIndex >= 0 ? activeIndex : firstEnabledIndex;
+            activeIndexRef.current >= 0
+              ? activeIndexRef.current
+              : firstEnabledIndexRef.current;
           focusOption(startIndex);
           return;
         }
@@ -229,6 +249,21 @@ export default function OptionSheet({
       }
     };
     document.addEventListener("keydown", handler);
+    return () => {
+      document.removeEventListener("keydown", handler);
+      if (body) body.style.overflow = prevOverflow;
+      lastActive.current?.focus?.({ preventScroll: true });
+      lastActive.current = null;
+    };
+  }, [open, focusOption, moveActiveIndex, focusBoundary]);
+
+  useEffect(() => {
+    if (!open) return;
+    const nextIndex =
+      selectedEnabledIndexRef.current >= 0
+        ? selectedEnabledIndexRef.current
+        : firstEnabledIndexRef.current;
+    setActiveIndex(nextIndex);
     const focusTarget = initialFocus === "search" ? searchRef : listRef;
     requestAnimationFrame(() => {
       const node = focusTarget.current;
@@ -239,7 +274,9 @@ export default function OptionSheet({
           }
         } else {
           const targetIndex =
-            selectedEnabledIndex >= 0 ? selectedEnabledIndex : firstEnabledIndex;
+            selectedEnabledIndexRef.current >= 0
+              ? selectedEnabledIndexRef.current
+              : firstEnabledIndexRef.current;
           const first =
             targetIndex >= 0
               ? optionRefs.current[targetIndex]
@@ -250,23 +287,7 @@ export default function OptionSheet({
         }
       }
     });
-    return () => {
-      document.removeEventListener("keydown", handler);
-      if (body) body.style.overflow = prevOverflow;
-      lastActive.current?.focus?.({ preventScroll: true });
-      lastActive.current = null;
-    };
-  }, [
-    open,
-    initialFocus,
-    options.length,
-    activeIndex,
-    firstEnabledIndex,
-    selectedEnabledIndex,
-    focusOption,
-    moveActiveIndex,
-    focusBoundary,
-  ]);
+  }, [open, initialFocus]);
 
   const content = useMemo(() => {
     if (!open) return null;
@@ -344,6 +365,11 @@ export default function OptionSheet({
                         onChange={(e) => onSearchChange?.(e.target.value)}
                         type="search"
                         spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        inputMode="search"
+                        enterKeyHint="search"
                       />
                     </label>
                   ) : null}

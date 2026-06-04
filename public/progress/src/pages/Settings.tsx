@@ -3134,6 +3134,13 @@ function ExerciseLibraryManager({
           placeholder="Search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          type="search"
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          inputMode="search"
+          enterKeyHint="search"
         />
         <div className="flex gap-2 items-center">
           <input

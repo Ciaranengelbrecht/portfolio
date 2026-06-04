@@ -851,6 +851,11 @@ export default function Templates() {
                 onChange={(e) => setQuery(e.target.value)}
                 type="search"
                 spellCheck={false}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                inputMode="search"
+                enterKeyHint="search"
               />
               <div className="mt-3 max-h-[min(54dvh,380px)] overflow-y-auto space-y-2 pb-2">
                 {/* Create option when no exact case-insensitive match */}
@@ -922,6 +927,13 @@ export default function Templates() {
               placeholder="Search exercises"
               value={exerciseQuery}
               onChange={(e) => setExerciseQuery(e.target.value)}
+              type="search"
+              spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              inputMode="search"
+              enterKeyHint="search"
             />
             <button
               className="btn-outline rounded-xl px-3 py-2 text-xs"

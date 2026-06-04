@@ -185,6 +185,11 @@ export default function ChartPanel({
               className="input-app rounded-xl px-3 py-2 text-sm"
               type="search"
               spellCheck={false}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              inputMode="search"
+              enterKeyHint="search"
               placeholder="Search exercises"
               value={exerciseQuery}
               onChange={(e) => setExerciseQuery(e.target.value)}

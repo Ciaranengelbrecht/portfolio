@@ -1587,6 +1587,11 @@ export default function Analytics() {
                   className="w-full rounded-2xl border border-white/10 bg-slate-900/60 py-2 pl-9 pr-9 text-sm text-white/80 placeholder:text-white/40 focus:outline-none focus-visible:ring focus-visible:ring-emerald-400/60"
                   type="search"
                   spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  inputMode="search"
+                  enterKeyHint="search"
                 />
                 {exerciseQuery && (
                   <button
