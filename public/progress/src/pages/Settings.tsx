@@ -1612,7 +1612,7 @@ export default function SettingsPage() {
             <input
               className="input-app rounded-xl px-3 py-2 settings-input-compact"
               inputMode="numeric"
-              value={s.defaultSetRows ?? 3}
+              value={s.defaultSetRows ?? 0}
               onChange={(e) => {
                 const v = e.target.value;
                 if (!/^\d*$/.test(v)) return;

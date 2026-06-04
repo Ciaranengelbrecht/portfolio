@@ -495,6 +495,34 @@ const sessionHasRealWork = (session?: Session | null) => {
   return sessionRealActivityMs(session) > 0;
 };
 
+const sessionHasSetValues = (session?: Session | null) =>
+  !!session?.entries?.some((entry) => entry.sets?.some(setHasActualWork));
+
+const stripPlaceholderSetsIfEmpty = (
+  session: Session
+): { session: Session; changed: boolean } => {
+  if (sessionHasSetValues(session)) {
+    return { session, changed: false };
+  }
+  let changed = false;
+  const entries = session.entries.map((entry) => {
+    if (!entry.sets?.length) return entry;
+    changed = true;
+    return { ...entry, sets: [] };
+  });
+  if (!changed) {
+    return { session, changed: false };
+  }
+  return {
+    session: {
+      ...session,
+      entries,
+      updatedAt: new Date().toISOString(),
+    },
+    changed: true,
+  };
+};
+
 const sessionNavigationDayMs = (session?: Session | null) => {
   if (!session || session.deletedAt) return 0;
   if (session.localDate) {
@@ -1470,8 +1498,7 @@ export default function Sessions() {
         
         // Persist to settings for next load
         try {
-          const settings = await getSettings();
-          await setSettings({
+          await setSettings((settings) => ({
             ...settings,
             dashboardPrefs: {
               ...(settings.dashboardPrefs || {}),
@@ -1482,7 +1509,7 @@ export default function Sessions() {
                 sessionId: chosen.id,
               },
             },
-          });
+          }));
         } catch {}
       } catch (e) {
         console.warn("[Sessions] Failed picking latest session:", e);
@@ -1977,31 +2004,16 @@ export default function Sessions() {
             try {
               const t = await db.get("templates", templateMeta.templateId);
               if (t) {
-                // Reuse import logic manually (append false since brand new)
                 const exs = await db.getAll("exercises");
-                const settings = await getSettings();
                 const exMap = new Map(exs.map((e: any) => [e.id, e]));
-                const rows = (exId: string) => {
-                  const base =
-                    settings.defaultSetRows ??
-                    exMap.get(exId)?.defaults.sets ??
-                    3;
-                  return Math.min(6, Math.max(0, base));
-                };
                 const newEntries = (t.exerciseIds || []).map(
                   (exId: string) => ({
                     id: nanoid(),
                     exerciseId: exId,
-                    sets: (() => {
-                      const n = rows(exId);
-                      return n === 0
-                        ? []
-                        : Array.from({ length: n }, (_, i) => ({
-                            setNumber: i + 1,
-                            weightKg: 0,
-                            reps: 0,
-                          }));
-                    })(),
+                    sets: [],
+                    targetRepRange:
+                      t.plan?.find((p: any) => p.exerciseId === exId)
+                        ?.repRange || exMap.get(exId)?.defaults?.targetRepRange,
                   })
                 );
                 s = {
@@ -2017,6 +2029,11 @@ export default function Sessions() {
           }
         }
         if (stale()) return;
+        const sanitized = stripPlaceholderSetsIfEmpty(s);
+        if (sanitized.changed) {
+          s = sanitized.session;
+          await persistSession(s);
+        }
         setSession(s);
         // Sync training mode state with session's mode (if set)
         if (s.trainingMode) {
@@ -2038,13 +2055,13 @@ export default function Sessions() {
               `${prev.phaseNumber}-${prev.weekNumber}-${prev.dayId}` ===
                 `${nextLoc.phaseNumber}-${nextLoc.weekNumber}-${nextLoc.dayId}`;
             if (!prev || sameTarget) {
-              await setSettings({
+              await setSettings((settings) => ({
                 ...settings,
                 dashboardPrefs: {
                   ...(settings.dashboardPrefs || {}),
                   lastLocation: nextLoc,
                 },
-              });
+              }));
             }
           }
         } catch (settingsErr) {
@@ -3113,8 +3130,7 @@ export default function Sessions() {
     if (hasWorkNow && phaseCommitPendingRef.current === phase) {
       (async () => {
         try {
-          const s = await getSettings();
-          await setSettings({ ...s, currentPhase: phase });
+          await setSettings((s) => ({ ...s, currentPhase: phase }));
         } catch {}
         phaseCommitPendingRef.current = null;
       })();
@@ -3196,9 +3212,8 @@ export default function Sessions() {
       }
     }
     if (sessionHasRealWork(sToWrite)) {
-      const s = await getSettings();
       const view = viewStateRef.current;
-      await setSettings({
+      await setSettings((s) => ({
         ...s,
         dashboardPrefs: {
           ...(s.dashboardPrefs || {}),
@@ -3209,7 +3224,7 @@ export default function Sessions() {
             sessionId: sToWrite.id,
           },
         },
-      });
+      }));
     }
   };
   const scheduleFlush = () => {
@@ -3314,8 +3329,7 @@ export default function Sessions() {
     if (hasWorkNow && phaseCommitPendingRef.current === phase) {
       (async () => {
         try {
-          const s = await getSettings();
-          await setSettings({ ...s, currentPhase: phase });
+          await setSettings((s) => ({ ...s, currentPhase: phase }));
         } catch {}
         phaseCommitPendingRef.current = null;
       })();
@@ -3352,8 +3366,7 @@ export default function Sessions() {
   const handleTrainingModeChange = async (mode: TrainingMode) => {
     setCurrentTrainingMode(mode);
     // Persist to settings for future sessions
-    const s = await getSettings();
-    await setSettings({ ...s, currentTrainingMode: mode });
+    await setSettings((s) => ({ ...s, currentTrainingMode: mode }));
     // Always update current session's mode if it exists
     if (session) {
       const updated = { ...session, trainingMode: mode, updatedAt: new Date().toISOString() };
@@ -3365,41 +3378,12 @@ export default function Sessions() {
 
   const addExerciseToSession = async (ex: Exercise) => {
     if (!session || !isSessionInView(session)) return;
-    let sets: SetEntry[] = [];
-    const lastSets = await getLastWorkingSets(ex.id, week, phase);
-    const nowIsoSets = new Date().toISOString();
-    if (isDeloadWeek) {
-      const dl = await getDeloadPrescription(ex.id, week, { deloadWeeks });
-      const avgReps = lastSets.length
-        ? Math.round(
-            lastSets.reduce((a, b) => a + (b.reps || 8), 0) / lastSets.length
-          )
-        : 8;
-      sets = Array.from({ length: dl.targetSets }, (_, i) => {
-        const hasWork = (dl.targetWeight || 0) > 0 || (avgReps || 0) > 0;
-        return {
-          setNumber: i + 1,
-          weightKg: dl.targetWeight,
-          reps: avgReps,
-          addedAt: nowIsoSets,
-          ...(hasWork ? { completedAt: nowIsoSets } : {}),
-        };
-      });
-    } else {
-      // Default to 0 sets; user can add sets as needed
-      // Stamp timestamps for imported sets that have work values
-      sets = lastSets.length
-        ? lastSets.map((s) => {
-            const hasWork = (s.weightKg || 0) > 0 || (s.reps || 0) > 0;
-            return {
-              ...s,
-              addedAt: nowIsoSets,
-              ...(hasWork ? { completedAt: nowIsoSets } : {}),
-            };
-          })
-        : [];
-    }
-    const entry: SessionEntry = { id: nanoid(), exerciseId: ex.id, sets };
+    const entry: SessionEntry = {
+      id: nanoid(),
+      exerciseId: ex.id,
+      sets: [],
+      targetRepRange: ex.defaults?.targetRepRange,
+    };
     const updated = { ...session, entries: [...session.entries, entry] };
     // If this addition brings in working data immediately, stamp
     const hasWorkNow = sessionHasRealWork(updated);
@@ -3409,23 +3393,25 @@ export default function Sessions() {
       (updated as any).loggedEndAt = nowIso;
     }
     (updated as any).updatedAt = new Date().toISOString();
-    // Update per-day work log
-    try {
-      const key = sessionLogDay(updated);
-      const log = { ...(updated.workLog || {}) } as NonNullable<
-        Session["workLog"]
-      >;
-      const prev = log[key];
-      if (!prev)
-        log[key] = {
-          first: updated.updatedAt!,
-          last: updated.updatedAt!,
-          count: 1,
-        };
-      else
-        log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
-      (updated as any).workLog = log;
-    } catch {}
+    if (hasWorkNow) {
+      // Update per-day work log only when the session has recorded work.
+      try {
+        const key = sessionLogDay(updated);
+        const log = { ...(updated.workLog || {}) } as NonNullable<
+          Session["workLog"]
+        >;
+        const prev = log[key];
+        if (!prev)
+          log[key] = {
+            first: updated.updatedAt!,
+            last: updated.updatedAt!,
+            count: 1,
+          };
+        else
+          log[key] = { ...prev, last: updated.updatedAt!, count: prev.count + 1 };
+        (updated as any).workLog = log;
+      } catch {}
+    }
     lastLocalEditRef.current = Date.now();
     setSession(updated);
     await persistSession(updated);
@@ -3435,8 +3421,7 @@ export default function Sessions() {
       );
     } catch {}
     if (hasWorkNow) {
-      const s = await getSettings();
-      await setSettings({
+      await setSettings((s) => ({
         ...s,
         dashboardPrefs: {
           ...(s.dashboardPrefs || {}),
@@ -3447,7 +3432,7 @@ export default function Sessions() {
             sessionId: updated.id,
           },
         },
-      });
+      }));
     }
   };
 
@@ -3511,11 +3496,7 @@ export default function Sessions() {
       exerciseId: newEx.id,
       targetRepRange:
         (newEx as any)?.defaults?.targetRepRange ?? entry.targetRepRange,
-      sets: entry.sets.map((_, index) => ({
-        setNumber: index + 1,
-        weightKg: null,
-        reps: null,
-      })),
+      sets: [],
     };
     // Persist via existing update flow (stamps time, debounces write)
     updateEntry(newEntry);
@@ -4636,8 +4617,7 @@ export default function Sessions() {
                         onChange={async (p) => {
                           setPhase(p);
                           phaseCommitPendingRef.current = p;
-                          const s = await getSettings();
-                          await setSettings({
+                          await setSettings((s) => ({
                             ...s,
                             dashboardPrefs: {
                               ...(s.dashboardPrefs || {}),
@@ -4649,7 +4629,7 @@ export default function Sessions() {
                                 phaseNumber: p,
                               },
                             },
-                          });
+                          }));
                         }}
                       />
                     </div>
@@ -4871,7 +4851,7 @@ export default function Sessions() {
                     setWeek(1 as any);
                     setDay(0);
                     phaseCommitPendingRef.current = next;
-                    await setSettings({
+                    await setSettings((s) => ({
                       ...s,
                       dashboardPrefs: {
                         ...(s.dashboardPrefs || {}),
@@ -4882,7 +4862,7 @@ export default function Sessions() {
                           dayId: 0,
                         },
                       },
-                    });
+                    }));
                   }}
                   title="Next phase"
                 >
@@ -4903,7 +4883,7 @@ export default function Sessions() {
                       setWeek(1 as any);
                       setDay(0);
                       phaseCommitPendingRef.current = prev;
-                      await setSettings({
+                      await setSettings((s) => ({
                         ...s,
                         dashboardPrefs: {
                           ...(s.dashboardPrefs || {}),
@@ -4914,7 +4894,7 @@ export default function Sessions() {
                             dayId: 0,
                           },
                         },
-                      });
+                      }));
                     }}
                     title="Previous phase"
                   >
@@ -5002,7 +4982,7 @@ export default function Sessions() {
               }
               const s = await getSettings();
               const next = (s.currentPhase || 1) + 1;
-              await setSettings({ ...s, currentPhase: next });
+              await setSettings((current) => ({ ...current, currentPhase: next }));
               setPhase(next as number);
               setWeek(1 as any);
               setDay(0);
@@ -5019,7 +4999,7 @@ export default function Sessions() {
                   return;
                 const s = await getSettings();
                 const prev = Math.max(1, (s.currentPhase || 1) - 1);
-                await setSettings({ ...s, currentPhase: prev });
+                await setSettings((current) => ({ ...current, currentPhase: prev }));
                 setPhase(prev);
                 setWeek(1 as any);
                 setDay(0);

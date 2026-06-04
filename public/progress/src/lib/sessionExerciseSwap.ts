@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 
-import { Exercise, Session, SessionEntry, SetEntry, Template, UserProgram } from "./types";
+import { Exercise, Session, SessionEntry, Template, UserProgram } from "./types";
 
 const toFiniteNumber = (value: unknown): number | null => {
   const parsed = Number(value);
@@ -33,19 +33,12 @@ export const buildSwappedEntry = (
   entry: SessionEntry,
   nextExercise: Exercise
 ): SessionEntry => {
-  const clearedSets: SetEntry[] = (entry.sets || []).map((set, index) => ({
-    setNumber: index + 1,
-    weightKg: null,
-    reps: null,
-    ...(set.rpe != null ? { rpe: set.rpe } : {}),
-  }));
-
   return {
     ...entry,
     exerciseId: nextExercise.id,
     targetRepRange:
       nextExercise.defaults?.targetRepRange ?? entry.targetRepRange,
-    sets: clearedSets,
+    sets: [],
   };
 };
 

@@ -45,6 +45,16 @@ export interface OptionSheetProps {
 
 const body = typeof document !== "undefined" ? document.body : null;
 
+const focusSearchAtEnd = (node: HTMLInputElement) => {
+  node.focus({ preventScroll: true });
+  const end = node.value.length;
+  try {
+    node.setSelectionRange(end, end);
+  } catch {
+    // Some input types/browsers do not expose selection ranges.
+  }
+};
+
 export default function OptionSheet({
   open,
   title,
@@ -174,8 +184,7 @@ export default function OptionSheet({
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
         if (searchRef.current) {
           e.preventDefault();
-          searchRef.current.focus({ preventScroll: true });
-          searchRef.current.select?.();
+          focusSearchAtEnd(searchRef.current);
         }
         return;
       }
@@ -226,8 +235,7 @@ export default function OptionSheet({
       if (node) {
         if (node instanceof HTMLInputElement) {
           if (document.activeElement !== node) {
-            node.focus({ preventScroll: true });
-            node.select?.();
+            focusSearchAtEnd(node);
           }
         } else {
           const targetIndex =

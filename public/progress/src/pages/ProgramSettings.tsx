@@ -346,16 +346,6 @@ export default function ProgramSettings() {
         s.entries?.some((e) =>
           e.sets.some((st) => (st.weightKg || 0) > 0 || (st.reps || 0) > 0)
         );
-      const buildRows = (exId: string) =>
-        Math.max(
-          0,
-          Math.min(
-            6,
-            (settings as any).defaultSetRows ??
-              exMapAll.get(exId)?.defaults?.sets ??
-              3
-          )
-        );
       let updatedCount = 0;
       for (const s of allSessions) {
         const p = s.phaseNumber || (s as any).phase || 1;
@@ -387,7 +377,6 @@ export default function ProgramSettings() {
           ((tpl as any).plan || []).map((p: any) => [p.exerciseId, p])
         );
         const newEntries = (tpl.exerciseIds || []).map((exId: string) => {
-          const rows = buildRows(exId);
           const plan = planById.get(exId);
           return {
             id: nanoid(),
@@ -395,11 +384,7 @@ export default function ProgramSettings() {
             targetRepRange:
               plan?.repRange ||
               (exMapAll.get(exId) as any)?.defaults?.targetRepRange,
-            sets: Array.from({ length: rows }, (_, i) => ({
-              setNumber: i + 1,
-              weightKg: 0,
-              reps: 0,
-            })),
+            sets: [],
           };
         });
         const updated: Session = {

@@ -11,7 +11,7 @@ export const defaultSettings: Settings = {
   accentColor: "#3b82f6",
   cardStyle: "glass",
   autoAdvanceSession: false,
-  defaultSetRows: 3,
+  defaultSetRows: 0,
   measurementUnits: "metric",
   privacyUnlockMode: "everyLaunch",
   dashboardPrefs: {

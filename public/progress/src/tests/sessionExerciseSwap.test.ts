@@ -54,15 +54,12 @@ const makeSession = (
 });
 
 describe("sessionExerciseSwap", () => {
-  it("clears values but preserves set rows when building the swapped entry", () => {
+  it("clears set rows when building the swapped entry", () => {
     const swapped = buildSwappedEntry(makeEntry("entry-1", squat.id), hackSquat);
 
     expect(swapped.exerciseId).toBe(hackSquat.id);
     expect(swapped.targetRepRange).toBe("8-12");
-    expect(swapped.sets).toEqual([
-      { setNumber: 1, weightKg: null, reps: null },
-      { setNumber: 2, weightKg: null, reps: null },
-    ]);
+    expect(swapped.sets).toEqual([]);
   });
 
   it("updates the current session and eligible future same-day sessions", () => {
@@ -99,6 +96,7 @@ describe("sessionExerciseSwap", () => {
     expect(result.updatedSessions).toHaveLength(1);
     expect(result.updatedSessions[0].id).toBe("1-3-1");
     expect(result.updatedSessions[0].entries[0].exerciseId).toBe(hackSquat.id);
+    expect(result.updatedSessions[0].entries[0].sets).toEqual([]);
     expect(result.futureSessionsChanged).toBe(1);
     expect(result.skippedLoggedSessionIds).toEqual(["1-4-1"]);
   });

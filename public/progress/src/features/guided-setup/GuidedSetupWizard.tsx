@@ -11,7 +11,6 @@ import {
   MuscleGroup,
   Session,
   SessionEntry,
-  SetEntry,
   Settings,
   Template,
   TrainingExperienceLevel,
@@ -428,8 +427,6 @@ export default function GuidedSetupWizard({
         program: programToSave,
         schedule,
         templates: templatesToSave,
-        exercises,
-        settings: nextSettings,
       });
       const result = await archiveCurrentProgram(programToSave);
       if (!result) {
@@ -1222,18 +1219,13 @@ async function populateGuidedSessions({
   program,
   schedule,
   templates,
-  exercises,
-  settings,
 }: {
   program: UserProgram;
   schedule: GuidedSetupScheduleDay[];
   templates: Template[];
-  exercises: Exercise[];
-  settings: Settings | null;
 }) {
   try {
     const templateMap = new Map(templates.map((tpl) => [tpl.id, tpl]));
-    const exerciseMap = new Map(exercises.map((ex) => [ex.id, ex]));
     const scheduleByIndex = new Map(schedule.map((day, idx) => [idx, day]));
     const today = new Date();
     const localDate = `${today.getFullYear()}-${String(
@@ -1262,26 +1254,11 @@ async function populateGuidedSessions({
 
       const entries: SessionEntry[] = orderedExerciseIds
         .map((exerciseId) => {
-          const exercise = exerciseMap.get(exerciseId);
           const plan = planMap.get(exerciseId);
-          const fallbackSets =
-            settings?.defaultSetRows ?? exercise?.defaults?.sets ?? 3;
-          const desiredSets = plan?.plannedSets ?? fallbackSets;
-          const setCount = Math.max(
-            1,
-            Math.min(6, Math.round(Number(desiredSets) || 0))
-          );
-          if (!setCount || Number.isNaN(setCount)) return null;
-          const sets: SetEntry[] = Array.from({ length: setCount }, (_, i) => ({
-            setNumber: i + 1,
-            weightKg: 0,
-            reps: 0,
-          }));
-          if (!sets.length) return null;
           const entry: SessionEntry = {
             id: nanoid(),
             exerciseId,
-            sets,
+            sets: [],
           };
           if (plan?.repRange) {
             entry.targetRepRange = plan.repRange;

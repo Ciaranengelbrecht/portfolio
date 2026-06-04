@@ -22,11 +22,13 @@ describe('importFromTemplate', () => {
   it('appends when append=true', async () => {
     const updated = await importFromTemplate(s, t, ex, { append: true, weekNumber: 1 })
     expect(updated.entries.length).toBe(2)
+    expect(updated.entries.every((entry) => entry.sets.length === 0)).toBe(true)
   })
 
   it('replaces when append=false', async () => {
     const existing: Session = { ...s, entries: [ { id:'se0', exerciseId:'e1', sets: [] } ] }
     const updated = await importFromTemplate(existing, t, ex, { append: false, weekNumber: 1 })
     expect(updated.entries.length).toBe(2)
+    expect(updated.entries.every((entry) => entry.sets.length === 0)).toBe(true)
   })
 })

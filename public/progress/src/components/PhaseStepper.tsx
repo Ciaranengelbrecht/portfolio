@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { clampPhase } from "../lib/sessionOps";
-import { getSettings, setSettings } from "../lib/helpers";
+import { setSettings } from "../lib/helpers";
 import { clsx } from "clsx";
 
 type PhaseStepperVariant = "default" | "compact";
@@ -48,8 +48,7 @@ export default function PhaseStepper({
     setN(c);
     setHint(c !== v ? "Min phase is 1" : "");
     onChange?.(c);
-    const s = await getSettings();
-    await setSettings({
+    await setSettings((s) => ({
       ...s,
       currentPhase: c,
       dashboardPrefs: {
@@ -59,7 +58,7 @@ export default function PhaseStepper({
           phaseNumber: c,
         },
       },
-    });
+    }));
   };
 
   if (variant === "compact") {

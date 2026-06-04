@@ -196,7 +196,13 @@ export async function getSettings(): Promise<Settings> {
   return base;
 }
 
-export async function setSettings(s: Settings) {
+export async function setSettings(
+  next: Settings | ((current: Settings) => Settings | Promise<Settings>)
+) {
+  const s =
+    typeof next === "function"
+      ? await next(await getSettings())
+      : next;
   const enforced = {
     ...s,
     theme: "dark",
@@ -437,8 +443,10 @@ export async function getDashboardPrefs() {
 export async function setDashboardPrefs(
   next: Partial<NonNullable<Settings["dashboardPrefs"]>>
 ) {
-  const s = await getSettings();
-  const prefs = { ...(s.dashboardPrefs || {}), ...next };
-  await setSettings({ ...s, dashboardPrefs: prefs });
+  let prefs: Settings["dashboardPrefs"] = { range: "8w", ...next };
+  await setSettings((s) => {
+    prefs = { ...(s.dashboardPrefs || {}), ...next };
+    return { ...s, dashboardPrefs: prefs };
+  });
   return prefs;
 }
