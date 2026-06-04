@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { UserProgram } from "../lib/types";
 import { ensureProgram } from "../lib/program";
 import { fetchUserProfileStrict } from "../lib/profile";
@@ -24,6 +24,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
   const [program, setProgramState] = useState<UserProgram | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const consumedBootProgramAttemptRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +38,20 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
 
     if (!boot.authed) {
       setProgramState(null);
+      setError(null);
+      setLoading(false);
+      consumedBootProgramAttemptRef.current = null;
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (
+      boot.program &&
+      consumedBootProgramAttemptRef.current !== boot.attempt
+    ) {
+      consumedBootProgramAttemptRef.current = boot.attempt;
+      setProgramState(ensureProgram(boot.program));
       setError(null);
       setLoading(false);
       return () => {
@@ -63,7 +78,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [boot.status, boot.authed, boot.attempt]);
+  }, [boot.status, boot.authed, boot.attempt, boot.program]);
 
   const setProgram = (p: UserProgram) => {
     setError(null);

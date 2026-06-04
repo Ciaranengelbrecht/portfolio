@@ -1,8 +1,8 @@
 const PHASE_LABELS: Record<string, string> = {
   idle: "Preparing app",
-  auth: "Verifying session",
-  data: "Loading your data",
-  program: "Finalizing program",
+  auth: "Checking your signed-in session",
+  data: "Loading route-critical training data",
+  program: "Loading program setup",
   ready: "Ready",
   error: "Unable to load",
 };
@@ -17,7 +17,9 @@ export function AppBootstrapScreen({ phase }: { phase: string }) {
         </div>
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">LiftLog</h1>
-          <p className="text-sm text-slate-300/80">Loading your latest training state</p>
+          <p className="text-sm text-slate-300/80">
+            Loading the data needed for this page first
+          </p>
         </div>
         <div className="space-y-2">
           <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">

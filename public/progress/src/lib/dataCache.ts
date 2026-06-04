@@ -92,6 +92,12 @@ export function getCacheOwner(): string | null {
   }
 }
 
+export function peekCached<T=any>(store: StoreKey, ownerId?: string | null): T[] | null {
+  if(ownerId && getCacheOwner() !== ownerId) return null;
+  const existing = cache.get(store);
+  return existing ? (existing.data as T[]) : null;
+}
+
 export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Promise<T[]> {
   const force = opts?.force;
   const swr = opts?.swr;

@@ -8,7 +8,7 @@ import {
   type MouseEvent,
 } from "react";
 import { db } from "../lib/db";
-import { getAllCached, invalidate } from "../lib/dataCache";
+import { getAllCached, invalidate, peekCached } from "../lib/dataCache";
 import { waitForSession } from "../lib/supabase";
 import { requestRealtime } from "../lib/supabaseSync";
 import {
@@ -635,10 +635,64 @@ export default function Sessions() {
       }),
     [currentSessionsTtl]
   );
+  const sessionsSnapshotRef = useRef<{
+    ts: number;
+    data?: Session[];
+    promise?: Promise<Session[]>;
+  }>({ ts: 0 });
+  const rememberSessionsSnapshot = useCallback((data: Session[]) => {
+    sessionsSnapshotRef.current = { ts: Date.now(), data };
+  }, []);
+  const clearSessionsSnapshot = useCallback(() => {
+    sessionsSnapshotRef.current = { ts: 0 };
+  }, []);
+  const readSessionsSnapshot = useCallback(
+    async (options?: { force?: boolean; swr?: boolean }) => {
+      const ttl = currentSessionsTtl();
+      const snapshot = sessionsSnapshotRef.current;
+      if (
+        !options?.force &&
+        snapshot.data &&
+        Date.now() - snapshot.ts < ttl
+      ) {
+        return snapshot.data;
+      }
+      if (!options?.force && snapshot.promise) {
+        return snapshot.promise;
+      }
+      const promise = readSessions(options).then((data) => {
+        rememberSessionsSnapshot(data);
+        return data;
+      });
+      sessionsSnapshotRef.current = {
+        ...snapshot,
+        promise,
+      };
+      try {
+        return await promise;
+      } finally {
+        if (sessionsSnapshotRef.current.promise === promise) {
+          sessionsSnapshotRef.current.promise = undefined;
+        }
+      }
+    },
+    [currentSessionsTtl, readSessions, rememberSessionsSnapshot]
+  );
+  const mergeSessionIntoSnapshot = useCallback((value: Session) => {
+    const snapshot = sessionsSnapshotRef.current;
+    if (!snapshot.data) return;
+    const index = snapshot.data.findIndex((item) => item.id === value.id);
+    const next =
+      index >= 0
+        ? snapshot.data.map((item, idx) => (idx === index ? value : item))
+        : [...snapshot.data, value];
+    sessionsSnapshotRef.current = { ts: Date.now(), data: next };
+  }, []);
   const persistSession = useCallback(async (value: Session) => {
     await db.put("sessions", value);
+    mergeSessionIntoSnapshot(value);
     invalidate("sessions");
-  }, []);
+  }, [mergeSessionIntoSnapshot]);
   // Switch Exercise modal state
   const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(
     null
@@ -866,7 +920,7 @@ export default function Sessions() {
     setWipeCounts(null);
     (async () => {
       try {
-        const all = await readSessions({ force: true, swr: false });
+        const all = await readSessionsSnapshot({ force: true, swr: false });
         const unique = new Map<string, Session>();
         for (const item of all) {
           if (item?.id) unique.set(item.id, item);
@@ -943,7 +997,7 @@ export default function Sessions() {
     weekNumber,
     session?.programId,
     session?.id,
-    readSessions,
+    readSessionsSnapshot,
   ]);
   // Persist collapsed state per-session (mobile UX enhancement)
   useEffect(() => {
@@ -1448,7 +1502,7 @@ export default function Sessions() {
     
     (async () => {
       try {
-        const all = await readSessions();
+        const all = await readSessionsSnapshot();
         
         // Helper to extract calendar day as number for comparison
         const dayVal = (s: Session) => {
@@ -1516,7 +1570,7 @@ export default function Sessions() {
         lastRealSessionAppliedRef.current = true;
       }
     })();
-  }, [initialRouteReady, readSessions]);
+  }, [initialRouteReady, readSessionsSnapshot]);
 
   // Auto navigation fallback: only used when startup routing did not already
   // resolve location. Ignores future-dated sessions.
@@ -1532,7 +1586,7 @@ export default function Sessions() {
         setAutoNavDone(true);
         return;
       }
-      const all = await readSessions({ force: true, swr: false });
+      const all = await readSessionsSnapshot({ force: true, swr: false });
       if (pickedLatestRef.current || lastRealSessionAppliedRef.current) {
         setAutoNavDone(true);
         return;
@@ -1623,7 +1677,14 @@ export default function Sessions() {
       }
       setAutoNavDone(true);
     })();
-  }, [phase, autoNavDone, week, day, initialRouteReady, readSessions]);
+  }, [
+    phase,
+    autoNavDone,
+    week,
+    day,
+    initialRouteReady,
+    readSessionsSnapshot,
+  ]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1943,7 +2004,14 @@ export default function Sessions() {
       try {
         const id = `${phase}-${week}-${day}`;
         setSession((prev) => (prev?.id === id ? prev : null));
-        let s = await db.get<Session>("sessions", id);
+        let persistedSession = true;
+        let s =
+          peekCached<Session>("sessions")?.find(
+            (candidate) => candidate.id === id
+          ) || null;
+        if (!s) {
+          s = (await db.get<Session>("sessions", id)) || null;
+        }
         if (!s) {
           // fallback: try old id format (week-day) and migrate
           const oldId = `${week}-${day}`;
@@ -1957,7 +2025,7 @@ export default function Sessions() {
         if (stale()) return;
         if (!s) {
           // Duplicate guard: ensure not creating second session for same phase-week-day within same UTC date
-          const allToday = (await readSessions()).filter(
+          const allToday = (await readSessionsSnapshot()).filter(
             (x) =>
               x.dateISO?.slice(0, 10) === new Date().toISOString().slice(0, 10)
           );
@@ -1967,6 +2035,7 @@ export default function Sessions() {
           }
         }
         if (!s) {
+          persistedSession = false;
           const templateMeta = program ? program.weeklySplit[day] : undefined;
           const templateName = templateMeta
             ? templateMeta.customLabel || templateMeta.type || "Day"
@@ -1998,7 +2067,6 @@ export default function Sessions() {
             createdAt: nowISO,
             updatedAt: nowISO,
           } as Session;
-          await persistSession(s);
           // If there is a templateId, auto-import it
           if (templateMeta?.templateId) {
             try {
@@ -2021,7 +2089,6 @@ export default function Sessions() {
                   entries: newEntries,
                   autoImportedTemplateId: templateMeta.templateId,
                 };
-                await persistSession(s);
               }
             } catch (e) {
               console.warn("[Sessions] auto-import template failed", e);
@@ -2032,7 +2099,9 @@ export default function Sessions() {
         const sanitized = stripPlaceholderSetsIfEmpty(s);
         if (sanitized.changed) {
           s = sanitized.session;
-          await persistSession(s);
+          if (persistedSession) {
+            await persistSession(s);
+          }
         }
         setSession(s);
         // Sync training mode state with session's mode (if set)
@@ -2102,17 +2171,9 @@ export default function Sessions() {
         } as Session;
         if (stale()) return;
         setSession(fallbackSession);
-        // Try to save it in the background
-        setTimeout(async () => {
-          try {
-            await persistSession(fallbackSession);
-          } catch (putErr) {
-            console.warn("[Sessions] failed to save fallback session", putErr);
-          }
-        }, 1000);
       }
     })();
-  }, [phase, week, day, initialRouteReady, readSessions]);
+  }, [phase, week, day, initialRouteReady, readSessionsSnapshot]);
 
   useEffect(() => {
     return () => {
@@ -2210,7 +2271,7 @@ export default function Sessions() {
       if (recoveryRunRef.current && exercises.length > 0) return;
       let allSessions: Session[] = [];
       try {
-        allSessions = await readSessions();
+        allSessions = await readSessionsSnapshot();
       } catch {
         return;
       }
@@ -2274,7 +2335,7 @@ export default function Sessions() {
       }
       recoveryRunRef.current = true;
     })();
-  }, [initialLoading, exercises.length, exNameCache, push]);
+  }, [initialLoading, exercises.length, exNameCache, push, readSessionsSnapshot]);
   // --- END AUTO-RECOVER ---
   useEffect(() => {
     let cancelled = false;
@@ -2283,9 +2344,7 @@ export default function Sessions() {
         const [t, e, allSessions, st] = await Promise.all([
           getAllCached("templates"),
           getAllCached("exercises"),
-          getAllCached<Session>("sessions", {
-            ttlMs: currentSessionsTtl(),
-          }),
+          readSessionsSnapshot(),
           getSettings(),
         ]);
         if (cancelled) return;
@@ -2381,6 +2440,7 @@ export default function Sessions() {
         getAllCached("exercises", { force: true }).then(setExercises);
       const activeSession = activeSessionRef.current;
       if (tbl === "sessions" && activeSession?.id) {
+        clearSessionsSnapshot();
         if (
           pendingRef.current ||
           (editingFieldsRef.current && editingFieldsRef.current.size > 0)
@@ -2396,7 +2456,7 @@ export default function Sessions() {
             setCurrentTrainingMode(s.trainingMode);
           }
           setPrevBestLoading(true);
-          readSessions({ force: true, swr: false }).then((all) => {
+          readSessionsSnapshot({ force: true, swr: false }).then((all) => {
             const view = viewStateRef.current;
             const map = getPrevBestCached(
               all,
@@ -2414,17 +2474,18 @@ export default function Sessions() {
     };
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
-  }, [readSessions, getPrevBestCached]);
+  }, [clearSessionsSnapshot, readSessionsSnapshot, getPrevBestCached]);
 
   // Keep hints in sync when cache refreshes in background
   useEffect(() => {
     const onCache = (e: any) => {
       const store = e?.detail?.store;
       if (store === "sessions") {
+        clearSessionsSnapshot();
         (async () => {
           try {
             setPrevBestLoading(true);
-            const all = await readSessions();
+            const all = await readSessionsSnapshot({ swr: true });
             const view = viewStateRef.current;
             const activeSession = activeSessionRef.current;
             const map = getPrevBestCached(
@@ -2447,7 +2508,8 @@ export default function Sessions() {
     program?.id,
     program?.mesoWeeks,
     program?.deload,
-    readSessions,
+    clearSessionsSnapshot,
+    readSessionsSnapshot,
     getPrevBestCached,
   ]);
 
@@ -2456,7 +2518,7 @@ export default function Sessions() {
     (async () => {
       setPrevBestLoading(true);
       try {
-        const allSessions = await readSessions();
+        const allSessions = await readSessionsSnapshot();
         const map = getPrevBestCached(
           allSessions,
           phase,
@@ -2472,7 +2534,7 @@ export default function Sessions() {
         setPrevBestLoading(false);
       }
     })();
-  }, [week, phase, day, readSessions]);
+  }, [week, phase, day, readSessionsSnapshot]);
 
   // Build previous week (or nearest past week) per-set lookup whenever active session context changes
   const recomputePrevWeekSets = async (
@@ -2507,7 +2569,7 @@ export default function Sessions() {
       const currentPhase = getPhaseNumber(sess);
       const currentWeek = getWeekNumber(sess);
 
-      const all = await readSessions(
+      const all = await readSessionsSnapshot(
         options?.force ? { force: true, swr: false } : undefined
       );
       const candidates = (all as Session[])
@@ -2732,7 +2794,7 @@ export default function Sessions() {
       if (latestSessionRef.current) return [latestSessionRef.current];
       return [session];
     }
-    const all = await readSessions({ force: true, swr: false });
+    const all = await readSessionsSnapshot({ force: true, swr: false });
     const programId = session.programId ?? null;
     const targetPhase = getSessionPhaseNumber(session) ?? phaseNumber ?? null;
     const targetWeek = getSessionWeekNumber(session) ?? weekNumber ?? null;
@@ -2804,10 +2866,7 @@ export default function Sessions() {
           new CustomEvent("sb-change", { detail: { table: "sessions" } })
         );
       } catch {}
-      await getAllCached<Session>("sessions", {
-        force: true,
-        ttlMs: currentSessionsTtl(),
-      });
+      await readSessionsSnapshot({ force: true, swr: false });
       const updatedCurrent = uniqueTargets.get(session.id);
       if (updatedCurrent) {
         setSession(updatedCurrent);
@@ -2816,7 +2875,7 @@ export default function Sessions() {
         await recomputePrevWeekSets(session);
       }
       setPrevBestLoading(true);
-      const allSessions = await readSessions({ force: true, swr: false });
+      const allSessions = await readSessionsSnapshot({ force: true, swr: false });
       const templateForCache =
         updatedCurrent?.templateId ?? session?.templateId;
       const map = getPrevBestCached(
@@ -2975,10 +3034,7 @@ export default function Sessions() {
           new Set(session.entries.map((entry) => entry.exerciseId))
         );
         const [sessionsData, exercisesData, settingsData] = await Promise.all([
-          getAllCached<Session>("sessions", {
-            swr: true,
-            ttlMs: currentSessionsTtl(),
-          }),
+          readSessionsSnapshot({ swr: true }),
           exercises.length
             ? Promise.resolve(exercises)
             : getAllCached<Exercise>("exercises", { swr: true }),
@@ -3193,10 +3249,7 @@ export default function Sessions() {
         if (remoteTs > lastLocalEditRef.current) {
           setSession(fresh);
           setPrevBestLoading(true);
-          const all = await getAllCached<Session>("sessions", {
-            force: true,
-            ttlMs: currentSessionsTtl(),
-          });
+          const all = await readSessionsSnapshot({ force: true, swr: false });
           const templateForCache = fresh?.templateId ?? sToWrite?.templateId;
           const view = viewStateRef.current;
           const map = getPrevBestCached(
@@ -3464,7 +3517,7 @@ export default function Sessions() {
     await recomputePrevWeekSets(updatedCurrent);
     setPrevBestLoading(true);
     try {
-      const allSessions = await readSessions({ force: true, swr: false });
+      const allSessions = await readSessionsSnapshot({ force: true, swr: false });
       const map = getPrevBestCached(
         allSessions,
         phase,
@@ -3532,7 +3585,7 @@ export default function Sessions() {
     }
 
     try {
-      const allSessions = await readSessions({ force: true, swr: false });
+      const allSessions = await readSessionsSnapshot({ force: true, swr: false });
       const templateUpdate = prepareFutureTemplateSwap({
         program,
         templates,
@@ -4186,10 +4239,7 @@ export default function Sessions() {
       setHistoryContext({ exerciseId, name: exerciseName, entries: [] });
       (async () => {
         try {
-          const allSessions = await getAllCached<Session>("sessions", {
-            swr: true,
-            ttlMs: currentSessionsTtl(),
-          });
+          const allSessions = await readSessionsSnapshot({ swr: true });
           const rows: ExerciseHistoryRow[] = [];
           for (const s of allSessions) {
             if (!Array.isArray(s.entries)) continue;
@@ -4448,8 +4498,6 @@ export default function Sessions() {
   const eraseButtonTitle = session
     ? "Erase logged data for this session, week, or phase"
     : "Load a session to erase data";
-  const hasMomentumPanel =
-    !initialLoading && session != null && analytics != null;
   const formatMs = (ms: number) => {
     if (!ms) return "–";
     const m = Math.floor(ms / 60000);
@@ -4935,114 +4983,7 @@ export default function Sessions() {
           focusedEntryId={focusedEntryId}
         />
       )}
-      {/* Non-sticky actions; keep compact on mobile and avoid wrapping controls off-screen */}
-      <div
-        className={`flex flex-wrap items-center gap-2 ${
-          hasMomentumPanel ? "mt-0" : "-mt-6"
-        } sm:mt-0`}
-      >
-        <div className="hidden sm:flex items-center gap-1.5">
-          <button
-            className="rounded-lg border border-emerald-400/45 bg-emerald-500/18 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/26"
-            onClick={() => setShowImport(true)}
-          >
-            Import
-          </button>
-          <button
-            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80 disabled:opacity-40"
-            disabled={!session || !session.entries.length}
-            onClick={() => setShowSaveTemplate(true)}
-            title="Save current session as a reusable template"
-          >
-            Save tpl
-          </button>
-          <button
-            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
-            title="Start next 9-week phase"
-            onClick={async () => {
-              const all = await readSessions({ force: true, swr: false });
-              const curPhaseSessions = all.filter(
-                (s) => (s.phaseNumber || s.phase || 1) === phase
-              );
-              const hasReal = curPhaseSessions.some(sessionHasRealWork);
-              if (!hasReal) {
-                if (
-                  !window.confirm(
-                    "No real training data logged in this phase. Advance anyway?"
-                  )
-                )
-                  return;
-              } else {
-                if (
-                  !window.confirm(
-                    "Advance to next phase? This will reset week to 1."
-                  )
-                )
-                  return;
-              }
-              const s = await getSettings();
-              const next = (s.currentPhase || 1) + 1;
-              await setSettings((current) => ({ ...current, currentPhase: next }));
-              setPhase(next as number);
-              setWeek(1 as any);
-              setDay(0);
-            }}
-          >
-            Next phase
-          </button>
-          {phase > 1 && (
-            <button
-              className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
-              title="Revert to previous phase"
-              onClick={async () => {
-                if (!window.confirm("Revert to phase " + (phase - 1) + "?"))
-                  return;
-                const s = await getSettings();
-                const prev = Math.max(1, (s.currentPhase || 1) - 1);
-                await setSettings((current) => ({ ...current, currentPhase: prev }));
-                setPhase(prev);
-                setWeek(1 as any);
-                setDay(0);
-              }}
-            >
-              Prev phase
-            </button>
-          )}
-          <button
-            className="rounded-lg border border-white/10 bg-slate-800/70 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-700/80"
-            onClick={async () => {
-              if (!session) return;
-              const prevId = `${phase}-${Math.max(
-                1,
-                (week as number) - 1
-              )}-${day}`;
-              let prev = await db.get<Session>("sessions", prevId);
-              if (!prev && week === 1 && phase > 1) {
-                prev = await db.get<Session>(
-                  "sessions",
-                  `${phase - 1}-9-${day}`
-                );
-              }
-              if (prev) {
-                const copy: Session = {
-                  ...session,
-                  entries: prev.entries.map((e) => ({
-                    ...e,
-                    id: nanoid(),
-                    sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1 })),
-                  })),
-                };
-                setSession(copy);
-                await persistSession(copy);
-              }
-            }}
-          >
-            Copy last
-          </button>
-          {/* Apply-to-future moved to Program Settings */}
-        </div>
-        {/* Mobile inline compact tools removed from normal flow; see fixed overlay above */}
-      </div>
+      {/* Command actions live in the top toolbar to avoid duplicate controls and layout jumps. */}
       {/* Legacy floating more panel removed in favor of inline collapsible */}
       {isDeloadWeek && (
         <div
@@ -5056,26 +4997,50 @@ export default function Sessions() {
       )}
 
       <div
-        className={`space-y-2.5 px-2.5 sm:px-1 sm:mt-0 ${
-          hasMomentumPanel ? "mt-0" : "-mt-[72px]"
-        }`}
+        className="space-y-2.5 px-2.5 sm:px-1"
       >
         {initialLoading && (
           <div className="space-y-3" aria-label="Loading session">
-            <div className="h-5 w-40 rounded skeleton" />
-            <div className="rounded-2xl p-4 glow-card">
-              <div className="h-4 w-3/5 rounded skeleton mb-3" />
-              <div className="space-y-2">
-                <div className="h-8 rounded skeleton" />
-                <div className="h-8 rounded skeleton" />
-                <div className="h-8 rounded skeleton" />
+            <div className="rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-3 py-3 shadow-[0_16px_34px_rgba(15,23,42,0.35)]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="h-2.5 w-12 rounded skeleton" />
+                  <div className="h-9 w-32 rounded-lg skeleton" />
+                </div>
+                <div className="flex gap-1.5">
+                  <div className="h-7 w-16 rounded-md skeleton" />
+                  <div className="h-7 w-14 rounded-md skeleton" />
+                </div>
               </div>
             </div>
-            <div className="rounded-2xl p-4 glow-card">
-              <div className="h-4 w-2/5 rounded skeleton mb-3" />
-              <div className="space-y-2">
-                <div className="h-8 rounded skeleton" />
-                <div className="h-8 rounded skeleton" />
+            <div className="rounded-2xl border border-white/10 bg-slate-900/55 p-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="h-12 rounded-xl skeleton" />
+                <div className="h-12 rounded-xl skeleton" />
+                <div className="h-12 rounded-xl skeleton" />
+              </div>
+            </div>
+            {[0, 1, 2].map((item) => (
+              <div
+                key={item}
+                className="rounded-xl border-l-[2px] border-l-slate-600/30 border-white/10 bg-slate-900/55 px-3 py-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-4 w-44 max-w-[70%] rounded skeleton" />
+                    <div className="h-5 w-20 rounded-full skeleton" />
+                  </div>
+                  <div className="flex gap-1.5">
+                    <div className="h-8 w-8 rounded-md skeleton" />
+                    <div className="h-8 w-8 rounded-md skeleton" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="rounded-xl border border-white/5 bg-card p-3">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-24 rounded skeleton" />
+                <div className="h-9 w-20 rounded-lg skeleton" />
               </div>
             </div>
           </div>

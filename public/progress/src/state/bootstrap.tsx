@@ -9,8 +9,14 @@ import {
 } from "react";
 import { waitForSession } from "../lib/supabase";
 import { computeAggregates } from "../lib/aggregates";
-import { getAllCached, hasCachedData, setCacheOwner, warmPreload } from "../lib/dataCache";
+import {
+  getAllCached,
+  hasCachedData,
+  setCacheOwner,
+  warmPreload,
+} from "../lib/dataCache";
 import { getProfileProgram } from "../lib/profile";
+import type { UserProgram } from "../lib/types";
 
 type BootstrapStatus = "booting" | "ready" | "unauthenticated" | "error";
 
@@ -21,6 +27,7 @@ interface BootstrapState {
   authed: boolean;
   error: string | null;
   attempt: number;
+  program: UserProgram | null;
 }
 
 interface BootstrapContextValue extends BootstrapState {
@@ -34,9 +41,20 @@ const INITIAL_STATE: BootstrapState = {
   authed: false,
   error: null,
   attempt: 0,
+  program: null,
 };
 
-const CRITICAL_STORES = [
+const SESSIONS_CRITICAL_STORES = [
+  "settings",
+  "exercises",
+  "templates",
+  "sessions",
+] as const;
+
+const DASHBOARD_CRITICAL_STORES = ["settings", "sessions", "exercises"] as const;
+const MEASUREMENTS_CRITICAL_STORES = ["settings", "measurements"] as const;
+const DEFAULT_CRITICAL_STORES = SESSIONS_CRITICAL_STORES;
+const ALL_STORES = [
   "settings",
   "exercises",
   "templates",
@@ -45,6 +63,44 @@ const CRITICAL_STORES = [
 ] as const;
 
 const BootstrapContext = createContext<BootstrapContextValue | null>(null);
+
+export type BootstrapStore = (typeof ALL_STORES)[number];
+
+export function getBootstrapCriticalStores(path = ""): BootstrapStore[] {
+  const normalized = path || "/";
+  if (normalized.startsWith("/measurements")) {
+    return [...MEASUREMENTS_CRITICAL_STORES];
+  }
+  if (
+    normalized.startsWith("/sessions") ||
+    normalized === "/" ||
+    normalized === ""
+  ) {
+    return [...SESSIONS_CRITICAL_STORES];
+  }
+  if (normalized.startsWith("/dashboard")) {
+    return [...DASHBOARD_CRITICAL_STORES];
+  }
+  return [...DEFAULT_CRITICAL_STORES];
+}
+
+function readStartupPath() {
+  if (typeof window === "undefined") return "/";
+  const hashPath = window.location.hash.replace(/^#/, "").split("?")[0];
+  return hashPath || window.location.pathname || "/";
+}
+
+function debugBootstrap(...args: unknown[]) {
+  try {
+    if (typeof window !== "undefined" && (window as any).__DEBUG_BOOTSTRAP) {
+      console.log("[bootstrap]", ...args);
+    }
+  } catch {}
+}
+
+function bootNow() {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
 
 function readBootError(error: unknown): string {
   if (!error) return "Unknown startup error";
@@ -72,10 +128,13 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       error: null,
       session: null,
       authed: false,
+      program: null,
     });
 
     try {
+      const bootStartedAt = bootNow();
       const session = await waitForSession({ timeoutMs: 4500 });
+      debugBootstrap("auth", Math.round(bootNow() - bootStartedAt), "ms");
       if (!session?.user?.id) {
         setIfCurrent({
           status: "unauthenticated",
@@ -83,32 +142,53 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
           session: null,
           authed: false,
           error: null,
+          program: null,
         });
         return;
       }
 
       setCacheOwner(session.user.id);
       setIfCurrent({ session, authed: true, phase: "data" });
+      const criticalStores = getBootstrapCriticalStores(readStartupPath());
 
       const offline =
         typeof navigator !== "undefined" && navigator.onLine === false;
-      if (offline && !hasCachedData([...CRITICAL_STORES])) {
+      if (offline && !hasCachedData(criticalStores)) {
         throw new Error("No cached user data available while offline");
       }
 
-      await Promise.all(
-        CRITICAL_STORES.map((store) =>
+      const dataStartedAt = bootNow();
+      const dataPromise = Promise.all(
+        criticalStores.map((store) =>
           getAllCached(store, {
             swr: !offline,
           })
         )
       );
-
       setIfCurrent({ phase: "program" });
-      await getProfileProgram();
+      const programPromise = getProfileProgram();
+      const [, program] = await Promise.all([dataPromise, programPromise]);
+      debugBootstrap(
+        "critical data + program",
+        criticalStores,
+        Math.round(bootNow() - dataStartedAt),
+        "ms"
+      );
 
       if (!offline) {
-        warmPreload(["exercises", "templates", "settings"], { swr: true });
+        const criticalStoreSet = new Set<BootstrapStore>(criticalStores);
+        const deferredStores = ALL_STORES.filter(
+          (store) => !criticalStoreSet.has(store)
+        );
+        const preloadStores = Array.from(
+          new Set<BootstrapStore>([
+            ...deferredStores,
+            "exercises",
+            "templates",
+            "settings",
+          ])
+        );
+        warmPreload(preloadStores, { swr: true });
         setTimeout(() => {
           void computeAggregates().catch(() => {});
         }, 800);
@@ -120,6 +200,7 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
         error: null,
         session,
         authed: true,
+        program,
       });
     } catch (error) {
       setIfCurrent({
