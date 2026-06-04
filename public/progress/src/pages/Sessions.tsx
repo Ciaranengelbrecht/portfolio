@@ -4094,6 +4094,10 @@ export default function Sessions() {
       const workingSets = item.sets.filter(
         (set) => (set.reps || 0) > 0 || (set.weightKg || 0) > 0
       );
+      const bestLabel = item.bestSet
+        ? `${formatWeightDisplay(item.bestSet.weightKg)} x ${item.bestSet.reps}`
+        : null;
+      const volumeLabel = formatVolumeDisplay(item.tonnageKg);
       const setDetail = (workingSets.length ? workingSets : item.sets).map(
         (set, setIdx) => {
           const weight =
@@ -4109,29 +4113,65 @@ export default function Sessions() {
               })
             : null;
           return (
-            <div
+            <span
               key={`${item.sessionId}-${item.entryId}-set-${setIdx}`}
-              className="flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-white/5 px-2.5 py-1.5"
+              className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/45 px-2.5 py-1 text-[11px] text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
             >
-              <span className="text-[9px] uppercase tracking-[0.2em] text-white/40 w-10">
-                Set {setIdx + 1}
+              <span className="text-[9px] uppercase tracking-[0.18em] text-white/40">
+                S{setIdx + 1}
               </span>
-              <span className="text-sm font-semibold text-white tabular-nums">{weight}</span>
-              <span className="text-sm text-white/80">× {reps}</span>
+              <span className="font-semibold text-white tabular-nums">
+                {weight}
+              </span>
+              <span className="text-white/65">x</span>
+              <span className="font-semibold text-white tabular-nums">
+                {reps}
+              </span>
               {set.rpe != null ? (
-                <span className="text-[10px] text-white/50">RPE {set.rpe}</span>
+                <span className="text-white/45">RPE {set.rpe}</span>
               ) : null}
               {timestamp && (
-                <span className="ml-auto text-[10px] text-white/35 tabular-nums" title="Time logged">
+                <span
+                  className="text-white/35 tabular-nums"
+                  title="Time logged"
+                >
                   {timestamp}
                 </span>
               )}
-            </div>
+            </span>
           );
         }
       );
       const detail = setDetail.length ? (
-        <div className="space-y-1">{setDetail}</div>
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-white/35">
+                Sets
+              </p>
+              <p className="mt-0.5 text-xs font-semibold text-white">
+                {item.workingSets}
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-white/35">
+                Volume
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold text-emerald-200">
+                {volumeLabel ?? "--"}
+              </p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1.5">
+              <p className="text-[8px] uppercase tracking-[0.2em] text-white/35">
+                Best
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold text-white">
+                {bestLabel ?? "--"}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5">{setDetail}</div>
+        </div>
       ) : (
         <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
           No sets logged in this session.
@@ -4142,15 +4182,24 @@ export default function Sessions() {
         label: formatHistoryDate(item),
         description: meta || undefined,
         detail,
+        trailing: (
+          <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-100">
+            {bestLabel ?? `${item.workingSets} sets`}
+          </span>
+        ),
         selected: index === 0,
         onSelect: () => {},
       } satisfies OptionSheetOption;
     });
-  }, [historyContext?.entries, formatWeightDisplay, formatHistoryDate]);
+  }, [
+    historyContext?.entries,
+    formatWeightDisplay,
+    formatVolumeDisplay,
+    formatHistoryDate,
+  ]);
 
   const historyHighlight = useMemo(() => {
     if (!historyContext || historyLoading || historyError) return null;
-    if (!historyContext.entries.length) return null;
     const totalVolume = historyContext.entries.reduce(
       (sum, item) => sum + item.tonnageKg,
       0
@@ -4168,51 +4217,52 @@ export default function Sessions() {
     }
     const volumeLabel = formatVolumeDisplay(totalVolume);
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/70">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
-              Exercise
+      <div className="rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.72)] px-3 py-3 shadow-[0_14px_32px_-24px_rgba(16,185,129,0.55)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-emerald-200/55">
+              Exercise history
             </p>
-            <p className="text-sm font-semibold text-white">
+            <p className="mt-0.5 truncate text-sm font-semibold text-white">
               {historyContext.name}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
+          <div className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-right">
+            <p className="text-[8px] uppercase tracking-[0.2em] text-white/35">
               Sessions
             </p>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-sm font-semibold text-white tabular-nums">
               {historyContext.entries.length}
             </p>
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
-              Sets logged
+        <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-white/35">
+              Sets
             </p>
-            <p className="mt-1 text-sm font-medium text-white">{totalSets}</p>
+            <p className="mt-1 text-sm font-semibold text-white tabular-nums">
+              {totalSets}
+            </p>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-white/35">
               Volume
             </p>
-            <p className="mt-1 text-sm font-medium text-white">
-              {volumeLabel ?? "—"}
+            <p className="mt-1 truncate text-sm font-semibold text-emerald-200">
+              {volumeLabel ?? "--"}
             </p>
           </div>
-          {peakSet ? (
-            <div className="col-span-2">
-              <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
-                Heaviest set
-              </p>
-              <p className="mt-1 text-sm font-medium text-white">
-                {formatWeightDisplay(peakSet.weightKg)}×{peakSet.reps}
-                {peakSet.rpe != null ? ` · RPE ${peakSet.rpe}` : ""}
-              </p>
-            </div>
-          ) : null}
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-white/35">
+              Heaviest
+            </p>
+            <p className="mt-1 truncate text-sm font-semibold text-white">
+              {peakSet
+                ? `${formatWeightDisplay(peakSet.weightKg)} x ${peakSet.reps}`
+                : "--"}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -4227,6 +4277,33 @@ export default function Sessions() {
   const historyEmptyMessage = historyLoading
     ? "Loading history…"
     : historyError ?? "No logged sessions yet for this exercise.";
+
+  const historyEmptyState = useMemo(() => {
+    if (historyLoading) {
+      return (
+        <div className="space-y-2.5 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-2">
+              <div className="h-3 w-28 rounded skeleton" />
+              <div className="h-4 w-40 rounded skeleton" />
+            </div>
+            <div className="h-8 w-16 rounded-full skeleton" />
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <div className="h-12 rounded-xl skeleton" />
+            <div className="h-12 rounded-xl skeleton" />
+            <div className="h-12 rounded-xl skeleton" />
+          </div>
+          <div className="h-10 rounded-xl skeleton" />
+        </div>
+      );
+    }
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
+        {historyEmptyMessage}
+      </div>
+    );
+  }, [historyLoading, historyEmptyMessage]);
 
   const openExerciseHistory = useCallback(
     (exerciseId: string, fallbackName: string) => {
@@ -4312,7 +4389,7 @@ export default function Sessions() {
         }
       })();
     },
-    [exMap, exNameCache, currentSessionsTtl]
+    [exMap, exNameCache, readSessionsSnapshot]
   );
 
   const closeExerciseHistory = useCallback(() => {
@@ -6223,19 +6300,8 @@ export default function Sessions() {
           session={session}
           exercises={exercises}
           analytics={analytics}
+          formatVolume={formatVolumeDisplay}
         />
-      )}
-      {/* Spacer for mobile summary bar & FAB */}
-      <div className="h-40 sm:h-0" aria-hidden="true" />
-      {/* Mobile sticky summary bar */}
-      {session && !!session.entries.length && (
-        <MobileSummaryFader visibleThreshold={0.5}>
-          <MobileSessionMetrics
-            session={session}
-            exercises={exercises}
-            analytics={analytics}
-          />
-        </MobileSummaryFader>
       )}
 
       <OptionSheet
@@ -6249,23 +6315,26 @@ export default function Sessions() {
         onClose={closeExerciseHistory}
         options={historyOptions}
         highlight={historyHighlight ?? undefined}
-        emptyState={
-          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/70">
-            {historyEmptyMessage}
-          </div>
-        }
+        emptyState={historyEmptyState}
         maxListHeight={520}
       />
 
-      <div className="px-2.5 sm:px-1">
-        <div className="bg-card rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-slate-300">Add exercise</div>
+      <div className="px-2.5 pt-2 sm:px-1">
+        <div className="session-entry-card rounded-xl border-l-[2px] border-l-emerald-500/45 px-3 py-3 shadow-[0_12px_24px_-20px_rgba(16,185,129,0.45)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-[0.26em] text-emerald-200/55">
+                Build session
+              </p>
+              <div className="mt-0.5 text-sm font-semibold text-slate-100">
+                Add exercise
+              </div>
+            </div>
             <button
-              className="btn-primary-enhanced btn-enhanced text-xs px-3 py-2 rounded-lg font-medium text-white"
+              className="btn-primary-enhanced btn-enhanced shrink-0 rounded-lg px-3.5 py-2 text-xs font-semibold text-white"
               onClick={() => setShowAdd(true)}
             >
-              Search
+              Search library
             </button>
           </div>
         </div>
@@ -7116,10 +7185,12 @@ function SessionSummary({
   session,
   exercises,
   analytics,
+  formatVolume,
 }: {
   session: Session;
   exercises: Exercise[];
   analytics?: SessionAnalytics | null;
+  formatVolume: (kg: number) => string | null;
 }) {
   const exMap = useMemo(
     () => new Map(exercises.map((e) => [e.id, e])),
@@ -7131,10 +7202,10 @@ function SessionSummary({
       prs = 0;
     for (const entry of session.entries) {
       for (const s of entry.sets) {
+        if ((s.reps || 0) <= 0 && (s.weightKg || 0) <= 0) continue;
         sets++;
         const ton = (s.weightKg || 0) * (s.reps || 0);
         volume += ton;
-        // naive PR heuristic: ton > 0 & reps*weight above simple threshold
         if (
           ton > 0 &&
           ton >= (exMap.get(entry.exerciseId)?.defaults.sets || 3) * 50
@@ -7151,7 +7222,6 @@ function SessionSummary({
         prs: analytics.prSignals,
       }
     : fallbackTotals;
-  // Count sets & tonnage per PRIMARY muscle group (ignore secondaryMuscles). Tonnage sums raw weight*reps of all sets.
   const fallbackMuscleStats = useMemo(() => {
     const by: Record<string, { sets: number; tonnage: number }> = {};
     for (const entry of session.entries) {
@@ -7161,6 +7231,7 @@ function SessionSummary({
       let bucket = by[g];
       if (!bucket) bucket = by[g] = { sets: 0, tonnage: 0 };
       for (const s of entry.sets) {
+        if ((s.reps || 0) <= 0 && (s.weightKg || 0) <= 0) continue;
         bucket.sets += 1;
         bucket.tonnage += (s.weightKg || 0) * (s.reps || 0);
       }
@@ -7178,38 +7249,91 @@ function SessionSummary({
             [m.muscle, { sets: m.workingSets, tonnage: m.tonnage }] as const
         )
     : fallbackMuscleStats;
-  const estTonnage = totals.volume;
+  const volumeLabel = formatVolume(totals.volume) ?? "--";
+  const topMuscles = muscleStats.slice(0, 4);
+  const extraMuscles = Math.max(0, muscleStats.length - topMuscles.length);
   return (
-    <div className="bg-card rounded-2xl p-4 shadow-soft mt-4 fade-in">
-      <div className="flex flex-wrap gap-4 text-xs">
-        <div>
-          <span className="text-muted">Sets:</span> {totals.sets}
-        </div>
-        <div>
-          <span className="text-muted">Volume:</span> {estTonnage}
-        </div>
-        <div>
-          <span className="text-muted">PR Signals:</span> {totals.prs}
-        </div>
-        {/* Per-muscle set & tonnage summary */}
-        {muscleStats.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200">
-            {muscleStats.map(([k, v]) => (
-              <span
-                key={k}
-                className="inline-flex items-center gap-1 rounded-full border border-white/12 bg-white/5 px-2.5 py-1 tabular-nums"
-                title={`${k} • ${v.sets} sets • ${v.tonnage} tonnage`}
-              >
-                <span className="font-medium text-white/80">
-                  {k.charAt(0).toUpperCase() + k.slice(1)}
-                </span>
-                <span className="text-slate-300/90">
-                  {v.sets} sets · {v.tonnage}
-                </span>
-              </span>
-            ))}
+    <div className="px-2.5 pt-2 sm:px-1">
+      <div className="session-entry-card rounded-xl border-l-[2px] border-l-slate-500/35 px-3 py-3 fade-in">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-[0.26em] text-slate-400/80">
+              Session summary
+            </p>
+            <p className="mt-0.5 truncate text-sm font-semibold text-white">
+              {session.entries.length} exercise
+              {session.entries.length === 1 ? "" : "s"}
+            </p>
           </div>
-        )}
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-slate-300">
+            Logged
+          </span>
+        </div>
+
+        <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-slate-400">
+              Sets
+            </p>
+            <p className="mt-1 text-base font-semibold text-white tabular-nums">
+              {totals.sets.toLocaleString()}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-slate-400">
+              Volume
+            </p>
+            <p className="mt-1 truncate text-base font-semibold text-emerald-200">
+              {volumeLabel}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-2.5 py-2">
+            <p className="text-[8px] uppercase tracking-[0.22em] text-slate-400">
+              PR
+            </p>
+            <p className="mt-1 text-base font-semibold text-white tabular-nums">
+              {totals.prs.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-2 flex min-h-[28px] flex-wrap items-center gap-1.5">
+          {topMuscles.length > 0 ? (
+            <>
+              {topMuscles.map(([k, v]) => {
+                const src = getMuscleIconPath(k);
+                const label = k.charAt(0).toUpperCase() + k.slice(1);
+                return (
+                  <span
+                    key={k}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-slate-950/35 px-2.5 py-1 text-[10px] text-slate-200 tabular-nums"
+                    title={`${label} - ${v.sets} sets - ${formatVolume(v.tonnage) ?? "--"}`}
+                  >
+                    {src ? (
+                      <img
+                        src={src}
+                        alt={label}
+                        className="h-4 w-4 rounded-sm border border-white/10 bg-black/20"
+                        loading="lazy"
+                      />
+                    ) : null}
+                    <span className="font-medium text-white/85">{label}</span>
+                    <span className="text-emerald-200">{v.sets}</span>
+                  </span>
+                );
+              })}
+              {extraMuscles > 0 ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-slate-400">
+                  +{extraMuscles} more
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="text-[11px] text-slate-500">
+              No muscle totals yet.
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -7286,139 +7410,5 @@ function PRChip({
       ></span>
       PR
     </span>
-  );
-}
-
-// Compact metrics bar for mobile (mirrors SessionSummary but denser)
-function MobileSessionMetrics({
-  session,
-  exercises,
-  analytics,
-}: {
-  session: Session;
-  exercises: Exercise[];
-  analytics?: SessionAnalytics | null;
-}) {
-  const exMap = useMemo(
-    () => new Map(exercises.map((e) => [e.id, e])),
-    [exercises]
-  );
-  const fallbackStats = useMemo(() => {
-    let sets = 0,
-      volume = 0,
-      prs = 0;
-    for (const entry of session.entries) {
-      for (const s of entry.sets) {
-        if ((s.reps || 0) > 0 || (s.weightKg || 0) > 0) {
-          sets++;
-          const ton = (s.weightKg || 0) * (s.reps || 0);
-          volume += ton;
-          if (
-            ton > 0 &&
-            ton >= (exMap.get(entry.exerciseId)?.defaults.sets || 3) * 50
-          )
-            prs++;
-        }
-      }
-    }
-    return { sets, volume, prs };
-  }, [session, exMap]);
-  const stats = analytics
-    ? {
-        sets: analytics.completedSets,
-        volume: analytics.totalVolume,
-        prs: analytics.prSignals,
-      }
-    : fallbackStats;
-  // Mobile bar uses "working" sets semantics elsewhere; mirror that for muscle counts (only count sets with reps>0 or weight>0)
-  const fallbackMuscleCounts = useMemo(() => {
-    const by: Record<string, number> = {};
-    for (const entry of session.entries) {
-      const ex = exMap.get(entry.exerciseId);
-      if (!ex) continue;
-      const g = ex.muscleGroup || "other";
-      let count = 0;
-      for (const s of entry.sets) {
-        if ((s.reps || 0) > 0 || (s.weightKg || 0) > 0) count++;
-      }
-      if (count > 0) by[g] = (by[g] || 0) + count;
-    }
-    const label = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
-    return Object.entries(by)
-      .filter(([, n]) => n >= 1)
-      .sort((a, b) => label(a[0]).localeCompare(label(b[0])));
-  }, [session, exMap]);
-  const muscleCounts = analytics
-    ? analytics.muscleLoad
-        .filter((m) => m.workingSets > 0)
-        .map((m) => [m.muscle, m.workingSets] as const)
-    : fallbackMuscleCounts;
-  return (
-    <div className="flex items-center gap-4 text-xs font-medium">
-      <span className="flex flex-col items-center gap-0.5">
-        <span className="metric-label">Sets</span>
-        <span className="display-number-sm text-slate-100">{stats.sets}</span>
-      </span>
-      <span className="flex flex-col items-center gap-0.5">
-        <span className="metric-label">Vol</span>
-        <span className="display-number-sm text-emerald-400">
-          {stats.volume}
-        </span>
-      </span>
-      <span className="flex flex-col items-center gap-0.5">
-        <span className="metric-label">PR</span>
-        <span className="display-number-sm text-emerald-400">{stats.prs}</span>
-      </span>
-      {muscleCounts.length > 0 && (
-        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto scrollbar-none">
-          {muscleCounts.slice(0, 4).map(([k, n]) => {
-            const src = getMuscleIconPath(k);
-            return (
-              <span
-                key={k}
-                className="badge-muscle"
-              >
-                {src && <img src={src} alt={k} className="w-4 h-4 object-contain flex-shrink-0" />}
-                <span className="text-[11px] font-semibold">{n}</span>
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Add helper component near bottom before export (or after existing components)
-function MobileSummaryFader({
-  children,
-  visibleThreshold = 0.5,
-}: {
-  children: React.ReactNode;
-  visibleThreshold?: number;
-}) {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const max = doc.scrollHeight - window.innerHeight || 1;
-      const ratio = window.scrollY / max;
-      setVisible(ratio < visibleThreshold);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [visibleThreshold]);
-  return (
-    <div
-      className={`fixed sm:hidden bottom-0 left-0 right-0 z-30 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center gap-4 overflow-x-auto transition-all duration-500 ease-out will-change-transform backdrop-blur border-t border-white/10 bg-slate-900/80 ${
-        visible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 pointer-events-none"
-      }`}
-      aria-hidden={visible ? undefined : "true"}
-    >
-      {children}
-    </div>
   );
 }
