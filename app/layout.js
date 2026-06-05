@@ -14,14 +14,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "Ciaran Engelbrecht | Software Engineer",
+  title: "Ciaran Engelbrecht | Software Developer & ICT Professional",
   description:
-    "Portfolio of Ciaran Engelbrecht, a software engineer specializing in full-stack development, AI, and innovative software solutions.",
-  keywords: ["Software Engineer", "Full Stack Developer", "React", "Python", "JavaScript", "Portfolio"],
+    "Portfolio of Ciaran Engelbrecht, a software developer and ICT professional focused on software, systems, automation, support, and practical technology solutions.",
+  keywords: ["Software Developer", "ICT Professional", "Full Stack Developer", "Automation", "Systems", "Portfolio"],
   authors: [{ name: "Ciaran Engelbrecht" }],
   openGraph: {
-    title: "Ciaran Engelbrecht | Software Engineer",
-    description: "Portfolio of Ciaran Engelbrecht, a software engineer specializing in full-stack development and solutions.",
+    title: "Ciaran Engelbrecht | Software Developer & ICT Professional",
+    description: "Portfolio of Ciaran Engelbrecht, focused on software development, ICT systems, automation, and practical technical solutions.",
     type: "website",
   },
 };
@@ -30,11 +30,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`scroll-smooth ${outfit.variable} ${jetbrainsMono.variable}`}>
       <body className={`${outfit.className} bg-surface-900 text-white antialiased`}>
-        {/* Background gradient overlay */}
-        <div className="fixed inset-0 bg-mesh-gradient pointer-events-none z-0" />
-        
-        {/* Subtle noise texture */}
-        <div className="fixed inset-0 noise-overlay opacity-[0.02] pointer-events-none z-0" />
+        <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none z-0" />
+        <div className="fixed inset-0 noise-overlay opacity-[0.08] pointer-events-none z-0" />
         
         <div className="relative z-10">
           {children}

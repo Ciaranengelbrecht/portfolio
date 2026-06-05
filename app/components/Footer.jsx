@@ -1,212 +1,124 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
+const socialLinks = [
+  { name: "LinkedIn", href: "https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243" },
+  { name: "GitHub", href: "https://github.com/Ciaranengelbrecht" },
+  { name: "Email", href: "mailto:ciaran.engelbrecht@outlook.com" },
+];
+
+const navLinks = [
+  { name: "Home", href: "#home" },
+  { name: "About", href: "#about" },
+  { name: "Skills", href: "#skills" },
+  { name: "Projects", href: "#projects" },
+  { name: "Contact", href: "#contact" },
+];
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  const socialLinks = [
-    {
-      name: "LinkedIn",
-      href: "https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243",
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-        </svg>
-      ),
-    },
-    {
-      name: "GitHub",
-      href: "https://github.com/Ciaranengelbrecht",
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12" />
-        </svg>
-      ),
-    },
-    {
-      name: "Email",
-      href: "mailto:ciaran.engelbrecht@outlook.com",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-        </svg>
-      ),
-    },
-  ];
-
-  const navLinks = [
-    { name: "Home", href: "#home" },
-    { name: "About", href: "#about" },
-    { name: "Skills", href: "#skills" },
-    { name: "Projects", href: "#projects" },
-    { name: "Contact", href: "#contact" },
-  ];
 
   return (
-    <footer className="relative border-t border-white/5 text-white overflow-hidden">
-      {/* Animated background gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            x: mousePosition.x * 0.02,
-            y: mousePosition.y * 0.02,
-          }}
-          transition={{ type: "spring", stiffness: 50 }}
-          className="absolute top-0 left-1/4 w-80 h-80 bg-primary-500/10 rounded-full filter blur-[100px]"
-        />
-        <motion.div
-          animate={{
-            x: mousePosition.x * -0.02,
-            y: mousePosition.y * -0.02,
-          }}
-          transition={{ type: "spring", stiffness: 50 }}
-          className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent-500/10 rounded-full filter blur-[100px]"
-        />
-      </div>
-
-      {/* Top gradient line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
-
-      <div className="container mx-auto py-10 sm:py-12 md:py-16 px-4 sm:px-6 relative z-10">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-10 md:gap-12 pb-8 sm:pb-10 md:pb-12 border-b border-white/10">
-          {/* Brand Section */}
+    <footer className="relative border-t border-white/10 pb-4 text-white sm:pb-0">
+      <div className="ops-container py-8 sm:py-12">
+        <div className="grid grid-cols-1 gap-7 border-b border-white/10 pb-7 sm:gap-8 sm:pb-8 md:grid-cols-12">
           <div className="md:col-span-5">
-            <Link href="/" className="inline-flex items-center gap-2 sm:gap-3 group">
-              <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.5 }}
-                className="w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-glow-sm"
-              >
-                <span className="text-lg sm:text-xl font-bold text-white">CE</span>
-              </motion.div>
-              <span className="text-xl sm:text-2xl font-bold gradient-text group-hover:opacity-80 transition-opacity">
-                Ciaran Engelbrecht
-              </span>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-accent-400/30 bg-accent-400/10 text-sm font-semibold text-accent-100">
+                CE
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-primary-400">Portfolio</p>
+                <p className="text-lg font-semibold text-white">Ciaran Engelbrecht</p>
+              </div>
             </Link>
-            
-            <p className="text-slate-400 mt-4 sm:mt-6 leading-relaxed max-w-md text-sm sm:text-base">
-              Software engineer focused on building reliable applications,
-              improving workflows, and shipping practical solutions.
+
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-200 sm:mt-5">
+              Software developer and ICT professional focused on reliable applications,
+              practical support, automation, and workflow improvement.
             </p>
 
-            {/* Social Links */}
-            <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
+            <div className="mt-5 flex flex-wrap gap-2 sm:mt-6">
               {socialLinks.map((social) => (
-                <motion.a
+                <a
                   key={social.name}
                   href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="group w-10 sm:w-11 h-10 sm:h-11 rounded-lg sm:rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-primary-400 hover:border-primary-500/50 transition-all duration-300 active:scale-95"
+                  target={social.href.startsWith("http") ? "_blank" : undefined}
+                  rel={social.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="ops-chip"
                 >
-                  {social.icon}
-                </motion.a>
+                  {social.name}
+                </a>
               ))}
             </div>
           </div>
 
-          {/* Quick Links */}
           <div className="md:col-span-3">
-            <h3 className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider mb-4 sm:mb-6">
-              Navigation
-            </h3>
-            <nav className="flex flex-col gap-3 sm:gap-4">
-              {navLinks.map((link) => (
+            <h3 className="ops-kicker mb-3 sm:mb-4">navigation</h3>
+            <nav className="grid grid-cols-2 gap-2 sm:flex sm:flex-col">
+              {navLinks.map((link, index) => (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="group flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
+                  className="group flex min-h-10 items-center gap-3 rounded-md border border-white/[0.04] bg-white/[0.02] px-3 py-2 text-sm text-primary-300 transition-colors hover:text-white sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-1 sm:py-1.5"
                 >
-                  <span className="w-0 group-hover:w-4 h-px bg-primary-500 transition-all duration-300" />
+                  <span className="text-[11px] font-semibold text-accent-300">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
                   {link.name}
                 </Link>
               ))}
             </nav>
           </div>
 
-          {/* Contact & Resume */}
           <div className="md:col-span-4">
-            <h3 className="text-xs sm:text-sm font-semibold text-white uppercase tracking-wider mb-4 sm:mb-6">
-              Get in Touch
-            </h3>
-            
-            <div className="space-y-3 sm:space-y-4">
-              <p className="text-slate-400 text-xs sm:text-sm">
-                If you have a project in mind or a role to discuss,
-                feel free to reach out.
-              </p>
-              
-              <a
-                href="mailto:ciaran.engelbrecht@outlook.com"
-                className="group flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors"
-              >
-                <span className="text-xs sm:text-sm break-all">ciaran.engelbrecht@outlook.com</span>
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-              </a>
+            <h3 className="ops-kicker mb-3 sm:mb-4">get in touch</h3>
+            <p className="max-w-sm text-sm text-primary-200">
+              If you have a project in mind or a role to discuss, feel free to reach out.
+            </p>
 
-              <div className="pt-3 sm:pt-4">
-                <Link
-                  href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
-                  target="_blank"
-                  className="group inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-glow-sm hover:shadow-glow transition-all duration-300 text-sm sm:text-base active:scale-95"
-                >
-                  <svg className="w-4 sm:w-5 h-4 sm:h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                  </svg>
-                  Download Resume
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </Link>
-              </div>
+            <a
+              href="mailto:ciaran.engelbrecht@outlook.com"
+              className="mt-4 inline-flex max-w-full items-center gap-2 break-all text-sm text-accent-200 transition-colors hover:text-white"
+            >
+              ciaran.engelbrecht@outlook.com
+              <span>-&gt;</span>
+            </a>
+
+            <div className="mt-5">
+              <Link
+                href="/images/Curriculum Vitae - Ciaran Engelbrecht website.pdf"
+                target="_blank"
+                className="ops-button-secondary w-full sm:w-auto"
+              >
+                Download resume
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* Bottom Footer */}
-        <div className="pt-6 sm:pt-8 flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4">
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-slate-500 text-xs sm:text-sm text-center md:text-left"
-          >
-            © {currentYear} Ciaran Engelbrecht.
-          </motion.p>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm"
-          >
-            <span>Built with Next.js and Tailwind</span>
-          </motion.div>
+        <div className="flex flex-col items-center justify-between gap-3 pt-6 md:flex-row">
+          <p className="text-center text-xs text-primary-400 md:text-left">
+            {currentYear} Ciaran Engelbrecht.
+          </p>
+          <p className="text-xs text-primary-500">Built with Next.js and Tailwind</p>
         </div>
       </div>
 
-      {/* Scroll to top button */}
       <motion.button
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        whileHover={{ scale: 1.1, y: -2 }}
-        whileTap={{ scale: 0.95 }}
-        className="fixed bottom-4 sm:bottom-8 right-4 sm:right-8 w-10 sm:w-12 h-10 sm:h-12 rounded-lg sm:rounded-xl glass border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-primary-500/50 shadow-glow-sm z-50 transition-all duration-300 active:scale-95"
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.96 }}
+        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-surface-850/95 text-primary-200 shadow-ops-soft backdrop-blur-md transition-colors hover:border-accent-400/35 hover:text-white sm:bottom-8 sm:right-8 sm:h-11 sm:w-11"
+        aria-label="Scroll to top"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
         </svg>
       </motion.button>

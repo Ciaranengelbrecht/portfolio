@@ -1,330 +1,194 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { TypeAnimation } from "react-type-animation";
+
+import React, { useEffect } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
 import AssetImage from "./AssetImage";
 
-// Floating tech tags with individual animations - reduced on mobile
-const techTags = [
-  { name: "React", delay: 0, position: "hidden sm:block sm:top-0 sm:right-0 lg:right-2" },
-  { name: "Python", delay: 0.1, position: "top-0 right-0 sm:top-16 sm:right-2 lg:top-20 lg:right-4" },
-  { name: "Java", delay: 0.2, position: "hidden sm:block sm:bottom-2 sm:left-0 lg:left-2" },
-  { name: "C", delay: 0.3, position: "bottom-0 left-0 sm:bottom-16 sm:left-2 lg:bottom-20 lg:left-4" },
-  { name: "JavaScript", delay: 0.4, position: "hidden lg:block lg:bottom-2 lg:right-10" },
-  { name: "Next.js", delay: 0.5, position: "hidden lg:block lg:top-4 lg:left-10" },
-  { name: "TypeScript", delay: 0.6, position: "top-12 left-0 sm:top-4 sm:left-0 lg:top-6 lg:left-2" },
-  { name: "SQL", delay: 0.7, position: "hidden sm:block sm:top-28 sm:left-2 lg:top-32 lg:left-4" },
-  { name: "Tailwind", delay: 0.8, position: "bottom-12 right-0 sm:bottom-8 sm:right-0 lg:bottom-10 lg:right-2" },
+const focusAreas = [
+  "Software development",
+  "ICT support & systems",
+  "Networking & administration",
+  "Automation, data & AI",
 ];
 
-const TechTag = ({ name, delay, position }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.5, delay: 0.8 + delay, type: "spring", stiffness: 200 }}
-    className={`absolute ${position} z-10`}
-  >
-    <motion.div
-      animate={{ y: [0, -8, 0] }}
-      transition={{ duration: 3 + delay, repeat: Infinity, ease: "easeInOut" }}
-      className="glass px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium text-primary-300 border border-warm-500/40 shadow-glow-sm hover:shadow-glow hover:border-warm-400/60 hover:text-warm-300 transition-all duration-300 cursor-default"
-    >
-      {name}
-    </motion.div>
-  </motion.div>
-);
+const stack = ["Python", "JavaScript", "TypeScript", "React", "Next.js", "C", "SQL", "PowerShell"];
 
-// Animated background orb component
-const BackgroundOrb = ({ className, delay = 0 }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.5 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 1.5, delay }}
-    className={`absolute rounded-full filter blur-3xl ${className}`}
-  />
-);
+const signalRows = [
+  { label: "Current role", value: "Graduate ICT Officer" },
+  { label: "Location", value: "Perth, Western Australia" },
+  { label: "Focus", value: "Reliable software, practical ICT, automation, and support" },
+];
 
 const HeroSection = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  
-  // Mouse tracking for parallax effect
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  
-  const springConfig = { damping: 25, stiffness: 150 };
-  const parallaxX = useSpring(useTransform(mouseX, [-500, 500], [-20, 20]), springConfig);
-  const parallaxY = useSpring(useTransform(mouseY, [-500, 500], [-20, 20]), springConfig);
+  const parallaxX = useSpring(useTransform(mouseX, [-500, 500], [-10, 10]), {
+    damping: 28,
+    stiffness: 130,
+  });
+  const parallaxY = useSpring(useTransform(mouseY, [-500, 500], [-10, 10]), {
+    damping: 28,
+    stiffness: 130,
+  });
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      const { clientX, clientY } = e;
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      mouseX.set(clientX - centerX);
-      mouseY.set(clientY - centerY);
+    const handleMouseMove = (event) => {
+      mouseX.set(event.clientX - window.innerWidth / 2);
+      mouseY.set(event.clientY - window.innerHeight / 2);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: [0.25, 0.1, 0.25, 1],
-      },
-    },
-  };
-
   return (
-    <section id="home" className="min-h-screen relative overflow-hidden flex items-center py-20 sm:py-0">
-      {/* Animated background orbs */}
-      <BackgroundOrb 
-        className="top-1/4 right-1/4 w-96 h-96 bg-primary-500/20 animate-pulse-slow" 
-        delay={0.2}
-      />
-      <BackgroundOrb 
-        className="bottom-1/4 left-1/4 w-80 h-80 bg-accent-500/15 animate-pulse-slow" 
-        delay={0.4}
-      />
-      <BackgroundOrb 
-        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-primary-500/10 to-transparent" 
-        delay={0.1}
-      />
-      
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 bg-grid opacity-30" />
+    <section
+      id="home"
+      className="relative flex min-h-[100svh] items-start overflow-hidden pb-10 pt-20 sm:min-h-screen sm:items-center sm:py-28"
+    >
+      <div className="absolute inset-0 bg-grid opacity-50" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-400/40 to-transparent" />
 
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 relative z-20 w-full px-4 sm:px-6 md:px-12 lg:px-16 xl:px-20 py-4 sm:py-8"
+      <motion.div
+        initial={false}
+        className="relative z-10 grid w-full grid-cols-1 gap-6 px-4 sm:gap-8 sm:px-6 md:px-12 lg:grid-cols-12 lg:gap-10 xl:px-20"
       >
-        {/* Text Content */}
-        <div className="lg:col-span-7 flex flex-col justify-center text-center lg:text-left order-2 lg:order-1">
-          {/* Badge */}
-          <motion.div variants={itemVariants} className="mb-6">
-            <span className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full glass border border-warm-500/40 text-warm-400 text-xs sm:text-sm font-medium shadow-lg">
-              <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-warm-400 animate-pulse" />
-              Available for opportunities
-            </span>
+        <div className="flex flex-col justify-center lg:col-span-7">
+          <motion.div initial={false} className="mb-4 sm:mb-5">
+            <span className="ops-label">Available for opportunities</span>
           </motion.div>
 
-          {/* Main Heading */}
-          <motion.h1 
-            variants={itemVariants}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6"
-          >
-            <span className="block text-slate-300 mb-1 sm:mb-2 text-base sm:text-lg md:text-xl">Hi, I&apos;m</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-warm-400 to-primary-100 font-extrabold">
-              Ciaran Engelbrecht
-            </span>
-          </motion.h1>
-
-          {/* Type Animation */}
-          <motion.div 
-            variants={itemVariants}
-            className="text-base sm:text-xl md:text-2xl lg:text-3xl font-medium text-slate-400 mb-4 sm:mb-6 h-8 sm:h-12"
-          >
-            <span className="text-slate-500">I&apos;m </span>
-            <TypeAnimation
-              sequence={[
-                "a Software Developer",
-                2000,
-                "a Full-Stack Engineer",
-                2000,
-                "an ICT Professional",
-                2000,
-                "focused on practical solutions",
-                2000,
-              ]}
-              wrapper="span"
-              speed={50}
-              repeat={Infinity}
-              className="text-warm-400"
-            />
+          <motion.div initial={false} className="mb-4 sm:mb-6">
+            <p className="ops-kicker mb-3">Ciaran Engelbrecht / Software Developer & ICT Professional</p>
+            <h1 className="max-w-4xl text-[2.15rem] font-semibold leading-[1.04] text-white sm:text-5xl md:text-6xl">
+              Building practical software, automation, and ICT solutions
+            </h1>
           </motion.div>
 
-          {/* Description */}
-          <motion.p 
-            variants={itemVariants}
-            className="text-slate-400 text-sm sm:text-base lg:text-lg mb-6 sm:mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed px-2 sm:px-0"
+          <motion.p
+            initial={false}
+            className="max-w-2xl text-[0.96rem] leading-relaxed text-primary-100 sm:text-lg"
           >
             I build modern web applications and internal tools with a focus on
             reliability, usability, and clear outcomes. I also explore AI/ML
             workflows and automation where they add practical value.
           </motion.p>
 
-          {/* CTA Buttons */}
-          <motion.div 
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start px-4 sm:px-0"
-          >
-            <Link
-              href="#projects"
-              className="group btn-primary inline-flex items-center justify-center gap-2"
-            >
-              View My Work
-              <motion.svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                className="group-hover:translate-y-1 transition-transform duration-300"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8 1a.5.5 0 0 1 .5.5v11.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V1.5A.5.5 0 0 1 8 1z"
-                />
-              </motion.svg>
+          <motion.div initial={false} className="mt-5 grid max-w-2xl grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-2">
+            {focusAreas.map((item) => (
+              <div key={item} className="ops-panel-plain px-3 py-2 text-[0.82rem] text-primary-100 sm:text-sm">
+                <span className="mr-2 text-accent-300">&gt;</span>
+                {item}
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.div initial={false} className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
+            <Link href="#projects" className="ops-button">
+              View my work
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+              </svg>
             </Link>
-            <Link
-              href="#contact"
-              className="group btn-secondary inline-flex items-center justify-center gap-2"
-            >
-              Let&apos;s Connect
-              <motion.svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                fill="currentColor"
-                viewBox="0 0 16 16"
-                className="group-hover:translate-x-1 transition-transform duration-300"
-              >
-                <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-              </motion.svg>
+            <Link href="#contact" className="ops-button-secondary">
+              Get in touch
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5A2.25 2.25 0 0119.5 19.5h-15a2.25 2.25 0 01-2.25-2.25V6.75" />
+              </svg>
             </Link>
           </motion.div>
 
-          {/* Social Links */}
-          <motion.div 
-            variants={itemVariants}
-            className="flex gap-3 sm:gap-4 mt-6 sm:mt-8 justify-center lg:justify-start"
-          >
+          <motion.div initial={false} className="mt-5 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
             <Link
               href="https://github.com/Ciaranengelbrecht"
               target="_blank"
-              className="p-3 rounded-xl glass border border-white/10 hover:border-warm-500/50 hover:shadow-glow-sm transition-all duration-300 group"
-              aria-label="GitHub"
+              rel="noopener noreferrer"
+              className="ops-chip"
             >
-              <svg className="w-5 h-5 text-slate-400 group-hover:text-warm-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
-              </svg>
+              GitHub
             </Link>
             <Link
               href="https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243"
               target="_blank"
-              className="p-3 rounded-xl glass border border-white/10 hover:border-warm-500/50 hover:shadow-glow-sm transition-all duration-300 group"
-              aria-label="LinkedIn"
+              rel="noopener noreferrer"
+              className="ops-chip"
             >
-              <svg className="w-5 h-5 text-slate-400 group-hover:text-warm-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
+              LinkedIn
             </Link>
-            <Link
-              href="mailto:ciaran.engelbrecht@outlook.com"
-              className="p-3 rounded-xl glass border border-white/10 hover:border-warm-500/50 hover:shadow-glow-sm transition-all duration-300 group"
-              aria-label="Email"
-            >
-              <svg className="w-5 h-5 text-slate-400 group-hover:text-warm-400 transition-colors" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>
-              </svg>
+            <Link href="mailto:ciaran.engelbrecht@outlook.com" className="ops-chip">
+              Email
             </Link>
           </motion.div>
         </div>
 
-        {/* Profile Image with Tech Tags */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.3, type: "spring", stiffness: 100 }}
-          className="lg:col-span-5 flex justify-center items-center order-1 lg:order-2"
+        <motion.div
+          initial={false}
+          className="lg:col-span-5"
           style={{ x: parallaxX, y: parallaxY }}
         >
-          <div className="relative w-[200px] h-[200px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[380px] lg:h-[380px] xl:w-[420px] xl:h-[420px]">
-            {/* Glow ring behind image */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary-500/20 to-accent-400/20 blur-2xl animate-glow-pulse" />
-            
-            {/* Rotating border */}
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: "conic-gradient(from 0deg, #A8B2C1, #64748B, #D4D4D8, #A8B2C1)",
-                padding: "3px",
-              }}
-            >
-              <div className="w-full h-full rounded-full bg-surface-900" />
-            </motion.div>
+          <div className="ops-panel hero-profile-card scan-mask">
+            <span className="profile-top-glint" />
+            <div className="grid grid-cols-1 gap-0">
+              <div className="border-b border-white/10 p-3 text-xs font-medium uppercase text-primary-300">
+                Profile overview
+              </div>
+              <div className="grid grid-cols-[0.42fr_0.58fr] gap-0 sm:grid-cols-[0.9fr_1.1fr] lg:grid-cols-1 xl:grid-cols-[0.9fr_1.1fr]">
+                <div className="portrait-frame relative min-h-[205px] border-r border-white/10 bg-surface-950 sm:min-h-[280px] sm:border-b-0 sm:border-r lg:border-b lg:border-r-0 xl:border-b-0 xl:border-r">
+                  <AssetImage
+                    src="/images/portrait.webp"
+                    alt="Ciaran Engelbrecht"
+                    className="object-contain object-center grayscale-[8%] contrast-105 sm:object-cover"
+                    fill
+                    priority
+                  />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(8,11,15,0.32)_66%,rgba(8,11,15,0.82)_100%)]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-surface-950/80 via-transparent to-surface-950/20" />
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-surface-950 to-transparent" />
+                </div>
 
-            {/* Profile image container - rotates with border */}
-            <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-2 lg:inset-3 rounded-full overflow-hidden glass-dark"
-            >
-              {/* Counter-rotate the image to keep it upright */}
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="w-full h-full"
-              >
-                <AssetImage
-                  src="/portfolio/images/portrait.webp"
-                  alt="Ciaran Engelbrecht"
-                  className="object-cover scale-105 hover:scale-110 transition-transform duration-500"
-                  fill
-                  priority
-                />
-              </motion.div>
-            </motion.div>
+                <div className="space-y-3 p-3 sm:space-y-5 sm:p-5">
+                  <div>
+                    <p className="ops-kicker mb-2">Profile</p>
+                    <h2 className="text-lg font-semibold text-white min-[390px]:text-xl sm:text-2xl">Ciaran Engelbrecht</h2>
+                    <p className="mt-1 text-sm text-primary-200">Software Developer / ICT Professional</p>
+                  </div>
 
-            {/* Floating tech tags */}
-            {techTags.map((tag) => (
-              <TechTag key={tag.name} {...tag} />
-            ))}
+                  <div className="space-y-2 sm:space-y-3">
+                    {signalRows.map((row) => (
+                      <div key={row.label} className="border-l border-accent-400/35 pl-3">
+                        <p className="text-xs font-semibold uppercase text-primary-400">{row.label}</p>
+                        <p className="text-sm text-primary-100">{row.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden min-[430px]:block sm:block">
+                    <p className="ops-kicker mb-2">Technologies</p>
+                    <div className="flex flex-wrap gap-2">
+                      {stack.map((item) => (
+                        <span key={item} className="ops-chip">
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>
 
-      {/* Scroll indicator */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2"
+        transition={{ delay: 1.2, duration: 0.45 }}
+        className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-xs text-primary-400 lg:flex"
       >
-        <span className="text-slate-500 text-sm">Scroll to explore</span>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="w-6 h-10 rounded-full border-2 border-slate-600 flex justify-center pt-2"
-        >
-          <motion.div
-            animate={{ opacity: [1, 0], y: [0, 12] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            className="w-1.5 h-1.5 rounded-full bg-warm-400"
-          />
-        </motion.div>
+        <span>scroll</span>
+        <span className="h-px w-12 bg-primary-700" />
+        <span>more below</span>
       </motion.div>
     </section>
   );
