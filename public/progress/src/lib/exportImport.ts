@@ -174,15 +174,127 @@ export async function triggerExportDownload(opts: ExportOptions = {}){
 
 export interface ImportResult { inserted: Record<string, number>; skipped: Record<string, number>; errors: number; }
 
+function isObject(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function optionalArray(value: unknown, name: string) {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error(`${name} must be an array`);
+  return value;
+}
+
+function requireString(value: unknown, field: string) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`Invalid import: ${field} is required`);
+  }
+}
+
+function requireNumberIfPresent(value: unknown, field: string) {
+  if (value !== undefined && value !== null && typeof value !== "number") {
+    throw new Error(`Invalid import: ${field} must be numeric`);
+  }
+}
+
+function validateExercise(value: unknown) {
+  if (!isObject(value)) throw new Error("Invalid exercise row");
+  requireString(value.id, "exercise.id");
+  requireString(value.name, "exercise.name");
+  requireString(value.muscleGroup, "exercise.muscleGroup");
+  if (!isObject(value.defaults)) {
+    throw new Error("Invalid import: exercise.defaults is required");
+  }
+}
+
+function validateSession(value: unknown) {
+  if (!isObject(value)) throw new Error("Invalid session row");
+  requireString(value.id, "session.id");
+  requireString(value.dateISO, "session.dateISO");
+  if (!Array.isArray(value.entries)) {
+    throw new Error("Invalid import: session.entries must be an array");
+  }
+  value.entries.forEach((entry: any) => {
+    if (!isObject(entry)) throw new Error("Invalid session entry");
+    requireString(entry.id, "session.entries.id");
+    requireString(entry.exerciseId, "session.entries.exerciseId");
+    if (!Array.isArray(entry.sets)) {
+      throw new Error("Invalid import: session.entries.sets must be an array");
+    }
+    entry.sets.forEach((set: any) => {
+      if (!isObject(set)) throw new Error("Invalid set row");
+      requireNumberIfPresent(set.setNumber, "set.setNumber");
+      requireNumberIfPresent(set.weightKg, "set.weightKg");
+      requireNumberIfPresent(set.reps, "set.reps");
+      requireNumberIfPresent(set.rpe, "set.rpe");
+    });
+  });
+}
+
+function validateMeasurement(value: unknown) {
+  if (!isObject(value)) throw new Error("Invalid measurement row");
+  requireString(value.id, "measurement.id");
+  requireString(value.dateISO, "measurement.dateISO");
+  [
+    "weightKg",
+    "heightCm",
+    "bodyFatPct",
+    "leanMassKg",
+    "fatMassKg",
+    "skeletalMuscleMassKg",
+  ].forEach((field) => requireNumberIfPresent(value[field], `measurement.${field}`));
+}
+
+function validateTemplate(value: unknown) {
+  if (!isObject(value)) throw new Error("Invalid template row");
+  requireString(value.id, "template.id");
+  requireString(value.name, "template.name");
+  if (value.exerciseIds !== undefined && !Array.isArray(value.exerciseIds)) {
+    throw new Error("Invalid import: template.exerciseIds must be an array");
+  }
+  if (value.plan !== undefined && !Array.isArray(value.plan)) {
+    throw new Error("Invalid import: template.plan must be an array");
+  }
+}
+
+function validateImportPayload(json: any) {
+  if (!isObject(json)) throw new Error("Invalid import: root must be an object");
+  const exercises = optionalArray(json.exercises, "exercises");
+  const sessions = optionalArray(json.sessions, "sessions");
+  const measurements = optionalArray(json.measurements, "measurements");
+  const templates = optionalArray(json.templates, "templates");
+  if (
+    !exercises.length &&
+    !sessions.length &&
+    !measurements.length &&
+    !templates.length &&
+    !json.settings &&
+    !json.program
+  ) {
+    throw new Error("Invalid import: no LiftLog data collections found");
+  }
+  exercises.forEach(validateExercise);
+  sessions.forEach(validateSession);
+  measurements.forEach(validateMeasurement);
+  templates.forEach(validateTemplate);
+  if (json.settings !== undefined && !isObject(json.settings)) {
+    throw new Error("Invalid import: settings must be an object");
+  }
+  if (json.program !== undefined && !isObject(json.program)) {
+    throw new Error("Invalid import: program must be an object");
+  }
+  return { exercises, sessions, measurements, templates };
+}
+
 export async function importFromRawJson(text: string): Promise<ImportResult> {
   const json = JSON.parse(text);
+  const { exercises, sessions, measurements, templates } =
+    validateImportPayload(json);
   const inserted: Record<string, number> = { exercises:0, sessions:0, measurements:0, templates:0, program:0, settings:0 };
   const skipped: Record<string, number> = {};
-  // Basic validation
-  if(json.exercises){ for(const e of json.exercises){ await db.put('exercises', e); inserted.exercises++; } }
-  if(json.sessions){ for(const s of json.sessions){ await db.put('sessions', s); inserted.sessions++; } }
-  if(json.measurements){ for(const m of json.measurements){ await db.put('measurements', m); inserted.measurements++; } }
-  if(json.templates){ for(const t of json.templates){ await db.put('templates', t); inserted.templates++; } }
+  for(const e of exercises){ await db.put('exercises', e); inserted.exercises++; }
+  for(const s of sessions){ await db.put('sessions', s); inserted.sessions++; }
+  for(const m of measurements){ await db.put('measurements', m); inserted.measurements++; }
+  for(const t of templates){ await db.put('templates', t); inserted.templates++; }
   if(json.settings){ await db.put('settings', { ...json.settings, id: 'app' }); inserted.settings++; }
   if(json.program){ const st = await db.get<Settings>('settings','app') || {} as Settings; await db.put('settings', { ...(st as any), program: json.program, id: 'app' }); inserted.program = 1; }
   return { inserted, skipped, errors: 0 };

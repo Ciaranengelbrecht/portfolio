@@ -11,10 +11,11 @@
 - Copy the Project URL (ends with .supabase.co)
 - Copy the anon public key ("anon key")
 
-3. Paste into the app
+3. Configure app environment
 
-- Edit `src/lib/config.ts`
-- Replace SUPABASE_URL and SUPABASE_ANON_KEY with your values
+- Copy `.env.example` to `.env.local` for local development.
+- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- Keep separate Supabase projects/keys for staging and production when possible.
 
 4. Create the database schema and policies
 
@@ -44,4 +45,31 @@
 - After signing in, try listing tables from the SQL editor with `select count(*) from sessions;`
 - Only your rows (owner = your user id) will be visible
 
-Tip: Keep Gist backups enabled if you want extra redundancy.
+8. Deploy account deletion function
+
+- Install/login to the Supabase CLI.
+- Link the project:
+
+```bash
+supabase link --project-ref <project-ref>
+```
+
+- Deploy the function:
+
+```bash
+supabase functions deploy delete-account
+```
+
+- The function uses `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` from the Supabase runtime.
+- Verify deletion with a test account before store review.
+
+9. Production settings checklist
+
+- Enable daily database backups for production.
+- Confirm Auth redirect URLs include:
+  - `https://ciaranengelbrecht.com/progress/dist/`
+  - `https://ciaranengelbrecht.com/progress/`
+  - local dev URLs used for testing
+- Review email templates for sign-up, magic link, and password reset.
+- Check project rate limits and database quota before public beta.
+- Keep RLS enabled on `profiles`, `exercises`, `sessions`, `measurements`, `templates`, and `settings`.

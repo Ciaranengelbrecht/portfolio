@@ -4,7 +4,7 @@ const SW_UPDATE_INTERVAL_MS = 5 * 60_000;
 
 const bustServiceWorker = () => {
   try {
-    const url = new URL("../sw.js", import.meta.url);
+    const url = new URL(/* @vite-ignore */ "../sw.js", import.meta.url);
     url.search = "cb=" + Date.now();
     return fetch(url.toString(), { cache: "no-store" });
   } catch (err) {

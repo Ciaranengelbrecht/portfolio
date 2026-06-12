@@ -16,6 +16,7 @@ import {
   warmPreload,
 } from "../lib/dataCache";
 import { getProfileProgram } from "../lib/profile";
+import { trackError, trackMetric } from "../lib/monitoring";
 import type { UserProgram } from "../lib/types";
 
 type BootstrapStatus = "booting" | "ready" | "unauthenticated" | "error";
@@ -202,7 +203,12 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
         authed: true,
         program,
       });
+      trackMetric("bootstrap_ready_ms", Math.round(bootNow() - bootStartedAt), {
+        authed: true,
+        criticalStores: criticalStores.join(","),
+      });
     } catch (error) {
+      trackError(error, { source: "bootstrap", phase: "startup" });
       setIfCurrent({
         status: "error",
         phase: "error",

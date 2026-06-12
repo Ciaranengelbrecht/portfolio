@@ -10,22 +10,41 @@ Small, fast PWA to track lifting sessions and body measurements. Built with Reac
 npm install
 ```
 
-2. Run dev server
+2. Configure environment
+
+```bash
+cp .env.example .env.local
+```
+
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for the target Supabase project.
+
+3. Run dev server
 
 ```bash
 npm run dev
 ```
 
-3. Build
+4. Build
 
 ```bash
 npm run build
 ```
 
-4. Preview build
+5. Preview build
 
 ```bash
 npm run preview
+```
+
+## Production release
+
+See `docs/production-release.md` for Android internal testing, iOS TestFlight, privacy/data-safety, Supabase deletion, and release-gate steps.
+
+For iOS:
+
+```bash
+npm run ios:sync
+npm run ios:open
 ```
 
 ## Guided setup onboarding

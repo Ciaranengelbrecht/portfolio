@@ -1213,6 +1213,11 @@ export default function Measurements() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Measurements</h2>
+      <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50/90">
+        Body composition, recovery, and measurement estimates are training
+        tools only. They are not medical advice and should not replace guidance
+        from a qualified health professional.
+      </div>
       
       {/* Quick Weigh-in for fast daily weight logging */}
       <QuickWeighIn

@@ -32,7 +32,7 @@ bubblewrap init --manifest=https://ciaranengelbrecht.com/progress/manifest.webma
 
 During prompts:
 
-- Application ID (package): use Play-compliant format, e.g. `com.ciaranengelbrecht.liftlog` (do not use `liftlog.app`)
+- Application ID (package): `com.ciaranengelbrecht.LiftLog`
 - Host name: `ciaranengelbrecht.com`
 - Launch URL: `https://ciaranengelbrecht.com/progress/`
 - Enable notifications if desired (optional)
@@ -60,7 +60,7 @@ Edit both files in this repo:
 
 Replace placeholders with your package name and SHA-256 fingerprint.
 
-For your app, set a Play-compliant package, e.g. `com.ciaranengelbrecht.liftlog`. We will also align `assetlinks.json` with the same package and your upload-key fingerprint:
+For your existing Play Store testing app, keep the package as `com.ciaranengelbrecht.LiftLog`. `assetlinks.json` must use the same package and the upload-key or Play App Signing certificate fingerprint:
 
 ```
 A7:E8:18:9C:92:C9:1F:42:93:7A:43:F1:8A:4E:E0:4A:19:29:C4:58:2E:E1:26:0B:AD:E0:B7:A2:86:99:68:06
@@ -80,7 +80,7 @@ returns your JSON.
 
 You can build in two ways. We recommend using the repo scripts so the output always lands in `public/progress`.
 
-Option A  recommended (from repo root):
+Option A - recommended (from repo root):
 
 ```bash
 npm run twa:build      # builds using Bubblewrap inside public/progress
@@ -95,7 +95,7 @@ bubblewrap build
 
 The output artifacts are written directly in `public/progress/`:
 
-- `public/progress/app-release-bundle.aab`  upload this to Play
+- `public/progress/app-release-bundle.aab` - upload this to Play
 - `public/progress/app-release-signed.apk` (for sideload/debug only)
 
 ## 7) Play Console steps

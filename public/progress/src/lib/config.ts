@@ -1,4 +1,18 @@
-// Filled from your Supabase project settings
-export const SUPABASE_URL = "https://kgteepblwhaxawphcdcy.supabase.co";
-export const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtndGVlcGJsd2hheGF3cGhjZGN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3MjAzMjEsImV4cCI6MjA3MDI5NjMyMX0.qnM4gpPeAUSxW24Kagl0lptTcDByJ-MO3zEixXPeOtM";
+function requiredEnv(name: string) {
+  const value = import.meta.env[name];
+  if (!value || typeof value !== "string") {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+export const SUPABASE_URL = requiredEnv("VITE_SUPABASE_URL");
+export const SUPABASE_ANON_KEY = requiredEnv("VITE_SUPABASE_ANON_KEY");
+
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.1.0";
+export const RELEASE_CHANNEL =
+  import.meta.env.VITE_RELEASE_CHANNEL || import.meta.env.MODE || "development";
+export const MONITORING_ENDPOINT =
+  import.meta.env.VITE_MONITORING_ENDPOINT || "";
+export const DELETE_ACCOUNT_FUNCTION =
+  import.meta.env.VITE_DELETE_ACCOUNT_FUNCTION || "delete-account";

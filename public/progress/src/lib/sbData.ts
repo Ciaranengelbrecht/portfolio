@@ -1,4 +1,5 @@
 import { supabase, getOwnerIdFast } from "./supabase";
+import { trackError } from "./monitoring";
 
 function isDevEnv() {
   try {
@@ -118,6 +119,7 @@ export async function sbGet(table: Table, id: string) {
       status,
       msg,
     });
+    trackError(e, { source: "sbGet", table, status });
     await new Promise((r) => setTimeout(r, 300));
     return await attempt();
   }
@@ -143,6 +145,7 @@ export async function sbList(table: Table) {
       status,
       msg,
     });
+    trackError(e, { source: "sbList", table, status });
     await new Promise((r) => setTimeout(r, 300));
     return await attempt();
   }

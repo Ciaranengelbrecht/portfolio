@@ -28,6 +28,8 @@ import {
 import { unlockAudio, setBeepVolumeScalar } from "../lib/audio";
 import { saveProfileTheme } from "../lib/profile";
 import { supabase, clearAuthStorage, waitForSession } from "../lib/supabase";
+import { DELETE_ACCOUNT_FUNCTION } from "../lib/config";
+import { clearLiftLogLocalData } from "../lib/localData";
 import { getSettings, setSettings } from "../lib/helpers";
 import { ListSkeleton } from "../components/LoadingSkeletons";
 
@@ -615,45 +617,18 @@ export default function SettingsPage() {
         return;
 
       setBusy("delete");
-      const uid = sess.user.id as string;
-
-      // 1) Delete remote rows owned by the user (RLS permits owner deletes)
-      try {
-        const tables = [
-          "exercises",
-          "sessions",
-          "measurements",
-          "templates",
-          "settings",
-        ] as const;
-        for (const t of tables) {
-          await supabase.from(t).delete().eq("owner", uid);
-        }
-      } catch (e) {
-        console.warn("[Delete] remote row cleanup issue", e);
+      const { error } = await supabase.functions.invoke(
+        DELETE_ACCOUNT_FUNCTION
+      );
+      if (error) {
+        throw new Error(
+          error.message ||
+            "Account deletion service is not available. Please contact support."
+        );
       }
 
-      // 2) Attempt to delete auth user via admin function (optional backend). If not available, sign out and proceed.
-      try {
-        // Optional: call a secured endpoint if configured (not required to ship UI)
-        // await fetch('/api/delete-user', { method: 'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ uid }) });
-      } catch {}
-
-      // 3) Clear local data
-      for (const k of [
-        "exercises",
-        "sessions",
-        "measurements",
-        "templates",
-      ] as const) {
-        const items = await db.getAll<any>(k);
-        for (const it of items) await db.delete(k, (it as any).id);
-      }
-      try {
-        await db.delete("settings", "app");
-      } catch {}
-
-      // 4) Sign out and navigate to a confirmation/info page
+      // The backend deleted cloud data and auth user. Clear local app caches next.
+      clearLiftLogLocalData();
       try {
         await supabase.auth.signOut({ scope: "global" } as any);
       } catch {}
@@ -663,6 +638,11 @@ export default function SettingsPage() {
       );
       window.location.href =
         "https://ciaranengelbrecht.com/delete-account-liftlog.html";
+    } catch (error: any) {
+      alert(
+        error?.message ||
+          "Account deletion failed. Please try again or contact support."
+      );
     } finally {
       setBusy(null);
     }

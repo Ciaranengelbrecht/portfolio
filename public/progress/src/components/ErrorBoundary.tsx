@@ -1,4 +1,5 @@
 import React, { Component, ReactNode } from 'react';
+import { trackError } from '../lib/monitoring';
 
 interface Props {
   children: ReactNode;
@@ -47,8 +48,10 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Here you could also log to an error reporting service
-    // e.g., Sentry, LogRocket, etc.
+    trackError(error, {
+      source: "react_error_boundary",
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   handleReset = () => {

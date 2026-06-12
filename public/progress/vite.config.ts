@@ -34,6 +34,7 @@ export default defineConfig({
   // Use relative base so the app works from a subfolder like /progress
   base: "./",
   build: {
+    chunkSizeWarningLimit: 700,
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -42,17 +43,5 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.warn', 'console.info']
       }
     },
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: [
-            'react','react-dom','@supabase/supabase-js'
-          ],
-          charts: [
-            'recharts'
-          ]
-        }
-      }
-    }
   }
 });
