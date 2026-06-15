@@ -30,9 +30,10 @@ alter table profiles enable row level security;
 drop policy if exists "own read" on profiles;
 drop policy if exists "own insert" on profiles;
 drop policy if exists "own update" on profiles;
-create policy "own read" on profiles for select using (auth.uid() = id);
-create policy "own insert" on profiles for insert with check (auth.uid() = id);
-create policy "own update" on profiles for update using (auth.uid() = id);
+drop policy if exists "update_own_profile" on profiles;
+create policy "own read" on profiles for select using ((select auth.uid()) = id);
+create policy "own insert" on profiles for insert with check ((select auth.uid()) = id);
+create policy "own update" on profiles for update using ((select auth.uid()) = id);
 
 -- Core collections as JSONB payloads keyed by text IDs + owner
 create table if not exists exercises (
@@ -86,50 +87,50 @@ drop policy if exists "own read" on exercises;
 drop policy if exists "own insert" on exercises;
 drop policy if exists "own update" on exercises;
 drop policy if exists "own delete" on exercises;
-create policy "own read" on exercises for select using (auth.uid() = owner);
-create policy "own insert" on exercises for insert with check (auth.uid() = owner);
-create policy "own update" on exercises for update using (auth.uid() = owner);
-create policy "own delete" on exercises for delete using (auth.uid() = owner);
+create policy "own read" on exercises for select using ((select auth.uid()) = owner);
+create policy "own insert" on exercises for insert with check ((select auth.uid()) = owner);
+create policy "own update" on exercises for update using ((select auth.uid()) = owner);
+create policy "own delete" on exercises for delete using ((select auth.uid()) = owner);
 
 drop policy if exists "own read" on sessions;
 drop policy if exists "own insert" on sessions;
 drop policy if exists "own update" on sessions;
 drop policy if exists "own delete" on sessions;
-create policy "own read" on sessions for select using (auth.uid() = owner);
-create policy "own insert" on sessions for insert with check (auth.uid() = owner);
-create policy "own update" on sessions for update using (auth.uid() = owner);
-create policy "own delete" on sessions for delete using (auth.uid() = owner);
+create policy "own read" on sessions for select using ((select auth.uid()) = owner);
+create policy "own insert" on sessions for insert with check ((select auth.uid()) = owner);
+create policy "own update" on sessions for update using ((select auth.uid()) = owner);
+create policy "own delete" on sessions for delete using ((select auth.uid()) = owner);
 
 drop policy if exists "own read" on measurements;
 drop policy if exists "own insert" on measurements;
 drop policy if exists "own update" on measurements;
 drop policy if exists "own delete" on measurements;
-create policy "own read" on measurements for select using (auth.uid() = owner);
-create policy "own insert" on measurements for insert with check (auth.uid() = owner);
-create policy "own update" on measurements for update using (auth.uid() = owner);
-create policy "own delete" on measurements for delete using (auth.uid() = owner);
+create policy "own read" on measurements for select using ((select auth.uid()) = owner);
+create policy "own insert" on measurements for insert with check ((select auth.uid()) = owner);
+create policy "own update" on measurements for update using ((select auth.uid()) = owner);
+create policy "own delete" on measurements for delete using ((select auth.uid()) = owner);
 
 drop policy if exists "own read" on templates;
 drop policy if exists "own insert" on templates;
 drop policy if exists "own update" on templates;
 drop policy if exists "own delete" on templates;
-create policy "own read" on templates for select using (auth.uid() = owner);
-create policy "own insert" on templates for insert with check (auth.uid() = owner);
-create policy "own update" on templates for update using (auth.uid() = owner);
-create policy "own delete" on templates for delete using (auth.uid() = owner);
+create policy "own read" on templates for select using ((select auth.uid()) = owner);
+create policy "own insert" on templates for insert with check ((select auth.uid()) = owner);
+create policy "own update" on templates for update using ((select auth.uid()) = owner);
+create policy "own delete" on templates for delete using ((select auth.uid()) = owner);
 
 drop policy if exists "own read" on settings;
 drop policy if exists "own upsert" on settings;
 drop policy if exists "own update" on settings;
-create policy "own read" on settings for select using (auth.uid() = owner);
-create policy "own upsert" on settings for insert with check (auth.uid() = owner);
-create policy "own update" on settings for update using (auth.uid() = owner);
+create policy "own read" on settings for select using ((select auth.uid()) = owner);
+create policy "own upsert" on settings for insert with check ((select auth.uid()) = owner);
+create policy "own update" on settings for update using ((select auth.uid()) = owner);
 
 -- ============================================================================
 -- Performance indexes for owner-scoped workloads
 -- ============================================================================
 -- These match the most common app queries:
---   WHERE owner = auth.uid()
+--   WHERE owner = (select auth.uid())
 -- and owner-scoped ordering by updated_at when needed.
 
 create index if not exists exercises_owner_idx on exercises(owner);
