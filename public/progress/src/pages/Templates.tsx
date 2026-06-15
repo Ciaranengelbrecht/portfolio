@@ -832,7 +832,7 @@ export default function Templates() {
             className="flex w-full max-h-[min(90dvh,calc(100dvh-0.75rem))] flex-col overflow-hidden rounded-t-2xl bg-card shadow-soft sm:rounded-2xl sm:max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex-1 overflow-y-auto p-4 pb-3">
+            <div className="flex min-h-0 flex-1 flex-col p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="font-medium">Add exercise</div>
                 <button
@@ -857,7 +857,14 @@ export default function Templates() {
                 inputMode="search"
                 enterKeyHint="search"
               />
-              <div className="mt-3 max-h-[min(54dvh,380px)] overflow-y-auto space-y-2 pb-2">
+              <div
+                className="mt-3 min-h-0 flex-1 max-h-[min(54dvh,380px)] space-y-2 overflow-y-auto pb-[calc(2rem+env(safe-area-inset-bottom))]"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  scrollPaddingBottom:
+                    "calc(2rem + env(safe-area-inset-bottom))",
+                }}
+              >
                 {/* Create option when no exact case-insensitive match */}
                 {(() => {
                   const q = query.trim();

@@ -328,11 +328,11 @@ export default function OptionSheet({
               >
                 <div className="w-8 h-1 rounded-full bg-white/20" />
               </div>
-              <div 
-                className="flex flex-col gap-4 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[max(0.25rem,env(safe-area-inset-top))] sm:pb-5 sm:pt-5"
+              <div
+                className="flex min-h-0 flex-1 flex-col gap-4 p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-[max(0.25rem,env(safe-area-inset-top))] sm:pb-5 sm:pt-5"
                 onClick={handleEmptySpaceClick}
               >
-                <header className="flex flex-col gap-2 pr-8">
+                <header className="flex shrink-0 flex-col gap-2 pr-8">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h2
@@ -377,23 +377,28 @@ export default function OptionSheet({
                 </header>
                 <div
                   ref={listRef}
+                  data-option-sheet-list
                   tabIndex={-1}
                   role="listbox"
                   aria-label={title}
-                  className="relative -mx-2 flex-1 overscroll-contain px-2 pb-2 pt-2"
+                  className="relative -mx-2 min-h-0 flex-1 overscroll-contain px-2 pb-2 pt-2"
                   style={{
                     maxHeight: `min(70dvh, ${maxListHeight}px)`,
                     overflowY: "auto",
                     WebkitOverflowScrolling: "touch",
                     scrollbarWidth: "thin",
                     scrollbarColor: "rgba(255,255,255,0.15) transparent",
-                    scrollPaddingBottom: "1rem",
+                    scrollPaddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))",
                   }}
                   onClick={handleEmptySpaceClick}
                 >
                   <div className="pointer-events-none absolute inset-x-2 top-0 z-10 h-5 bg-gradient-to-b from-slate-950/95 to-transparent" />
                   <div className="pointer-events-none absolute inset-x-2 bottom-0 z-10 h-8 bg-gradient-to-t from-slate-950/95 to-transparent" />
-                  <div className="relative space-y-2 pb-6" onClick={handleEmptySpaceClick}>
+                  <div
+                    data-option-sheet-results
+                    className="relative space-y-2 pb-[calc(2.5rem+env(safe-area-inset-bottom))]"
+                    onClick={handleEmptySpaceClick}
+                  >
                     {options.length === 0 && emptyState}
                     {options.map((option, idx) => (
                       <Fragment key={option.id}>
@@ -464,13 +469,13 @@ export default function OptionSheet({
                 {primaryAction ? (
                   <button
                     type="button"
-                    className="rounded-2xl border border-emerald-400/40 bg-emerald-500/20 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30"
+                    className="shrink-0 rounded-2xl border border-emerald-400/40 bg-emerald-500/20 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30"
                     onClick={primaryAction.onClick}
                   >
                     {primaryAction.label}
                   </button>
                 ) : null}
-                {footer}
+                {footer ? <div className="shrink-0">{footer}</div> : null}
               </div>
             </motion.div>
           </motion.div>

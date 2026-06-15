@@ -46,7 +46,6 @@ import {
 } from "../lib/pacing";
 import ImportTemplateDialog from "../features/sessions/ImportTemplateDialog";
 import SaveTemplateDialog from "../features/sessions/SaveTemplateDialog";
-import { rollingPRs } from "../lib/helpers";
 import { setLastAction, undo as undoLast } from "../lib/undo";
 import PhaseStepper from "../components/PhaseStepper";
 import SessionBreadcrumb from "../components/SessionBreadcrumb";
@@ -64,6 +63,11 @@ import {
   applyExerciseSwapToCurrentAndFutureSessions,
   prepareFutureTemplateSwap,
 } from "../lib/sessionExerciseSwap";
+import {
+  computeExercisePrScores,
+  loadSessionsStartupBundle,
+} from "../lib/sessionStartup";
+import { trackMetric } from "../lib/monitoring";
 
 const KG_TO_LB = 2.2046226218;
 const SWAP_RECENTS_STORAGE_KEY = "sessions:swapRecents:v1";
@@ -338,6 +342,17 @@ const stableHash = (value: any): string => {
   return `{${entries.join(",")}}`;
 };
 
+const perfNow = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
+
+const debugSessionsPerf = (name: string, value: number) => {
+  try {
+    if (typeof window !== "undefined" && (window as any).__DEBUG_SESSIONS_PERF) {
+      console.log("[sessions perf]", name, Math.round(value), "ms");
+    }
+  } catch {}
+};
+
 type ExerciseHistoryRow = {
   exerciseId: string;
   sessionId: string;
@@ -565,6 +580,7 @@ const bestSetByLoad = (sets: SetEntry[]) => {
 };
 
 export default function Sessions() {
+  const sessionsMountStartedAtRef = useRef(perfNow());
   const { program, setProgram } = useProgram();
   const [week, setWeek] = useState<any>(1);
   const [phase, setPhase] = useState<number>(1);
@@ -640,11 +656,14 @@ export default function Sessions() {
     data?: Session[];
     promise?: Promise<Session[]>;
   }>({ ts: 0 });
+  const [sessionsSnapshotVersion, setSessionsSnapshotVersion] = useState(0);
   const rememberSessionsSnapshot = useCallback((data: Session[]) => {
     sessionsSnapshotRef.current = { ts: Date.now(), data };
+    setSessionsSnapshotVersion((version) => version + 1);
   }, []);
   const clearSessionsSnapshot = useCallback(() => {
     sessionsSnapshotRef.current = { ts: 0 };
+    setSessionsSnapshotVersion((version) => version + 1);
   }, []);
   const readSessionsSnapshot = useCallback(
     async (options?: { force?: boolean; swr?: boolean }) => {
@@ -687,12 +706,45 @@ export default function Sessions() {
         ? snapshot.data.map((item, idx) => (idx === index ? value : item))
         : [...snapshot.data, value];
     sessionsSnapshotRef.current = { ts: Date.now(), data: next };
+    setSessionsSnapshotVersion((version) => version + 1);
   }, []);
+  const recomputePrScoresFromSnapshot = useCallback(
+    (currentSession?: Session | null, sessionsData?: Session[]) => {
+      const base = sessionsData ?? sessionsSnapshotRef.current.data ?? [];
+      const merged = currentSession
+        ? (() => {
+            const index = base.findIndex((item) => item.id === currentSession.id);
+            if (index >= 0) {
+              return base.map((item, idx) =>
+                idx === index ? currentSession : item
+              );
+            }
+            return [...base, currentSession];
+          })()
+        : base;
+      const ids = currentSession?.entries?.map((entry) => entry.exerciseId);
+      setPrScoresByExercise(computeExercisePrScores(merged, ids));
+    },
+    []
+  );
   const persistSession = useCallback(async (value: Session) => {
     await db.put("sessions", value);
     mergeSessionIntoSnapshot(value);
+    recomputePrScoresFromSnapshot(value);
     invalidate("sessions");
-  }, [mergeSessionIntoSnapshot]);
+  }, [mergeSessionIntoSnapshot, recomputePrScoresFromSnapshot]);
+  useEffect(() => {
+    if (!session) {
+      setPrScoresByExercise({});
+      return;
+    }
+    recomputePrScoresFromSnapshot(session);
+  }, [
+    session?.id,
+    session?.entries,
+    sessionsSnapshotVersion,
+    recomputePrScoresFromSnapshot,
+  ]);
   // Switch Exercise modal state
   const [switchTarget, setSwitchTarget] = useState<{ entryId: string } | null>(
     null
@@ -758,6 +810,10 @@ export default function Sessions() {
     [id: string]: { week: number; set: SetEntry };
   } | null>(null);
   const [prevBestLoading, setPrevBestLoading] = useState<boolean>(true);
+  const [prScoresByExercise, setPrScoresByExercise] = useState<
+    Record<string, number>
+  >({});
+  const firstTrainRenderMetricSentRef = useRef(false);
   const prevBestCacheRef = useRef(
     new Map<
       string,
@@ -1586,7 +1642,7 @@ export default function Sessions() {
         setAutoNavDone(true);
         return;
       }
-      const all = await readSessionsSnapshot({ force: true, swr: false });
+      const all = await readSessionsSnapshot();
       if (pickedLatestRef.current || lastRealSessionAppliedRef.current) {
         setAutoNavDone(true);
         return;
@@ -1999,6 +2055,7 @@ export default function Sessions() {
   useEffect(() => {
     (async () => {
       if (!initialRouteReady) return; // wait for lastLocation / intent resolution
+      const activeSessionStartedAt = perfNow();
       const loadToken = ++routeLoadTokenRef.current;
       const stale = () => loadToken !== routeLoadTokenRef.current;
       try {
@@ -2104,6 +2161,13 @@ export default function Sessions() {
           }
         }
         setSession(s);
+        const activeSessionReadyMs = perfNow() - activeSessionStartedAt;
+        debugSessionsPerf("sessions_active_session_ready_ms", activeSessionReadyMs);
+        trackMetric("sessions_active_session_ready_ms", Math.round(activeSessionReadyMs), {
+          route: s.id,
+          entries: s.entries.length,
+          persisted: persistedSession,
+        });
         // Sync training mode state with session's mode (if set)
         if (s.trainingMode) {
           setCurrentTrainingMode(s.trainingMode);
@@ -2340,29 +2404,40 @@ export default function Sessions() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const startedAt = perfNow();
       try {
-        const [t, e, allSessions, st] = await Promise.all([
-          getAllCached("templates"),
-          getAllCached("exercises"),
-          readSessionsSnapshot(),
-          getSettings(),
-        ]);
-        if (cancelled) return;
-        setTemplates(t);
-        setExercises(e);
-        // Preload sessions for prev best map (day-aware for better matching)
-        setPrevBestLoading(true);
-        const map = getPrevBestCached(
-          allSessions,
-          phase,
-          week,
-          day,
-          session?.templateId
+        const bundle = await loadSessionsStartupBundle(
+          {
+            loadTemplates: () => getAllCached<Template>("templates"),
+            loadExercises: () => getAllCached<Exercise>("exercises"),
+            loadSessions: () => readSessionsSnapshot(),
+            loadSettings: () => getSettings(),
+          },
+          {
+            phase,
+            week,
+            day,
+            templateId: session?.templateId,
+            exerciseIds: session?.entries?.map((entry) => entry.exerciseId),
+          }
         );
         if (cancelled) return;
-        setPrevBestMap(map);
+        rememberSessionsSnapshot(bundle.sessions);
+        setTemplates(bundle.templates);
+        setExercises(bundle.exercises);
+        setPrevBestLoading(true);
+        setPrevBestMap(bundle.prevBestMap);
+        setPrScoresByExercise(bundle.prScoresByExercise);
         setPrevBestLoading(false);
-        setSettingsState(st as any);
+        setSettingsState(bundle.settings as any);
+        const duration = perfNow() - startedAt;
+        debugSessionsPerf("sessions_initial_bundle_ms", duration);
+        trackMetric("sessions_initial_bundle_ms", Math.round(duration), {
+          sessions: bundle.sessions.length,
+          exercises: bundle.exercises.length,
+          templates: bundle.templates.length,
+          route: `${phase}-${week}-${day}`,
+        });
         setInitialLoading(false);
         // Lazy subscribe to only needed tables
         requestRealtime("sessions");
@@ -2374,6 +2449,7 @@ export default function Sessions() {
         setTemplates([]);
         setExercises([]);
         setPrevBestMap(null);
+        setPrScoresByExercise({});
         setPrevBestLoading(false);
         setInitialLoading(false);
         // Still try to subscribe to realtime for when auth recovers
@@ -2466,6 +2542,7 @@ export default function Sessions() {
               s?.templateId
             );
             setPrevBestMap(map);
+            recomputePrScoresFromSnapshot(s, all);
             setPrevBestLoading(false);
           });
           recomputePrevWeekSets(s, { force: true });
@@ -2474,7 +2551,12 @@ export default function Sessions() {
     };
     window.addEventListener("sb-change", onChange as any);
     return () => window.removeEventListener("sb-change", onChange as any);
-  }, [clearSessionsSnapshot, readSessionsSnapshot, getPrevBestCached]);
+  }, [
+    clearSessionsSnapshot,
+    readSessionsSnapshot,
+    getPrevBestCached,
+    recomputePrScoresFromSnapshot,
+  ]);
 
   // Keep hints in sync when cache refreshes in background
   useEffect(() => {
@@ -2496,6 +2578,7 @@ export default function Sessions() {
               activeSession?.templateId
             );
             setPrevBestMap(map);
+            recomputePrScoresFromSnapshot(activeSession, all);
             setPrevBestLoading(false);
           } catch {}
           await recomputePrevWeekSets(activeSessionRef.current);
@@ -2511,6 +2594,7 @@ export default function Sessions() {
     clearSessionsSnapshot,
     readSessionsSnapshot,
     getPrevBestCached,
+    recomputePrScoresFromSnapshot,
   ]);
 
   // Recompute prev best map whenever week, phase, or day changes
@@ -4044,6 +4128,18 @@ export default function Sessions() {
     return map;
   }, [visibleEntries]);
   const sessionRouteReady = !!session && session.id === routeSessionId;
+
+  useEffect(() => {
+    if (initialLoading || !sessionRouteReady || !session) return;
+    if (firstTrainRenderMetricSentRef.current) return;
+    firstTrainRenderMetricSentRef.current = true;
+    const duration = perfNow() - sessionsMountStartedAtRef.current;
+    debugSessionsPerf("sessions_first_train_render_ready_ms", duration);
+    trackMetric("sessions_first_train_render_ready_ms", Math.round(duration), {
+      route: session.id,
+      entries: session.entries.length,
+    });
+  }, [initialLoading, sessionRouteReady, session?.id, session?.entries.length]);
 
   const weightUnit = settingsState?.unit === "lb" ? "lb" : "kg";
 
@@ -5602,7 +5698,12 @@ export default function Sessions() {
                             <div className="set-header-clean">
                               <div className={`set-number-badge ${isSetComplete ? 'completed' : ''}`}>
                                 <span className="number">{set.setNumber}</span>
-                                <PRChip exerciseId={entry.exerciseId} score={(set.weightKg ?? 0) * (set.reps ?? 0)} week={week} />
+                                <PRChip
+                                  score={(set.weightKg ?? 0) * (set.reps ?? 0)}
+                                  bestScore={
+                                    prScoresByExercise[entry.exerciseId] ?? 0
+                                  }
+                                />
                               </div>
                               <div className="set-actions-minimal">
                                 {entry.sets.length > 1 && (
@@ -6209,9 +6310,10 @@ export default function Sessions() {
                             </div>
                             <div className="session-set-actions flex items-center gap-1.5">
                               <PRChip
-                                exerciseId={entry.exerciseId}
                                 score={(set.weightKg ?? 0) * (set.reps ?? 0)}
-                                week={week}
+                                bestScore={
+                                  prScoresByExercise[entry.exerciseId] ?? 0
+                                }
                               />
                               <button
                                 className="btn-set-action"
@@ -7381,22 +7483,13 @@ function AsyncChip({
 }
 
 function PRChip({
-  exerciseId,
   score,
-  week,
+  bestScore,
 }: {
-  exerciseId: string;
   score: number;
-  week: number;
+  bestScore: number;
 }) {
-  const [best, setBest] = useState(0);
-  useEffect(() => {
-    (async () => {
-      const r = await rollingPRs(exerciseId);
-      setBest(r.bestTonnageSet);
-    })();
-  }, [exerciseId, week]);
-  if (score <= 0 || best <= 0 || score < best) return null;
+  if (score <= 0 || bestScore <= 0 || score < bestScore) return null;
   return (
     <span
       className="text-[8px] rounded px-1 py-0.5 inline-flex items-center gap-0.5 bg-yellow-500/90 text-black border border-yellow-400/50 font-bold"

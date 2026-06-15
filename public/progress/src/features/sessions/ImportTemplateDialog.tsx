@@ -98,7 +98,7 @@ export default function ImportTemplateDialog({
         className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-card shadow-soft max-h-[min(92dvh,calc(100dvh-1.5rem))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex-1 overflow-y-auto p-4 pb-3">
+        <div className="flex min-h-0 flex-1 flex-col p-4 pb-3">
           <div className="font-medium mb-2">Import from Template</div>
           <label className="space-y-1 block mb-2">
             <div className="text-sm text-gray-300">Search templates</div>
@@ -117,8 +117,15 @@ export default function ImportTemplateDialog({
               enterKeyHint="search"
             />
           </label>
-          <div className="rounded-xl border border-white/10 bg-slate-900/40 p-1">
-            <div className="max-h-[min(46dvh,320px)] overflow-y-auto pb-2">
+          <div className="flex min-h-0 flex-1 flex-col rounded-xl border border-white/10 bg-slate-900/40 p-1">
+            <div
+              className="min-h-0 flex-1 max-h-[min(46dvh,320px)] overflow-y-auto pb-[calc(2rem+env(safe-area-inset-bottom))]"
+              style={{
+                WebkitOverflowScrolling: "touch",
+                scrollPaddingBottom:
+                  "calc(2rem + env(safe-area-inset-bottom))",
+              }}
+            >
               {filteredTemplates.length ? (
                 filteredTemplates.map((template) => {
                   const selected = template.id === templateId;

@@ -83,4 +83,33 @@ describe("OptionSheet search", () => {
     expect(nextInput).toBe(input);
     expect(document.activeElement).toBe(input);
   });
+
+  it("keeps search results in a safe-area padded scroll pane", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    root = createRoot(host);
+
+    await act(async () => {
+      root?.render(<SearchHarness />);
+      await flushFrame();
+    });
+
+    const list = document.querySelector<HTMLElement>(
+      "[data-option-sheet-list]"
+    );
+    const results = document.querySelector<HTMLElement>(
+      "[data-option-sheet-results]"
+    );
+    const firstOption = document.querySelector<HTMLElement>("[data-option]");
+
+    expect(list).not.toBeNull();
+    expect(results).not.toBeNull();
+    expect(firstOption).not.toBeNull();
+    expect(list?.contains(results)).toBe(true);
+    expect(list?.contains(firstOption)).toBe(true);
+    expect(list?.className).toContain("min-h-0");
+    expect(list?.style.overflowY).toBe("auto");
+    expect(list?.getAttribute("style")).toContain("safe-area-inset-bottom");
+    expect(results?.className).toContain("safe-area-inset-bottom");
+  });
 });
