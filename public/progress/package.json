@@ -9,6 +9,7 @@
     "postbuild": "node ./scripts/create-legacy-aliases.mjs",
     "preview": "vite preview --port 5173",
     "test": "vitest run",
+    "audit:secrets": "node ./scripts/audit-secrets.mjs",
     "verify:dist": "node ./scripts/verify-dist.mjs",
     "build:verify": "npm run build && npm run verify:dist",
     "verify:live": "node ./scripts/verify-live.mjs",

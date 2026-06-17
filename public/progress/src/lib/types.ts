@@ -161,6 +161,7 @@ export interface Settings {
     key: ThemeKey;
     customAccent?: string;
     prefersSystem?: boolean;
+    gymBackground?: boolean;
     accentIntensity?: number;
     glowStrength?: number;
     customVars?: Record<string, string>;
@@ -355,6 +356,7 @@ export interface UserProfile {
     key: ThemeKey;
     customAccent?: string;
     prefersSystem?: boolean;
+    gymBackground?: boolean;
     accentIntensity?: number;
     glowStrength?: number;
     customVars?: Record<string, string>;

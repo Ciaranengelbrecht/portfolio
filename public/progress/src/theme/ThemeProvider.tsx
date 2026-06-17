@@ -4,6 +4,7 @@ import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
 import { getSettings } from "../lib/helpers";
+import gymMobileBackground from "./dark gym mobile.png";
 
 type Ctx = {
   themeKey: ThemeKey;
@@ -36,6 +37,14 @@ function applyThemeMode(mode: "dark" | "light") {
     root.style.colorScheme = mode;
     body.dataset.theme = mode;
     body.dataset.themeMode = mode;
+  } catch {}
+}
+
+function applyGymBackgroundPreference(enabled?: boolean) {
+  try {
+    const root = document.documentElement;
+    root.style.setProperty("--liftlog-gym-bg-image", `url("${gymMobileBackground}")`);
+    document.body.dataset.gymBackground = enabled ? "on" : "off";
   } catch {}
 }
 
@@ -183,8 +192,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           } catch {}
         }
         // Attempt profile override for cross-device persistence
+        let profileThemeV2: Settings["themeV2"] | undefined;
         try {
           const profile = await fetchUserProfile();
+          profileThemeV2 = profile?.themeV2;
           if (
             profile?.themeV2?.key &&
             THEMES[profile.themeV2.key as ThemeKey]
@@ -194,8 +205,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         setThemeKeyState(key as ThemeKey);
         let vars = { ...THEMES[key as ThemeKey] };
+        const effectiveThemeV2 = {
+          ...((s as Settings | undefined)?.themeV2 || {}),
+          ...(profileThemeV2 || {}),
+        } as Settings["themeV2"];
         try {
-          const t = (s as Settings | undefined)?.themeV2;
+          const t = effectiveThemeV2;
           if (t) {
             if (key === "custom" && t.customVars) {
               vars = { ...vars, ...t.customVars };
@@ -218,6 +233,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         applyVars(vars);
         applyThemeMode(THEME_MODE[key as ThemeKey] || "dark");
+        applyGymBackgroundPreference(effectiveThemeV2?.gymBackground);
         try {
           window.dispatchEvent(
             new CustomEvent("theme-change", { detail: { key } })

@@ -464,6 +464,27 @@ body[data-bg-layer="on"]::before {
   opacity: 0.9;
   pointer-events: none;
 }
+
+body[data-gym-background="on"] {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(180deg, rgba(4 7 12 / 0.58), rgba(4 7 12 / 0.88)),
+    var(--liftlog-gym-bg-image);
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+body[data-gym-background="on"][data-theme-mode="light"] {
+  background-image:
+    linear-gradient(180deg, rgba(248 250 252 / 0.68), rgba(248 250 252 / 0.92)),
+    var(--liftlog-gym-bg-image);
+}
+
+body[data-gym-background="on"][data-bg-layer="on"]::before {
+  opacity: 0.42;
+}
 @media (prefers-reduced-motion: no-preference) {
   body[data-bg-layer="on"]::before {
     animation: drift 22s ease-in-out infinite alternate;

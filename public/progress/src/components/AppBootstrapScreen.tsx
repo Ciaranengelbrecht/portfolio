@@ -1,3 +1,5 @@
+import gymMobileBackground from "../theme/dark gym mobile.png";
+
 const PHASE_LABELS: Record<string, string> = {
   idle: "Preparing app",
   auth: "Checking your signed-in session",
@@ -10,7 +12,14 @@ const PHASE_LABELS: Record<string, string> = {
 export function AppBootstrapScreen({ phase }: { phase: string }) {
   const label = PHASE_LABELS[phase] || "Loading";
   return (
-    <div className="min-h-screen bg-bg text-text flex items-center justify-center px-6">
+    <div
+      className="min-h-screen bg-bg text-text flex items-center justify-center px-6"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(4, 7, 12, 0.5), rgba(4, 7, 12, 0.9)), url("${gymMobileBackground}")`,
+        backgroundPosition: "center top",
+        backgroundSize: "cover",
+      }}
+    >
       <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-slate-900/80 shadow-soft p-8 text-center space-y-5">
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/15 text-emerald-200 text-lg font-semibold">
           LL

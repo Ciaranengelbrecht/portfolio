@@ -78,6 +78,11 @@ export async function getSettings(): Promise<Settings> {
       ...(defaultSettings.ui || {}),
       ...(stored?.ui || {}),
     },
+    themeV2: {
+      ...(defaultSettings.themeV2 || {}),
+      ...(stored?.themeV2 || {}),
+      key: stored?.themeV2?.key || defaultSettings.themeV2!.key,
+    },
     ecg: {
       ...(defaultSettings.ecg || {}),
       ...(stored?.ecg || {}),

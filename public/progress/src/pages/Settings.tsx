@@ -2380,6 +2380,23 @@ export default function SettingsPage() {
                 }}
               />
               <SettingsSwitchRow
+                label="Gym background"
+                description="Use the dark gym image behind the app."
+                checked={!!s.themeV2?.gymBackground}
+                onChange={(checked) => {
+                  const next: Settings = {
+                    ...s,
+                    themeV2: {
+                      key: s.themeV2?.key || themeKey,
+                      ...(s.themeV2 || {}),
+                      gymBackground: checked,
+                    },
+                  } as any;
+                  setS(next);
+                  document.body.dataset.gymBackground = checked ? "on" : "off";
+                }}
+              />
+              <SettingsSwitchRow
                 label="ECG background"
                 checked={!!s.ecg?.enabled}
                 onChange={(checked) => {
