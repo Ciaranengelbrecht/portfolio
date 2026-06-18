@@ -18,6 +18,7 @@ import { getProfileProgram } from "../../lib/profile";
 import { loadRecharts } from "../../lib/loadRecharts";
 import { useAggregates } from "../../lib/useAggregates";
 import { getMuscleIconPath } from "../../lib/muscles";
+import { getEffectiveWeeklySplit } from "../../lib/weekSchedule";
 import { DashboardSkeleton } from "../../components/LoadingSkeletons";
 import {
   getAxisDensity,
@@ -777,7 +778,12 @@ export default function Dashboard() {
   // derive day labels whenever program changes
   useEffect(() => {
     if (program?.weeklySplit) {
-      setDayLabels(program.weeklySplit.map((d) => d.customLabel || d.type));
+      const split = getEffectiveWeeklySplit(program, settingsState, phase, week);
+      setDayLabels(
+        (split.length ? split : program.weeklySplit).map(
+          (d) => d.customLabel || d.type
+        )
+      );
     } else {
       // fallback: infer from existing day ids in data (D1..)
       const ids = Array.from(
@@ -792,6 +798,9 @@ export default function Dashboard() {
   }, [
     program?.id,
     (program as any)?.weeklySplit?.length,
+    settingsState?.progress?.weekScheduleOverrides,
+    phase,
+    week,
     Object.keys(dayVolumes).length,
   ]);
 

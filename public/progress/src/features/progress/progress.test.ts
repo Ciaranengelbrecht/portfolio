@@ -5,6 +5,11 @@ import {
   getPhaseCompletion,
 } from "./progress";
 import type { Session } from "../../lib/types";
+import type { Settings, UserProgram } from "../../lib/types";
+import {
+  getEffectiveWeeklySplit,
+  getWeekScheduleKey,
+} from "../../lib/weekSchedule";
 
 function makeSession(id: string, week: number, phase = 1, reps = 8): Session {
   return {
@@ -89,5 +94,57 @@ describe("progress utils", () => {
     // session on day 6 (rest) should not affect completedDays, remains 6 max
     expect(w7.completedDays).toBe(6);
     expect(w7.percent).toBe(100);
+  });
+
+  it("counts a flexed rest day when provided an effective program split", () => {
+    const program: UserProgram = {
+      id: "program-flex",
+      name: "Flex",
+      weekLengthDays: 7,
+      weeklySplit: [
+        { type: "Push" },
+        { type: "Pull" },
+        { type: "Rest" },
+        { type: "Legs" },
+        { type: "Push" },
+        { type: "Pull" },
+        { type: "Rest" },
+      ],
+      mesoWeeks: 9,
+      deload: { mode: "last-week" },
+      createdAt: "",
+      updatedAt: "",
+      version: 1,
+    };
+    const key = getWeekScheduleKey(program.id, 1, 1);
+    const settings = {
+      unit: "kg",
+      deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
+      progress: {
+        weekScheduleOverrides: {
+          [key]: [
+            {
+              id: "pull-forward",
+              type: "pull-forward",
+              restDayId: 2,
+              createdAt: "2026-06-01T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    } as Settings;
+    const effectiveProgram = {
+      ...program,
+      weeklySplit: getEffectiveWeeklySplit(program, settings, 1, 1),
+    };
+    const week = getWeekCompletion(
+      1,
+      1,
+      [makeSession("1-1-2", 1)],
+      { weeklyTargetDays: 6, program: effectiveProgram }
+    );
+
+    expect(effectiveProgram.weeklySplit[2].type).toBe("Legs");
+    expect(week.completedDays).toBe(1);
   });
 });

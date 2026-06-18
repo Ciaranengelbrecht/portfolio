@@ -80,6 +80,16 @@ export interface Session {
   deletedAt?: string | null;
   /** Training mode active when this session was created (bulk/cut/maintenance) */
   trainingMode?: TrainingMode;
+  /** Week-only schedule override provenance for temporary day swaps/flex changes */
+  scheduleOverride?: {
+    type: "day-swap" | "pull-forward";
+    overrideId: string;
+    baseDayId: number;
+    effectiveDayId: number;
+    programId: string;
+    phaseNumber: number;
+    weekNumber: number;
+  };
   /** Timestamp when user first entered any non-zero weight or reps in this session */
   loggedStartAt?: string;
   /** Timestamp of most recent change to any set (non-zero edit) */
@@ -199,6 +209,7 @@ export interface Settings {
     showDeloadHints?: boolean; // default true
     showPrevHints?: boolean; // default true (previous week hint pill)
     autoProgression?: boolean; // suggest next session weights/reps (AI guidance)
+    weekScheduleOverrides?: Record<string, WeekScheduleOverride[]>;
     guidedSetup?: {
       completed?: boolean;
       skipped?: boolean;
@@ -383,6 +394,21 @@ export type WeeklySplitDay = {
   customLabel?: string; // if type === 'Custom'
   templateId?: string; // exercise template mapping
 };
+
+export type WeekScheduleOverride =
+  | {
+      id: string;
+      type: "day-swap";
+      fromDayId: number;
+      toDayId: number;
+      createdAt: string;
+    }
+  | {
+      id: string;
+      type: "pull-forward";
+      restDayId: number;
+      createdAt: string;
+    };
 
 export type DeloadConfig =
   | { mode: "none" }

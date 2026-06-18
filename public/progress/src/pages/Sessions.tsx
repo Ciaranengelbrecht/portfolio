@@ -19,6 +19,8 @@ import {
   Template,
   Settings,
   TrainingMode,
+  WeekScheduleOverride,
+  WeeklySplitDay,
 } from "../lib/types";
 import { useProgram } from "../state/program";
 import { computeDeloadWeeks, programSummary } from "../lib/program";
@@ -63,6 +65,15 @@ import {
   applyExerciseSwapToCurrentAndFutureSessions,
   prepareFutureTemplateSwap,
 } from "../lib/sessionExerciseSwap";
+import {
+  getBaseDayIdForEffectiveDay,
+  getEffectiveWeeklySplit,
+  getLatestOverrideForDay,
+  getOverrideAffectedDayIds,
+  getPullForwardSourceDayId,
+  getWeekScheduleKey,
+  getWeekScheduleOverrides,
+} from "../lib/weekSchedule";
 import {
   computeExercisePrScores,
   loadSessionsStartupBundle,
@@ -627,6 +638,7 @@ export default function Sessions() {
   const [dragEntryIdx, setDragEntryIdx] = useState<number | null>(null);
   const { push } = useSnack();
   const [showImport, setShowImport] = useState(false);
+  const [showScheduleFlex, setShowScheduleFlex] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [historySheetOpen, setHistorySheetOpen] = useState(false);
   const [historyContext, setHistoryContext] = useState<{
@@ -958,7 +970,142 @@ export default function Sessions() {
     Number.isFinite(parsedPhase) && parsedPhase > 0
       ? Math.floor(parsedPhase)
       : 1;
+  const weekScheduleOverrides = useMemo(
+    () => getWeekScheduleOverrides(settingsState, program, phaseNumber, weekNumber),
+    [settingsState?.progress?.weekScheduleOverrides, program?.id, phaseNumber, weekNumber]
+  );
+  const effectiveWeeklySplit = useMemo(
+    () =>
+      program
+        ? getEffectiveWeeklySplit(program, settingsState, phaseNumber, weekNumber)
+        : [],
+    [
+      program?.id,
+      program?.weeklySplit,
+      settingsState?.progress?.weekScheduleOverrides,
+      phaseNumber,
+      weekNumber,
+    ]
+  );
+  const effectiveDayMeta =
+    effectiveWeeklySplit[dayIndexNumber] ||
+    program?.weeklySplit?.[dayIndexNumber];
+  const effectiveDayLabels = useMemo(
+    () =>
+      effectiveWeeklySplit.length
+        ? effectiveWeeklySplit.map((item) => item.customLabel || item.type || "Day")
+        : null,
+    [effectiveWeeklySplit]
+  );
+  const getDayLabel = useCallback(
+    (meta: WeeklySplitDay | undefined, fallbackDay: number) =>
+      meta
+        ? meta.customLabel || meta.type || "Day"
+        : DAYS[fallbackDay] || "Day",
+    []
+  );
+  const buildTemplateEntries = useCallback(
+    async (templateId?: string) => {
+      if (!templateId) return [];
+      const template =
+        templates.find((candidate) => candidate.id === templateId) ||
+        ((await db.get("templates", templateId)) as Template | undefined);
+      if (!template) return [];
+      const exerciseList = exercises.length
+        ? exercises
+        : ((await db.getAll("exercises")) as Exercise[]);
+      const exerciseMap = new Map(
+        exerciseList.map((item: any) => [item.id, item])
+      );
+      return (template.exerciseIds || []).map((exerciseId: string) => ({
+        id: nanoid(),
+        exerciseId,
+        sets: [],
+        targetRepRange:
+          template.plan?.find((plan) => plan.exerciseId === exerciseId)
+            ?.repRange ||
+          (exerciseMap.get(exerciseId) as Exercise | undefined)?.defaults
+            ?.targetRepRange,
+      }));
+    },
+    [templates, exercises]
+  );
+  const applyEffectiveScheduleToEmptySession = useCallback(
+    async (
+      target: Session,
+      meta: WeeklySplitDay | undefined,
+      dayId: number,
+      override?: WeekScheduleOverride,
+      overridesForMapping = weekScheduleOverrides
+    ) => {
+      const canRefresh =
+        !sessionHasRealWork(target) &&
+        (!target.entries?.length || Boolean(target.autoImportedTemplateId));
+      if (!canRefresh) return target;
+
+      const label = getDayLabel(meta, dayId);
+      const entries = await buildTemplateEntries(meta?.templateId);
+      const nextOverrideId = override?.id;
+      const currentOverrideId = target.scheduleOverride?.overrideId;
+      const sameEntryExercises =
+        (target.entries?.length || 0) === entries.length &&
+        (target.entries || []).every(
+          (entry, index) => entry.exerciseId === entries[index]?.exerciseId
+        );
+      if (
+        target.templateId === meta?.templateId &&
+        target.autoImportedTemplateId === meta?.templateId &&
+        target.dayName === label &&
+        currentOverrideId === nextOverrideId &&
+        sameEntryExercises
+      ) {
+        return target;
+      }
+      const next: Session = {
+        ...target,
+        entries,
+        templateId: meta?.templateId,
+        autoImportedTemplateId: meta?.templateId,
+        dayName: label,
+        programId: program?.id,
+        updatedAt: new Date().toISOString(),
+      };
+      if (!meta?.templateId) {
+        delete (next as any).templateId;
+        delete (next as any).autoImportedTemplateId;
+      }
+      if (override && program?.id) {
+        const baseDayId = getBaseDayIdForEffectiveDay(
+          program.weeklySplit,
+          overridesForMapping,
+          dayId
+        );
+        next.scheduleOverride = {
+          type: override.type,
+          overrideId: override.id,
+          baseDayId,
+          effectiveDayId: dayId,
+          programId: program.id,
+          phaseNumber,
+          weekNumber,
+        };
+      } else {
+        delete (next as any).scheduleOverride;
+      }
+      return next;
+    },
+    [
+      buildTemplateEntries,
+      getDayLabel,
+      program?.id,
+      program?.weeklySplit,
+      phaseNumber,
+      weekNumber,
+      weekScheduleOverrides,
+    ]
+  );
   const rawDayLabel =
+    effectiveDayLabels?.[dayIndexNumber] ??
     labelsCache?.[dayIndexNumber] ??
     DAYS[dayIndexNumber] ??
     `Day ${dayIndexNumber + 1}`;
@@ -1514,15 +1661,20 @@ export default function Sessions() {
   // When program is available, cache its labels for next load
   useEffect(() => {
     try {
-      if (program?.weeklySplit && Array.isArray(program.weeklySplit)) {
-        const labels = program.weeklySplit.map(
-          (d: any) => d?.customLabel || d?.type || "Day"
-        );
+      const split = effectiveWeeklySplit.length
+        ? effectiveWeeklySplit
+        : program?.weeklySplit;
+      if (split && Array.isArray(split)) {
+        const labels = split.map((d: any) => d?.customLabel || d?.type || "Day");
         setLabelsCache(labels);
         localStorage.setItem("weeklyLabelsCache", JSON.stringify(labels));
       }
     } catch {}
-  }, [program?.id, (program as any)?.weeklySplit?.length]);
+  }, [
+    program?.id,
+    (program as any)?.weeklySplit?.length,
+    effectiveWeeklySplit,
+  ]);
 
   // One-time audio unlock: resume WebAudio on first user gesture to allow beeps
   useEffect(() => {
@@ -2060,6 +2212,15 @@ export default function Sessions() {
       const stale = () => loadToken !== routeLoadTokenRef.current;
       try {
         const id = `${phase}-${week}-${day}`;
+        const templateMeta = effectiveDayMeta;
+        const scheduleOverride =
+          program?.weeklySplit && weekScheduleOverrides.length
+            ? getLatestOverrideForDay(
+                program.weeklySplit,
+                weekScheduleOverrides,
+                day
+              )
+            : undefined;
         setSession((prev) => (prev?.id === id ? prev : null));
         let persistedSession = true;
         let s =
@@ -2091,12 +2252,21 @@ export default function Sessions() {
             s = existingSame; // another timezone path already created it
           }
         }
+        if (s) {
+          const refreshed = await applyEffectiveScheduleToEmptySession(
+            s,
+            templateMeta,
+            day,
+            scheduleOverride
+          );
+          if (refreshed !== s) {
+            s = refreshed;
+            await persistSession(s);
+          }
+        }
         if (!s) {
           persistedSession = false;
-          const templateMeta = program ? program.weeklySplit[day] : undefined;
-          const templateName = templateMeta
-            ? templateMeta.customLabel || templateMeta.type || "Day"
-            : DAYS[day];
+          const templateName = getDayLabel(templateMeta, day);
           const now = new Date();
           const localDayStr = `${now.getFullYear()}-${String(
             now.getMonth() + 1
@@ -2124,29 +2294,30 @@ export default function Sessions() {
             createdAt: nowISO,
             updatedAt: nowISO,
           } as Session;
+          if (scheduleOverride && program?.id) {
+            const baseDayId = getBaseDayIdForEffectiveDay(
+              program.weeklySplit,
+              weekScheduleOverrides,
+              day
+            );
+            s.scheduleOverride = {
+              type: scheduleOverride.type,
+              overrideId: scheduleOverride.id,
+              baseDayId,
+              effectiveDayId: day,
+              programId: program.id,
+              phaseNumber: phase,
+              weekNumber: week,
+            };
+          }
           // If there is a templateId, auto-import it
           if (templateMeta?.templateId) {
             try {
-              const t = await db.get("templates", templateMeta.templateId);
-              if (t) {
-                const exs = await db.getAll("exercises");
-                const exMap = new Map(exs.map((e: any) => [e.id, e]));
-                const newEntries = (t.exerciseIds || []).map(
-                  (exId: string) => ({
-                    id: nanoid(),
-                    exerciseId: exId,
-                    sets: [],
-                    targetRepRange:
-                      t.plan?.find((p: any) => p.exerciseId === exId)
-                        ?.repRange || exMap.get(exId)?.defaults?.targetRepRange,
-                  })
-                );
-                s = {
-                  ...s,
-                  entries: newEntries,
-                  autoImportedTemplateId: templateMeta.templateId,
-                };
-              }
+              s = {
+                ...s,
+                entries: await buildTemplateEntries(templateMeta.templateId),
+                autoImportedTemplateId: templateMeta.templateId,
+              };
             } catch (e) {
               console.warn("[Sessions] auto-import template failed", e);
             }
@@ -2204,10 +2375,8 @@ export default function Sessions() {
         console.error("[Sessions] Critical error loading session:", err);
         // Don't let the error crash the component - create a minimal session
         const id = `${phase}-${week}-${day}`;
-        const templateMeta = program ? program.weeklySplit[day] : undefined;
-        const templateName = templateMeta
-          ? templateMeta.customLabel || templateMeta.type || "Day"
-          : DAYS[day];
+        const templateMeta = effectiveDayMeta;
+        const templateName = getDayLabel(templateMeta, day);
         const now = new Date();
         const localDayStr = `${now.getFullYear()}-${String(
           now.getMonth() + 1
@@ -2237,7 +2406,20 @@ export default function Sessions() {
         setSession(fallbackSession);
       }
     })();
-  }, [phase, week, day, initialRouteReady, readSessionsSnapshot]);
+  }, [
+    phase,
+    week,
+    day,
+    initialRouteReady,
+    readSessionsSnapshot,
+    effectiveDayMeta,
+    weekScheduleOverrides,
+    program?.id,
+    program?.weeklySplit,
+    applyEffectiveScheduleToEmptySession,
+    buildTemplateEntries,
+    getDayLabel,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -3589,6 +3771,232 @@ export default function Sessions() {
     await addExerciseToSession(ex);
   };
 
+  const getScheduleSessionForDay = useCallback(
+    (dayId: number, sessionsData?: Session[]) => {
+      const targetId = `${phase}-${week}-${dayId}`;
+      if (session?.id === targetId) return session;
+      return (sessionsData || sessionsSnapshotRef.current.data || []).find(
+        (candidate) => candidate.id === targetId
+      );
+    },
+    [phase, week, session]
+  );
+
+  const applyScheduleFlexOverride = useCallback(
+    async (override: WeekScheduleOverride) => {
+      if (!program) {
+        push({ message: "Load a program before changing this week" });
+        return;
+      }
+      if (pendingRef.current) {
+        window.clearTimeout(pendingRef.current);
+        pendingRef.current = null;
+        await flushSession();
+      }
+
+      const affectedDayIds = getOverrideAffectedDayIds(
+        effectiveWeeklySplit,
+        override
+      );
+      if (!affectedDayIds.length) {
+        push({ message: "That change is not available for this week" });
+        return;
+      }
+
+      const allSessions = await readSessionsSnapshot({
+        force: true,
+        swr: false,
+      });
+      const blocked = affectedDayIds
+        .map((dayId) => ({
+          dayId,
+          session: getScheduleSessionForDay(dayId, allSessions),
+        }))
+        .filter((item) => sessionHasRealWork(item.session));
+
+      if (blocked.length) {
+        push({
+          message: `Logged data exists on ${blocked
+            .map((item) => `Day ${item.dayId + 1}`)
+            .join(", ")}. Flex changes only apply to empty days.`,
+        });
+        return;
+      }
+
+      const currentSettings = await getSettings();
+      const key = getWeekScheduleKey(program.id, phaseNumber, weekNumber);
+      const existing = getWeekScheduleOverrides(
+        currentSettings,
+        program,
+        phaseNumber,
+        weekNumber
+      );
+      const nextSettings: Settings = {
+        ...currentSettings,
+        progress: {
+          ...(currentSettings.progress || {}),
+          weekScheduleOverrides: {
+            ...(currentSettings.progress?.weekScheduleOverrides || {}),
+            [key]: [...existing, override],
+          },
+        },
+      };
+
+      await setSettings(nextSettings);
+      const savedSettings = await getSettings();
+      setSettingsState(savedSettings);
+
+      const nextOverrides = getWeekScheduleOverrides(
+        savedSettings,
+        program,
+        phaseNumber,
+        weekNumber
+      );
+      const nextSplit = getEffectiveWeeklySplit(
+        program,
+        savedSettings,
+        phaseNumber,
+        weekNumber
+      );
+
+      for (const affectedDayId of affectedDayIds) {
+        const existingSession = getScheduleSessionForDay(
+          affectedDayId,
+          allSessions
+        );
+        if (!existingSession) continue;
+        const latestOverride = getLatestOverrideForDay(
+          program.weeklySplit,
+          nextOverrides,
+          affectedDayId
+        );
+        const refreshed = await applyEffectiveScheduleToEmptySession(
+          existingSession,
+          nextSplit[affectedDayId],
+          affectedDayId,
+          latestOverride,
+          nextOverrides
+        );
+        if (refreshed !== existingSession) {
+          await persistSession(refreshed);
+          if (refreshed.id === session?.id) {
+            setSession(refreshed);
+          }
+        }
+      }
+
+      clearSessionsSnapshot();
+      try {
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "settings" } })
+        );
+        window.dispatchEvent(
+          new CustomEvent("sb-change", { detail: { table: "sessions" } })
+        );
+      } catch {}
+      setShowScheduleFlex(false);
+      push({
+        message:
+          override.type === "pull-forward"
+            ? "Rest day skipped for this week"
+            : "Week days swapped",
+      });
+    },
+    [
+      applyEffectiveScheduleToEmptySession,
+      clearSessionsSnapshot,
+      effectiveWeeklySplit,
+      flushSession,
+      getScheduleSessionForDay,
+      persistSession,
+      phase,
+      phaseNumber,
+      program,
+      push,
+      readSessionsSnapshot,
+      session?.id,
+      week,
+      weekNumber,
+    ]
+  );
+
+  const scheduleFlexOptions = useMemo<OptionSheetOption[]>(() => {
+    if (!program || !effectiveWeeklySplit.length) return [];
+    const options: OptionSheetOption[] = [];
+    const sourceDay = getPullForwardSourceDayId(
+      effectiveWeeklySplit,
+      dayIndexNumber
+    );
+    const currentLabel = getDayLabel(effectiveDayMeta, dayIndexNumber);
+
+    if (sourceDay != null) {
+      const sourceLabel = getDayLabel(effectiveWeeklySplit[sourceDay], sourceDay);
+      options.push({
+        id: "pull-forward",
+        label: "Train through rest day",
+        description: `Bring ${sourceLabel} forward to ${currentLabel}; later days shift forward and Day ${
+          sourceDay + 1
+        } becomes Rest for this week.`,
+        badge: "Flex",
+        disabled: sessionHasRealWork(session),
+        hint: sessionHasRealWork(session)
+          ? "Logged days are protected"
+          : "Only this week changes",
+        onSelect: () =>
+          applyScheduleFlexOverride({
+            id: nanoid(),
+            type: "pull-forward",
+            restDayId: dayIndexNumber,
+            createdAt: new Date().toISOString(),
+          }),
+      });
+    }
+
+    for (let index = 0; index < effectiveWeeklySplit.length; index += 1) {
+      if (index === dayIndexNumber) continue;
+      const targetMeta = effectiveWeeklySplit[index];
+      const targetLabel = getDayLabel(targetMeta, index);
+      const targetSession = getScheduleSessionForDay(index);
+      const logged = sessionHasRealWork(targetSession);
+      const template = targetMeta.templateId
+        ? templates.find((candidate) => candidate.id === targetMeta.templateId)
+        : null;
+      options.push({
+        id: `swap-${index}`,
+        label: `Swap with Day ${index + 1}`,
+        description: `${currentLabel} ↔ ${targetLabel}${
+          template?.name ? ` • ${template.name}` : ""
+        }`,
+        badge: logged ? "Logged" : "Empty",
+        disabled: logged || sessionHasRealWork(session),
+        hint:
+          logged || sessionHasRealWork(session)
+            ? "Logged days are protected"
+            : "Only this week changes",
+        onSelect: () =>
+          applyScheduleFlexOverride({
+            id: nanoid(),
+            type: "day-swap",
+            fromDayId: dayIndexNumber,
+            toDayId: index,
+            createdAt: new Date().toISOString(),
+          }),
+      });
+    }
+
+    return options;
+  }, [
+    applyScheduleFlexOverride,
+    dayIndexNumber,
+    effectiveDayMeta,
+    effectiveWeeklySplit,
+    getDayLabel,
+    getScheduleSessionForDay,
+    program,
+    session,
+    templates,
+  ]);
+
   const closeSwitchFlows = () => {
     setSwitchTarget(null);
     setSwitchConfirmTarget(null);
@@ -4034,8 +4442,8 @@ export default function Sessions() {
     );
     if (!nextEx) return null;
     const currentLocDay =
-      program?.weeklySplit?.[day]?.customLabel ||
-      program?.weeklySplit?.[day]?.type ||
+      effectiveDayMeta?.customLabel ||
+      effectiveDayMeta?.type ||
       session.dayName ||
       `Day ${day + 1}`;
     return {
@@ -4046,6 +4454,7 @@ export default function Sessions() {
     };
   }, [
     day,
+    effectiveDayMeta,
     exercises,
     exMap,
     program?.weeklySplit,
@@ -4743,8 +5152,8 @@ export default function Sessions() {
               </span>
               <DaySelector
                 labels={
-                  program
-                    ? program.weeklySplit.map(
+                  effectiveWeeklySplit.length
+                    ? effectiveWeeklySplit.map(
                         (d: any) => d.customLabel || d.type
                       )
                     : labelsCache || DAYS
@@ -4942,6 +5351,14 @@ export default function Sessions() {
                 </div>
                 {session && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                        className="tool-btn"
+                      onClick={() => setShowScheduleFlex(true)}
+                      title="Swap days or skip a rest day for this week only"
+                    >
+                        Flex
+                    </button>
                     <button
                       type="button"
                         className="tool-btn"
@@ -6634,6 +7051,24 @@ export default function Sessions() {
       </div>
 
       {/* Snackbar removed; using global queue */}
+      <OptionSheet
+        open={showScheduleFlex}
+        title="Flex this week"
+        description={`${phaseLabel} • ${weekLabel} • ${dayTitle}`}
+        onClose={() => setShowScheduleFlex(false)}
+        options={scheduleFlexOptions}
+        emptyState={
+          <div className="rounded-lg border border-white/10 bg-slate-900/50 px-3 py-4 text-sm text-slate-300">
+            No flexible changes are available for this day.
+          </div>
+        }
+        highlight={
+          <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+            Changes apply only to this week. Logged set data is protected.
+          </div>
+        }
+        initialFocus="list"
+      />
       <ImportTemplateDialog
         open={showImport}
         onClose={() => setShowImport(false)}

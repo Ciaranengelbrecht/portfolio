@@ -9,6 +9,7 @@ import {
 } from "../lib/helpers";
 import { Session, Settings, Exercise, UserProgram } from "../lib/types";
 import { getProfileProgram } from '../lib/profile';
+import { getEffectiveWeeklySplit } from "../lib/weekSchedule";
 import {
   getWeekCompletion,
   getPhaseCompletion,
@@ -124,23 +125,37 @@ export default function ProgressBars() {
 
   // Dynamic cycle day labels derived from current program weeklySplit; fallback to legacy weekday abbreviations
   const [programSplit,setProgramSplit] = useState<string[]|null>(null);
+  const effectiveProgram = useMemo(() => {
+    if (!program) return undefined;
+    const weeklySplit = getEffectiveWeeklySplit(
+      program,
+      settings,
+      curPhase,
+      curWeek
+    );
+    return {
+      ...program,
+      weeklySplit: weeklySplit.length ? weeklySplit : program.weeklySplit,
+    };
+  }, [program, settings?.progress?.weekScheduleOverrides, curPhase, curWeek]);
+
   useEffect(()=> { (async()=> {
     try {
-      if(program){ setProgramSplit(program.weeklySplit.map(d=> d.customLabel || d.type)); return; }
+      if(effectiveProgram){ setProgramSplit(effectiveProgram.weeklySplit.map(d=> d.customLabel || d.type)); return; }
       const sess = sessions.filter(s=> s.weekNumber===1).slice(0,10);
       if(sess.length){ const labels = sess.sort((a,b)=> a.id.localeCompare(b.id)).map(s=> s.dayName).filter((x): x is string=> !!x); if(labels.length>=5){ setProgramSplit(labels); return; } }
     } catch {}
     setProgramSplit(null);
-  })(); },[sessions,program]);
+  })(); },[sessions,effectiveProgram]);
 
   // Determine program metadata from inferred programSplit.
   const syntheticProgram: UserProgram | undefined = useMemo(()=> {
-    if(program) return program;
+    if(effectiveProgram) return effectiveProgram;
     if(programSplit && programSplit.length>=5){
       return { id:'synthetic', name:'Program', weekLengthDays: programSplit.length, weeklySplit: programSplit.map(l=> ({ type: (/rest/i.test(l)? 'Rest':'Custom') as any, customLabel: (/rest/i.test(l)? undefined: l) })), mesoWeeks:9, deload:{mode:'last-week'}, createdAt:'', updatedAt:'', version:1 } as UserProgram;
     }
     return undefined;
-  },[programSplit,program]);
+  },[programSplit,effectiveProgram]);
   const week = useMemo(() => getWeekCompletion(curPhase, curWeek, sessions, { weeklyTargetDays: weeklyTarget, program: syntheticProgram && { weekLengthDays: syntheticProgram.weekLengthDays, weeklySplit: syntheticProgram.weeklySplit } as any }), [curPhase, curWeek, sessions, weeklyTarget, syntheticProgram]);
   const phase = useMemo(
     () =>
