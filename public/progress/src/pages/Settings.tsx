@@ -20,6 +20,7 @@ import { db } from "../lib/db";
 import { triggerExportDownload, importFromRawJson } from "../lib/exportImport";
 import { Settings } from "../lib/types";
 import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
+import { withAppIntroPending } from "../lib/appIntro";
 import {
   defaultSettings,
   defaultExercises,
@@ -536,6 +537,15 @@ export default function SettingsPage() {
     setS(undoSnapshot);
     setUndoSnapshot(null);
     setToast("Reverted to previous saved settings");
+  };
+
+  const replayAppIntro = async () => {
+    const next = withAppIntroPending(s);
+    setS(next);
+    await setSettings(next);
+    lastSavedSettingsRef.current = JSON.stringify(next);
+    setToast("App intro ready");
+    navigate("/sessions");
   };
 
   // testSync removed with Gist sync
@@ -1295,14 +1305,23 @@ export default function SettingsPage() {
                 : "Launch guided setup to craft a personalised split, volume targets, and starter templates in minutes."}
             </p>
           </div>
-          <button
-            className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold"
-            onClick={() => setShowGuidedSetup(true)}
-          >
-            {s.progress?.guidedSetup?.completed
-              ? "Re-run guided setup"
-              : "Launch guided setup"}
-          </button>
+          <div className="flex flex-wrap gap-2 min-[560px]:justify-end">
+            <button
+              className="btn-outline px-4 py-2.5 rounded-xl text-sm font-semibold"
+              data-tour-id="settings-app-intro-replay"
+              onClick={() => void replayAppIntro()}
+            >
+              Replay app intro
+            </button>
+            <button
+              className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold"
+              onClick={() => setShowGuidedSetup(true)}
+            >
+              {s.progress?.guidedSetup?.completed
+                ? "Re-run guided setup"
+                : "Launch guided setup"}
+            </button>
+          </div>
         </div>
         <div className="space-y-2">
           <div className="font-medium mb-1">Rest Timer</div>

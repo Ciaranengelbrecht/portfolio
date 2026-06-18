@@ -5,6 +5,7 @@ import { db } from "../../lib/db";
 import { getSettings, setSettings } from "../../lib/helpers";
 import type { Exercise, Settings } from "../../lib/types";
 import { createQuickStarterState } from "../../lib/onboarding";
+import { withAppIntroPending } from "../../lib/appIntro";
 import { buildGuidedSetupPlan } from "../../lib/guidedSetup";
 import { applyGuidedSetupPlan } from "../../lib/guidedSetupApply";
 import { useProgram } from "../../state/program";
@@ -93,8 +94,10 @@ export default function FirstRunExperience() {
           clearDraft: true,
         },
       });
+      const nextSettings = withAppIntroPending(result.settings);
+      await setSettings(nextSettings);
       setProgram(result.program);
-      setSettingsState(result.settings);
+      setSettingsState(nextSettings);
       push({ message: "Starter plan created. You are ready to train." });
       navigate("/sessions", { replace: true });
     } catch (err) {
@@ -197,8 +200,11 @@ export default function FirstRunExperience() {
           mode={wizardMode}
           onClose={() => setWizardMode(null)}
           onComplete={() => {
-            push({ message: "Program ready. Start your first session." });
-            navigate("/sessions", { replace: true });
+            void (async () => {
+              await setSettings((current) => withAppIntroPending(current));
+              push({ message: "Program ready. Start your first session." });
+              navigate("/sessions", { replace: true });
+            })();
           }}
         />
       )}

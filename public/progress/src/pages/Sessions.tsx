@@ -1292,6 +1292,37 @@ export default function Sessions() {
     window.addEventListener('sessions-collapse-all', handler);
     return () => window.removeEventListener('sessions-collapse-all', handler);
   }, [collapseAll]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const target = (event as CustomEvent<{ target?: string }>).detail?.target;
+      if (target === "sessions-details") {
+        setToolbarCollapsed(false);
+      }
+      if (target === "sessions-tools") {
+        setToolsOpen(true);
+      }
+      if (target === "sessions-first-exercise") {
+        const firstEntry = session?.entries?.[0];
+        if (firstEntry) {
+          setCollapsedEntries((prev) => ({
+            ...prev,
+            [firstEntry.id]: false,
+          }));
+        }
+      }
+      if (target === "sessions-top") {
+        try {
+          document
+            .getElementById("sessions-top-anchor")
+            ?.scrollIntoView({ block: "start", behavior: "auto" });
+        } catch {}
+      }
+    };
+    window.addEventListener("app-intro:sessions-prepare", handler);
+    return () =>
+      window.removeEventListener("app-intro:sessions-prepare", handler);
+  }, [session?.entries]);
   const expandAll = () => {
     if (!session) return;
     if (focusMode) {
@@ -5141,12 +5172,20 @@ export default function Sessions() {
         style={{ position: "relative", height: 0 }}
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
-        <section className="px-2.5 sm:px-4" aria-label="Session controls" ref={toolbarRef}>
+        <section
+          className="px-2.5 sm:px-4"
+          aria-label="Session controls"
+          ref={toolbarRef}
+          data-tour-id="sessions-toolbar"
+        >
           <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-2.5 py-2.5 shadow-[0_16px_34px_rgba(15,23,42,0.45)] backdrop-blur sm:px-4 sm:py-3">
           {/* Always visible row: Day selector + session timer + Details/Tools toggles */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
-            <div className="flex min-w-0 flex-col gap-0.5 sm:min-w-[110px]">
+            <div
+              className="flex min-w-0 flex-col gap-0.5 sm:min-w-[110px]"
+              data-tour-id="sessions-day-selector"
+            >
               <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                 Day
               </span>
@@ -5182,6 +5221,7 @@ export default function Sessions() {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
+                data-tour-id="sessions-details-toggle"
                 className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
                   toolbarCollapsed
                     ? "border-white/12 bg-slate-800/45 text-slate-300 hover:bg-slate-700/55"
@@ -5194,6 +5234,7 @@ export default function Sessions() {
                 <span>Details {toolbarCollapsed ? "▸" : "▾"}</span>
               </button>
               <button
+                data-tour-id="sessions-tools-toggle"
                 className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
                   toolsOpen
                     ? "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
@@ -5227,7 +5268,10 @@ export default function Sessions() {
                     <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                       Week & Phase
                     </span>
-                    <div className="flex max-w-full flex-wrap items-center gap-2">
+                    <div
+                      className="flex max-w-full flex-wrap items-center gap-2"
+                      data-tour-id="sessions-week-phase-controls"
+                    >
                       <WeekSelector
                         value={Number(week) || 1}
                         totalWeeks={
@@ -5277,6 +5321,7 @@ export default function Sessions() {
                       </div>
                       <div
                           className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-[11px] text-slate-100"
+                        data-tour-id="sessions-date-controls"
                         title="Current assigned date (edit or stamp)"
                       >
                         {editingDate ? (
@@ -5392,16 +5437,19 @@ export default function Sessions() {
                 key="session-tools"
                 id="session-tools-panel"
                   className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200"
+                data-tour-id="sessions-tools-panel"
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
               >
                 {/* Training Mode Selector */}
-                <TrainingModeSelector
-                  value={currentTrainingMode}
-                  onChange={handleTrainingModeChange}
-                />
+                <span data-tour-id="sessions-training-mode">
+                  <TrainingModeSelector
+                    value={currentTrainingMode}
+                    onChange={handleTrainingModeChange}
+                  />
+                </span>
                 {session && (
                   <>
                     <button
@@ -5637,14 +5685,16 @@ export default function Sessions() {
         )}
         {/* Top sticky: live muscle counts + contents navigator */}
         {!initialLoading && sessionRouteReady && session.entries.length > 0 && (
-          <TopMuscleAndContents
-            session={session}
-            exMap={exMap}
-            exNameCache={exNameCache}
-            muscleFilter={muscleFilter}
-            visibleEntries={visibleEntries}
-            onMuscleFilter={setMuscleFilter}
-          />
+          <div data-tour-id="sessions-muscle-strip">
+            <TopMuscleAndContents
+              session={session}
+              exMap={exMap}
+              exNameCache={exNameCache}
+              muscleFilter={muscleFilter}
+              visibleEntries={visibleEntries}
+              onMuscleFilter={setMuscleFilter}
+            />
+          </div>
         )}
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           {muscleFilter
@@ -5754,6 +5804,9 @@ export default function Sessions() {
                   },
                 }}
                 id={`exercise-${entry.id}`}
+                data-tour-id={
+                  entryIdx === 0 ? "sessions-first-exercise-card" : undefined
+                }
                 className={`relative card-enhanced session-entry-card ${
                   isCollapsed ? "is-collapsed" : "is-expanded"
                 } rounded-xl px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-4 fade-in group transition-opacity duration-200 border-l-[2px] sm:border-l-[3px] ${
@@ -5858,6 +5911,11 @@ export default function Sessions() {
                       </span>
                       <button
                         type="button"
+                        data-tour-id={
+                          entryIdx === 0
+                            ? "sessions-first-exercise-name"
+                            : undefined
+                        }
                         className={`${nameButtonClass} -ml-1 px-1 py-0.5 rounded-md text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
                           isCollapsed ? "" : "hover:bg-slate-800/40"
                         }`}
@@ -5959,7 +6017,14 @@ export default function Sessions() {
                           </span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1 justify-end w-full">
+                      <div
+                        className="flex items-center gap-1 justify-end w-full"
+                        data-tour-id={
+                          entryIdx === 0
+                            ? "sessions-first-exercise-actions"
+                            : undefined
+                        }
+                      >
                         <button
                           aria-label="Switch exercise"
                           className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.12] bg-slate-800/80 text-[12px] text-slate-100 transition-colors duration-150 hover:bg-slate-700/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
@@ -6147,7 +6212,14 @@ export default function Sessions() {
                               </div>
                             </div>
                             {/* Weight & Reps - Aligned compact touch targets */}
-                            <div className="grid grid-cols-2 gap-2 items-start">
+                            <div
+                              className="grid grid-cols-2 gap-2 items-start"
+                              data-tour-id={
+                                entryIdx === 0 && idx === 0
+                                  ? "sessions-first-set-inputs"
+                                  : undefined
+                              }
+                            >
                               {/* Weight Input */}
                               <div className="input-wrapper-workout set-input-panel">
                                 <div className="flex items-center justify-between mb-0.5 h-4">
@@ -6334,7 +6406,14 @@ export default function Sessions() {
                         })}
                         
                         {/* Action row: Add Set + Rest Timer */}
-                        <div className="mt-2 flex items-center justify-between gap-1.5 border-t border-white/[0.04] pt-1.5">
+                        <div
+                          className="mt-2 flex items-center justify-between gap-1.5 border-t border-white/[0.04] pt-1.5"
+                          data-tour-id={
+                            entryIdx === 0
+                              ? "sessions-first-set-actions"
+                              : undefined
+                          }
+                        >
                           {/* Add Set button - prominent */}
                           <button
                             type="button"
@@ -6396,6 +6475,9 @@ export default function Sessions() {
                         className="session-sets-grid mt-3 hidden sm:grid grid-cols-[auto,1fr,1fr,auto] gap-2 items-center"
                         role="list"
                         aria-label={`Sets for exercise ${entry.exerciseId}`}
+                        data-tour-id={
+                          entryIdx === 0 ? "sessions-first-set-inputs" : undefined
+                        }
                       >
                         <div className="session-sets-grid-head">Set</div>
                         <div className="session-sets-grid-head">Weight</div>
@@ -6768,13 +6850,25 @@ export default function Sessions() {
                             </div>
                           </div>
                         ))}
-                        <div className="contents">
+                        <div
+                          className="contents"
+                          data-tour-id={
+                            entryIdx === 0
+                              ? "sessions-first-set-actions"
+                              : undefined
+                          }
+                        >
                           <div></div>
                           <div></div>
                           <div></div>
                           <div>
                             <button
                               className="btn-add-set"
+                              data-tour-id={
+                                entryIdx === 0
+                                  ? "sessions-first-set-actions"
+                                  : undefined
+                              }
                               onClick={() => addSet(entry)}
                             >
                               Add Set
@@ -6815,12 +6909,14 @@ export default function Sessions() {
 
       {/* Session summary footer */}
       {session && !!session.entries.length && (
-        <SessionSummary
-          session={session}
-          exercises={exercises}
-          analytics={analytics}
-          formatVolume={formatVolumeDisplay}
-        />
+        <div data-tour-id="sessions-summary">
+          <SessionSummary
+            session={session}
+            exercises={exercises}
+            analytics={analytics}
+            formatVolume={formatVolumeDisplay}
+          />
+        </div>
       )}
 
       <OptionSheet
@@ -6839,7 +6935,10 @@ export default function Sessions() {
       />
 
       <div className="px-2.5 pt-2 sm:px-1">
-        <div className="session-entry-card rounded-xl border-l-[2px] border-l-emerald-500/45 px-3 py-3 shadow-[0_12px_24px_-20px_rgba(16,185,129,0.45)]">
+        <div
+          className="session-entry-card rounded-xl border-l-[2px] border-l-emerald-500/45 px-3 py-3 shadow-[0_12px_24px_-20px_rgba(16,185,129,0.45)]"
+          data-tour-id="sessions-add-exercise-card"
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[9px] uppercase tracking-[0.26em] text-emerald-200/55">
@@ -7095,6 +7194,8 @@ export default function Sessions() {
       />
       {/* Jump to Latest floating button */}
       <JumpToLatest
+        className="guided-intro-jump-latest"
+        tourId="sessions-jump-latest"
         onJump={() => {
           if (latestLocation) {
             setPhase(latestLocation.phase);

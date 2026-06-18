@@ -25,6 +25,7 @@ import {
 import AuthModal from "./components/AuthModal";
 import NavDrawer from "./components/NavDrawer";
 import MobileTabs from "./components/MobileTabs";
+import GuidedAppIntro from "./components/GuidedAppIntro";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
 import ECGBackground from "./components/ECGBackground";
@@ -397,9 +398,18 @@ function Shell() {
     navigate,
   ]);
 
-  const Tab = ({ to, label }: { to: string; label: string }) => (
+  const Tab = ({
+    to,
+    label,
+    tourId,
+  }: {
+    to: string;
+    label: string;
+    tourId?: string;
+  }) => (
     <NavLink
       to={to}
+      data-tour-id={tourId}
       onMouseEnter={() => preloadRoute(to)}
       onFocus={() => preloadRoute(to)}
       onTouchStart={() => preloadRoute(to)}
@@ -543,12 +553,12 @@ function Shell() {
                   LiftLog
                 </h1>
                 <nav className="hidden md:flex gap-2 overflow-x-auto no-scrollbar flex-1 pr-1">
-                  <Tab to="/" label="Dashboard" />
-                  <Tab to="/sessions" label="Sessions" />
-                  <Tab to="/measurements" label="Measurements" />
-                  <Tab to="/settings/program" label="Program" />
-                  <Tab to="/templates" label="Templates" />
-                  <Tab to="/settings" label="Settings" />
+                  <Tab to="/" label="Dashboard" tourId="app-nav-dashboard" />
+                  <Tab to="/sessions" label="Sessions" tourId="app-nav-sessions" />
+                  <Tab to="/measurements" label="Measurements" tourId="app-nav-measurements" />
+                  <Tab to="/settings/program" label="Program" tourId="app-nav-program" />
+                  <Tab to="/templates" label="Templates" tourId="app-nav-templates" />
+                  <Tab to="/settings" label="Settings" tourId="app-nav-settings" />
                 </nav>
               </div>
               <div className="flex items-center gap-2 ml-auto shrink-0">
@@ -710,6 +720,7 @@ function Shell() {
           </ErrorBoundary>
         </main>
         {!hideChrome && <MobileTabs />}
+        {!hideChrome && boot.authed && <GuidedAppIntro />}
         <NavDrawer
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}

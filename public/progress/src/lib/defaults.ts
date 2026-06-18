@@ -39,6 +39,12 @@ export const defaultSettings: Settings = {
       starterCreated: false,
       mode: "advanced",
     },
+    appIntro: {
+      completed: false,
+      skipped: false,
+      pending: false,
+      version: 1,
+    },
   },
   volumeTargets: {
     chest: 12,

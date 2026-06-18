@@ -59,17 +59,19 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
           </div>
           <nav className="flex-1 overflow-y-auto px-2 py-2 pb-3 space-y-1" aria-label="Primary">
             {[
-              ['/', 'Dashboard'],
-              ['/analytics','Analytics'],
-              ['/sessions','Sessions'],
-              ['/recovery','Recovery'],
-              ['/measurements','Measurements'],
-              ['/templates','Programs'],
-              ['/settings','Settings']
-            ].map(([to,label])=> (
+              ['/', 'Dashboard', 'drawer-nav-dashboard'],
+              ['/analytics','Analytics', 'drawer-nav-analytics'],
+              ['/sessions','Sessions', 'drawer-nav-sessions'],
+              ['/recovery','Recovery', 'drawer-nav-recovery'],
+              ['/measurements','Measurements', 'drawer-nav-measurements'],
+              ['/settings/program','Program', 'drawer-nav-program'],
+              ['/templates','Programs', 'drawer-nav-templates'],
+              ['/settings','Settings', 'drawer-nav-settings']
+            ].map(([to,label,tourId])=> (
               <NavLink
                 key={to}
                 to={to}
+                data-tour-id={tourId}
                 onMouseEnter={() => preloadRoute(to)}
                 onFocus={() => preloadRoute(to)}
                 onTouchStart={() => preloadRoute(to)}

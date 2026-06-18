@@ -13,6 +13,8 @@ interface JumpToLatestProps {
   scrollThreshold?: number;
   /** Additional CSS classes */
   className?: string;
+  /** Stable target id for guided UI overlays */
+  tourId?: string;
 }
 
 /**
@@ -25,6 +27,7 @@ export default function JumpToLatest({
   latestLabel,
   scrollThreshold = 200,
   className,
+  tourId,
 }: JumpToLatestProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -68,6 +71,7 @@ export default function JumpToLatest({
             "md:bottom-8",
             className
           )}
+          data-tour-id={tourId}
         >
           <button
             onClick={handleClick}

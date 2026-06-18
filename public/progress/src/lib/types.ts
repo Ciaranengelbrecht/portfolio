@@ -219,6 +219,13 @@ export interface Settings {
       draft?: GuidedSetupState;
       lastUpdatedAt?: string;
     };
+    appIntro?: {
+      completed?: boolean;
+      skipped?: boolean;
+      pending?: boolean;
+      version?: number;
+      lastSeenAt?: string;
+    };
   };
   /** Per-muscle weekly target (weighted sets) */
   volumeTargets?: Record<string, number>;

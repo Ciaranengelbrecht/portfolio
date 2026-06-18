@@ -73,6 +73,10 @@ export async function getSettings(): Promise<Settings> {
         ...(defaultSettings.progress?.guidedSetup || {}),
         ...(stored?.progress?.guidedSetup || {}),
       },
+      appIntro: {
+        ...(defaultSettings.progress?.appIntro || {}),
+        ...(stored?.progress?.appIntro || {}),
+      },
     },
     ui: {
       ...(defaultSettings.ui || {}),
@@ -186,6 +190,34 @@ export async function getSettings(): Promise<Settings> {
         guidedSetup: {
           ...(base.progress?.guidedSetup || {}),
           mode: "advanced",
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (!base.progress?.appIntro) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        appIntro: {
+          completed: false,
+          skipped: false,
+          pending: false,
+          version: 1,
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (base.progress?.appIntro && base.progress.appIntro.version == null) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        appIntro: {
+          ...(base.progress?.appIntro || {}),
+          version: 1,
         },
       },
     };
