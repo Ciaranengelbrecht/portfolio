@@ -19,7 +19,6 @@ import type { Settings } from "../lib/types";
 export type TourPrepareTarget =
   | "sessions-top"
   | "sessions-details"
-  | "sessions-tools"
   | "sessions-first-exercise";
 
 export interface GuidedAppIntroStep {
@@ -185,19 +184,15 @@ export function buildDefaultAppIntroSteps(): GuidedAppIntroStep[] {
     },
     {
       id: "details",
-      title: "Week, phase, and date",
-      body: "Open Details to change week or phase, stamp today's date, or edit the session date.",
-      targetIds: ["sessions-details-toggle", "sessions-week-phase-controls"],
+      title: "Session details",
+      body: "Open Details to change week or phase, update the date, switch training mode, import or save workouts, swap days, and erase logged data.",
+      targetIds: [
+        "sessions-details-toggle",
+        "sessions-week-phase-controls",
+        "sessions-training-mode",
+      ],
       route: "/sessions",
       prepare: "sessions-details",
-    },
-    {
-      id: "tools",
-      title: "Session tools",
-      body: "Tools holds training mode, erase, stamp, collapse/expand, copy last, and phase navigation.",
-      targetIds: ["sessions-tools-toggle", "sessions-tools-panel"],
-      route: "/sessions",
-      prepare: "sessions-tools",
     },
     {
       id: "muscle-strip",

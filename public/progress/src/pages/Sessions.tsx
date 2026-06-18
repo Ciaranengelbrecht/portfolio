@@ -930,7 +930,6 @@ export default function Sessions() {
   const [dateEditValue, setDateEditValue] = useState("");
   // Stamp animation state
   const [stampAnimating, setStampAnimating] = useState(false);
-  const [toolsOpen, setToolsOpen] = useState(false);
   // Top toolbar collapsed state (default collapsed for compact layout)
   const [toolbarCollapsed, setToolbarCollapsed] = useState(true);
   // Current training mode (bulk/cut/maintenance) - persisted in settings
@@ -1299,9 +1298,6 @@ export default function Sessions() {
       const target = (event as CustomEvent<{ target?: string }>).detail?.target;
       if (target === "sessions-details") {
         setToolbarCollapsed(false);
-      }
-      if (target === "sessions-tools") {
-        setToolsOpen(true);
       }
       if (target === "sessions-first-exercise") {
         const firstEntry = session?.entries?.[0];
@@ -5212,7 +5208,7 @@ export default function Sessions() {
           data-tour-id="sessions-toolbar"
         >
           <div className="min-w-0 rounded-2xl border border-white/10 bg-[rgba(15,23,42,0.82)] px-2.5 py-2.5 shadow-[0_16px_34px_rgba(15,23,42,0.45)] backdrop-blur sm:px-4 sm:py-3">
-          {/* Always visible row: Day selector + session timer + Details/Tools toggles */}
+          {/* Always visible row: Day selector + session timer + Details toggle */}
           <div className="flex items-center justify-between gap-2">
             {/* Day Selector - always visible */}
             <div
@@ -5265,20 +5261,6 @@ export default function Sessions() {
                 aria-controls="session-details-panel"
               >
                 <span>Details {toolbarCollapsed ? "▸" : "▾"}</span>
-              </button>
-              <button
-                data-tour-id="sessions-tools-toggle"
-                className={`rounded-md border px-2.5 py-1 text-[10px] font-medium transition ${
-                  toolsOpen
-                    ? "border-emerald-400/45 bg-emerald-500/14 text-emerald-200 hover:bg-emerald-500/22"
-                    : "border-white/12 bg-slate-800/70 text-slate-200 hover:bg-slate-700/80"
-                }`}
-                onClick={() => setToolsOpen((open) => !open)}
-                aria-expanded={toolsOpen}
-                aria-controls="session-tools-panel"
-                type="button"
-              >
-                <span>Tools {toolsOpen ? "▾" : "▸"}</span>
               </button>
             </div>
           </div>
@@ -5429,6 +5411,12 @@ export default function Sessions() {
                 </div>
                 {session && (
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span data-tour-id="sessions-training-mode">
+                      <TrainingModeSelector
+                        value={currentTrainingMode}
+                        onChange={handleTrainingModeChange}
+                      />
+                    </span>
                     <button
                       type="button"
                         className="tool-btn"
@@ -5443,7 +5431,7 @@ export default function Sessions() {
                       onClick={() => setShowImport(true)}
                       title="Import from template"
                     >
-                        Import
+                        Import workout
                     </button>
                     <button
                       type="button"
@@ -5456,35 +5444,8 @@ export default function Sessions() {
                           : "No exercises to save"
                       }
                     >
-                        Save tpl
+                        Save workout
                     </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence initial={false}>
-            {toolsOpen && (
-              <motion.div
-                key="session-tools"
-                id="session-tools-panel"
-                  className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-200"
-                data-tour-id="sessions-tools-panel"
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: [0.32, 0.72, 0.33, 1] }}
-              >
-                {/* Training Mode Selector */}
-                <span data-tour-id="sessions-training-mode">
-                  <TrainingModeSelector
-                    value={currentTrainingMode}
-                    onChange={handleTrainingModeChange}
-                  />
-                </span>
-                {session && (
-                  <>
                     <button
                       type="button"
                       data-testid="erase-session-tools"
@@ -5495,135 +5456,7 @@ export default function Sessions() {
                     >
                         Erase
                     </button>
-                    <button
-                      type="button"
-                        className="tool-btn"
-                      onClick={() => {
-                        setStampAnimating(true);
-                        setTimeout(() => setStampAnimating(false), 360);
-                        stampToday();
-                      }}
-                      title="Stamp with today's date"
-                    >
-                      Stamp
-                    </button>
-                    <button
-                      type="button"
-                        className="tool-btn"
-                      onClick={() => collapseAll()}
-                      title="Collapse all exercises"
-                    >
-                        Collapse
-                    </button>
-                    <button
-                      type="button"
-                        className="tool-btn"
-                      onClick={() => expandAll()}
-                      title="Expand all exercises"
-                    >
-                        Expand
-                    </button>
-                    <button
-                      type="button"
-                        className="tool-btn"
-                      onClick={async () => {
-                        const prevId = `${phase}-${Math.max(
-                          1,
-                          (week as number) - 1
-                        )}-${day}`;
-                        let prev = await db.get<Session>("sessions", prevId);
-                        if (!prev && week === 1 && phase > 1) {
-                          prev = await db.get<Session>(
-                            "sessions",
-                            `${phase - 1}-9-${day}`
-                          );
-                        }
-                        if (prev) {
-                          const copy: Session = {
-                            ...session,
-                            entries: prev.entries.map((e) => ({
-                              ...e,
-                              id: nanoid(),
-                              sets: e.sets.map((s, i) => ({
-                                ...s,
-                                setNumber: i + 1,
-                              })),
-                            })),
-                          };
-                          setSession(copy);
-                          await persistSession(copy);
-                        }
-                      }}
-                      title="Copy previous session"
-                    >
-                      Copy Last
-                    </button>
-                  </>
-                )}
-                <button
-                  className="tool-btn"
-                  onClick={async () => {
-                    // Move UI to next phase without committing until data is logged
-                    const s = await getSettings();
-                    const next = (s.currentPhase || 1) + 1;
-                    setPhase(next as number);
-                    setWeek(1 as any);
-                    setDay(0);
-                    phaseCommitPendingRef.current = next;
-                    await setSettings((s) => ({
-                      ...s,
-                      dashboardPrefs: {
-                        ...(s.dashboardPrefs || {}),
-                        lastLocation: {
-                          ...(s.dashboardPrefs?.lastLocation || {}),
-                          phaseNumber: next,
-                          weekNumber: 1 as any,
-                          dayId: 0,
-                        },
-                      },
-                    }));
-                  }}
-                  title="Next phase"
-                >
-                  Next
-                </button>
-                {phase > 1 && (
-                  <button
-                    className="tool-btn"
-                    onClick={async () => {
-                      if (
-                        !window.confirm(`Go to phase ${phase - 1} (view only)?`)
-                      )
-                        return;
-                      const s = await getSettings();
-                      const prev = Math.max(1, (phase as number) - 1);
-                      // View previous phase, do not change committed currentPhase
-                      setPhase(prev as number);
-                      setWeek(1 as any);
-                      setDay(0);
-                      phaseCommitPendingRef.current = prev;
-                      await setSettings((s) => ({
-                        ...s,
-                        dashboardPrefs: {
-                          ...(s.dashboardPrefs || {}),
-                          lastLocation: {
-                            ...(s.dashboardPrefs?.lastLocation || {}),
-                            phaseNumber: prev,
-                            weekNumber: 1 as any,
-                            dayId: 0,
-                          },
-                        },
-                      }));
-                    }}
-                    title="Previous phase"
-                  >
-                    Prev
-                  </button>
-                )}
-                {sessionDuration && (
-                  <span className="ml-auto rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] text-indigo-200">
-                    ⏱ {sessionDuration}
-                  </span>
+                  </div>
                 )}
               </motion.div>
             )}
