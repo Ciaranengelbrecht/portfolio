@@ -24,6 +24,7 @@ Before app-store beta, also verify:
 - iOS TestFlight: launch, sign in or magic link, offline mode, safe-area layout, export/import, delete account, app resume/update.
 - Multi-device test: same account on two devices, same-day workout edits, stale cache recovery.
 - Privacy policy, Apple privacy answers, and Google Data Safety answers match the code.
+- Verify sign-up privacy checkbox, Settings privacy link, Play Privacy URL, Data safety answers, and Data deletion answers all match.
 
 ## Store Metadata
 

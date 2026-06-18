@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { resendSignupConfirmation, signIn, signUp } from "../../lib/auth";
 
+const PRIVACY_POLICY_URL = "https://ciaranengelbrecht.com/progress/privacy.html";
+
 interface Props {
   onSignedIn: () => void;
   onForgot: () => void;
@@ -18,6 +20,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
     null
   );
   const [resending, setResending] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const emailValid = /.+@.+/.test(email);
   const confirmMismatch = mode === "signup" && password2.length > 0 && password !== password2;
@@ -25,7 +28,7 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
     emailValid &&
     password.length >= 6 &&
     !busy &&
-    (mode === "login" || password === password2);
+    (mode === "login" || (password === password2 && privacyAccepted));
 
   const act = async () => {
     setError(null);
@@ -40,6 +43,10 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
       } else {
         if (password !== password2) {
           setError("Passwords do not match");
+          return;
+        }
+        if (!privacyAccepted) {
+          setError("Confirm that you have read the Privacy Policy");
           return;
         }
         const redirectTo = window.location.origin + window.location.pathname;
@@ -145,6 +152,32 @@ export default function AuthCard({ onSignedIn, onForgot }: Props) {
               <span className="auth-input-note text-[10px] text-rose-300">Passwords do not match yet.</span>
             )}
           </label>
+        )}
+        {mode === "signup" && (
+          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] leading-snug text-gray-300">
+            <p>
+              By creating an account, you agree to the{" "}
+              <a
+                className="text-emerald-300 underline decoration-dotted"
+                href={PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+            <label className="mt-2 flex items-start gap-2">
+              <input
+                className="mt-0.5"
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                required
+              />
+              <span>I have read and agree to the Privacy Policy.</span>
+            </label>
+          </div>
         )}
         {error && <div className="auth-message auth-message-error text-xs">{error}</div>}
         {info && <div className="auth-message auth-message-info text-xs">{info}</div>}

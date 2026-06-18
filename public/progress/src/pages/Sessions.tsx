@@ -71,6 +71,7 @@ import {
   getLatestOverrideForDay,
   getOverrideAffectedDayIds,
   getPullForwardSourceDayId,
+  getPushBackRestTargetDayId,
   getWeekScheduleKey,
   getWeekScheduleOverrides,
 } from "../lib/weekSchedule";
@@ -3930,6 +3931,8 @@ export default function Sessions() {
         message:
           override.type === "pull-forward"
             ? "Rest day skipped for this week"
+            : override.type === "push-back-rest"
+            ? "Rest day added for this week"
             : "Week days swapped",
       });
     },
@@ -3958,6 +3961,10 @@ export default function Sessions() {
       effectiveWeeklySplit,
       dayIndexNumber
     );
+    const restTargetDay = getPushBackRestTargetDayId(
+      effectiveWeeklySplit,
+      dayIndexNumber
+    );
     const currentLabel = getDayLabel(effectiveDayMeta, dayIndexNumber);
 
     if (sourceDay != null) {
@@ -3968,7 +3975,7 @@ export default function Sessions() {
         description: `Bring ${sourceLabel} forward to ${currentLabel}; later days shift forward and Day ${
           sourceDay + 1
         } becomes Rest for this week.`,
-        badge: "Flex",
+        badge: "Skip Rest",
         disabled: sessionHasRealWork(session),
         hint: sessionHasRealWork(session)
           ? "Logged days are protected"
@@ -3978,6 +3985,32 @@ export default function Sessions() {
             id: nanoid(),
             type: "pull-forward",
             restDayId: dayIndexNumber,
+            createdAt: new Date().toISOString(),
+          }),
+      });
+    }
+
+    if (restTargetDay != null) {
+      const restTargetLabel = getDayLabel(
+        effectiveWeeklySplit[restTargetDay],
+        restTargetDay
+      );
+      options.push({
+        id: "push-back-rest",
+        label: "Rest today",
+        description: `${currentLabel} moves to Day ${
+          dayIndexNumber + 2
+        }; later workouts shift back until ${restTargetLabel}.`,
+        badge: "Rest",
+        disabled: sessionHasRealWork(session),
+        hint: sessionHasRealWork(session)
+          ? "Logged days are protected"
+          : "Only this week changes",
+        onSelect: () =>
+          applyScheduleFlexOverride({
+            id: nanoid(),
+            type: "push-back-rest",
+            workoutDayId: dayIndexNumber,
             createdAt: new Date().toISOString(),
           }),
       });
@@ -5402,7 +5435,7 @@ export default function Sessions() {
                       onClick={() => setShowScheduleFlex(true)}
                       title="Swap days or skip a rest day for this week only"
                     >
-                        Flex
+                        Swap Session/Day
                     </button>
                     <button
                       type="button"
@@ -7152,7 +7185,7 @@ export default function Sessions() {
       {/* Snackbar removed; using global queue */}
       <OptionSheet
         open={showScheduleFlex}
-        title="Flex this week"
+        title="Swap Session/Day"
         description={`${phaseLabel} • ${weekLabel} • ${dayTitle}`}
         onClose={() => setShowScheduleFlex(false)}
         options={scheduleFlexOptions}

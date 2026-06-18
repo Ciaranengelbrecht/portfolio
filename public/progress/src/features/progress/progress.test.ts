@@ -147,4 +147,64 @@ describe("progress utils", () => {
     expect(effectiveProgram.weeklySplit[2].type).toBe("Legs");
     expect(week.completedDays).toBe(1);
   });
+
+  it("does not count a pushed-back rest day as a completed workout", () => {
+    const program: UserProgram = {
+      id: "program-rest",
+      name: "Rest",
+      weekLengthDays: 7,
+      weeklySplit: [
+        { type: "Push" },
+        { type: "Pull" },
+        { type: "Rest" },
+        { type: "Legs" },
+        { type: "Push" },
+        { type: "Pull" },
+        { type: "Rest" },
+      ],
+      mesoWeeks: 9,
+      deload: { mode: "last-week" },
+      createdAt: "",
+      updatedAt: "",
+      version: 1,
+    };
+    const key = getWeekScheduleKey(program.id, 1, 1);
+    const settings = {
+      unit: "kg",
+      deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
+      progress: {
+        weekScheduleOverrides: {
+          [key]: [
+            {
+              id: "push-back-rest",
+              type: "push-back-rest",
+              workoutDayId: 0,
+              createdAt: "2026-06-01T00:00:00.000Z",
+            },
+          ],
+        },
+      },
+    } as Settings;
+    const effectiveProgram = {
+      ...program,
+      weeklySplit: getEffectiveWeeklySplit(program, settings, 1, 1),
+    };
+    const week = getWeekCompletion(
+      1,
+      1,
+      [makeSession("1-1-0", 1), makeSession("1-1-1", 1)],
+      { weeklyTargetDays: 6, program: effectiveProgram }
+    );
+
+    expect(effectiveProgram.weeklySplit.map((day) => day.type)).toEqual([
+      "Rest",
+      "Push",
+      "Pull",
+      "Legs",
+      "Push",
+      "Pull",
+      "Rest",
+    ]);
+    expect(week.completedDays).toBe(1);
+  });
 });

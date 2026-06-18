@@ -34,6 +34,8 @@ import { clearLiftLogLocalData } from "../lib/localData";
 import { getSettings, setSettings } from "../lib/helpers";
 import { ListSkeleton } from "../components/LoadingSkeletons";
 
+const PRIVACY_POLICY_URL = "https://ciaranengelbrecht.com/progress/privacy.html";
+
 type SettingsTabId =
   | "general"
   | "profile"
@@ -123,6 +125,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [pendingSignupEmail, setPendingSignupEmail] = useState<string | null>(
@@ -1005,11 +1008,14 @@ export default function SettingsPage() {
               </button>
               <button
                 className="btn-outline px-3 py-3 rounded-xl w-full"
+                disabled={busy === "signup" || !privacyAccepted}
                 onClick={async () => {
                   if (!email || !password)
                     return alert("Enter email and password");
                   if (password !== password2)
                     return alert("Passwords do not match");
+                  if (!privacyAccepted)
+                    return alert("Confirm that you have read the Privacy Policy");
                   const redirectTo = window.location.origin + window.location.pathname;
                   const normalizedEmail = email.trim().toLowerCase();
                   setBusy("signup");
@@ -1135,6 +1141,29 @@ export default function SettingsPage() {
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
             />
+            <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] leading-snug text-muted">
+              <p>
+                By creating an account, you agree to the{" "}
+                <a
+                  className="text-emerald-300 underline decoration-dotted"
+                  href={PRIVACY_POLICY_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+              <label className="mt-2 flex items-start gap-2">
+                <input
+                  className="mt-0.5"
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                />
+                <span>I have read and agree to the Privacy Policy.</span>
+              </label>
+            </div>
             <div className="text-xs text-muted">
               To use password sign-in, ensure Email provider is enabled in
               Supabase Authentication. If email confirmation is on, check
@@ -2657,6 +2686,14 @@ export default function SettingsPage() {
                 rel="noopener noreferrer"
               >
                 Deletion info
+              </a>
+              <a
+                className="btn-outline px-3 py-2 rounded-xl inline-flex items-center justify-center"
+                href={PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
               </a>
             </div>
           </div>

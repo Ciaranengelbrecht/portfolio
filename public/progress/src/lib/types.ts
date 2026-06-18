@@ -82,7 +82,7 @@ export interface Session {
   trainingMode?: TrainingMode;
   /** Week-only schedule override provenance for temporary day swaps/flex changes */
   scheduleOverride?: {
-    type: "day-swap" | "pull-forward";
+    type: "day-swap" | "pull-forward" | "push-back-rest";
     overrideId: string;
     baseDayId: number;
     effectiveDayId: number;
@@ -414,6 +414,12 @@ export type WeekScheduleOverride =
       id: string;
       type: "pull-forward";
       restDayId: number;
+      createdAt: string;
+    }
+  | {
+      id: string;
+      type: "push-back-rest";
+      workoutDayId: number;
       createdAt: string;
     };
 

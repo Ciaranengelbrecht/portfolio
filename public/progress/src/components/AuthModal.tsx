@@ -3,6 +3,8 @@ import GlassCard from "./GlassCard";
 import GlossyButton from "./GlossyButton";
 import { supabase, waitForSession } from "../lib/supabase";
 
+const PRIVACY_POLICY_URL = "https://ciaranengelbrecht.com/progress/privacy.html";
+
 export default function AuthModal({
   open,
   onClose,
@@ -21,6 +23,7 @@ export default function AuthModal({
   const [pendingSignupEmail, setPendingSignupEmail] = useState<string | null>(
     null
   );
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const doneRef = useRef(false);
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export default function AuthModal({
     setBusy(null);
     setMsg(null);
     setPendingSignupEmail(null);
+    setPrivacyAccepted(false);
   }, [open]);
 
   // Close modal as soon as a session is detected (faster feedback)
@@ -129,13 +133,15 @@ export default function AuthModal({
               Sign in
             </GlossyButton>
             <GlossyButton
-              disabled={busy === "signup"}
+              disabled={busy === "signup" || !privacyAccepted}
               className={`${busy === "signup" ? "opacity-70" : ""}`}
               onClick={async () => {
                 if (!email || !password)
                   return setMsg("Enter email and password");
                 if (password !== password2)
                   return setMsg("Passwords do not match");
+                if (!privacyAccepted)
+                  return setMsg("Confirm that you have read the Privacy Policy");
                 setBusy("signup");
                 const redirectTo =
                   window.location.origin + window.location.pathname;
@@ -250,6 +256,29 @@ export default function AuthModal({
               value={password2}
               onChange={(e) => setPassword2(e.target.value)}
             />
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] leading-snug text-gray-300">
+            <p>
+              By creating an account, you agree to the{" "}
+              <a
+                className="text-emerald-300 underline decoration-dotted"
+                href={PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </a>
+              .
+            </p>
+            <label className="mt-2 flex items-start gap-2">
+              <input
+                className="mt-0.5"
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) => setPrivacyAccepted(event.target.checked)}
+              />
+              <span>I have read and agree to the Privacy Policy.</span>
+            </label>
           </div>
           <div>
             <button

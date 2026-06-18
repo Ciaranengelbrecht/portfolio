@@ -46,6 +46,19 @@ export function getPullForwardSourceDayId(
   return null;
 }
 
+export function getPushBackRestTargetDayId(
+  split: WeeklySplitDay[],
+  workoutDayId: number
+) {
+  if (!Number.isInteger(workoutDayId)) return null;
+  if (workoutDayId < 0 || workoutDayId >= split.length) return null;
+  if (!isTrainingDay(split[workoutDayId])) return null;
+  for (let index = workoutDayId + 1; index < split.length; index += 1) {
+    if (!isTrainingDay(split[index])) return index;
+  }
+  return null;
+}
+
 export function getOverrideAffectedDayIds(
   baseSplit: WeeklySplitDay[],
   override: WeekScheduleOverride
@@ -66,10 +79,17 @@ export function getOverrideAffectedDayIds(
     return [fromDayId, toDayId];
   }
 
-  const sourceDayId = getPullForwardSourceDayId(baseSplit, override.restDayId);
-  if (sourceDayId == null) return [];
+  const boundaryDayId =
+    override.type === "pull-forward"
+      ? getPullForwardSourceDayId(baseSplit, override.restDayId)
+      : getPushBackRestTargetDayId(baseSplit, override.workoutDayId);
+  if (boundaryDayId == null) return [];
+  const startDayId =
+    override.type === "pull-forward"
+      ? override.restDayId
+      : override.workoutDayId;
   const affected: number[] = [];
-  for (let index = override.restDayId; index <= sourceDayId; index += 1) {
+  for (let index = startDayId; index <= boundaryDayId; index += 1) {
     affected.push(index);
   }
   return affected;
@@ -90,12 +110,22 @@ export function applyWeekScheduleOverride(
     return next;
   }
 
-  const sourceDayId = getPullForwardSourceDayId(next, override.restDayId);
-  if (sourceDayId == null) return next;
-  for (let index = override.restDayId; index < sourceDayId; index += 1) {
-    next[index] = next[index + 1];
+  if (override.type === "pull-forward") {
+    const sourceDayId = getPullForwardSourceDayId(next, override.restDayId);
+    if (sourceDayId == null) return next;
+    for (let index = override.restDayId; index < sourceDayId; index += 1) {
+      next[index] = next[index + 1];
+    }
+    next[sourceDayId] = { type: "Rest" };
+    return next;
   }
-  next[sourceDayId] = { type: "Rest" };
+
+  const restDayId = getPushBackRestTargetDayId(next, override.workoutDayId);
+  if (restDayId == null) return next;
+  for (let index = restDayId; index > override.workoutDayId; index -= 1) {
+    next[index] = next[index - 1];
+  }
+  next[override.workoutDayId] = { type: "Rest" };
   return next;
 }
 
@@ -137,12 +167,23 @@ export function getBaseDayIdForEffectiveDay(
       continue;
     }
 
-    const sourceDayId = getPullForwardSourceDayId(split, override.restDayId);
-    if (sourceDayId == null) continue;
-    for (let index = override.restDayId; index < sourceDayId; index += 1) {
-      mapping[index] = mapping[index + 1];
+    if (override.type === "pull-forward") {
+      const sourceDayId = getPullForwardSourceDayId(split, override.restDayId);
+      if (sourceDayId == null) continue;
+      for (let index = override.restDayId; index < sourceDayId; index += 1) {
+        mapping[index] = mapping[index + 1];
+      }
+      mapping[sourceDayId] = sourceDayId;
+      split = applyWeekScheduleOverride(split, override);
+      continue;
     }
-    mapping[sourceDayId] = sourceDayId;
+
+    const restDayId = getPushBackRestTargetDayId(split, override.workoutDayId);
+    if (restDayId == null) continue;
+    for (let index = restDayId; index > override.workoutDayId; index -= 1) {
+      mapping[index] = mapping[index - 1];
+    }
+    mapping[override.workoutDayId] = override.workoutDayId;
     split = applyWeekScheduleOverride(split, override);
   }
 
@@ -163,4 +204,3 @@ export function getLatestOverrideForDay(
   }
   return match;
 }
-

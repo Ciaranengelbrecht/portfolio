@@ -4,6 +4,7 @@ import {
   getEffectiveWeeklySplit,
   getOverrideAffectedDayIds,
   getPullForwardSourceDayId,
+  getPushBackRestTargetDayId,
   getWeekScheduleKey,
 } from "../lib/weekSchedule";
 
@@ -27,7 +28,9 @@ const program: UserProgram = {
   version: 1,
 };
 
-function settingsFor(overrides: NonNullable<Settings["progress"]>["weekScheduleOverrides"]) {
+function settingsFor(
+  overrides: NonNullable<Settings["progress"]>["weekScheduleOverrides"]
+) {
   return {
     unit: "kg",
     deloadDefaults: { loadPct: 0.55, setPct: 0.5 },
@@ -86,6 +89,73 @@ describe("week schedule overrides", () => {
     expect(getPullForwardSourceDayId(program.weeklySplit, 2)).toBe(3);
     expect(getEffectiveWeeklySplit(program, settings, 1, 3).map((d) => d.type))
       .toEqual(["Push", "Pull", "Legs", "Rest", "Push", "Pull", "Rest"]);
+  });
+
+  it("pushes workouts back when adding a rest day", () => {
+    const key = getWeekScheduleKey(program.id, 1, 5);
+    const settings = settingsFor({
+      [key]: [
+        {
+          id: "rest-1",
+          type: "push-back-rest",
+          workoutDayId: 0,
+          createdAt: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(getPushBackRestTargetDayId(program.weeklySplit, 0)).toBe(2);
+    expect(getOverrideAffectedDayIds(program.weeklySplit, {
+      id: "rest-1",
+      type: "push-back-rest",
+      workoutDayId: 0,
+      createdAt: "2026-06-01T00:00:00.000Z",
+    })).toEqual([0, 1, 2]);
+    expect(getEffectiveWeeklySplit(program, settings, 1, 5).map((d) => d.type))
+      .toEqual(["Rest", "Push", "Pull", "Legs", "Push", "Pull", "Rest"]);
+  });
+
+  it("can consume the final in-week rest slot", () => {
+    const key = getWeekScheduleKey(program.id, 1, 6);
+    const settings = settingsFor({
+      [key]: [
+        {
+          id: "rest-none",
+          type: "push-back-rest",
+          workoutDayId: 5,
+          createdAt: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(getPushBackRestTargetDayId(program.weeklySplit, 5)).toBe(6);
+    expect(getEffectiveWeeklySplit(program, settings, 1, 6).map((d) => d.type))
+      .toEqual(["Push", "Pull", "Rest", "Legs", "Push", "Rest", "Pull"]);
+  });
+
+  it("ignores push-back rest when no later rest day exists", () => {
+    const noRestProgram: UserProgram = {
+      ...program,
+      weeklySplit: program.weeklySplit.map((day) =>
+        day.type === "Rest" ? { type: "Custom", customLabel: "Workout" } : day
+      ),
+    };
+    const key = getWeekScheduleKey(noRestProgram.id, 1, 7);
+    const settings = settingsFor({
+      [key]: [
+        {
+          id: "rest-impossible",
+          type: "push-back-rest",
+          workoutDayId: 0,
+          createdAt: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(getPushBackRestTargetDayId(noRestProgram.weeklySplit, 0)).toBeNull();
+    expect(
+      getEffectiveWeeklySplit(noRestProgram, settings, 1, 7).map((d) => d.type)
+    ).toEqual(["Push", "Pull", "Custom", "Legs", "Push", "Pull", "Custom"]);
   });
 
   it("ignores invalid overrides safely", () => {
