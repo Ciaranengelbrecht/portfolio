@@ -79,6 +79,7 @@ import {
   computeExercisePrScores,
   loadSessionsStartupBundle,
 } from "../lib/sessionStartup";
+import { getNextSetPrefill } from "../lib/sessionSetPrefill";
 import { trackMetric } from "../lib/monitoring";
 
 const KG_TO_LB = 2.2046226218;
@@ -3391,47 +3392,16 @@ export default function Sessions() {
 
   const addSet = (entry: SessionEntry) => {
     if (!session || !isSessionInView(session)) return;
-    
-    // Check if there are any existing sets with actual work (weight or reps filled in)
-    const setsWithWork = entry.sets.filter(
-      (s) => (s.weightKg || 0) > 0 || (s.reps || 0) > 0
-    );
-    const hasExistingWork = setsWithWork.length > 0;
-    
-    // Get the last set for potential prefill
-    const last = [...entry.sets]
-      .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
-      .slice(-1)[0];
-    
-    // Determine prefill values:
-    // - If there's existing work, use the last set's values (current behavior)
-    // - If no existing work, try to use previous session's best (from prevBestMap)
-    let prefillWeight: number | null = null;
-    let prefillReps: number | null = null;
-    let prefillRpe: number | undefined = undefined;
-    
-    if (hasExistingWork && last) {
-      // Use last set values from current entry
-      prefillWeight = last.weightKg ?? null;
-      prefillReps = last.reps ?? null;
-      prefillRpe = last.rpe;
-    } else if (prevBestMap) {
-      // First set with no work - use previous session's best
-      const prevBest = getPrevBest(prevBestMap, entry.exerciseId);
-      if (prevBest?.set) {
-        prefillWeight = prevBest.set.weightKg ?? null;
-        prefillReps = prevBest.set.reps ?? null;
-        prefillRpe = prevBest.set.rpe;
-      }
-    }
-    
+    const prefill = getNextSetPrefill(entry, prevBestMap);
+
     const nowIso = new Date().toISOString();
-    const hasPrefillWork = (prefillWeight || 0) > 0 || (prefillReps || 0) > 0;
+    const hasPrefillWork =
+      (prefill.weightKg || 0) > 0 || (prefill.reps || 0) > 0;
     const next: SetEntry = {
       setNumber: entry.sets.length + 1,
-      weightKg: prefillWeight,
-      reps: prefillReps,
-      rpe: prefillRpe,
+      weightKg: prefill.weightKg,
+      reps: prefill.reps,
+      rpe: prefill.rpe,
       addedAt: nowIso,
       // Stamp completedAt immediately if the set has work values from prefill
       ...(hasPrefillWork ? { completedAt: nowIso } : {}),

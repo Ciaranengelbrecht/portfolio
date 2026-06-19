@@ -4,6 +4,7 @@ import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
 import { getSettings } from "../lib/helpers";
+import { defaultSettings } from "../lib/defaults";
 import gymMobileBackground from "./dark gym mobile.png";
 
 type Ctx = {
@@ -206,6 +207,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setThemeKeyState(key as ThemeKey);
         let vars = { ...THEMES[key as ThemeKey] };
         const effectiveThemeV2 = {
+          ...(defaultSettings.themeV2 || {}),
           ...((s as Settings | undefined)?.themeV2 || {}),
           ...(profileThemeV2 || {}),
         } as Settings["themeV2"];
