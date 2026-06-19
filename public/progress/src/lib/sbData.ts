@@ -150,3 +150,34 @@ export async function sbList(table: Table) {
     return await attempt();
   }
 }
+
+export type SbIncrementalRow = {
+  id: string;
+  data: any;
+  updated_at: string | null;
+};
+
+export async function sbListUpdatedSince(
+  table: Table,
+  updatedAfterISO: string
+): Promise<SbIncrementalRow[]> {
+  const owner = await getOwnerIdFast({ timeoutMs: 1500 });
+  const attempt = async () => {
+    const { data, error } = await supabase
+      .from(table)
+      .select("id,data,updated_at")
+      .eq("owner", owner as any)
+      .gt("updated_at", updatedAfterISO)
+      .order("updated_at", { ascending: true });
+    if (error) throw error;
+    return (data || []) as SbIncrementalRow[];
+  };
+  try {
+    return await attempt();
+  } catch (e: any) {
+    const status = (e && (e.status || e.code)) || "";
+    trackError(e, { source: "sbListUpdatedSince", table, status });
+    await new Promise((r) => setTimeout(r, 300));
+    return await attempt();
+  }
+}

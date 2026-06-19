@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import type { PointerEvent, MouseEvent, ReactNode } from "react";
 import { db } from "../lib/db";
+import { getAllCached } from "../lib/dataCache";
 import { getSettings, setSettings } from "../lib/helpers";
+import { trackMetric } from "../lib/monitoring";
 import { Measurement } from "../lib/types";
 import { nanoid } from "nanoid";
 import { loadRecharts } from "../lib/loadRecharts";
@@ -79,6 +81,23 @@ const LONG_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
 });
+
+const measureNow = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
+
+async function loadMeasurements(force = false) {
+  const startedAt = measureNow();
+  const list = await getAllCached<Measurement>("measurements", {
+    force,
+    swr: !force,
+  });
+  const sorted = [...list].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+  trackMetric("measurements_data_ready_ms", Math.round(measureNow() - startedAt), {
+    rows: sorted.length,
+    force,
+  });
+  return sorted;
+}
 
 const formatChartDateTick = (value: string) => {
   if (!value) return "";
@@ -479,10 +498,7 @@ export default function Measurements() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await db.getAll<Measurement>("measurements");
-        const sorted = [...list].sort((a, b) =>
-          b.dateISO.localeCompare(a.dateISO)
-        );
+        const sorted = await loadMeasurements();
         if (cancelled) return;
         setData(sorted);
         // today guard
@@ -772,8 +788,7 @@ export default function Measurements() {
   const save = async () => {
     await db.put("measurements", m);
     // refresh list
-    const list = await db.getAll<Measurement>("measurements");
-    const sorted = [...list].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    const sorted = await loadMeasurements(true);
     setData(sorted);
     // if we just saved today's entry keep editing it; provide add another option
     const today = new Date().toISOString().slice(0, 10);
@@ -835,8 +850,7 @@ export default function Measurements() {
       : ({ id: nanoid(), dateISO: stamp } as Measurement);
     const merged: Measurement = { ...base, ...parsed } as Measurement;
     await db.put("measurements", merged);
-    const list = await db.getAll<Measurement>("measurements");
-    const sorted = [...list].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    const sorted = await loadMeasurements(true);
     setData(sorted);
     setM(merged);
     setPreview(null);
@@ -1197,8 +1211,7 @@ export default function Measurements() {
 
   // Refresh data after quick weigh-in
   const refreshData = useCallback(async () => {
-    const list = await db.getAll<Measurement>("measurements");
-    const sorted = [...list].sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+    const sorted = await loadMeasurements(true);
     setData(sorted);
     // Also update the current entry if it's today
     const today = new Date().toISOString().slice(0, 10);

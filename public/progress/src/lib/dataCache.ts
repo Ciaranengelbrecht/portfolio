@@ -1,9 +1,11 @@
 import { db } from './db';
 import type { DBSchema } from './db';
+import { trackMetric } from './monitoring';
 
 type StoreKey = keyof DBSchema;
 interface CacheEntry { ts: number; data: any[]; }
 const cache = new Map<StoreKey, CacheEntry>();
+const refreshInflight = new Map<StoreKey, Promise<void>>();
 const CACHE_STORES: StoreKey[] = ['sessions','exercises','measurements','templates','settings'];
 
 // Differentiated TTL: static data gets longer cache, dynamic data shorter
@@ -68,6 +70,27 @@ function emit(store: StoreKey, type: 'cache-set'|'cache-refresh'){
 
 type CacheOpts = { force?: boolean; swr?: boolean; ttlMs?: number };
 
+function cacheNow() {
+  return typeof performance !== 'undefined' ? performance.now() : Date.now();
+}
+
+function emitLoadMetric(
+  store: StoreKey,
+  startedAt: number,
+  source: string,
+  rows: number,
+  opts?: CacheOpts & { stale?: boolean }
+) {
+  trackMetric('data_cache_read_ms', Math.round(cacheNow() - startedAt), {
+    store,
+    source,
+    rows,
+    force: Boolean(opts?.force),
+    swr: Boolean(opts?.swr),
+    stale: Boolean(opts?.stale),
+  });
+}
+
 export function setCacheOwner(ownerId: string){
   if(typeof window === 'undefined') return;
   try {
@@ -99,6 +122,7 @@ export function peekCached<T=any>(store: StoreKey, ownerId?: string | null): T[]
 }
 
 export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Promise<T[]> {
+  const startedAt = cacheNow();
   const force = opts?.force;
   const swr = opts?.swr;
   const ttlMs = opts?.ttlMs;
@@ -106,35 +130,54 @@ export async function getAllCached<T=any>(store: StoreKey, opts?: CacheOpts): Pr
   const isFresh = existing ? fresh(existing, store, ttlMs) : false;
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   if(offline){
-    if(existing) return existing.data as T[];
+    if(existing) {
+      emitLoadMetric(store, startedAt, 'offline-cache', existing.data.length, opts);
+      return existing.data as T[];
+    }
     throw new Error(`Offline with no cached data for ${store}`);
   }
-  if(!force && existing && isFresh) return existing.data as T[];
+  if(!force && existing && isFresh) {
+    emitLoadMetric(store, startedAt, 'memory', existing.data.length, opts);
+    return existing.data as T[];
+  }
   if(swr && existing && !isFresh){
     // return stale and refresh in background
     refresh(store);
+    emitLoadMetric(store, startedAt, 'stale-memory', existing.data.length, { ...opts, stale: true });
     return existing.data as T[];
   }
   if(swr && existing && !force && isFresh){
     // staleWhileRevalidate with not expired yet simply return
+    emitLoadMetric(store, startedAt, 'memory', existing.data.length, opts);
     return existing.data as T[];
   }
   const data = await db.getAll<T>(store);
   const entry = { ts: Date.now(), data };
   cache.set(store, entry); persist(store, entry); emit(store,'cache-set');
+  emitLoadMetric(store, startedAt, 'remote', data.length, opts);
   return data;
 }
 
 export async function refresh(store: StoreKey){
+  const inflight = refreshInflight.get(store);
+  if(inflight) return inflight;
   const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
   if(offline) return;
-  try {
-    const data = await db.getAll(store);
-    const entry = { ts: Date.now(), data };
-    cache.set(store, entry); persist(store, entry); emit(store,'cache-refresh');
-  } catch(e){ 
-    if(import.meta.env.DEV) console.warn('[dataCache] refresh failed', store, e); 
-  }
+  const startedAt = cacheNow();
+  const promise = (async () => {
+    try {
+      const data = await db.getAll(store);
+      const entry = { ts: Date.now(), data };
+      cache.set(store, entry); persist(store, entry); emit(store,'cache-refresh');
+      emitLoadMetric(store, startedAt, 'refresh', data.length, { force: true });
+    } catch(e){
+      if(import.meta.env.DEV) console.warn('[dataCache] refresh failed', store, e);
+    } finally {
+      refreshInflight.delete(store);
+    }
+  })();
+  refreshInflight.set(store, promise);
+  return promise;
 }
 
 export function warmPreload(stores: StoreKey[], opts?: { swr?: boolean }){
@@ -144,9 +187,10 @@ export function warmPreload(stores: StoreKey[], opts?: { swr?: boolean }){
 }
 
 export function invalidate(store?: StoreKey){
-  if(store) { cache.delete(store); try { sessionStorage.removeItem(PERSIST_PREFIX+store); } catch {} }
+  if(store) { cache.delete(store); refreshInflight.delete(store); try { sessionStorage.removeItem(PERSIST_PREFIX+store); } catch {} }
   else {
     cache.clear();
+    refreshInflight.clear();
     try {
       CACHE_STORES.forEach(k=> sessionStorage.removeItem(PERSIST_PREFIX+k));
     } catch {}

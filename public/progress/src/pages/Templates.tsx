@@ -1,5 +1,7 @@
 import { useEffect, useState, useMemo, type MouseEvent } from "react";
 import { db } from "../lib/db";
+import { getAllCached } from "../lib/dataCache";
+import { trackMetric } from "../lib/monitoring";
 import { requestRealtime } from "../lib/supabaseSync";
 import { waitForSession } from "../lib/supabase";
 import { Exercise, Template, MuscleGroup } from "../lib/types";
@@ -21,6 +23,23 @@ const ICON_BTN_DANGER =
   "flex h-7 w-7 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/15 text-[11px] text-rose-100 transition-colors duration-150 hover:bg-rose-500/25";
 const ICON_BTN_DANGER_ALT =
   "flex h-7 w-7 items-center justify-center rounded-lg border border-red-500/45 bg-red-500/15 text-[11px] text-red-100 transition-colors duration-150 hover:bg-red-500/25";
+
+const templatesNow = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
+
+async function loadTemplateData(force = false) {
+  const startedAt = templatesNow();
+  const [exerciseRows, templateRows] = await Promise.all([
+    getAllCached<Exercise>("exercises", { force, swr: !force }),
+    getAllCached<Template>("templates", { force, swr: !force }),
+  ]);
+  trackMetric("templates_data_ready_ms", Math.round(templatesNow() - startedAt), {
+    exercises: exerciseRows.length,
+    templates: templateRows.length,
+    force,
+  });
+  return { exerciseRows, templateRows };
+}
 
 /** Compute sets per muscle group from a template's planned sets */
 function computeMuscleSets(
@@ -104,10 +123,7 @@ export default function Templates() {
     (async () => {
       try {
         // Avoid blocking UI; rely on cached session or proceed optimistically
-        const [exerciseRows, templateRows] = await Promise.all([
-          db.getAll("exercises"),
-          db.getAll("templates"),
-        ]);
+        const { exerciseRows, templateRows } = await loadTemplateData();
         if (cancelled) return;
         setExercises(exerciseRows);
         setTemplates(templateRows);
@@ -116,6 +132,7 @@ export default function Templates() {
         );
         // subscribe only once needed
         requestRealtime("templates");
+        requestRealtime("exercises");
       } finally {
         if (!cancelled) setInitialLoading(false);
       }
@@ -129,8 +146,9 @@ export default function Templates() {
     const onAuth = (evt: any) => {
       if (!evt?.detail?.session) return;
       (async () => {
-        setExercises(await db.getAll("exercises"));
-        setTemplates(await db.getAll("templates"));
+        const { exerciseRows, templateRows } = await loadTemplateData(true);
+        setExercises(exerciseRows);
+        setTemplates(templateRows);
       })();
     };
     window.addEventListener("sb-auth", onAuth);
@@ -139,12 +157,24 @@ export default function Templates() {
 
   // Realtime auto-refresh
   useEffect(() => {
+    let timer: number | null = null;
     const onChange = (e: any) => {
       const tbl = e?.detail?.table;
-      if (tbl === "templates") db.getAll("templates").then(setTemplates);
+      if (!["templates", "exercises"].includes(tbl)) return;
+      if (timer != null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        timer = null;
+        loadTemplateData(true).then(({ exerciseRows, templateRows }) => {
+          setExercises(exerciseRows);
+          setTemplates(templateRows);
+        });
+      }, 180);
     };
     window.addEventListener("sb-change", onChange as any);
-    return () => window.removeEventListener("sb-change", onChange as any);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      window.removeEventListener("sb-change", onChange as any);
+    };
   }, []);
 
   useEffect(() => {

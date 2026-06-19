@@ -16,6 +16,8 @@ import {
   restoreArchivedProgram,
 } from "../lib/profile";
 import { db } from "../lib/db";
+import { getAllCached } from "../lib/dataCache";
+import { trackMetric } from "../lib/monitoring";
 import { Session, Exercise } from "../lib/types";
 import { nanoid } from "nanoid";
 import { getMuscleIconPath } from "../lib/muscles";
@@ -41,6 +43,23 @@ const PROGRAM_ICON_BTN_NEUTRAL =
 const PROGRAM_SEGMENT_BTN =
   "rounded-md border px-2 py-1 text-[10px] font-medium transition-colors";
 
+const programNow = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
+
+async function loadProgramLookups(force = false) {
+  const startedAt = programNow();
+  const [templateList, exerciseList] = await Promise.all([
+    getAllCached<Template>("templates", { force, swr: !force }),
+    getAllCached<Exercise>("exercises", { force, swr: !force }),
+  ]);
+  trackMetric("program_settings_data_ready_ms", Math.round(programNow() - startedAt), {
+    templates: templateList.length,
+    exercises: exerciseList.length,
+    force,
+  });
+  return { templateList, exerciseList };
+}
+
 export default function ProgramSettings() {
   const {
     program,
@@ -52,6 +71,7 @@ export default function ProgramSettings() {
     () => program || ensureProgram(defaultProgram)
   );
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [exerciseList, setExerciseList] = useState<Exercise[]>([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -86,8 +106,13 @@ export default function ProgramSettings() {
     (async () => {
       if (!program) return;
       const phase = (program as any).currentPhase || 1;
+      const [sessions, exercises] = await Promise.all([
+        getAllCached<Session>("sessions", { swr: true }),
+        getAllCached<Exercise>("exercises", { swr: true }),
+      ]);
       const { perWeek, totals, weeklyTotals } = await computeLoggedSetVolume(
-        phase
+        phase,
+        { sessions, exercises }
       );
       const weeks = Array.from(
         { length: program.mesoWeeks },
@@ -127,12 +152,10 @@ export default function ProgramSettings() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [templateList, exerciseList] = await Promise.all([
-        db.getAll<Template>("templates"),
-        db.getAll<Exercise>("exercises"),
-      ]);
+      const { templateList, exerciseList } = await loadProgramLookups();
       if (cancelled) return;
       setTemplates(templateList);
+      setExerciseList(exerciseList);
       setExerciseNameById(
         Object.fromEntries(exerciseList.map((ex) => [ex.id, ex.name]))
       );
@@ -334,10 +357,10 @@ export default function ProgramSettings() {
     try {
       const [allSessions, settings, allExercises, allTemplates] =
         await Promise.all([
-          db.getAll<Session>("sessions"),
+          getAllCached<Session>("sessions", { force: true }),
           getSettings(),
-          db.getAll<Exercise>("exercises"),
-          db.getAll("templates" as any) as Promise<Template[]>,
+          getAllCached<Exercise>("exercises", { force: true }),
+          getAllCached<Template>("templates", { force: true }),
         ]);
       const targetPhase = (settings as any)?.currentPhase || 1;
       const exMapAll = new Map(allExercises.map((e) => [e.id, e] as const));
@@ -440,7 +463,9 @@ export default function ProgramSettings() {
   useEffect(() => {
     if (!showAllocator) return;
     (async () => {
-      const exercises = await db.getAll<Exercise>("exercises");
+      const exercises = exerciseList.length
+        ? exerciseList
+        : await getAllCached<Exercise>("exercises", { swr: true });
       const exMap = new Map(exercises.map((e) => [e.id, e]));
       // compute current planned sets per muscle using templates mapped in working.weeklySplit
       const templateMap = new Map(templates.map((t) => [t.id, t]));
@@ -496,45 +521,42 @@ export default function ProgramSettings() {
       });
       setAllocatorData({ current, diff, suggestions });
     })();
-  }, [showAllocator, templates, working.weeklySplit, weeklySetTargets]);
+  }, [exerciseList, showAllocator, templates, working.weeklySplit, weeklySetTargets]);
 
   // Live projected weekly muscle volume from current working split + templates (using planned sets from template)
   useEffect(() => {
-    (async () => {
-      const exercises = await db.getAll<Exercise>("exercises");
-      const exMap = new Map(exercises.map((e) => [e.id, e] as const));
-      const tplMap = new Map(templates.map((t) => [t.id, t] as const));
-      const SECONDARY_FACTOR = 0.5;
-      const muscleTotals: Record<string, number> = {};
-      const perDay: Record<number, Record<string, number>> = {};
-      working.weeklySplit.forEach((day, di) => {
-        const tpl = day.templateId ? tplMap.get(day.templateId) : undefined;
-        const mv: Record<string, number> = {};
-        if (tpl) {
-          tpl.exerciseIds.forEach((eid) => {
-            const ex = exMap.get(eid);
-            if (!ex) return;
-            // Use template's planned sets if available, otherwise fall back to exercise defaults
-            const planEntry = tpl.plan?.find((p) => p.exerciseId === eid);
-            const sets = planEntry?.plannedSets ?? ex.defaults?.sets ?? 3;
-            const mg = ex.muscleGroup || "other";
-            muscleTotals[mg] = (muscleTotals[mg] || 0) + sets;
-            mv[mg] = (mv[mg] || 0) + sets;
-            if (ex.secondaryMuscles) {
-              ex.secondaryMuscles.forEach((sm) => {
-                muscleTotals[sm] =
-                  (muscleTotals[sm] || 0) + sets * SECONDARY_FACTOR;
-                mv[sm] = (mv[sm] || 0) + sets * SECONDARY_FACTOR;
-              });
-            }
-          });
-        }
-        perDay[di] = mv;
-      });
-      setProjectedMuscleVolume(muscleTotals);
-      setProjectedPerDay(perDay);
-    })();
-  }, [working.weeklySplit, templates]);
+    const exMap = new Map(exerciseList.map((e) => [e.id, e] as const));
+    const tplMap = new Map(templates.map((t) => [t.id, t] as const));
+    const SECONDARY_FACTOR = 0.5;
+    const muscleTotals: Record<string, number> = {};
+    const perDay: Record<number, Record<string, number>> = {};
+    working.weeklySplit.forEach((day, di) => {
+      const tpl = day.templateId ? tplMap.get(day.templateId) : undefined;
+      const mv: Record<string, number> = {};
+      if (tpl) {
+        tpl.exerciseIds.forEach((eid) => {
+          const ex = exMap.get(eid);
+          if (!ex) return;
+          // Use template's planned sets if available, otherwise fall back to exercise defaults
+          const planEntry = tpl.plan?.find((p) => p.exerciseId === eid);
+          const sets = planEntry?.plannedSets ?? ex.defaults?.sets ?? 3;
+          const mg = ex.muscleGroup || "other";
+          muscleTotals[mg] = (muscleTotals[mg] || 0) + sets;
+          mv[mg] = (mv[mg] || 0) + sets;
+          if (ex.secondaryMuscles) {
+            ex.secondaryMuscles.forEach((sm) => {
+              muscleTotals[sm] =
+                (muscleTotals[sm] || 0) + sets * SECONDARY_FACTOR;
+              mv[sm] = (mv[sm] || 0) + sets * SECONDARY_FACTOR;
+            });
+          }
+        });
+      }
+      perDay[di] = mv;
+    });
+    setProjectedMuscleVolume(muscleTotals);
+    setProjectedPerDay(perDay);
+  }, [exerciseList, working.weeklySplit, templates]);
 
   if (programError) {
     return (

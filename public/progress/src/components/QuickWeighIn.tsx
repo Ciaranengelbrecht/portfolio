@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { db } from "../lib/db";
+import { getAllCached } from "../lib/dataCache";
 import { Measurement } from "../lib/types";
 import { nanoid } from "nanoid";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,7 +42,7 @@ export default function QuickWeighIn({
       const today = new Date().toISOString().slice(0, 10);
 
       // Check if there's already a measurement for today
-      const all = await db.getAll<Measurement>("measurements");
+      const all = await getAllCached<Measurement>("measurements", { swr: true });
       const todayEntry = all.find((m) => m.dateISO.slice(0, 10) === today);
 
       const patch: Partial<Measurement> = {};

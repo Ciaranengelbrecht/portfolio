@@ -1,4 +1,4 @@
-import { supabase, waitForSession } from "./supabase";
+import { getOwnerIdFast, supabase, waitForSession } from "./supabase";
 
 type Table =
   | "exercises"
@@ -28,7 +28,12 @@ export async function requestRealtime(table: Table) {
   } catch {}
   if (subscribedTables.has(table)) return;
   const ch = await ensureChannel();
-  ch.on('postgres_changes', { event: '*', schema: 'public', table }, (payload: any)=> {
+  let ownerFilter: string | undefined;
+  try {
+    const ownerId = await getOwnerIdFast({ timeoutMs: 1200 });
+    if (ownerId) ownerFilter = `owner=eq.${ownerId}`;
+  } catch {}
+  ch.on('postgres_changes', { event: '*', schema: 'public', table, ...(ownerFilter ? { filter: ownerFilter } : {}) }, (payload: any)=> {
     try {
       window.dispatchEvent(new CustomEvent('sb-change', { detail: { table, payload }}));
     } catch {}

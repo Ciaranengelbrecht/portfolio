@@ -1015,11 +1015,13 @@ export default function Sessions() {
       if (!templateId) return [];
       const template =
         templates.find((candidate) => candidate.id === templateId) ||
-        ((await db.get("templates", templateId)) as Template | undefined);
+        (await getAllCached<Template>("templates", { swr: true })).find(
+          (candidate) => candidate.id === templateId
+        );
       if (!template) return [];
       const exerciseList = exercises.length
         ? exercises
-        : ((await db.getAll("exercises")) as Exercise[]);
+        : await getAllCached<Exercise>("exercises", { swr: true });
       const exerciseMap = new Map(
         exerciseList.map((item: any) => [item.id, item])
       );
@@ -2597,7 +2599,9 @@ export default function Sessions() {
       }
       if (created) {
         try {
-          const refreshed = await db.getAll<Exercise>("exercises");
+          const refreshed = await getAllCached<Exercise>("exercises", {
+            force: true,
+          });
           setExercises(refreshed);
           setRecoveredCount(created);
           setRecoveredIds(

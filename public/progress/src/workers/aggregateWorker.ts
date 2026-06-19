@@ -27,7 +27,7 @@ interface Measurement {
   weightKg?: number;
 }
 
-const VERSION = 2; // bump when aggregate schema changes
+const VERSION = 3; // bump when aggregate schema changes
 
 const SECONDARY_FACTOR = 0.5; // must match app logic
 

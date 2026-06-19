@@ -4,7 +4,6 @@ import ProgressBars from "../../components/ProgressBars";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeSlideUp, maybeDisable } from "../../lib/motion";
-import { db } from "../../lib/db";
 import { computeLoggedSetVolume } from "../../lib/volume";
 import {
   getDashboardPrefs,
@@ -13,6 +12,7 @@ import {
   volumeByMuscleGroup,
 } from "../../lib/helpers";
 import { getAllCached } from "../../lib/dataCache";
+import { trackMetric } from "../../lib/monitoring";
 import { Exercise, Session, Settings, UserProgram } from "../../lib/types";
 import { getProfileProgram } from "../../lib/profile";
 import { loadRecharts } from "../../lib/loadRecharts";
@@ -36,6 +36,9 @@ type HiddenKey =
   | "compliance"
   | "weeklyMuscleBar"
   | "sessionVolumeTrend";
+
+const dashboardNow = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
 
 const DASHBOARD_DEFAULT_HIDDEN: Record<HiddenKey, boolean> = {
   trainingChart: true,
@@ -599,6 +602,7 @@ export default function Dashboard() {
   }, [activeMuscle]);
   useEffect(() => {
     (async () => {
+      const startedAt = dashboardNow();
       const prefs = await getDashboardPrefs();
       const mergedHidden: Record<HiddenKey, boolean> = {
         ...DASHBOARD_DEFAULT_HIDDEN,
@@ -679,65 +683,82 @@ export default function Dashboard() {
           .map(([m, v]) => ({ muscle: m, value: v }))
           .sort((a, b) => b.value - a.value)
       );
+      trackMetric("dashboard_data_ready_ms", Math.round(dashboardNow() - startedAt), {
+        sessions: (sessions as any[]).length,
+        exercises: (exercises as Exercise[]).length,
+      });
       setLoading(false);
     })();
   }, []);
   // refresh when sessions change realtime
   useEffect(() => {
+    let timer: number | null = null;
     const onChange = (e: any) => {
       if (["sessions", "exercises", "settings"].includes(e?.detail?.table)) {
-        (async () => {
-          const settings = await getSettings();
-          setSettingsState(settings);
-          setTargets(settings.volumeTargets || {});
-          const [sessions, exercises] = await Promise.all([
-            getAllCached("sessions", { force: true }),
-            getAllCached("exercises", { force: true }),
-          ]);
-          setSessionsState(sessions as any[]);
-          setExercisesState(exercises as Exercise[]);
-          setExercisesState(exercises as Exercise[]);
-          const { perWeek, totals } = await computeLoggedSetVolume(phase, {
-            sessions,
-            exercises,
-          });
-          setPerWeek(perWeek);
-          setMuscleWeek(perWeek[week] || {});
-          setMuscleTotals(totals);
-          const wk = perWeek[week] || {};
-          setWeeklyBar(
-            Object.entries(wk)
-              .map(([m, v]) => ({ muscle: m, value: v }))
-              .sort((a, b) => b.value - a.value)
-          ); // recompute day volumes
-          const dv: Record<number, Record<number, number>> = {};
-          (sessions as any[])
-            .filter((s) => (s.phaseNumber || s.phase || 1) === phase)
-            .forEach((sess) => {
-              const w = sess.weekNumber;
-              const dayId = Number((sess.id || "").split("-")[2]) || 0;
-              let vol = 0;
-              for (const entry of sess.entries || []) {
-                for (const set of entry.sets || []) {
-                  if (
-                    typeof set.weightKg === "number" &&
-                    typeof set.reps === "number" &&
-                    (set.weightKg || 0) > 0 &&
-                    (set.reps || 0) > 0
-                  ) {
-                    vol += (set.weightKg || 0) * (set.reps || 0);
+        if (timer != null) window.clearTimeout(timer);
+        timer = window.setTimeout(() => {
+          timer = null;
+          (async () => {
+            const startedAt = dashboardNow();
+            const settings = await getSettings();
+            setSettingsState(settings);
+            setTargets(settings.volumeTargets || {});
+            const [sessions, exercises] = await Promise.all([
+              getAllCached("sessions", { force: true }),
+              getAllCached("exercises", { force: true }),
+            ]);
+            setSessionsState(sessions as any[]);
+            setExercisesState(exercises as Exercise[]);
+            const { perWeek, totals } = await computeLoggedSetVolume(phase, {
+              sessions,
+              exercises,
+            });
+            setPerWeek(perWeek);
+            setMuscleWeek(perWeek[week] || {});
+            setMuscleTotals(totals);
+            const wk = perWeek[week] || {};
+            setWeeklyBar(
+              Object.entries(wk)
+                .map(([m, v]) => ({ muscle: m, value: v }))
+                .sort((a, b) => b.value - a.value)
+            ); // recompute day volumes
+            const dv: Record<number, Record<number, number>> = {};
+            (sessions as any[])
+              .filter((s) => (s.phaseNumber || s.phase || 1) === phase)
+              .forEach((sess) => {
+                const w = sess.weekNumber;
+                const dayId = Number((sess.id || "").split("-")[2]) || 0;
+                let vol = 0;
+                for (const entry of sess.entries || []) {
+                  for (const set of entry.sets || []) {
+                    if (
+                      typeof set.weightKg === "number" &&
+                      typeof set.reps === "number" &&
+                      (set.weightKg || 0) > 0 &&
+                      (set.reps || 0) > 0
+                    ) {
+                      vol += (set.weightKg || 0) * (set.reps || 0);
+                    }
                   }
                 }
-              }
-              if (!dv[w]) dv[w] = {};
-              dv[w][dayId] = (dv[w][dayId] || 0) + vol;
+                if (!dv[w]) dv[w] = {};
+                dv[w][dayId] = (dv[w][dayId] || 0) + vol;
+              });
+            setDayVolumes(dv);
+            trackMetric("dashboard_refresh_ms", Math.round(dashboardNow() - startedAt), {
+              table: e?.detail?.table,
+              sessions: (sessions as any[]).length,
+              exercises: (exercises as Exercise[]).length,
             });
-          setDayVolumes(dv);
-        })();
+          })();
+        }, 200);
       }
     };
     window.addEventListener("sb-change", onChange as any);
-    return () => window.removeEventListener("sb-change", onChange as any);
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+      window.removeEventListener("sb-change", onChange as any);
+    };
   }, [phase, week]);
   useEffect(() => {
     let cancelled = false;
