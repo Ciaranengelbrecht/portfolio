@@ -117,7 +117,7 @@ export default function TrainingModeSelector({
         onKeyDown={handleTriggerKeyDown}
         disabled={disabled}
         className={clsx(
-          "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+          "flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium leading-none transition-all",
           "border backdrop-blur-sm",
           currentConfig
             ? [currentConfig.bg, currentConfig.border, currentConfig.text]
@@ -135,18 +135,18 @@ export default function TrainingModeSelector({
       >
         {currentConfig ? (
           <>
-            <span className="text-base">{currentConfig.icon}</span>
+            <span className="text-sm">{currentConfig.icon}</span>
             <span>{currentConfig.label}</span>
           </>
         ) : (
           <>
-            <span className="text-base opacity-50">○</span>
+            <span className="text-sm opacity-50">○</span>
             <span className="text-slate-400">Set Mode</span>
           </>
         )}
         <svg
           className={clsx(
-            "h-4 w-4 transition-transform ml-1",
+            "ml-auto h-3.5 w-3.5 shrink-0 transition-transform",
             open && "rotate-180"
           )}
           fill="none"
@@ -165,7 +165,7 @@ export default function TrainingModeSelector({
       {open && (
         <div
           className={clsx(
-            "absolute z-50 mt-1 w-full min-w-[140px] rounded-lg",
+            "absolute z-[1400] mt-1 w-full min-w-[7.25rem] rounded-lg",
             "bg-slate-800/95 backdrop-blur-md border border-slate-600/50",
             "shadow-xl shadow-black/30",
             "animate-in fade-in-0 zoom-in-95 duration-150"
@@ -189,7 +189,7 @@ export default function TrainingModeSelector({
                 }}
                 onKeyDown={(event) => handleOptionKeyDown(event, mode)}
                 className={clsx(
-                  "flex w-full items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex w-full items-center gap-1.5 px-2.5 py-2 text-[11px] font-medium transition-colors",
                   "first:rounded-t-lg last:rounded-b-lg",
                   isSelected
                     ? [config.bg, config.text]
@@ -198,7 +198,7 @@ export default function TrainingModeSelector({
                 role="option"
                 aria-selected={isSelected}
               >
-                <span className={clsx("text-base", config.text)}>
+                <span className={clsx("text-sm", config.text)}>
                   {config.icon}
                 </span>
                 <span>{config.label}</span>

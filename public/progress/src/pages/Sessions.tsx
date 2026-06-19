@@ -5202,7 +5202,7 @@ export default function Sessions() {
       />
       {/* Removed mobile floating Add Exercise button (user preference) */}
         <section
-          className="px-2.5 sm:px-4"
+          className="relative z-[90] px-2.5 sm:px-4"
           aria-label="Session controls"
           ref={toolbarRef}
           data-tour-id="sessions-toolbar"
@@ -5271,13 +5271,13 @@ export default function Sessions() {
               <motion.div
                 key="toolbar-expanded"
                 id="session-details-panel"
-                  className="mt-2 space-y-2"
+                  className="relative z-[100] mt-2 space-y-2 overflow-visible"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2, ease: [0.32, 0.72, 0.33, 1] }}
               >
-                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:items-end">
+                  <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                   {/* Week & Phase */}
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
@@ -5325,7 +5325,7 @@ export default function Sessions() {
                   </div>
                   {/* Session date & quick actions */}
                   {session && (
-                    <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 flex-col items-start gap-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[9px] uppercase tracking-[0.24em] text-slate-400/70">
                           Session Date
@@ -5335,7 +5335,7 @@ export default function Sessions() {
                         )}
                       </div>
                       <div
-                          className="flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-[11px] text-slate-100"
+                          className="inline-flex w-fit max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/10 bg-slate-900/70 px-2 py-1 text-[11px] text-slate-100"
                         data-tour-id="sessions-date-controls"
                         title="Current assigned date (edit or stamp)"
                       >
@@ -5410,16 +5410,20 @@ export default function Sessions() {
                   )}
                 </div>
                 {session && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span data-tour-id="sessions-training-mode">
+                    <div className="relative z-[110] flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span
+                      className="session-action-control"
+                      data-tour-id="sessions-training-mode"
+                    >
                       <TrainingModeSelector
+                        className="w-full"
                         value={currentTrainingMode}
                         onChange={handleTrainingModeChange}
                       />
                     </span>
                     <button
                       type="button"
-                        className="tool-btn"
+                        className="tool-btn session-action-control"
                       onClick={() => setShowScheduleFlex(true)}
                       title="Swap days or skip a rest day for this week only"
                     >
@@ -5427,7 +5431,7 @@ export default function Sessions() {
                     </button>
                     <button
                       type="button"
-                        className="tool-btn"
+                        className="tool-btn session-action-control"
                       onClick={() => setShowImport(true)}
                       title="Import from template"
                     >
@@ -5435,7 +5439,7 @@ export default function Sessions() {
                     </button>
                     <button
                       type="button"
-                        className="tool-btn"
+                        className="tool-btn session-action-control"
                       disabled={!session.entries.length}
                       onClick={() => setShowSaveTemplate(true)}
                       title={
@@ -5449,7 +5453,7 @@ export default function Sessions() {
                     <button
                       type="button"
                       data-testid="erase-session-tools"
-                        className="tool-btn tool-btn-danger disabled:cursor-not-allowed disabled:opacity-60"
+                        className="tool-btn session-action-control tool-btn-danger disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={!canOpenWipe}
                       onClick={openEraseSheet}
                       title={eraseButtonTitle}
