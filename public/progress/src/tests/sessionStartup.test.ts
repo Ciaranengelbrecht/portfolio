@@ -66,6 +66,13 @@ describe("session startup helpers", () => {
           sets: [{ setNumber: 1, weightKg: 80, reps: 5 }],
         },
       ]),
+      makeSession("1-2-0", 2, [
+        {
+          id: "entry-a-current",
+          exerciseId: "bench",
+          sets: [{ setNumber: 1, weightKg: 95, reps: 5 }],
+        },
+      ]),
     ];
     const templates: Template[] = [];
     const exercises = [
@@ -88,7 +95,13 @@ describe("session startup helpers", () => {
           return sessions;
         },
       },
-      { phase: 1, week: 2, day: 0, exerciseIds: ["bench"] }
+      {
+        phase: 1,
+        week: 2,
+        day: 0,
+        sessionId: "1-2-0",
+        exerciseIds: ["bench"],
+      }
     );
 
     expect(sessionsReads).toBe(1);
@@ -97,6 +110,6 @@ describe("session startup helpers", () => {
     expect(bundle.exercises).toBe(exercises);
     expect(bundle.settings).toBe(settings);
     expect(bundle.prevBestMap?.bench?.set.weightKg).toBe(80);
-    expect(bundle.prScoresByExercise).toEqual({ bench: 400 });
+    expect(bundle.prScoresByExercise).toEqual({ bench: 475 });
   });
 });

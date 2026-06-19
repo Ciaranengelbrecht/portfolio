@@ -7,11 +7,12 @@ const makeSession = (
   id: string,
   phaseNumber: number,
   weekNumber: number,
-  entries: Session["entries"]
+  entries: Session["entries"],
+  dateISO = `2026-06-${String(weekNumber).padStart(2, "0")}T00:00:00.000Z`
 ): Session =>
   ({
     id,
-    dateISO: `2026-06-${String(weekNumber).padStart(2, "0")}T00:00:00.000Z`,
+    dateISO,
     phase: phaseNumber,
     phaseNumber,
     weekNumber,
@@ -28,23 +29,24 @@ const entry = (
 });
 
 describe("buildPrevBestMap", () => {
-  it("uses same-week earlier sessions before older weeks", () => {
+  it("uses the latest filled history even when route context would exclude it", () => {
     const map = buildPrevBestMap(
       [
-        makeSession("1-2-6", 1, 2, [
-          entry("bench", [{ setNumber: 1, weightKg: 100, reps: 5 }]),
+        makeSession("1-1-0", 1, 1, [
+          entry("bench", [{ setNumber: 1, weightKg: null, reps: null }]),
         ]),
         makeSession("1-3-1", 1, 3, [
-          entry("bench", [{ setNumber: 1, weightKg: 90, reps: 8 }]),
+          entry("bench", [{ setNumber: 1, weightKg: 100, reps: 5 }]),
         ]),
       ],
-      3,
       1,
-      2
+      1,
+      0,
+      { activeSessionId: "1-1-0" }
     );
 
-    expect(map.bench?.set.weightKg).toBe(90);
-    expect(map.bench?.set.reps).toBe(8);
+    expect(map.bench?.set.weightKg).toBe(100);
+    expect(map.bench?.set.reps).toBe(5);
   });
 
   it("skips newer blank sessions and uses the latest filled set", () => {
@@ -67,25 +69,20 @@ describe("buildPrevBestMap", () => {
     expect(map.bench?.set.reps).toBe(10);
   });
 
-  it("excludes the current session and future sessions", () => {
+  it("excludes the active session even when it has the latest filled set", () => {
     const map = buildPrevBestMap(
       [
-        makeSession("1-3-1", 1, 3, [
+        makeSession("1-2-0", 1, 2, [
           entry("bench", [{ setNumber: 1, weightKg: 70, reps: 10 }]),
         ]),
-        makeSession("1-3-2", 1, 3, [
-          entry("bench", [{ setNumber: 1, weightKg: 120, reps: 5 }]),
-        ]),
-        makeSession("1-3-3", 1, 3, [
-          entry("bench", [{ setNumber: 1, weightKg: 130, reps: 5 }]),
-        ]),
-        makeSession("1-4-0", 1, 4, [
+        makeSession("1-3-0", 1, 3, [
           entry("bench", [{ setNumber: 1, weightKg: 140, reps: 5 }]),
         ]),
       ],
       3,
       1,
-      2
+      0,
+      { activeSessionId: "1-3-0" }
     );
 
     expect(map.bench?.set.weightKg).toBe(70);

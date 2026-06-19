@@ -845,15 +845,20 @@ export default function Sessions() {
       phaseNum: number,
       weekNum: number,
       dayId: number,
-      templateId: string | null | undefined
+      templateId: string | null | undefined,
+      activeSessionId?: string | null
     ) => {
-      const key = `${phaseNum}|${weekNum}|${dayId}|${templateId || "none"}`;
+      const key = `${phaseNum}|${weekNum}|${dayId}|${
+        templateId || "none"
+      }|${activeSessionId || "none"}`;
       const signature = sessionSignature(sessionsList);
       const cached = prevBestCacheRef.current.get(key);
       if (cached && cached.signature === signature) {
         return cached.map;
       }
-      const computed = buildPrevBestMap(sessionsList, weekNum, phaseNum, dayId);
+      const computed = buildPrevBestMap(sessionsList, weekNum, phaseNum, dayId, {
+        activeSessionId,
+      });
       prevBestCacheRef.current.set(key, {
         signature,
         map: computed,
@@ -2628,6 +2633,7 @@ export default function Sessions() {
             phase,
             week,
             day,
+            sessionId: session?.id ?? `${phase}-${week}-${day}`,
             templateId: session?.templateId,
             exerciseIds: session?.entries?.map((entry) => entry.exerciseId),
           }
@@ -2750,7 +2756,8 @@ export default function Sessions() {
               view.phase,
               view.week,
               view.day,
-              s?.templateId
+              s?.templateId,
+              s?.id
             );
             setPrevBestMap(map);
             recomputePrScoresFromSnapshot(s, all);
@@ -2786,7 +2793,8 @@ export default function Sessions() {
               view.phase,
               view.week,
               view.day,
-              activeSession?.templateId
+              activeSession?.templateId,
+              activeSession?.id
             );
             setPrevBestMap(map);
             recomputePrScoresFromSnapshot(activeSession, all);
@@ -2819,7 +2827,8 @@ export default function Sessions() {
           phase,
           week,
           day,
-          session?.templateId
+          session?.templateId,
+          session?.id ?? `${phase}-${week}-${day}`
         );
         setPrevBestMap(map);
       } catch (err) {
@@ -3178,7 +3187,8 @@ export default function Sessions() {
         phase,
         week,
         day,
-        templateForCache
+        templateForCache,
+        updatedCurrent?.id ?? session?.id
       );
       setPrevBestMap(map);
       setPrevBestLoading(false);
@@ -3521,7 +3531,8 @@ export default function Sessions() {
             view.phase,
             view.week,
             view.day,
-            templateForCache
+            templateForCache,
+            fresh?.id ?? sToWrite?.id
           );
           setPrevBestMap(map);
           setPrevBestLoading(false);
@@ -4045,7 +4056,8 @@ export default function Sessions() {
         phase,
         week,
         day,
-        updatedCurrent.templateId ?? session?.templateId
+        updatedCurrent.templateId ?? session?.templateId,
+        updatedCurrent.id
       );
       setPrevBestMap(map);
     } finally {

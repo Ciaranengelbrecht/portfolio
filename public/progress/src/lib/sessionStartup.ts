@@ -21,6 +21,7 @@ export type StartupView = {
   phase: number;
   week: number;
   day: number;
+  sessionId?: string | null;
   templateId?: string | null;
   exerciseIds?: string[];
 };
@@ -64,7 +65,8 @@ export async function loadSessionsStartupBundle(
     sessions,
     view.week,
     view.phase,
-    view.day
+    view.day,
+    { activeSessionId: view.sessionId }
   );
   const prScoresByExercise = computeExercisePrScores(
     sessions,
