@@ -1081,11 +1081,17 @@ export default function Dashboard() {
   return (
     <>
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/65 p-3 sm:p-4 shadow-[0_28px_70px_-50px_rgba(59,130,246,0.65)]">
+        <div
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/65 p-3 sm:p-4 shadow-[0_28px_70px_-50px_rgba(59,130,246,0.65)]"
+          data-tour-id="dashboard-overview"
+        >
           <div className="pointer-events-none absolute -left-20 top-0 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
           <div className="pointer-events-none absolute -right-10 -bottom-10 h-44 w-44 rounded-full bg-emerald-500/10 blur-3xl" />
           <div className="relative z-10 grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-            <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-3 sm:p-4 text-slate-100">
+            <section
+              className="rounded-2xl border border-white/10 bg-slate-900/70 p-3 sm:p-4 text-slate-100"
+              data-tour-id="dashboard-lifetime-ledger"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.32em] text-white/55">
@@ -1134,7 +1140,10 @@ export default function Dashboard() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-slate-900/78 p-3 sm:p-4 text-slate-100">
+            <section
+              className="rounded-2xl border border-white/10 bg-slate-900/78 p-3 sm:p-4 text-slate-100"
+              data-tour-id="dashboard-current-focus"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.32em] text-emerald-200/70">
@@ -1207,7 +1216,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="flex flex-wrap gap-2 text-label">
+        <div className="flex flex-wrap gap-2 text-label" data-tour-id="dashboard-section-toggles">
           <SectionToggle label="Training" flag="trainingChart" />
           <SectionToggle label="Body" flag="bodyChart" />
           <SectionToggle label="Week Volume" flag="weekVolume" />
@@ -1221,6 +1230,7 @@ export default function Dashboard() {
             <motion.div
               key="training"
               className="space-y-2"
+              data-tour-id="dashboard-training-chart"
               variants={maybeDisable(fadeSlideUp)}
               initial="initial"
               animate="animate"
@@ -1255,6 +1265,7 @@ export default function Dashboard() {
             <motion.div
               key="weekVol"
               className="space-y-3"
+              data-tour-id="dashboard-week-volume"
               variants={maybeDisable(fadeSlideUp)}
               initial="initial"
               animate="animate"
@@ -1761,6 +1772,7 @@ export default function Dashboard() {
             <motion.div
               key="compliance"
               className="bg-card rounded-2xl p-5 shadow-soft space-y-4"
+              data-tour-id="dashboard-compliance"
               variants={maybeDisable(fadeSlideUp)}
               initial="initial"
               animate="animate"

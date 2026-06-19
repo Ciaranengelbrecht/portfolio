@@ -139,7 +139,7 @@ export default function RecoveryPage() {
 
   return (
     <div className="space-y-5 pb-20">
-      <header className="flex flex-wrap items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3" data-tour-id="recovery-header">
         <h1 className="text-lg font-semibold tracking-tight text-slate-100">
           Recovery
         </h1>
@@ -154,11 +154,15 @@ export default function RecoveryPage() {
         )}
         <button
           onClick={() => load(true)}
+          data-tour-id="recovery-refresh"
           className="ml-auto text-xs rounded-md border border-white/10 bg-white/5 px-2.5 py-1 font-medium text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
         >
           Refresh
         </button>
-        <div className="w-full flex flex-wrap items-center gap-1.5 pt-1">
+        <div
+          className="w-full flex flex-wrap items-center gap-1.5 pt-1"
+          data-tour-id="recovery-status-legend"
+        >
           {STATUS_LEGEND.map((item) => {
             const meta = STATUS_META[item.key];
             return (
@@ -182,8 +186,11 @@ export default function RecoveryPage() {
           ))}
         </div>
       ) : (
-      <div className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
-        {ORDER.map((m) => {
+      <div
+        className="mx-auto grid w-full max-w-6xl gap-3 [grid-template-columns:repeat(auto-fit,minmax(140px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]"
+        data-tour-id="recovery-muscle-grid"
+      >
+        {ORDER.map((m, index) => {
           const rec = musclesByName.get(m);
           const pct = rec ? rec.percent : 100;
           const status = rec ? rec.status : "Ready";
@@ -192,6 +199,7 @@ export default function RecoveryPage() {
           return (
             <div
               key={m}
+              data-tour-id={index === 0 ? "recovery-muscle-card" : undefined}
               className="group flex h-full flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/75 p-3 shadow-[0_10px_24px_rgba(15,23,42,0.28)] transition duration-200 hover:border-emerald-400/40 hover:shadow-[0_14px_28px_rgba(16,185,129,0.2)]"
             >
               <div className="flex items-start justify-between gap-2">

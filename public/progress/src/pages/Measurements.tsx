@@ -645,6 +645,7 @@ export default function Measurements() {
     const collapsed = sectionCollapsed[id] ?? DEFAULT_SECTION_STATE[id];
     return (
       <section
+        data-tour-id={`measurements-${id}-card`}
         className={`bg-card rounded-xl shadow-soft border border-white/5 transition-colors ${
           collapsed ? "cursor-pointer hover:border-white/10" : ""
         }`}
@@ -1225,19 +1226,26 @@ export default function Measurements() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Measurements</h2>
-      <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50/90">
+      <h2 className="text-xl font-semibold" data-tour-id="measurements-header">
+        Measurements
+      </h2>
+      <div
+        className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50/90"
+        data-tour-id="measurements-health-note"
+      >
         Body composition, recovery, and measurement estimates are training
         tools only. They are not medical advice and should not replace guidance
         from a qualified health professional.
       </div>
       
       {/* Quick Weigh-in for fast daily weight logging */}
-      <QuickWeighIn
-        onSave={refreshData}
-        lastWeight={lastRecordedWeight}
-        lastWaist={lastRecordedWaist}
-      />
+      <div data-tour-id="measurements-quick-weigh-in">
+        <QuickWeighIn
+          onSave={refreshData}
+          lastWeight={lastRecordedWeight}
+          lastWaist={lastRecordedWaist}
+        />
+      </div>
       
       <SectionCard
         id="entry"

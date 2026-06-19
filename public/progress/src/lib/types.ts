@@ -225,6 +225,15 @@ export interface Settings {
       pending?: boolean;
       version?: number;
       lastSeenAt?: string;
+      pages?: Record<
+        string,
+        {
+          completed?: boolean;
+          skipped?: boolean;
+          pending?: boolean;
+          lastSeenAt?: string;
+        }
+      >;
     };
   };
   /** Per-muscle weekly target (weighted sets) */

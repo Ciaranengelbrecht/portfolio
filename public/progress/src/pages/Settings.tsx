@@ -20,7 +20,11 @@ import { db } from "../lib/db";
 import { triggerExportDownload, importFromRawJson } from "../lib/exportImport";
 import { Settings } from "../lib/types";
 import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
-import { withAppIntroPending } from "../lib/appIntro";
+import {
+  withAppIntroPagePending,
+  withAppIntroPending,
+  type AppIntroPageId,
+} from "../lib/appIntro";
 import {
   defaultSettings,
   defaultExercises,
@@ -79,6 +83,21 @@ const SETTINGS_TABS: Array<{
     label: "Data & Safety",
     description: "Destructive action protection and data import/export.",
   },
+];
+
+const INTRO_REPLAY_ITEMS: Array<{
+  pageId: AppIntroPageId;
+  label: string;
+  route: string;
+}> = [
+  { pageId: "sessions", label: "Training", route: "/sessions" },
+  { pageId: "dashboard", label: "Dashboard", route: "/" },
+  { pageId: "analytics", label: "Insights", route: "/analytics" },
+  { pageId: "recovery", label: "Recovery", route: "/recovery" },
+  { pageId: "measurements", label: "Measurements", route: "/measurements" },
+  { pageId: "program", label: "Program", route: "/settings/program" },
+  { pageId: "templates", label: "Templates", route: "/templates" },
+  { pageId: "settings", label: "Settings", route: "/settings" },
 ];
 
 const VOLUME_TARGET_MUSCLES = [
@@ -195,6 +214,7 @@ export default function SettingsPage() {
     return (
       <section
         id={`settings-${id}`}
+        data-tour-id={`settings-${id}-panel`}
         className="settings-panel"
       >
         <div className="settings-panel-head flex flex-wrap items-start gap-3">
@@ -367,6 +387,21 @@ export default function SettingsPage() {
     const t = setTimeout(() => setBigFlash(null), 1800);
     return () => clearTimeout(t);
   }, [bigFlash]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const target = (event as CustomEvent<{ target?: string }>).detail?.target;
+      if (target === "settings-general") setActiveTab("general");
+      if (target === "settings-profile") setActiveTab("profile");
+      if (target === "settings-appearance") setActiveTab("appearance");
+      if (target === "settings-progress") setActiveTab("progress");
+      if (target === "settings-library") setActiveTab("library");
+      if (target === "settings-safety") setActiveTab("safety");
+    };
+    window.addEventListener("app-intro:settings-prepare", handler);
+    return () =>
+      window.removeEventListener("app-intro:settings-prepare", handler);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -549,6 +584,15 @@ export default function SettingsPage() {
     lastSavedSettingsRef.current = JSON.stringify(next);
     setToast("App intro ready");
     navigate("/sessions");
+  };
+
+  const replayPageIntro = async (pageId: AppIntroPageId, route: string) => {
+    const next = withAppIntroPagePending(s, pageId);
+    setS(next);
+    await setSettings(next);
+    lastSavedSettingsRef.current = JSON.stringify(next);
+    setToast(`${INTRO_REPLAY_ITEMS.find((item) => item.pageId === pageId)?.label || "Page"} intro ready`);
+    navigate(route);
   };
 
   // testSync removed with Gist sync
@@ -1242,7 +1286,7 @@ export default function SettingsPage() {
   return (
     <div className="settings-page space-y-4 pb-20">
       <div className="settings-shell space-y-3">
-        <div className="space-y-1 min-w-0">
+        <div className="space-y-1 min-w-0" data-tour-id="settings-header">
           <h2 className="settings-page-title text-xl font-semibold text-white">
             Settings
           </h2>
@@ -1252,7 +1296,12 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        <div className="settings-tab-strip no-scrollbar" role="tablist" aria-label="Settings categories">
+        <div
+          className="settings-tab-strip no-scrollbar"
+          role="tablist"
+          aria-label="Settings categories"
+          data-tour-id="settings-tab-strip"
+        >
           {SETTINGS_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -1274,7 +1323,7 @@ export default function SettingsPage() {
             <div className="text-xs text-white/70 min-w-0">
               {userEmail ? `Sync: ${userEmail}` : "Sync: Offline mode"} · {hasPendingAutosave ? "Autosave pending" : "Saved"}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-tour-id="settings-save-controls">
               <button
                 type="button"
                 className="btn-outline px-3 py-2 rounded-xl text-xs settings-utility-btn"
@@ -1336,13 +1385,6 @@ export default function SettingsPage() {
           </div>
           <div className="flex flex-wrap gap-2 min-[560px]:justify-end">
             <button
-              className="btn-outline px-4 py-2.5 rounded-xl text-sm font-semibold"
-              data-tour-id="settings-app-intro-replay"
-              onClick={() => void replayAppIntro()}
-            >
-              Replay app intro
-            </button>
-            <button
               className="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold"
               onClick={() => setShowGuidedSetup(true)}
             >
@@ -1350,6 +1392,40 @@ export default function SettingsPage() {
                 ? "Re-run guided setup"
                 : "Launch guided setup"}
             </button>
+          </div>
+        </div>
+        <div
+          className="settings-subpanel space-y-3"
+          data-tour-id="settings-guided-intros"
+        >
+          <div className="flex flex-col gap-2 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
+            <div>
+              <div className="text-sm font-semibold text-white">
+                Guided intros
+              </div>
+              <p className="text-xs text-white/65">
+                Replay the full walkthrough or refresh a single page.
+              </p>
+            </div>
+            <button
+              className="btn-primary px-3 py-2 rounded-xl text-xs font-semibold"
+              data-tour-id="settings-app-intro-replay"
+              onClick={() => void replayAppIntro()}
+            >
+              Replay all intros
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 min-[560px]:grid-cols-4">
+            {INTRO_REPLAY_ITEMS.map((item) => (
+              <button
+                key={item.pageId}
+                type="button"
+                className="btn-outline rounded-xl px-3 py-2 text-xs"
+                onClick={() => void replayPageIntro(item.pageId, item.route)}
+              >
+                Replay {item.label}
+              </button>
+            ))}
           </div>
         </div>
         <div className="space-y-2">

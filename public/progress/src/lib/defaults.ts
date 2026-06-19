@@ -43,7 +43,8 @@ export const defaultSettings: Settings = {
       completed: false,
       skipped: false,
       pending: false,
-      version: 1,
+      version: 2,
+      pages: {},
     },
   },
   volumeTargets: {

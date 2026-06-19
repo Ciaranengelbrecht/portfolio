@@ -584,7 +584,7 @@ export default function ProgramSettings() {
         onClose={() => setShowGuidedSetup(false)}
         onComplete={() => setToast("Guided setup applied")}
       />
-      <div className="space-y-1">
+      <div className="space-y-1" data-tour-id="program-header">
         <h2 className="text-xl font-semibold text-white">Program</h2>
         <p className="max-w-[72ch] text-xs leading-snug text-white/65">
           Keep your split clean and practical with compact planning controls,
@@ -598,7 +598,10 @@ export default function ProgramSettings() {
         </div>
       )}
 
-      <div className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-2.5">
+      <div
+        className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-2.5"
+        data-tour-id="program-summary"
+      >
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
           <div className="rounded-lg border border-white/8 bg-slate-900/50 px-2.5 py-1.5">
             <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
@@ -658,7 +661,10 @@ export default function ProgramSettings() {
         </div>
       </div>
 
-      <div className="card-surface rounded-2xl p-2.5 sm:p-3 shadow-soft flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        className="card-surface rounded-2xl p-2.5 sm:p-3 shadow-soft flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between"
+        data-tour-id="program-guided-setup"
+      >
         <div className="space-y-1">
           <div className="text-[13px] font-medium text-white">
             Want to refresh your program quickly?
@@ -676,7 +682,7 @@ export default function ProgramSettings() {
         </button>
       </div>
       <div className="card-surface rounded-2xl p-2.5 sm:p-3 space-y-3">
-        <div id="program-basics" className="space-y-1.5">
+        <div id="program-basics" data-tour-id="program-basics" className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
             Program Basics
           </div>
@@ -800,7 +806,7 @@ export default function ProgramSettings() {
           </div>
         </div>
 
-        <div id="program-weekly-split" className="space-y-1.5">
+        <div id="program-weekly-split" data-tour-id="program-weekly-split" className="space-y-1.5">
           <div className="text-[10px] uppercase tracking-[0.24em] text-white/45">
             Weekly Split
           </div>
@@ -953,6 +959,7 @@ export default function ProgramSettings() {
         )}
         <div
           id="program-allocator"
+          data-tour-id="program-allocator"
           className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.24em] text-white/45"
         >
           <span>Planned Volume Allocator (beta)</span>
@@ -1032,7 +1039,7 @@ export default function ProgramSettings() {
             </div>
           </div>
         )}
-        <div id="program-actions" className="flex flex-wrap items-center gap-2.5">
+        <div id="program-actions" data-tour-id="program-actions" className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={save}
             disabled={saving}

@@ -474,7 +474,7 @@ export default function Templates() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1">
+      <div className="space-y-1" data-tour-id="templates-header">
         <h2 className="text-xl font-semibold text-white">Templates</h2>
         <p className="text-xs text-white/65 leading-snug max-w-[70ch]">
           Build reusable workouts with cleaner compact controls. Keep planning
@@ -482,7 +482,7 @@ export default function Templates() {
         </p>
       </div>
 
-      <div className="card-surface rounded-2xl p-3 sm:p-4">
+      <div className="card-surface rounded-2xl p-3 sm:p-4" data-tour-id="templates-create-card">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             className="input-app rounded-xl px-3 py-2.5 flex-1 sm:max-w-[320px]"
@@ -524,7 +524,7 @@ export default function Templates() {
         )}
       </div>
       <div className="space-y-3">
-        {templates.map((t) => {
+        {templates.map((t, templateIndex) => {
           const muscleCounts = computeMuscleSets(t, exerciseMap);
           const muscleEntries = Object.entries(muscleCounts)
             .filter(([_, v]) => v > 0)
@@ -533,6 +533,7 @@ export default function Templates() {
           return (
             <div
               key={t.id}
+              data-tour-id={templateIndex === 0 ? "templates-first-card" : undefined}
               className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft relative transition"
               onClick={(event) => handleTemplateSurfaceClick(event, t.id)}
             >
@@ -652,7 +653,12 @@ export default function Templates() {
                     Exercises: {t.exerciseIds.length}
                   </div>
 
-                  <div className="mt-3 space-y-2.5">
+                  <div
+                    className="mt-3 space-y-2.5"
+                    data-tour-id={
+                      templateIndex === 0 ? "templates-first-exercises" : undefined
+                    }
+                  >
                     {t.exerciseIds.map((id, idx) => {
                       const ex = exerciseMap.get(id);
                       const planEntry = t.plan?.find((p) => p.exerciseId === id);
@@ -950,7 +956,10 @@ export default function Templates() {
       )}
 
       {/* Exercise Library Management */}
-      <div className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft">
+      <div
+        className="card-surface rounded-2xl p-3 sm:p-4 shadow-soft"
+        data-tour-id="templates-exercise-library"
+      >
         <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <div className="font-medium text-white/90">Exercise Library</div>

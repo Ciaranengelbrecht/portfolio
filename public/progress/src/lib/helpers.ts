@@ -76,6 +76,10 @@ export async function getSettings(): Promise<Settings> {
       appIntro: {
         ...(defaultSettings.progress?.appIntro || {}),
         ...(stored?.progress?.appIntro || {}),
+        pages: {
+          ...(defaultSettings.progress?.appIntro?.pages || {}),
+          ...(stored?.progress?.appIntro?.pages || {}),
+        },
       },
     },
     ui: {
@@ -204,7 +208,8 @@ export async function getSettings(): Promise<Settings> {
           completed: false,
           skipped: false,
           pending: false,
-          version: 1,
+          version: 2,
+          pages: {},
         },
       },
     };
@@ -217,7 +222,20 @@ export async function getSettings(): Promise<Settings> {
         ...(base.progress || {}),
         appIntro: {
           ...(base.progress?.appIntro || {}),
-          version: 1,
+          version: 2,
+        },
+      },
+    };
+    mutated = true;
+  }
+  if (base.progress?.appIntro && !base.progress.appIntro.pages) {
+    base = {
+      ...base,
+      progress: {
+        ...(base.progress || {}),
+        appIntro: {
+          ...(base.progress?.appIntro || {}),
+          pages: {},
         },
       },
     };

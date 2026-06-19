@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import GuidedAppIntro, {
+  type GuidedAppIntroPage,
   type GuidedAppIntroStep,
 } from "../components/GuidedAppIntro";
 import { defaultSettings } from "../lib/defaults";
@@ -122,7 +123,7 @@ describe("GuidedAppIntro", () => {
     expect(document.body.textContent).not.toContain("This should be skipped.");
   });
 
-  it("saves skipped state from the subtle skip-all control", async () => {
+  it("saves skipped state from the skip-all control", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
     const target = document.createElement("button");
@@ -167,7 +168,79 @@ describe("GuidedAppIntro", () => {
 
     const intro = getAppIntroState(current);
     expect(intro.pending).toBe(false);
-    expect(intro.completed).toBe(false);
     expect(intro.skipped).toBe(true);
+    expect(intro.pages.sessions.skipped).toBe(true);
+  });
+
+  it("skips only the current page and advances to the next page group", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const first = document.createElement("button");
+    first.dataset.tourId = "page-one";
+    first.textContent = "Page one target";
+    installRect(first);
+    document.body.appendChild(first);
+    const second = document.createElement("button");
+    second.dataset.tourId = "page-two";
+    second.textContent = "Page two target";
+    installRect(second);
+    document.body.appendChild(second);
+
+    let current: Settings = withAppIntroPending(defaultSettings);
+    const pages: GuidedAppIntroPage[] = [
+      {
+        pageId: "sessions",
+        label: "Training",
+        route: "/sessions",
+        steps: [
+          {
+            id: "one",
+            title: "Training page",
+            body: "First body",
+            targetIds: ["page-one"],
+          },
+        ],
+      },
+      {
+        pageId: "dashboard",
+        label: "Dashboard",
+        route: "/sessions",
+        steps: [
+          {
+            id: "two",
+            title: "Dashboard page",
+            body: "Second body",
+            targetIds: ["page-two"],
+          },
+        ],
+      },
+    ];
+
+    root = createRoot(host);
+    await act(async () => {
+      root?.render(
+        <MemoryRouter initialEntries={["/sessions"]}>
+          <GuidedAppIntro
+            pages={pages}
+            settingsApi={{
+              getSettings: async () => current,
+              setSettings: async (next) => {
+                current =
+                  typeof next === "function" ? await next(current) : next;
+              },
+            }}
+          />
+        </MemoryRouter>
+      );
+      await flushFrame();
+    });
+
+    await waitForText("Training page");
+    clickButton("Skip page");
+    await waitForText("Dashboard page");
+
+    const intro = getAppIntroState(current);
+    expect(intro.pages.sessions.skipped).toBe(true);
+    expect(intro.pages.dashboard.pending).toBe(true);
   });
 });

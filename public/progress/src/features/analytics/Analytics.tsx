@@ -757,6 +757,19 @@ export default function Analytics() {
     avgWeight: true,
   });
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const target = (event as CustomEvent<{ target?: string }>).detail?.target;
+      if (target === "analytics-overview") setMode("overview");
+      if (target === "analytics-sessions") setMode("sessions");
+      if (target === "analytics-muscles") setMode("muscles");
+      if (target === "analytics-exercises") setMode("exercises");
+    };
+    window.addEventListener("app-intro:analytics-prepare", handler);
+    return () =>
+      window.removeEventListener("app-intro:analytics-prepare", handler);
+  }, []);
+
   const toggleSeriesState = useCallback((setter: any, key: string) => {
     setter((prev: Record<string, boolean>) => {
       const activeCount = Object.values(prev).filter(Boolean).length;
@@ -811,7 +824,7 @@ export default function Analytics() {
     `${formatCompact(kg * weightMultiplier)} ${tonnageUnit}`;
 
   const OverviewSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour-id="analytics-overview-section">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
@@ -1128,7 +1141,7 @@ export default function Analytics() {
   );
 
   const SessionsSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour-id="analytics-sessions-section">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)]">
         <GlassCard>
           <div className="flex items-center justify-between mb-4">
@@ -1339,7 +1352,7 @@ export default function Analytics() {
   );
 
   const MusclesSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour-id="analytics-muscles-section">
       <GlassCard>
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -1544,7 +1557,7 @@ export default function Analytics() {
   );
 
   const ExercisesSection = () => (
-    <div className="space-y-6">
+    <div className="space-y-6" data-tour-id="analytics-exercises-section">
       <GlassCard>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -1886,7 +1899,7 @@ export default function Analytics() {
 
   return (
     <div className="space-y-8 pb-24">
-      <header className="flex flex-col gap-4">
+      <header className="flex flex-col gap-4" data-tour-id="analytics-header">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.38em] text-white/50">
@@ -1909,7 +1922,10 @@ export default function Analytics() {
             </p>
           </div>
         </div>
-        <div className="w-full max-w-full rounded-2xl border border-white/10 bg-slate-950/70 p-1.5 shadow-[0_8px_30px_-12px_rgba(16,185,129,0.55)]">
+        <div
+          className="w-full max-w-full rounded-2xl border border-white/10 bg-slate-950/70 p-1.5 shadow-[0_8px_30px_-12px_rgba(16,185,129,0.55)]"
+          data-tour-id="analytics-mode-tabs"
+        >
           <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MODES.map((item) => (
               <button
@@ -1938,6 +1954,7 @@ export default function Analytics() {
             <button
               type="button"
               onClick={() => navigate("/measurements")}
+              data-tour-id="analytics-measurements-shortcut"
               className="shrink-0 whitespace-nowrap rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             >
               <span className="flex items-center gap-2">
