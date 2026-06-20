@@ -28,7 +28,6 @@ import MobileTabs from "./components/MobileTabs";
 import GuidedAppIntro from "./components/GuidedAppIntro";
 import BackgroundFX from "./components/BackgroundFX";
 import BigFlash from "./components/BigFlash";
-import ECGBackground from "./components/ECGBackground";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { SmartSuspenseFallback } from "./components/SmartSuspenseFallback";
 import { SnackProvider } from "./state/snackbar";
@@ -48,6 +47,13 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Recovery = lazy(() => import("./pages/Recovery"));
 const IntroAuthPage = lazy(() => import("./pages/auth/IntroAuthPage"));
 const ProgramSettings = lazy(() => import("./pages/ProgramSettings"));
+const enableGuidedIntroHarness =
+  import.meta.env.DEV ||
+  import.meta.env.VITE_ENABLE_GUIDED_INTRO_HARNESS === "1";
+
+const GuidedIntroHarness = enableGuidedIntroHarness
+  ? lazy(() => import("./test-harness/GuidedIntroHarness"))
+  : null;
 const FirstRunExperience = lazy(
   () => import("./features/onboarding/FirstRunExperience")
 );
@@ -197,46 +203,6 @@ function Shell() {
       const root = document.documentElement;
       if (s.cardStyle) root.setAttribute("data-card-style", s.cardStyle);
       if (s.reducedMotion) root.setAttribute("data-reduced-motion", "true");
-      // ECG background settings
-      if (s.ecg?.enabled) {
-        document.body.dataset.ecg = "on";
-        const intensity = s.ecg.intensity || "low";
-        const map: Record<
-          string,
-          { opacity: string; speed: string; strokeWidth: string; dash: string }
-        > = {
-          low: {
-            opacity: "0.15",
-            speed: "46s",
-            strokeWidth: "1.6",
-            dash: "5 7",
-          },
-          med: { opacity: "0.25", speed: "34s", strokeWidth: "2", dash: "5 5" },
-          high: {
-            opacity: "0.35",
-            speed: "26s",
-            strokeWidth: "2.4",
-            dash: "4 4",
-          },
-        };
-        const cfg = map[intensity];
-        root.style.setProperty("--ecg-opacity", cfg.opacity);
-        root.style.setProperty("--ecg-speed", cfg.speed);
-        root.style.setProperty("--ecg-stroke-w", cfg.strokeWidth);
-        root.style.setProperty("--ecg-dash", cfg.dash);
-        if (s.ecg.speedMs) {
-          root.style.setProperty(
-            "--ecg-custom-speed-ms",
-            String(s.ecg.speedMs)
-          );
-        }
-        if (s.ecg.trailMs) {
-          root.style.setProperty("--ecg-trail-ms", String(s.ecg.trailMs));
-        }
-        if (s.ecg.color) {
-          root.style.setProperty("--ecg-custom-color", s.ecg.color);
-        }
-      } else document.body.dataset.ecg = "off";
       if (!s.ui?.instantThemeTransition) {
         document.body.classList.add("theme-animate");
         setTimeout(() => document.body.classList.remove("theme-animate"), 600);
@@ -485,8 +451,6 @@ function Shell() {
         id="app-shell"
       >
         {!hideChrome && <BackgroundFX />}
-        {/* ECG background (behind everything); toggled via body data attribute & settings */}
-        {!hideChrome && <ECGBackground />}
         {!hideChrome && (
           <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur bg-bg/70 border-b border-white/5">
             <div className="max-w-4xl mx-auto px-3 py-2 flex items-center justify-between gap-2 sm:gap-3">
@@ -639,6 +603,16 @@ function Shell() {
         <main className="flex-1 w-full px-0 py-0">
           <ErrorBoundary>
             <Routes>
+              {GuidedIntroHarness && (
+                <Route
+                  path="/__guided-intro-test/*"
+                  element={
+                    <RouteSuspense>
+                      <GuidedIntroHarness />
+                    </RouteSuspense>
+                  }
+                />
+              )}
               <Route
                 path="/auth/*"
                 element={

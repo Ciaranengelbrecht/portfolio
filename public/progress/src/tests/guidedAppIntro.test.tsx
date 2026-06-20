@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import GuidedAppIntro, {
+  getGuidedIntroCardStyle,
   type GuidedAppIntroPage,
   type GuidedAppIntroStep,
 } from "../components/GuidedAppIntro";
@@ -17,28 +18,33 @@ const flushFrame = () =>
   });
 
 async function waitForText(text: string) {
-  for (let i = 0; i < 12; i += 1) {
+  for (let i = 0; i < 80; i += 1) {
     await act(async () => {
       await flushFrame();
+      await new Promise((resolve) => setTimeout(resolve, 25));
     });
     if (document.body.textContent?.includes(text)) return;
   }
   throw new Error(`Timed out waiting for text: ${text}`);
 }
 
-function installRect(node: HTMLElement) {
+function installRect(
+  node: HTMLElement,
+  rect: Partial<DOMRect> = {}
+) {
+  const nextRect = {
+    x: rect.x ?? rect.left ?? 96,
+    y: rect.y ?? rect.top ?? 120,
+    top: rect.top ?? rect.y ?? 120,
+    left: rect.left ?? rect.x ?? 96,
+    right: rect.right ?? (rect.left ?? rect.x ?? 96) + (rect.width ?? 100),
+    bottom: rect.bottom ?? (rect.top ?? rect.y ?? 120) + (rect.height ?? 44),
+    width: rect.width ?? 100,
+    height: rect.height ?? 44,
+    toJSON: () => ({}),
+  } as DOMRect;
   node.getBoundingClientRect = () =>
-    ({
-      x: 96,
-      y: 120,
-      top: 120,
-      left: 96,
-      right: 196,
-      bottom: 164,
-      width: 100,
-      height: 44,
-      toJSON: () => ({}),
-    } as DOMRect);
+    nextRect;
   node.getClientRects = () =>
     ({
       length: 1,
@@ -47,13 +53,34 @@ function installRect(node: HTMLElement) {
     } as unknown as DOMRectList);
 }
 
-function clickButton(label: string) {
-  const button = Array.from(document.querySelectorAll("button")).find(
-    (candidate) => candidate.textContent?.trim() === label
-  ) as HTMLButtonElement | undefined;
+async function clickButton(label: string) {
+  let button: HTMLButtonElement | undefined;
+  for (let i = 0; i < 80; i += 1) {
+    button = Array.from(document.querySelectorAll("button")).find(
+      (candidate) =>
+        candidate.textContent?.trim() === label &&
+        !(candidate as HTMLButtonElement).disabled
+    ) as HTMLButtonElement | undefined;
+    if (button) break;
+    await act(async () => {
+      await flushFrame();
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    });
+  }
   expect(button).toBeTruthy();
   act(() => {
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+function setViewport(width: number, height: number) {
+  Object.defineProperty(window, "innerWidth", {
+    configurable: true,
+    value: width,
+  });
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    value: height,
   });
 }
 
@@ -72,6 +99,7 @@ describe("GuidedAppIntro", () => {
     }
     root = null;
     document.body.innerHTML = "";
+    setViewport(1024, 768);
   });
 
   it("skips optional missing targets and shows the next available step", async () => {
@@ -161,7 +189,7 @@ describe("GuidedAppIntro", () => {
     });
 
     await waitForText("Skip step");
-    clickButton("Skip all");
+    await clickButton("Skip all");
     await act(async () => {
       await flushFrame();
     });
@@ -236,11 +264,112 @@ describe("GuidedAppIntro", () => {
     });
 
     await waitForText("Training page");
-    clickButton("Skip page");
+    await clickButton("Skip page");
     await waitForText("Dashboard page");
 
     const intro = getAppIntroState(current);
     expect(intro.pages.sessions.skipped).toBe(true);
     expect(intro.pages.dashboard.pending).toBe(true);
+  });
+
+  it("does not reload settings while an active tour navigates between routes", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const first = document.createElement("button");
+    first.dataset.tourId = "first-route-target";
+    first.textContent = "First route target";
+    installRect(first);
+    document.body.appendChild(first);
+    const second = document.createElement("button");
+    second.dataset.tourId = "second-route-target";
+    second.textContent = "Second route target";
+    installRect(second, { top: 240 });
+    document.body.appendChild(second);
+
+    let current: Settings = withAppIntroPending(defaultSettings);
+    let getCalls = 0;
+
+    const pages: GuidedAppIntroPage[] = [
+      {
+        pageId: "sessions",
+        label: "Training",
+        route: "/sessions",
+        steps: [
+          {
+            id: "first",
+            title: "First route",
+            body: "First body",
+            targetIds: ["first-route-target"],
+          },
+        ],
+      },
+      {
+        pageId: "dashboard",
+        label: "Dashboard",
+        route: "/dashboard-test",
+        steps: [
+          {
+            id: "second",
+            title: "Second route",
+            body: "Second body",
+            targetIds: ["second-route-target"],
+          },
+        ],
+      },
+    ];
+
+    root = createRoot(host);
+    await act(async () => {
+      root?.render(
+        <MemoryRouter initialEntries={["/sessions"]}>
+          <GuidedAppIntro
+            pages={pages}
+            settingsApi={{
+              getSettings: async () => {
+                getCalls += 1;
+                return current;
+              },
+              setSettings: async (next) => {
+                current =
+                  typeof next === "function" ? await next(current) : next;
+              },
+            }}
+          />
+        </MemoryRouter>
+      );
+      await flushFrame();
+    });
+
+    await waitForText("First route");
+    await clickButton("Next page");
+    await waitForText("Second route");
+
+    expect(getCalls).toBe(1);
+  });
+
+  it("places the card away from the highlighted target when there is room", () => {
+    setViewport(390, 720);
+    const target = { top: 120, left: 60, width: 160, height: 64 };
+    const style = getGuidedIntroCardStyle(target, {
+      width: 360,
+      height: 180,
+    }) as { top: number; left: number; width: number };
+
+    expect(style.top).toBeGreaterThanOrEqual(
+      target.top + target.height + 16
+    );
+    expect(style.left).toBeGreaterThanOrEqual(12);
+    expect(style.left + style.width).toBeLessThanOrEqual(378);
+  });
+
+  it("places the card above low targets instead of covering them", () => {
+    setViewport(390, 720);
+    const target = { top: 520, left: 80, width: 160, height: 64 };
+    const style = getGuidedIntroCardStyle(target, {
+      width: 360,
+      height: 180,
+    }) as { top: number };
+
+    expect(style.top + 180).toBeLessThanOrEqual(target.top - 16);
   });
 });

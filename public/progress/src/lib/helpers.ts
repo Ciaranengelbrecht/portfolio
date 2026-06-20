@@ -117,10 +117,6 @@ export function normalizeSettings(stored?: Partial<Settings> | null): Settings {
       ...(stored?.themeV2 || {}),
       key: stored?.themeV2?.key || defaultSettings.themeV2!.key,
     },
-    ecg: {
-      ...(defaultSettings.ecg || {}),
-      ...(stored?.ecg || {}),
-    },
     volumeTargets: {
       ...(defaultSettings.volumeTargets || {}),
       ...(stored?.volumeTargets || {}),

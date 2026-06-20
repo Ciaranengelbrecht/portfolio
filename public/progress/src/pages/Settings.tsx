@@ -587,6 +587,7 @@ export default function SettingsPage() {
     await setSettings(next);
     lastSavedSettingsRef.current = JSON.stringify(next);
     setToast("App intro ready");
+    window.dispatchEvent(new CustomEvent("app-intro:replay"));
     navigate("/sessions");
   };
 
@@ -596,6 +597,7 @@ export default function SettingsPage() {
     await setSettings(next);
     lastSavedSettingsRef.current = JSON.stringify(next);
     setToast(`${INTRO_REPLAY_ITEMS.find((item) => item.pageId === pageId)?.label || "Page"} intro ready`);
+    window.dispatchEvent(new CustomEvent("app-intro:replay"));
     navigate(route);
   };
 
@@ -2524,190 +2526,6 @@ export default function SettingsPage() {
                   document.body.dataset.gymBackground = checked ? "on" : "off";
                 }}
               />
-              <SettingsSwitchRow
-                label="ECG background"
-                checked={!!s.ecg?.enabled}
-                onChange={(checked) => {
-                  const next = { ...s, ecg: { ...(s.ecg || {}), enabled: checked } };
-                  setS(next);
-                  document.body.dataset.ecg = checked ? "on" : "off";
-                }}
-              />
-              {s.ecg?.enabled && (
-                <details className="w-full rounded-xl border border-white/10 bg-slate-950/40 px-3 py-2">
-                  <summary className="cursor-pointer text-xs font-medium text-white/85">
-                    Advanced ECG controls
-                  </summary>
-                  <div className="mt-3 grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
-                    <div className="settings-inline-field">
-                      <span>Intensity</span>
-                      <select
-                        className="input-app rounded-xl px-2 py-1 settings-select-compact"
-                        value={s.ecg?.intensity || "low"}
-                        onChange={(e) => {
-                          const intensity = e.target.value as any;
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), intensity, enabled: true },
-                          };
-                          setS(next);
-                          const root = document.documentElement;
-                          const map: Record<
-                            string,
-                            {
-                              opacity: string;
-                              speed: string;
-                              strokeWidth: string;
-                              dash: string;
-                            }
-                          > = {
-                            low: {
-                              opacity: "0.15",
-                              speed: "46s",
-                              strokeWidth: "1.6",
-                              dash: "5 7",
-                            },
-                            med: {
-                              opacity: "0.25",
-                              speed: "34s",
-                              strokeWidth: "2",
-                              dash: "5 5",
-                            },
-                            high: {
-                              opacity: "0.35",
-                              speed: "26s",
-                              strokeWidth: "2.4",
-                              dash: "4 4",
-                            },
-                          };
-                          const cfg = map[intensity];
-                          root.style.setProperty("--ecg-opacity", cfg.opacity);
-                          root.style.setProperty("--ecg-speed", cfg.speed);
-                          root.style.setProperty(
-                            "--ecg-stroke-w",
-                            cfg.strokeWidth
-                          );
-                          root.style.setProperty("--ecg-dash", cfg.dash);
-                        }}
-                      >
-                        <option value="low">Low</option>
-                        <option value="med">Med</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
-                    <div className="settings-inline-field">
-                      <span>Shape</span>
-                      <select
-                        className="input-app rounded-xl px-2 py-1 settings-select-compact"
-                        value={s.ecg?.shape || "classic"}
-                        onChange={(e) => {
-                          const shape = e.target.value as any;
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), shape, enabled: true },
-                          };
-                          setS(next);
-                        }}
-                      >
-                        <option value="classic">Classic</option>
-                        <option value="smooth">Smooth</option>
-                        <option value="spikes">Spikes</option>
-                        <option value="minimal">Minimal</option>
-                      </select>
-                    </div>
-                    <div className="settings-inline-field settings-inline-field-stack">
-                      <span>Speed</span>
-                      <input
-                        type="range"
-                        min={4000}
-                        max={180000}
-                        step={1000}
-                        className="settings-range"
-                        value={s.ecg?.speedMs || 42000}
-                        onChange={(e) => {
-                          const speedMs = Number(e.target.value);
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), speedMs, enabled: true },
-                          };
-                          setS(next);
-                          document.documentElement.style.setProperty(
-                            "--ecg-custom-speed-ms",
-                            String(speedMs)
-                          );
-                        }}
-                      />
-                    </div>
-                    <div className="settings-inline-field settings-inline-field-stack">
-                      <span>Trail</span>
-                      <input
-                        title={String(s.ecg?.trailMs || 2000) + " ms"}
-                        type="range"
-                        min={400}
-                        max={8000}
-                        step={100}
-                        className="settings-range"
-                        value={s.ecg?.trailMs || 2000}
-                        onChange={(e) => {
-                          const trailMs = Number(e.target.value);
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), trailMs, enabled: true },
-                          };
-                          setS(next);
-                          document.documentElement.style.setProperty(
-                            "--ecg-trail-ms",
-                            String(trailMs)
-                          );
-                        }}
-                      />
-                    </div>
-                    <div className="settings-inline-field settings-inline-field-stack">
-                      <span>Spikes</span>
-                      <div className="flex items-center gap-2 w-full">
-                        <input
-                          type="range"
-                          min={1}
-                          max={5}
-                          step={1}
-                          className="settings-range"
-                          value={s.ecg?.spikes || 1}
-                          onChange={(e) => {
-                            const spikes = Number(e.target.value);
-                            const next = {
-                              ...s,
-                              ecg: { ...(s.ecg || {}), spikes, enabled: true },
-                            };
-                            setS(next);
-                          }}
-                        />
-                        <span className="text-xs tabular-nums text-white/80 w-4 text-right">
-                          {s.ecg?.spikes || 1}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="settings-inline-field">
-                      <span>Color</span>
-                      <input
-                        type="color"
-                        value={s.ecg?.color || "#22c55e"}
-                        onChange={(e) => {
-                          const color = e.target.value;
-                          const next = {
-                            ...s,
-                            ecg: { ...(s.ecg || {}), color, enabled: true },
-                          };
-                          setS(next);
-                          document.documentElement.style.setProperty(
-                            "--ecg-custom-color",
-                            color
-                          );
-                        }}
-                      />
-                    </div>
-                  </div>
-                </details>
-              )}
             </div>
           </div>
         </div>

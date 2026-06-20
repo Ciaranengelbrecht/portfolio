@@ -74,6 +74,11 @@ type TargetRect = {
   height: number;
 };
 
+type CardSize = {
+  width: number;
+  height: number;
+};
+
 const defaultSettingsApi: SettingsApi = {
   getSettings,
   setSettings,
@@ -83,6 +88,24 @@ const waitFrame = () =>
   new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
+
+const waitMs = (ms: number) =>
+  new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+
+const rectsClose = (a: TargetRect | null, b: TargetRect | null) => {
+  if (!a || !b) return false;
+  return (
+    Math.abs(a.top - b.top) < 1 &&
+    Math.abs(a.left - b.left) < 1 &&
+    Math.abs(a.width - b.width) < 1 &&
+    Math.abs(a.height - b.height) < 1
+  );
+};
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
 
 export function findTourTarget(targetIds: string[]): HTMLElement | null {
   for (const id of targetIds) {
@@ -122,8 +145,15 @@ function getTargetRect(target: HTMLElement | null): TargetRect | null {
   };
 }
 
-function getCardStyle(rect: TargetRect | null): CSSProperties {
+export function getGuidedIntroCardStyle(
+  rect: TargetRect | null,
+  measuredSize?: CardSize | null
+): CSSProperties {
   const width = Math.min(380, window.innerWidth - 24);
+  const height = measuredSize?.height || 232;
+  const margin = 12;
+  const gap = 16;
+
   if (!rect) {
     return {
       width,
@@ -133,17 +163,47 @@ function getCardStyle(rect: TargetRect | null): CSSProperties {
     };
   }
 
-  const gap = 14;
-  const cardHeight = 256;
-  const canPlaceBelow =
-    rect.top + rect.height + gap + cardHeight < window.innerHeight;
-  const top = canPlaceBelow
-    ? rect.top + rect.height + gap
-    : Math.max(12, rect.top - cardHeight - gap);
   const centered = rect.left + rect.width / 2 - width / 2;
-  const left = Math.min(Math.max(12, centered), window.innerWidth - width - 12);
+  const centeredTop = rect.top + rect.height / 2 - height / 2;
+  const left = clamp(centered, margin, window.innerWidth - width - margin);
+  const maxTop = Math.max(margin, window.innerHeight - height - margin);
+  const sideTop = clamp(centeredTop, margin, maxTop);
+  const spaceBelow = window.innerHeight - (rect.top + rect.height);
+  const spaceAbove = rect.top;
+  const spaceRight = window.innerWidth - (rect.left + rect.width);
+  const spaceLeft = rect.left;
 
-  return { width, left, top };
+  if (spaceBelow >= height + gap + margin) {
+    return { width, left, top: rect.top + rect.height + gap };
+  }
+
+  if (spaceAbove >= height + gap + margin) {
+    return { width, left, top: rect.top - height - gap };
+  }
+
+  if (window.innerWidth >= 720 && spaceRight >= width + gap + margin) {
+    return {
+      width,
+      left: rect.left + rect.width + gap,
+      top: sideTop,
+    };
+  }
+
+  if (window.innerWidth >= 720 && spaceLeft >= width + gap + margin) {
+    return {
+      width,
+      left: rect.left - width - gap,
+      top: sideTop,
+    };
+  }
+
+  const top = spaceBelow >= spaceAbove ? margin : maxTop;
+
+  return {
+    width,
+    left,
+    top: clamp(top, margin, maxTop),
+  };
 }
 
 const pageRoute: Record<AppIntroPageId, string> = {
@@ -660,10 +720,16 @@ export default function GuidedAppIntro({
   const [runtimeSteps, setRuntimeSteps] = useState<RuntimeStep[]>([]);
   const [rect, setRect] = useState<TargetRect | null>(null);
   const [target, setTarget] = useState<HTMLElement | null>(null);
+  const [cardSize, setCardSize] = useState<CardSize | null>(null);
   const [busy, setBusy] = useState(false);
   const activeRef = useRef(false);
   const reducedMotionRef = useRef(false);
   const runtimeStepsRef = useRef<RuntimeStep[]>([]);
+  const resolverIdRef = useRef(0);
+  const locationPathRef = useRef(location.pathname);
+  const didInitialLoadRef = useRef(false);
+  const loadingIntroRef = useRef(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const step = runtimeSteps[index];
   const total = runtimeSteps.length;
@@ -673,37 +739,62 @@ export default function GuidedAppIntro({
   }, [runtimeSteps]);
 
   useEffect(() => {
+    locationPathRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
     reducedMotionRef.current =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true ||
       document.documentElement.getAttribute("data-reduced-motion") === "true";
   }, []);
 
+  const loadIntro = useCallback(async () => {
+    if (activeRef.current || loadingIntroRef.current) return;
+    loadingIntroRef.current = true;
+    try {
+      const settings = await settingsApi.getSettings();
+      if (activeRef.current) return;
+      const shouldRun = shouldRunAppIntro(settings);
+      const pendingPages = getPendingAppIntroPages(settings);
+      const nextSteps = flattenPages(tourPages, pendingPages);
+      runtimeStepsRef.current = nextSteps;
+      setRuntimeSteps(nextSteps);
+      activeRef.current = shouldRun && nextSteps.length > 0;
+      setActive(activeRef.current);
+      if (activeRef.current) setIndex(0);
+    } catch (err) {
+      console.warn("[app-intro] failed to read settings", err);
+    } finally {
+      loadingIntroRef.current = false;
+    }
+  }, [settingsApi, tourPages]);
+
   useEffect(() => {
-    let cancelled = false;
-    settingsApi
-      .getSettings()
-      .then((settings) => {
-        if (cancelled) return;
-        const shouldRun = shouldRunAppIntro(settings);
-        const pendingPages = getPendingAppIntroPages(settings);
-        const nextSteps = flattenPages(tourPages, pendingPages);
-        activeRef.current = shouldRun && nextSteps.length > 0;
-        setRuntimeSteps(nextSteps);
-        setActive(activeRef.current);
-        if (activeRef.current) setIndex(0);
-      })
-      .catch((err) => {
-        console.warn("[app-intro] failed to read settings", err);
-      });
-    return () => {
-      cancelled = true;
+    if (didInitialLoadRef.current) return;
+    didInitialLoadRef.current = true;
+    void loadIntro();
+  }, [loadIntro]);
+
+  useEffect(() => {
+    if (!didInitialLoadRef.current || activeRef.current) return;
+    void loadIntro();
+  }, [loadIntro, location.pathname]);
+
+  useEffect(() => {
+    const handler = () => {
+      if (activeRef.current) return;
+      void loadIntro();
     };
-  }, [settingsApi, location.pathname, tourPages]);
+    window.addEventListener("app-intro:replay", handler);
+    return () => window.removeEventListener("app-intro:replay", handler);
+  }, [loadIntro]);
 
   const finishAll = useCallback(
     async (mode: "complete" | "skip") => {
+      resolverIdRef.current += 1;
       activeRef.current = false;
       setActive(false);
+      setBusy(false);
       setRect(null);
       setTarget(null);
       await settingsApi.setSettings((current) =>
@@ -713,6 +804,100 @@ export default function GuidedAppIntro({
       );
     },
     [settingsApi]
+  );
+
+  const waitForRoute = useCallback(async (route: string, resolverId: number) => {
+    const deadline = Date.now() + 1400;
+    while (Date.now() < deadline) {
+      if (!activeRef.current || resolverIdRef.current !== resolverId) {
+        return false;
+      }
+      if (locationPathRef.current === route) return true;
+      await waitFrame();
+    }
+    return locationPathRef.current === route;
+  }, []);
+
+  const waitForPreparedLayout = useCallback(async (resolverId: number) => {
+    await waitFrame();
+    if (!activeRef.current || resolverIdRef.current !== resolverId) return false;
+    await waitFrame();
+    if (!activeRef.current || resolverIdRef.current !== resolverId) return false;
+    if (!reducedMotionRef.current) {
+      await waitMs(160);
+      if (!activeRef.current || resolverIdRef.current !== resolverId) {
+        return false;
+      }
+      await waitFrame();
+    }
+    return activeRef.current && resolverIdRef.current === resolverId;
+  }, []);
+
+  const waitForStableTarget = useCallback(
+    async (
+      targetIds: string[],
+      resolverId: number,
+      timeoutMs = 1200
+    ): Promise<{ target: HTMLElement; rect: TargetRect } | null> => {
+      const deadline = Date.now() + timeoutMs;
+      let previousRect: TargetRect | null = null;
+      let stableFrames = 0;
+
+      while (Date.now() < deadline) {
+        if (!activeRef.current || resolverIdRef.current !== resolverId) {
+          return null;
+        }
+
+        const nextTarget = findTourTarget(targetIds);
+        const nextRect = getTargetRect(nextTarget);
+
+        if (nextTarget && nextRect) {
+          stableFrames = rectsClose(previousRect, nextRect)
+            ? stableFrames + 1
+            : 0;
+          previousRect = nextRect;
+          if (stableFrames >= 2) {
+            return { target: nextTarget, rect: nextRect };
+          }
+        } else {
+          previousRect = null;
+          stableFrames = 0;
+        }
+
+        await waitFrame();
+      }
+
+      const fallbackTarget = findTourTarget(targetIds);
+      const fallbackRect = getTargetRect(fallbackTarget);
+      return fallbackTarget && fallbackRect
+        ? { target: fallbackTarget, rect: fallbackRect }
+        : null;
+    },
+    []
+  );
+
+  const resolveTarget = useCallback(
+    async (candidate: RuntimeStep, resolverId: number) => {
+      const firstReady = await waitForStableTarget(
+        candidate.targetIds,
+        resolverId,
+        candidate.optional ? 550 : 1300
+      );
+      if (!firstReady) return null;
+
+      firstReady.target.scrollIntoView?.({
+        block: "center",
+        inline: "center",
+        behavior: "auto",
+      });
+      await waitFrame();
+
+      return (
+        (await waitForStableTarget(candidate.targetIds, resolverId, 900)) ||
+        firstReady
+      );
+    },
+    [waitForStableTarget]
   );
 
   const resolveStep = useCallback(
@@ -732,33 +917,32 @@ export default function GuidedAppIntro({
         return;
       }
 
+      const resolverId = resolverIdRef.current + 1;
+      resolverIdRef.current = resolverId;
       setBusy(true);
       let nextIndex = requestedIndex;
       while (nextIndex >= 0 && nextIndex < currentSteps.length) {
         const candidate = currentSteps[nextIndex];
-        if (candidate.route && location.pathname !== candidate.route) {
+        if (candidate.route && locationPathRef.current !== candidate.route) {
           navigate(candidate.route);
-          await waitFrame();
-        }
-        dispatchPrepare(candidate.prepare);
-        await waitFrame();
-        if (!reducedMotionRef.current) await waitFrame();
-        const nextTarget = findTourTarget(candidate.targetIds);
-        if (nextTarget) {
-          nextTarget.scrollIntoView?.({
-            block: "center",
-            inline: "center",
-            behavior: reducedMotionRef.current ? "auto" : "smooth",
-          });
-          await waitFrame();
-          const nextRect = getTargetRect(nextTarget);
-          if (nextRect) {
-            setIndex(nextIndex);
-            setTarget(nextTarget);
-            setRect(nextRect);
-            setBusy(false);
+          const routed = await waitForRoute(candidate.route, resolverId);
+          if (!routed) {
+            if (resolverIdRef.current === resolverId) setBusy(false);
             return;
           }
+        }
+        dispatchPrepare(candidate.prepare);
+        const prepared = await waitForPreparedLayout(resolverId);
+        if (!prepared) return;
+
+        const readyTarget = await resolveTarget(candidate, resolverId);
+        if (!activeRef.current || resolverIdRef.current !== resolverId) return;
+        if (readyTarget) {
+          setIndex(nextIndex);
+          setTarget(readyTarget.target);
+          setRect(readyTarget.rect);
+          setBusy(false);
+          return;
         }
         if (!candidate.optional) {
           setIndex(nextIndex);
@@ -770,14 +954,22 @@ export default function GuidedAppIntro({
         nextIndex += direction;
       }
 
-      setBusy(false);
-      await finishAll("complete");
+      if (resolverIdRef.current === resolverId) {
+        setBusy(false);
+        await finishAll("complete");
+      }
     },
-    [finishAll, location.pathname, navigate]
+    [
+      finishAll,
+      navigate,
+      resolveTarget,
+      waitForPreparedLayout,
+      waitForRoute,
+    ]
   );
 
   const completeCurrentPageAndAdvance = useCallback(async () => {
-    if (!step) return;
+    if (!step || busy) return;
     const pageId = step.pageId;
     await settingsApi.setSettings((current) =>
       withAppIntroPageCompleted(current, pageId)
@@ -785,17 +977,19 @@ export default function GuidedAppIntro({
     const nextIndex = index + 1;
     const nextStep = runtimeStepsRef.current[nextIndex];
     if (!nextStep) {
+      resolverIdRef.current += 1;
       activeRef.current = false;
       setActive(false);
+      setBusy(false);
       setRect(null);
       setTarget(null);
       return;
     }
     void resolveStep(nextIndex, 1);
-  }, [index, resolveStep, settingsApi, step]);
+  }, [busy, index, resolveStep, settingsApi, step]);
 
   const skipCurrentPage = useCallback(async () => {
-    if (!step) return;
+    if (!step || busy) return;
     const pageId = step.pageId;
     await settingsApi.setSettings((current) =>
       withAppIntroPageSkipped(current, pageId)
@@ -805,14 +999,16 @@ export default function GuidedAppIntro({
         candidateIndex > index && candidate.pageId !== pageId
     );
     if (nextIndex < 0) {
+      resolverIdRef.current += 1;
       activeRef.current = false;
       setActive(false);
+      setBusy(false);
       setRect(null);
       setTarget(null);
       return;
     }
     void resolveStep(nextIndex, 1);
-  }, [index, resolveStep, settingsApi, step]);
+  }, [busy, index, resolveStep, settingsApi, step]);
 
   useEffect(() => {
     if (!active) return;
@@ -822,8 +1018,16 @@ export default function GuidedAppIntro({
 
   useEffect(() => {
     if (!active || !step) return;
+    let frame = 0;
     const updateRect = () => {
-      setRect(getTargetRect(target));
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setRect((current) => {
+          const next = getTargetRect(target);
+          return rectsClose(current, next) ? current : next;
+        });
+      });
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -831,15 +1035,50 @@ export default function GuidedAppIntro({
         void finishAll("skip");
       }
     };
+    const resizeObserver =
+      target && "ResizeObserver" in window
+        ? new ResizeObserver(updateRect)
+        : null;
+    const mutationObserver =
+      "MutationObserver" in window
+        ? new MutationObserver(updateRect)
+        : null;
+    if (target) resizeObserver?.observe(target);
+    mutationObserver?.observe(document.body, { childList: true, subtree: true });
     window.addEventListener("resize", updateRect);
     window.addEventListener("scroll", updateRect, true);
     window.addEventListener("keydown", onKey);
+    updateRect();
     return () => {
+      if (frame) cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
       window.removeEventListener("keydown", onKey);
     };
   }, [active, finishAll, step, target]);
+
+  useEffect(() => {
+    if (!active || !cardRef.current) return;
+    const measure = () => {
+      const box = cardRef.current?.getBoundingClientRect();
+      if (!box) return;
+      setCardSize((current) => {
+        const next = { width: box.width, height: box.height };
+        return current &&
+          Math.abs(current.width - next.width) < 1 &&
+          Math.abs(current.height - next.height) < 1
+          ? current
+          : next;
+      });
+    };
+    const observer =
+      "ResizeObserver" in window ? new ResizeObserver(measure) : null;
+    observer?.observe(cardRef.current);
+    measure();
+    return () => observer?.disconnect();
+  }, [active, step?.id]);
 
   if (!active || !step) return null;
 
@@ -855,7 +1094,7 @@ export default function GuidedAppIntro({
       }
     : { display: "none" };
 
-  const cardStyle = getCardStyle(rect);
+  const cardStyle = getGuidedIntroCardStyle(rect, cardSize);
   const nextStep = runtimeSteps[index + 1];
   const isLast = index >= total - 1;
   const isLastInPage = !nextStep || nextStep.pageId !== step.pageId;
@@ -864,55 +1103,62 @@ export default function GuidedAppIntro({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[2400] pointer-events-none"
+      className="fixed inset-0 z-[2400] pointer-events-auto"
       aria-live="polite"
       data-guided-app-intro
+      data-guided-step-id={step.id}
     >
       <div
         className="fixed rounded-2xl border border-emerald-300/70 bg-transparent shadow-[0_0_0_9999px_rgba(2,6,23,0.76),0_0_0_1px_rgba(255,255,255,0.35),0_18px_55px_rgba(16,185,129,0.28)] pointer-events-none"
         style={highlightStyle}
+        data-guided-intro-highlight
       />
       <div
-        className="fixed pointer-events-auto rounded-2xl border border-white/12 bg-slate-950/95 p-4 text-white shadow-[0_24px_70px_-28px_rgba(16,185,129,0.75)] backdrop-blur-xl"
+        ref={cardRef}
+        className="fixed pointer-events-auto max-h-[calc(100vh-24px)] overflow-auto rounded-2xl border border-white/12 bg-slate-950/95 p-3.5 text-white shadow-[0_24px_70px_-28px_rgba(16,185,129,0.75)] backdrop-blur-xl sm:p-4"
         style={cardStyle}
         role="dialog"
         aria-modal="false"
         aria-labelledby="guided-intro-title"
+        data-guided-intro-card
       >
-        <div className="absolute right-3 top-2 flex items-center gap-2">
-          <button
-            type="button"
-            className="text-[11px] font-medium text-white/45 transition hover:text-white/80"
-            onClick={() => void skipCurrentPage()}
-          >
-            Skip this page
-          </button>
-          <button
-            type="button"
-            className="text-[11px] font-medium text-white/35 transition hover:text-white/80"
-            onClick={() => void finishAll("skip")}
-          >
-            Skip all
-          </button>
-        </div>
-        <div className="pr-32">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.26em] text-emerald-300/75">
-            {step.pageLabel} {step.pageStepIndex + 1} / {step.pageStepTotal}
-            <span className="text-white/35">
-              {" "}
-              · Page {currentPageNumber} / {APP_INTRO_PAGE_IDS.length}
-            </span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/75 sm:tracking-[0.26em]">
+              {step.pageLabel} {step.pageStepIndex + 1} / {step.pageStepTotal}
+              <span className="text-white/35">
+                {" "}
+                - Page {currentPageNumber} / {APP_INTRO_PAGE_IDS.length}
+              </span>
+            </div>
+            <h2
+              id="guided-intro-title"
+              className="mt-2 text-base font-semibold leading-tight text-white sm:text-lg"
+            >
+              {step.title}
+            </h2>
           </div>
-          <h2
-            id="guided-intro-title"
-            className="mt-2 text-lg font-semibold leading-tight text-white"
-          >
-            {step.title}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-300">
-            {step.body}
-          </p>
+          <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <button
+              type="button"
+              className="text-[11px] font-medium text-white/45 transition hover:text-white/80 disabled:opacity-30"
+              disabled={busy}
+              onClick={() => void skipCurrentPage()}
+            >
+              Skip page
+            </button>
+            <button
+              type="button"
+              className="text-[11px] font-medium text-white/35 transition hover:text-white/80"
+              onClick={() => void finishAll("skip")}
+            >
+              Skip all
+            </button>
+          </div>
         </div>
+        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+          {step.body}
+        </p>
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-cyan-300"
@@ -928,10 +1174,11 @@ export default function GuidedAppIntro({
           >
             Back
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
-              className="rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/25 hover:bg-white/10"
+              className="hidden rounded-xl border border-white/12 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition hover:border-white/25 hover:bg-white/10 disabled:opacity-35 min-[380px]:inline-flex"
+              disabled={busy}
               onClick={() => void skipCurrentPage()}
             >
               Skip page

@@ -524,31 +524,6 @@ body[data-gym-background="on"][data-bg-layer="on"]::before {
     var(--shadow, 0 4px 16px rgba(0, 0, 0, 0.4));
 }
 
-/* ECG Background (canvas pulse) */
-:root {
-  --ecg-color: rgba(var(--accent-rgb, 34 197 94) / 0.75);
-  --ecg-glow: rgba(var(--accent-rgb, 34 197 94) / 0.35);
-  --ecg-opacity: 0.2; /* overridden by intensity */
-  --ecg-speed: 40s; /* overridden by intensity */
-  --ecg-stroke-w: 2;
-  --ecg-dash: 4 6;
-}
-.ecg-root {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  isolation: isolate;
-}
-.ecg-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-body[data-ecg="off"] .ecg-root {
-  display: none;
-}
-
 /* --- Rest timer enhanced alerts --- */
 /* Keyframes used by inline animate-[...] utilities */
 @keyframes timerPulse {

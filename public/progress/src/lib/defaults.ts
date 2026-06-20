@@ -67,15 +67,6 @@ export const defaultSettings: Settings = {
     legs: 0,
     other: 0,
   },
-  ecg: {
-    enabled: false,
-    intensity: "low",
-    shape: "classic",
-    speedMs: 42000,
-    trailMs: 2000,
-    spikes: 1,
-    color: "",
-  },
   ui: {
     compactMode: false,
     instantThemeTransition: false,
