@@ -9,6 +9,9 @@ async function loadDataCache(getAll: ReturnType<typeof vi.fn>) {
   vi.doMock("../lib/sbData", () => ({
     sbAppSnapshot: vi.fn(),
   }));
+  vi.doMock("../lib/profile", () => ({
+    primeUserProfile: vi.fn(),
+  }));
   vi.doMock("../lib/monitoring", () => ({
     trackMetric: vi.fn(),
   }));
@@ -26,6 +29,9 @@ async function loadDataCacheWithSnapshot(
   }));
   vi.doMock("../lib/sbData", () => ({
     sbAppSnapshot,
+  }));
+  vi.doMock("../lib/profile", () => ({
+    primeUserProfile: vi.fn(),
   }));
   vi.doMock("../lib/monitoring", () => ({
     trackMetric: vi.fn(),

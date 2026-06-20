@@ -2,6 +2,7 @@ import { db } from './db';
 import type { DBSchema } from './db';
 import { trackMetric } from './monitoring';
 import { ensureProgram } from './program';
+import { primeUserProfile } from './profile';
 import {
   sbAppSnapshot,
   type SbAppSnapshotStore,
@@ -290,6 +291,9 @@ export async function syncAppSnapshot(opts?: {
 
   let program: UserProgram | null = null;
   const profileProgram = snapshot.profile?.program;
+  if(snapshot.profile?.id) {
+    primeUserProfile(snapshot.profile as any);
+  }
   if(currentOwnerId && profileProgram) {
     program = ensureProgram(profileProgram);
     await writeProgramSnapshot(currentOwnerId, program);

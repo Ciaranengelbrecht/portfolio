@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-async function loadSbData() {
+async function loadSbData(opts?: { rpc?: ReturnType<typeof vi.fn> }) {
   vi.resetModules();
   const deleteEq = vi.fn();
   const deleteChain: any = { error: null };
@@ -12,15 +12,16 @@ async function loadSbData() {
     upsert,
     delete: deleteFn,
   }));
+  const rpc = opts?.rpc || vi.fn().mockResolvedValue({ data: null, error: null });
   vi.doMock("../lib/supabase", () => ({
-    supabase: { from },
+    supabase: { from, rpc },
     getOwnerIdFast: vi.fn(),
   }));
   vi.doMock("../lib/monitoring", () => ({
     trackError: vi.fn(),
   }));
   const mod = await import("../lib/sbData");
-  return { ...mod, from, upsert, deleteFn };
+  return { ...mod, from, upsert, deleteFn, rpc };
 }
 
 describe("sbData", () => {
@@ -44,5 +45,21 @@ describe("sbData", () => {
     await sbUpsert("sessions", "owner-a", "s1", { id: "s1" });
 
     expect(deleteFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops retrying the app snapshot RPC after Supabase reports it missing", async () => {
+    const rpc = vi.fn().mockResolvedValue({
+      data: null,
+      error: {
+        code: "PGRST202",
+        message: "Could not find the function public.get_liftlog_app_snapshot(since) in the schema cache",
+      },
+    });
+    const { sbAppSnapshot } = await loadSbData({ rpc });
+
+    await expect(sbAppSnapshot({})).rejects.toMatchObject({ code: "PGRST202" });
+    await expect(sbAppSnapshot({})).rejects.toThrow("RPC unavailable");
+
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 });

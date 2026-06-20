@@ -45,6 +45,8 @@ export type SbAppSnapshot = {
   stores: Record<Table, SbAppSnapshotStore>;
 };
 
+let appSnapshotRpcUnavailable = false;
+
 function storageKey(owner: string, id: string) {
   return `${owner}:${id}`;
 }
@@ -216,10 +218,25 @@ function normalizeSnapshotStore(value: any): SbAppSnapshotStore {
 export async function sbAppSnapshot(
   since?: Partial<Record<Table, string | null>>
 ): Promise<SbAppSnapshot> {
+  if (appSnapshotRpcUnavailable) {
+    throw new Error("get_liftlog_app_snapshot RPC unavailable");
+  }
   const { data, error } = await supabase.rpc("get_liftlog_app_snapshot", {
     since: since || {},
   });
-  if (error) throw error;
+  if (error) {
+    const message = String((error as any)?.message || error);
+    const code = String((error as any)?.code || "");
+    if (
+      code === "PGRST202" ||
+      /Could not find the function|schema cache|get_liftlog_app_snapshot/i.test(
+        message
+      )
+    ) {
+      appSnapshotRpcUnavailable = true;
+    }
+    throw error;
+  }
   const stores = (data as any)?.stores || {};
   return {
     profile: (data as any)?.profile || null,

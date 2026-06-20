@@ -4,6 +4,14 @@ import { db } from "./db";
 import { ensureProgram } from './program';
 import { readProgramSnapshot, writeProgramSnapshot } from "./deviceSnapshot";
 
+const PROFILE_TTL_MS = 5 * 60 * 1000;
+const PROGRAM_TTL_MS = 5 * 60 * 1000;
+let _profileCache:
+  | { ownerId: string; value: UserProfile; ts: number }
+  | null = null;
+let _profileInflight: Promise<UserProfile | null> | null = null;
+let _programCache: { ownerId: string; value: UserProgram; ts: number } | null = null;
+
 function normalizeProfile(data: any): UserProfile {
   const norm: any = { ...data };
   if (norm.themeV2 === undefined && norm.themev2 !== undefined) {
@@ -12,21 +20,62 @@ function normalizeProfile(data: any): UserProfile {
   return norm as UserProfile;
 }
 
-export async function fetchUserProfileStrict(): Promise<UserProfile | null> {
+function cacheProfile(ownerId: string, profile: UserProfile | null) {
+  if (!profile) return profile;
+  const normalized = normalizeProfile({ ...profile, id: profile.id || ownerId });
+  _profileCache = { ownerId, value: normalized, ts: Date.now() };
+  if (normalized.program) {
+    const prog = ensureProgram(normalized.program);
+    _programCache = { ownerId, value: prog, ts: Date.now() };
+    void writeProgramSnapshot(ownerId, prog);
+  }
+  return normalized;
+}
+
+export function primeUserProfile(profile: UserProfile | null | undefined) {
+  if (!profile?.id) return;
+  cacheProfile(profile.id, profile);
+}
+
+function clearProfileCaches() {
+  _profileCache = null;
+  _profileInflight = null;
+  _programCache = null;
+}
+
+export async function fetchUserProfileStrict(opts?: {
+  forceRemote?: boolean;
+}): Promise<UserProfile | null> {
   const session = await waitForSession({ timeoutMs: 3000 });
   const user = session?.user;
   if (!user?.id) return null;
+  const now = Date.now();
+  const cachedProfile = _profileCache;
+  if (
+    !opts?.forceRemote &&
+    cachedProfile &&
+    cachedProfile.ownerId === user.id &&
+    now - cachedProfile.ts < PROFILE_TTL_MS
+  ) {
+    return cachedProfile.value;
+  }
+  if (!opts?.forceRemote && _profileInflight) return _profileInflight;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id,themev2,program,program_history")
-    .eq("id", user.id)
-    .single();
+  _profileInflight = (async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id,themev2,program,program_history")
+      .eq("id", user.id)
+      .single();
 
-  if (error && (error as any).code !== "PGRST116") throw error;
-  if (!data) return { id: user.id };
+    if (error && (error as any).code !== "PGRST116") throw error;
+    const profile = data ? normalizeProfile(data) : ({ id: user.id } as UserProfile);
+    return cacheProfile(user.id, profile);
+  })().finally(() => {
+    _profileInflight = null;
+  });
 
-  return normalizeProfile(data);
+  return _profileInflight;
 }
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
@@ -52,6 +101,10 @@ export async function saveProfileTheme(
       .from("profiles")
       .upsert(payload, { onConflict: "id" });
     if (error) throw error;
+    cacheProfile(user.id, {
+      ...(_profileCache?.ownerId === user.id ? _profileCache.value : { id: user.id }),
+      themeV2,
+    } as UserProfile);
     return true;
   } catch (e) {
     // Graceful fallback if column not yet in PostgREST schema cache
@@ -95,6 +148,10 @@ export async function saveProfileProgram(
     if (error) throw error;
     const ensured = ensureProgram(program);
     _programCache = { ownerId: user.id, value: ensured, ts: Date.now() };
+    cacheProfile(user.id, {
+      ...(_profileCache?.ownerId === user.id ? _profileCache.value : { id: user.id }),
+      program: ensured,
+    } as UserProfile);
     void writeProgramSnapshot(user.id, ensured);
     return true;
   } catch (e) {
@@ -103,9 +160,6 @@ export async function saveProfileProgram(
   }
 }
 
-// ---- Lightweight cached program fetch (client side) ----
-let _programCache: { ownerId: string; value: UserProgram; ts: number } | null = null;
-const PROGRAM_TTL_MS = 15_000; // short cache; program rarely changes
 export async function getProfileProgram(opts?: {
   preferCached?: boolean;
   forceRemote?: boolean;
@@ -128,13 +182,10 @@ export async function getProfileProgram(opts?: {
         }
       }
     }
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('program')
-      .eq('id', user.id)
-      .single();
-    if(error) throw error;
-    const progRaw = data?.program as UserProgram | undefined;
+    const profile = await fetchUserProfileStrict({
+      forceRemote: opts?.forceRemote,
+    });
+    const progRaw = profile?.program as UserProgram | undefined;
     const prog = ensureProgram(progRaw);
     _programCache = { ownerId: user.id, value: prog, ts: now };
     void writeProgramSnapshot(user.id, prog);
@@ -198,6 +249,15 @@ export async function archiveCurrentProgram(
       .from("profiles")
       .upsert(payload, { onConflict: "id" });
     if (upErr) throw upErr;
+    cacheProfile(user.id, {
+      id: user.id,
+      program: newProgram,
+      program_history: history,
+      themeV2:
+        _profileCache?.ownerId === user.id
+          ? _profileCache.value.themeV2
+          : undefined,
+    } as UserProfile);
     return true;
   } catch (e) {
     console.warn("[profile] archiveCurrentProgram failed", e);
@@ -250,9 +310,22 @@ export async function restoreArchivedProgram(
       .from("profiles")
       .upsert(payload, { onConflict: "id" });
     if (upErr) throw upErr;
+    cacheProfile(user.id, {
+      id: user.id,
+      program: target.program,
+      program_history: adjusted,
+      themeV2:
+        _profileCache?.ownerId === user.id
+          ? _profileCache.value.themeV2
+          : undefined,
+    } as UserProfile);
     return target.program;
   } catch (e) {
     console.warn("[profile] restoreArchivedProgram failed", e);
     return null;
   }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("sb-auth", clearProfileCaches);
 }
