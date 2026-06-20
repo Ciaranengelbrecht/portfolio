@@ -12,6 +12,16 @@ const preloaders: Record<string, () => Promise<unknown>> = {
 };
 
 const preloaded = new Set<string>();
+const MOBILE_APP_ROUTES = [
+  "/",
+  "/analytics",
+  "/sessions",
+  "/recovery",
+  "/measurements",
+  "/settings/program",
+  "/templates",
+  "/settings",
+] as const;
 
 function normalizeRoute(path: string): string {
   if (!path) return "/";
@@ -29,4 +39,8 @@ export function preloadRoute(path: string) {
   void preload().catch(() => {
     preloaded.delete(key);
   });
+}
+
+export function preloadMobileRoutes() {
+  MOBILE_APP_ROUTES.forEach((route) => preloadRoute(route));
 }

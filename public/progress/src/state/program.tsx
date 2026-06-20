@@ -25,6 +25,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const consumedBootProgramAttemptRef = useRef<number | null>(null);
+  const consumedBootProgramRef = useRef<UserProgram | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +42,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setLoading(false);
       consumedBootProgramAttemptRef.current = null;
+      consumedBootProgramRef.current = null;
       return () => {
         cancelled = true;
       };
@@ -48,9 +50,11 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
 
     if (
       boot.program &&
-      consumedBootProgramAttemptRef.current !== boot.attempt
+      (consumedBootProgramAttemptRef.current !== boot.attempt ||
+        consumedBootProgramRef.current !== boot.program)
     ) {
       consumedBootProgramAttemptRef.current = boot.attempt;
+      consumedBootProgramRef.current = boot.program;
       setProgramState(ensureProgram(boot.program));
       setError(null);
       setLoading(false);

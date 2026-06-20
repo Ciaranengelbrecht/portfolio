@@ -16,7 +16,7 @@ import { ThemeProvider as VarsThemeProvider } from "./theme/ThemeProvider";
 import { ProgramProvider, useProgram } from "./state/program";
 import "./styles/theme.css";
 import { registerSW } from "./lib/pwa";
-import { preloadRoute } from "./lib/routePreload";
+import { preloadMobileRoutes, preloadRoute } from "./lib/routePreload";
 import {
   supabase,
   clearAuthStorage,
@@ -37,6 +37,7 @@ import {
   AppBootstrapScreen,
 } from "./components/AppBootstrapScreen";
 import { BootstrapProvider, useBootstrap } from "./state/bootstrap";
+import { trackMetric } from "./lib/monitoring";
 
 const Dashboard = lazy(() => import("./features/dashboard/Dashboard"));
 const Analytics = lazy(() => import("./features/analytics/Analytics"));
@@ -119,6 +120,30 @@ function Shell() {
     setAuthEmail(email);
     setAuthChecked(boot.status !== "booting");
   }, [boot.session?.user?.email, boot.status]);
+
+  useEffect(() => {
+    if (boot.status !== "ready" || !boot.authed) return;
+    const startedAt =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    const run = () => {
+      preloadMobileRoutes();
+      const doneAt =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      trackMetric("mobile_routes_preload_ms", Math.round(doneAt - startedAt), {
+        route: locationRef.pathname,
+      });
+    };
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const idle = (window as any).requestIdleCallback(run, { timeout: 1600 });
+      return () => {
+        try {
+          (window as any).cancelIdleCallback(idle);
+        } catch {}
+      };
+    }
+    const timer = setTimeout(run, 500);
+    return () => clearTimeout(timer);
+  }, [boot.status, boot.authed, locationRef.pathname]);
 
   useEffect(() => {
     let cancelled = false;

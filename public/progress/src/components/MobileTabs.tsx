@@ -1,5 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { preloadRoute } from '../lib/routePreload';
+import { trackMetric } from '../lib/monitoring';
 
 interface TabDef { to: string; label: string; tourId: string; icon: (active:boolean)=> JSX.Element }
 
@@ -21,6 +23,29 @@ const tabs: TabDef[] = [
 
 export default function MobileTabs(){
   const loc = useLocation();
+  const navStartedAt = useRef<number | null>(null);
+  const navFrom = useRef<string | null>(null);
+  const navTarget = useRef<string | null>(null);
+
+  useEffect(() => {
+    if(navStartedAt.current == null) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    trackMetric('route_switch_ready_ms', Math.round(now - navStartedAt.current), {
+      from: navFrom.current,
+      to: loc.pathname,
+      target: navTarget.current,
+    });
+    navStartedAt.current = null;
+    navFrom.current = null;
+    navTarget.current = null;
+  }, [loc.pathname]);
+
+  const markNavStart = (to: string) => {
+    navStartedAt.current = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    navFrom.current = loc.pathname;
+    navTarget.current = to;
+    preloadRoute(to);
+  };
 
   return (
   <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[1100] md:hidden">
@@ -33,7 +58,8 @@ export default function MobileTabs(){
             data-tour-id={t.tourId}
             onMouseEnter={() => preloadRoute(t.to)}
             onFocus={() => preloadRoute(t.to)}
-            onTouchStart={() => preloadRoute(t.to)}
+            onTouchStart={() => markNavStart(t.to)}
+            onClick={() => markNavStart(t.to)}
               className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg border text-[10px] font-medium tracking-wide min-h-[44px] ${isActive? 'text-emerald-200 bg-emerald-500/12 border-emerald-400/35':'text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/5'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
               <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>

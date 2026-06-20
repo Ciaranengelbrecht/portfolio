@@ -2,6 +2,7 @@ import { supabase, waitForSession } from "./supabase";
 import { UserProfile, UserProgram, ArchivedProgram, Session } from "./types";
 import { db } from "./db";
 import { ensureProgram } from './program';
+import { readProgramSnapshot, writeProgramSnapshot } from "./deviceSnapshot";
 
 function normalizeProfile(data: any): UserProfile {
   const norm: any = { ...data };
@@ -18,7 +19,7 @@ export async function fetchUserProfileStrict(): Promise<UserProfile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id,themev2,program,program_history")
     .eq("id", user.id)
     .single();
 
@@ -92,6 +93,9 @@ export async function saveProfileProgram(
       .from("profiles")
       .upsert(payload, { onConflict: "id" });
     if (error) throw error;
+    const ensured = ensureProgram(program);
+    _programCache = { ownerId: user.id, value: ensured, ts: Date.now() };
+    void writeProgramSnapshot(user.id, ensured);
     return true;
   } catch (e) {
     console.warn("[profile] saveProfileProgram failed", e);
@@ -100,16 +104,30 @@ export async function saveProfileProgram(
 }
 
 // ---- Lightweight cached program fetch (client side) ----
-let _programCache: { value: UserProgram; ts: number } | null = null;
+let _programCache: { ownerId: string; value: UserProgram; ts: number } | null = null;
 const PROGRAM_TTL_MS = 15_000; // short cache; program rarely changes
-export async function getProfileProgram(): Promise<UserProgram> {
+export async function getProfileProgram(opts?: {
+  preferCached?: boolean;
+  forceRemote?: boolean;
+  fallbackProgram?: UserProgram | null;
+}): Promise<UserProgram> {
   const now = Date.now();
-  if (_programCache && now - _programCache.ts < PROGRAM_TTL_MS) {
-    return _programCache.value;
-  }
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if(!user) throw new Error('Not signed in');
+    if (!opts?.forceRemote && _programCache?.ownerId === user.id && now - _programCache.ts < PROGRAM_TTL_MS) {
+      return _programCache.value;
+    }
+    if (!opts?.forceRemote) {
+      const local = await readProgramSnapshot(user.id);
+      if(local?.program) {
+        const prog = ensureProgram(local.program);
+        _programCache = { ownerId: user.id, value: prog, ts: now };
+        if (opts?.preferCached) {
+          return prog;
+        }
+      }
+    }
     const { data, error } = await supabase
       .from('profiles')
       .select('program')
@@ -118,12 +136,13 @@ export async function getProfileProgram(): Promise<UserProgram> {
     if(error) throw error;
     const progRaw = data?.program as UserProgram | undefined;
     const prog = ensureProgram(progRaw);
-    _programCache = { value: prog, ts: now };
+    _programCache = { ownerId: user.id, value: prog, ts: now };
+    void writeProgramSnapshot(user.id, prog);
     return prog;
   } catch(e){
     // Fallback to default ensure
-    const fallback = ensureProgram(null);
-    _programCache = { value: fallback, ts: now };
+    const fallback = ensureProgram(opts?.fallbackProgram || null);
+    _programCache = { ownerId: "fallback", value: fallback, ts: now };
     return fallback;
   }
 }

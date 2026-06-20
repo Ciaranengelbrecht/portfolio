@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgram } from "../state/program";
 import {
   UserProgram,
@@ -22,7 +22,7 @@ import { Session, Exercise } from "../lib/types";
 import { nanoid } from "nanoid";
 import { getMuscleIconPath } from "../lib/muscles";
 import { computeLoggedSetVolume } from "../lib/volume";
-import { getSettings } from "../lib/helpers";
+import { getSettings, setSettings } from "../lib/helpers";
 import GuidedSetupWizard from "../features/guided-setup/GuidedSetupWizard";
 import { ListSkeleton } from "../components/LoadingSkeletons";
 
@@ -100,6 +100,7 @@ export default function ProgramSettings() {
     Record<number, Record<string, number>>
   >({});
   const [showGuidedSetup, setShowGuidedSetup] = useState(false);
+  const volumeTargetsHydratedRef = useRef(false);
 
   // Logged set volume (weighted) for current phase (primary +1, secondary +0.5)
   useEffect(() => {
@@ -130,18 +131,18 @@ export default function ProgramSettings() {
       if (s.volumeTargets) {
         setWeeklySetTargets(s.volumeTargets);
       }
+      volumeTargetsHydratedRef.current = true;
     })();
   }, []);
 
   // Persist target edits back into settings (debounced)
   useEffect(() => {
+    if (!volumeTargetsHydratedRef.current) return;
     const h = setTimeout(async () => {
-      const s = await getSettings();
-      await db.put("settings", {
-        ...(s || {}),
-        id: "app",
+      await setSettings((s) => ({
+        ...s,
         volumeTargets: weeklySetTargets,
-      });
+      }));
     }, 600);
     return () => clearTimeout(h);
   }, [weeklySetTargets]);

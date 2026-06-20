@@ -8,6 +8,28 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"],
+        globIgnores: [
+          "**/.DS_Store",
+          "**/assets/dark gym*",
+          "**/assets/pdf-*",
+          "**/assets/pdf.worker*",
+        ],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === "image",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "liftlog-runtime-images",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 7 * 24 * 60 * 60,
+              },
+            },
+          },
+        ],
+      },
       manifest: {
         name: "LiftLog",
         short_name: "LiftLog",

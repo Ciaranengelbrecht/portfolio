@@ -1,8 +1,8 @@
 :root {
   --auth-title-font: "Sora", "Avenir Next", "Trebuchet MS", sans-serif;
   --auth-body-font: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-  --auth-gym-mobile: url("../theme/dark%20gym%20mobile.png");
-  --auth-gym-desktop: url("../theme/dark%20gym%20desktop.png");
+  --auth-gym-mobile: url("../theme/dark%20gym%20mobile.webp");
+  --auth-gym-desktop: url("../theme/dark%20gym%20desktop.webp");
   --auth-gym-image: var(--auth-gym-mobile);
 }
 

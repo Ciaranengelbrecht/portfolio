@@ -11,11 +11,16 @@ import { waitForSession } from "../lib/supabase";
 import { computeAggregates } from "../lib/aggregates";
 import {
   getAllCached,
+  hydratePersistentCache,
   hasCachedData,
+  refresh,
   setCacheOwner,
+  syncAppSnapshot,
   warmPreload,
 } from "../lib/dataCache";
 import { getProfileProgram } from "../lib/profile";
+import { readProgramSnapshot } from "../lib/deviceSnapshot";
+import { ensureProgram } from "../lib/program";
 import { trackError, trackMetric } from "../lib/monitoring";
 import type { UserProgram } from "../lib/types";
 
@@ -151,6 +156,9 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       setCacheOwner(session.user.id);
       setIfCurrent({ session, authed: true, phase: "data" });
       const criticalStores = getBootstrapCriticalStores(readStartupPath());
+      const snapshotStartedAt = bootNow();
+      await hydratePersistentCache(session.user.id, criticalStores);
+      const cachedProgram = await readProgramSnapshot(session.user.id);
 
       const offline =
         typeof navigator !== "undefined" && navigator.onLine === false;
@@ -158,17 +166,111 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
         throw new Error("No cached user data available while offline");
       }
 
+      if (hasCachedData(criticalStores)) {
+        const program = ensureProgram(cachedProgram?.program || null);
+        setIfCurrent({
+          status: "ready",
+          phase: "ready",
+          error: null,
+          session,
+          authed: true,
+          program,
+        });
+        trackMetric(
+          "time_to_first_cached_paint_ms",
+          Math.round(bootNow() - bootStartedAt),
+          {
+            criticalStores: criticalStores.join(","),
+            snapshotReadMs: Math.round(bootNow() - snapshotStartedAt),
+          }
+        );
+
+        if (!offline) {
+          const backgroundStartedAt = bootNow();
+          void syncAppSnapshot({ stores: [...ALL_STORES] })
+            .then((result) => {
+              if (result.program) setIfCurrent({ program: result.program });
+              trackMetric(
+                "background_sync_ms",
+                Math.round(bootNow() - backgroundStartedAt),
+                {
+                  stores: ALL_STORES.join(","),
+                  mode: "cached-startup",
+                  rpc: true,
+                }
+              );
+              setTimeout(() => {
+                void computeAggregates().catch(() => {});
+              }, 800);
+            })
+            .catch(async (error) => {
+              trackError(error, {
+                source: "bootstrap",
+                phase: "background-rpc-sync",
+              });
+              const fallbackStartedAt = bootNow();
+              try {
+                const results = await Promise.all([
+                  ...ALL_STORES.map((store) => refresh(store)),
+                  getProfileProgram({
+                    forceRemote: true,
+                    fallbackProgram: program,
+                  }),
+                ]);
+                const freshProgram = results[
+                  results.length - 1
+                ] as UserProgram;
+                setIfCurrent({ program: freshProgram });
+                trackMetric(
+                  "background_sync_ms",
+                  Math.round(bootNow() - fallbackStartedAt),
+                  {
+                    stores: ALL_STORES.join(","),
+                    mode: "cached-startup-fallback",
+                    rpc: false,
+                  }
+                );
+              } catch (fallbackError) {
+                trackError(fallbackError, {
+                  source: "bootstrap",
+                  phase: "background-rest-sync",
+                });
+              }
+            });
+        }
+        return;
+      }
+
       const dataStartedAt = bootNow();
-      const dataPromise = Promise.all(
-        criticalStores.map((store) =>
-          getAllCached(store, {
-            swr: !offline,
-          })
-        )
-      );
       setIfCurrent({ phase: "program" });
-      const programPromise = getProfileProgram();
-      const [, program] = await Promise.all([dataPromise, programPromise]);
+      let program: UserProgram;
+      let usedSnapshotRpc = false;
+      try {
+        const result = await syncAppSnapshot({
+          stores: [...ALL_STORES],
+          forceFull: true,
+        });
+        program = result.program || ensureProgram(null);
+        usedSnapshotRpc = true;
+      } catch (snapshotError) {
+        trackError(snapshotError, {
+          source: "bootstrap",
+          phase: "startup-rpc-sync",
+        });
+        const dataPromise = Promise.all(
+          criticalStores.map((store) =>
+            getAllCached(store, {
+              swr: !offline,
+            })
+          )
+        );
+        const programPromise = getProfileProgram();
+        const [, fallbackProgram] = await Promise.all([
+          dataPromise,
+          programPromise,
+        ]);
+        program = fallbackProgram;
+      }
       debugBootstrap(
         "critical data + program",
         criticalStores,
@@ -177,19 +279,21 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (!offline) {
-        const criticalStoreSet = new Set<BootstrapStore>(criticalStores);
-        const deferredStores = ALL_STORES.filter(
-          (store) => !criticalStoreSet.has(store)
-        );
-        const preloadStores = Array.from(
-          new Set<BootstrapStore>([
-            ...deferredStores,
-            "exercises",
-            "templates",
-            "settings",
-          ])
-        );
-        warmPreload(preloadStores, { swr: true });
+        if (!usedSnapshotRpc) {
+          const criticalStoreSet = new Set<BootstrapStore>(criticalStores);
+          const deferredStores = ALL_STORES.filter(
+            (store) => !criticalStoreSet.has(store)
+          );
+          const preloadStores = Array.from(
+            new Set<BootstrapStore>([
+              ...deferredStores,
+              "exercises",
+              "templates",
+              "settings",
+            ])
+          );
+          warmPreload(preloadStores, { swr: true });
+        }
         setTimeout(() => {
           void computeAggregates().catch(() => {});
         }, 800);
@@ -206,6 +310,7 @@ export function BootstrapProvider({ children }: { children: React.ReactNode }) {
       trackMetric("bootstrap_ready_ms", Math.round(bootNow() - bootStartedAt), {
         authed: true,
         criticalStores: criticalStores.join(","),
+        rpc: usedSnapshotRpc,
       });
     } catch (error) {
       trackError(error, { source: "bootstrap", phase: "startup" });

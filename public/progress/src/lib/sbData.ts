@@ -16,12 +16,34 @@ function isDevEnv() {
   return false;
 }
 
-type Table =
+export type Table =
   | "exercises"
   | "sessions"
   | "measurements"
   | "templates"
   | "settings";
+
+export type SbAppSnapshotRow = {
+  id: string;
+  data: any;
+  updated_at: string | null;
+};
+
+export type SbAppSnapshotStore = {
+  rows: SbAppSnapshotRow[];
+  ids: string[];
+  latestUpdatedAt: string | null;
+};
+
+export type SbAppSnapshot = {
+  profile: {
+    id: string;
+    themev2?: any;
+    program?: any;
+    program_history?: any[];
+  } | null;
+  stores: Record<Table, SbAppSnapshotStore>;
+};
 
 function storageKey(owner: string, id: string) {
   return `${owner}:${id}`;
@@ -38,6 +60,7 @@ export async function sbUpsert(
     .from(table)
     .upsert({ id: sk, owner, data }, { onConflict: "id" });
   if (error) throw error;
+  if (table === "settings") return;
   // Cleanup legacy plain-id row to prevent duplicates. Some self-hosted setups
   // may still have rows without an owner column or with stricter RLS rules;
   // treat those as best-effort so we don't surface noisy 400 errors in the console.
@@ -180,4 +203,32 @@ export async function sbListUpdatedSince(
     await new Promise((r) => setTimeout(r, 300));
     return await attempt();
   }
+}
+
+function normalizeSnapshotStore(value: any): SbAppSnapshotStore {
+  return {
+    rows: Array.isArray(value?.rows) ? value.rows : [],
+    ids: Array.isArray(value?.ids) ? value.ids.filter(Boolean).map(String) : [],
+    latestUpdatedAt: value?.latestUpdatedAt || value?.latestupdatedat || null,
+  };
+}
+
+export async function sbAppSnapshot(
+  since?: Partial<Record<Table, string | null>>
+): Promise<SbAppSnapshot> {
+  const { data, error } = await supabase.rpc("get_liftlog_app_snapshot", {
+    since: since || {},
+  });
+  if (error) throw error;
+  const stores = (data as any)?.stores || {};
+  return {
+    profile: (data as any)?.profile || null,
+    stores: {
+      settings: normalizeSnapshotStore(stores.settings),
+      exercises: normalizeSnapshotStore(stores.exercises),
+      templates: normalizeSnapshotStore(stores.templates),
+      sessions: normalizeSnapshotStore(stores.sessions),
+      measurements: normalizeSnapshotStore(stores.measurements),
+    },
+  };
 }

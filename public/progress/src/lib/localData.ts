@@ -1,3 +1,5 @@
+import { clearDeviceSnapshots } from "./deviceSnapshot";
+
 const LOCAL_PREFIXES = [
   "liftlog:",
   "progress:",
@@ -35,4 +37,5 @@ export function clearLiftLogLocalData() {
   try {
     removeMatching(window.sessionStorage);
   } catch {}
+  void clearDeviceSnapshots();
 }

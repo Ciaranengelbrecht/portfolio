@@ -453,7 +453,7 @@ export default function SettingsPage() {
       } catch (err) {
         console.warn("[settings] autosave failed", err);
       }
-    }, 250);
+    }, 800);
     pendingSaveRef.current = timer;
 
     return () => {
@@ -470,6 +470,10 @@ export default function SettingsPage() {
       const serialized = JSON.stringify(s);
       if (serialized === lastSavedSettingsRef.current) return;
       const previousSaved = parseSerializedSettings(lastSavedSettingsRef.current);
+      if (pendingSaveRef.current != null) {
+        clearTimeout(pendingSaveRef.current);
+        pendingSaveRef.current = null;
+      }
       try {
         await setSettings(s);
         lastSavedSettingsRef.current = serialized;

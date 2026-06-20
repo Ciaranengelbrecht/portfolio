@@ -1,4 +1,4 @@
-import gymMobileBackground from "../theme/dark gym mobile.png";
+import gymMobileBackground from "../theme/dark gym mobile.webp";
 
 const PHASE_LABELS: Record<string, string> = {
   idle: "Preparing app",
@@ -34,7 +34,9 @@ export function AppBootstrapScreen({ phase }: { phase: string }) {
           <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
             <div className="h-full w-1/2 rounded-full bg-emerald-400 animate-pulse" />
           </div>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">{label}</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+            {label}
+          </p>
         </div>
       </div>
     </div>

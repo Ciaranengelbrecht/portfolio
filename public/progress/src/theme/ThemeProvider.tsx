@@ -3,9 +3,9 @@ import { THEMES, ThemeKey, ThemeVars, THEME_MODE } from "./themes";
 import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
-import { getSettings } from "../lib/helpers";
+import { getSettings, setSettings } from "../lib/helpers";
 import { defaultSettings } from "../lib/defaults";
-import gymMobileBackground from "./dark gym mobile.png";
+import gymMobileBackground from "./dark gym mobile.webp";
 
 type Ctx = {
   themeKey: ThemeKey;
@@ -22,7 +22,7 @@ const ThemeCtx = createContext<Ctx>({
 function setMetaTheme(bg: string) {
   try {
     const meta = document.querySelector(
-      'meta[name="theme-color"]'
+      'meta[name="theme-color"]',
     ) as HTMLMetaElement | null;
     if (meta) meta.content = bg;
   } catch {}
@@ -44,7 +44,10 @@ function applyThemeMode(mode: "dark" | "light") {
 function applyGymBackgroundPreference(enabled?: boolean) {
   try {
     const root = document.documentElement;
-    root.style.setProperty("--liftlog-gym-bg-image", `url("${gymMobileBackground}")`);
+    root.style.setProperty(
+      "--liftlog-gym-bg-image",
+      `url("${gymMobileBackground}")`,
+    );
     document.body.dataset.gymBackground = enabled ? "on" : "off";
   } catch {}
 }
@@ -56,20 +59,57 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     // Derive accent-rgb if not provided so glow utilities can adapt
     try {
-      if(!("--accent-rgb" in vars) && vars["--accent"]) {
+      if (!("--accent-rgb" in vars) && vars["--accent"]) {
         const a = vars["--accent"];
         // Support hsl or hex (#rrggbb)
-        let r:number|undefined,g:number|undefined,b:number|undefined;
+        let r: number | undefined, g: number | undefined, b: number | undefined;
         const hslMatch = a.match(/hsl\(\s*(\d+)\s+(\d+)%\s+(\d+)%\s*\)/i);
-        if(hslMatch){
-          const h=Number(hslMatch[1]); const s=Number(hslMatch[2])/100; const l=Number(hslMatch[3])/100;
-          const c=(1-Math.abs(2*l-1))*s; const x=c*(1-Math.abs(((h/60)%2)-1)); const m=l-c/2; let rp=0,gp=0,bp=0;
-          if(h<60){ rp=c; gp=x; bp=0;} else if(h<120){ rp=x; gp=c; bp=0;} else if(h<180){ rp=0; gp=c; bp=x;} else if(h<240){ rp=0; gp=x; bp=c;} else if(h<300){ rp=x; gp=0; bp=c;} else { rp=c; gp=0; bp=x; }
-          r=Math.round((rp+m)*255); g=Math.round((gp+m)*255); b=Math.round((bp+m)*255);
-        } else if(a.startsWith('#') && (a.length===7)) {
-          r=parseInt(a.slice(1,3),16); g=parseInt(a.slice(3,5),16); b=parseInt(a.slice(5,7),16);
+        if (hslMatch) {
+          const h = Number(hslMatch[1]);
+          const s = Number(hslMatch[2]) / 100;
+          const l = Number(hslMatch[3]) / 100;
+          const c = (1 - Math.abs(2 * l - 1)) * s;
+          const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+          const m = l - c / 2;
+          let rp = 0,
+            gp = 0,
+            bp = 0;
+          if (h < 60) {
+            rp = c;
+            gp = x;
+            bp = 0;
+          } else if (h < 120) {
+            rp = x;
+            gp = c;
+            bp = 0;
+          } else if (h < 180) {
+            rp = 0;
+            gp = c;
+            bp = x;
+          } else if (h < 240) {
+            rp = 0;
+            gp = x;
+            bp = c;
+          } else if (h < 300) {
+            rp = x;
+            gp = 0;
+            bp = c;
+          } else {
+            rp = c;
+            gp = 0;
+            bp = x;
+          }
+          r = Math.round((rp + m) * 255);
+          g = Math.round((gp + m) * 255);
+          b = Math.round((bp + m) * 255);
+        } else if (a.startsWith("#") && a.length === 7) {
+          r = parseInt(a.slice(1, 3), 16);
+          g = parseInt(a.slice(3, 5), 16);
+          b = parseInt(a.slice(5, 7), 16);
         }
-        if(r!=null && g!=null && b!=null){ root.style.setProperty('--accent-rgb', `${r} ${g} ${b}`); }
+        if (r != null && g != null && b != null) {
+          root.style.setProperty("--accent-rgb", `${r} ${g} ${b}`);
+        }
       }
     } catch {}
     const glass =
@@ -89,7 +129,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     try {
       window.dispatchEvent(
-        new CustomEvent("theme-change", { detail: { vars } })
+        new CustomEvent("theme-change", { detail: { vars } }),
       );
     } catch {}
   };
@@ -117,7 +157,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           // Scale blur radius and alpha proportionally (50 baseline)
           vars["--glow"] = scaleGlow(vars["--glow"], g / 50);
         }
-  if (t.customAccent) {
+        if (t.customAccent) {
           vars["--accent"] = t.customAccent;
           vars["--ring"] = t.customAccent;
         }
@@ -134,8 +174,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         root.style.transition = "";
       }, 220);
     }
-    const s = (await db.get<Settings>("settings", "app")) || (await getSettings());
-    await db.put("settings", {
+    const s = await getSettings();
+    await setSettings({
       ...s,
       id: "app",
       // Preserve existing themeV2 fields (e.g., customVars, intensity, glowStrength) and only update the key
@@ -175,22 +215,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const s = await db.get<Settings>("settings", "app");
+        const s = await getSettings();
         // prefer v2, fallback to earlier experimental theme object, otherwise default to 'midnight'
         let key = ((s as any)?.themeV2?.key || (s as any)?.theme?.key) as
           | ThemeKey
           | undefined;
         if (!key || !THEMES[key as ThemeKey]) {
           key = "midnight";
-          // self-heal persisted invalid/removed keys while preserving other themeV2 fields
-          try {
-            const complete = (s as Settings | undefined) || (await getSettings());
-            await db.put("settings", {
-              ...complete,
-              id: "app",
-              themeV2: { ...((complete as any)?.themeV2 || {}), key },
-            } as any);
-          } catch {}
         }
         // Attempt profile override for cross-device persistence
         let profileThemeV2: Settings["themeV2"] | undefined;
@@ -220,7 +251,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             if (typeof t.accentIntensity === "number" && vars["--accent"]) {
               const m = Math.max(0, Math.min(100, t.accentIntensity));
               const delta = (m - 50) * 0.4;
-              vars["--accent"] = tweakHslLightness(vars["--accent"], delta, 20, 75);
+              vars["--accent"] = tweakHslLightness(
+                vars["--accent"],
+                delta,
+                20,
+                75,
+              );
               vars["--ring"] = vars["--accent"];
             }
             if (typeof t.glowStrength === "number" && vars["--glow"]) {
@@ -238,7 +274,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         applyGymBackgroundPreference(effectiveThemeV2?.gymBackground);
         try {
           window.dispatchEvent(
-            new CustomEvent("theme-change", { detail: { key } })
+            new CustomEvent("theme-change", { detail: { key } }),
           );
         } catch {}
       } catch {
@@ -258,8 +294,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const profile = await fetchUserProfile();
         const pKey = profile?.themeV2?.key as ThemeKey | undefined;
         if (pKey && THEMES[pKey] && pKey !== themeKey) {
-          // Use internal setter to persist + animate
-          setThemeKey(pKey);
+          setThemeKeyState(pKey);
+          let vars = { ...THEMES[pKey] };
+          const t = profile?.themeV2;
+          if (t?.customAccent) {
+            vars["--accent"] = t.customAccent;
+            vars["--ring"] = t.customAccent;
+          }
+          applyVars(vars);
+          applyThemeMode(THEME_MODE[pKey] || "dark");
+          applyGymBackgroundPreference(t?.gymBackground);
+          try {
+            window.dispatchEvent(
+              new CustomEvent("theme-change", { detail: { key: pKey } }),
+            );
+          } catch {}
         }
       } catch (err) {
         console.warn("[theme] auth listener apply failed", err);

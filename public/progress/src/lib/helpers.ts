@@ -9,6 +9,33 @@ import {
 import { defaultSettings } from "./defaults";
 import { addDays, subDays, isAfter, parseISO } from "date-fns";
 
+const SETTINGS_MEMORY_TTL_MS = 60_000;
+let settingsMemoryCache:
+  | { value: Settings; ts: number; comparable: string }
+  | null = null;
+let settingsInflight: Promise<Settings> | null = null;
+
+function clearSettingsMemoryCache() {
+  settingsMemoryCache = null;
+  settingsInflight = null;
+}
+
+function comparableSettings(value: Settings): string {
+  const { settingsUpdatedAt: _settingsUpdatedAt, id: _id, ...rest } =
+    value as any;
+  return JSON.stringify(rest);
+}
+
+function rememberSettings(value?: Partial<Settings> | null) {
+  const normalized = normalizeSettings(value);
+  settingsMemoryCache = {
+    value: normalized,
+    ts: Date.now(),
+    comparable: comparableSettings(normalized),
+  };
+  return normalized;
+}
+
 // Optionally inject pre-fetched sessions to avoid repeated full-table reads (prevents N+1)
 export async function getLastWorkingSets(
   exerciseId: string,
@@ -49,8 +76,7 @@ export async function getLastWorkingSets(
   }));
 }
 
-export async function getSettings(): Promise<Settings> {
-  const stored = await db.get<Settings>("settings", "app");
+export function normalizeSettings(stored?: Partial<Settings> | null): Settings {
   let base: Settings = {
     ...defaultSettings,
     ...(stored || {}),
@@ -100,47 +126,36 @@ export async function getSettings(): Promise<Settings> {
       ...(stored?.volumeTargets || {}),
     },
   };
-  let mutated = !stored || JSON.stringify(base) !== JSON.stringify(stored);
   if (!base.theme || base.theme !== "dark") {
     base = { ...base, theme: "dark" };
-    mutated = true;
   }
   if (!base.ui || base.ui.themeMode !== "dark") {
     (base as any).ui = { ...(base.ui as any), themeMode: "dark" };
-    mutated = true;
   }
   // Backfill new fields if missing
   if (base.reducedMotion == null) {
     (base as any).reducedMotion = false;
-    mutated = true;
   }
   if ((base as any).restTimerTargetSeconds == null) {
     (base as any).restTimerTargetSeconds = 90;
-    mutated = true;
   }
   if ((base as any).restTimerStrongAlert == null) {
     (base as any).restTimerStrongAlert = true;
-    mutated = true;
   }
   if ((base as any).restTimerScreenFlash == null) {
     (base as any).restTimerScreenFlash = false;
-    mutated = true;
   }
   if ((base as any).restTimerBeep == null) {
     (base as any).restTimerBeep = true;
-    mutated = true;
   }
   if ((base as any).restTimerBeepStyle == null) {
     (base as any).restTimerBeepStyle = "gentle";
-    mutated = true;
   }
   if ((base as any).restTimerBeepCount == null) {
     (base as any).restTimerBeepCount = 2;
-    mutated = true;
   }
   if ((base as any).restTimerBeepVolume == null) {
     (base as any).restTimerBeepVolume = 140;
-    mutated = true;
   }
   if (!base.progress?.guidedSetup) {
     base = {
@@ -155,7 +170,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (base.progress?.guidedSetup && base.progress.guidedSetup.skipped == null) {
     base = {
@@ -168,7 +182,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (
     base.progress?.guidedSetup &&
@@ -184,7 +197,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (base.progress?.guidedSetup && !base.progress.guidedSetup.mode) {
     base = {
@@ -197,7 +209,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (!base.progress?.appIntro) {
     base = {
@@ -213,7 +224,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (base.progress?.appIntro && base.progress.appIntro.version == null) {
     base = {
@@ -226,7 +236,6 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
   }
   if (base.progress?.appIntro && !base.progress.appIntro.pages) {
     base = {
@@ -239,32 +248,50 @@ export async function getSettings(): Promise<Settings> {
         },
       },
     };
-    mutated = true;
-  }
-  if (!(base as any).settingsUpdatedAt) {
-    (base as any).settingsUpdatedAt = new Date().toISOString();
-    mutated = true;
-  }
-  if (mutated) {
-    await db.put("settings", { ...base, id: "app" } as any);
   }
   return base;
 }
 
+export async function getSettings(): Promise<Settings> {
+  if (
+    settingsMemoryCache &&
+    Date.now() - settingsMemoryCache.ts < SETTINGS_MEMORY_TTL_MS
+  ) {
+    return settingsMemoryCache.value;
+  }
+  if (settingsInflight) return settingsInflight;
+  settingsInflight = (async () => {
+    const stored = await db.get<Settings>("settings", "app");
+    return rememberSettings(stored || null);
+  })().finally(() => {
+    settingsInflight = null;
+  });
+  return settingsInflight;
+}
+
 export async function setSettings(
   next: Settings | ((current: Settings) => Settings | Promise<Settings>)
-) {
+): Promise<void> {
   const s =
     typeof next === "function"
       ? await next(await getSettings())
       : next;
-  const enforced = {
+  const enforced = normalizeSettings({
     ...s,
     theme: "dark",
     ui: { ...(s.ui || {}), themeMode: "dark" },
     settingsUpdatedAt: new Date().toISOString(),
-  } as Settings;
+  } as Settings);
+  const comparable = comparableSettings(enforced);
+  if (settingsMemoryCache?.comparable === comparable) {
+    return;
+  }
   await db.put("settings", { ...enforced, id: "app" } as any);
+  rememberSettings(enforced);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("sb-auth", clearSettingsMemoryCache);
 }
 
 // Accept optional injected datasets to remove N+1 patterns (sessions/exercises/settings)
