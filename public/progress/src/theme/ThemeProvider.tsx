@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { THEMES, ThemeKey, ThemeVars, THEME_MODE } from "./themes";
+import { THEMES, ThemeKey, ThemeVars, THEME_META, THEME_MODE } from "./themes";
 import { db } from "../lib/db";
 import { Settings } from "../lib/types";
 import { fetchUserProfile } from "../lib/profile";
@@ -41,6 +41,38 @@ function applyThemeMode(mode: "dark" | "light") {
   } catch {}
 }
 
+const RESETTABLE_THEME_VARS = [
+  "--bg-layer",
+  "--theme-texture",
+  "--theme-texture-opacity",
+  "--theme-surface-treatment",
+  "--theme-border-treatment",
+  "--theme-radius-scale",
+  "--theme-shadow-style",
+  "--theme-font-accent",
+  "--radius-sm",
+  "--radius-md",
+  "--radius-lg",
+  "--radius-xl",
+] as const;
+
+function toDataValue(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function applyThemeIdentity(key: ThemeKey) {
+  try {
+    const root = document.documentElement;
+    const body = document.body;
+    const meta = THEME_META[key];
+    const vibe = toDataValue(meta?.vibe || "Classic");
+    root.dataset.themeKey = key;
+    root.dataset.themeVibe = vibe;
+    body.dataset.themeKey = key;
+    body.dataset.themeVibe = vibe;
+  } catch {}
+}
+
 function applyGymBackgroundPreference(enabled?: boolean) {
   try {
     const root = document.documentElement;
@@ -56,6 +88,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeKey, setThemeKeyState] = useState<ThemeKey>("midnight");
   const applyVars = (vars: ThemeVars) => {
     const root = document.documentElement;
+    RESETTABLE_THEME_VARS.forEach((name) => root.style.removeProperty(name));
     for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
     // Derive accent-rgb if not provided so glow utilities can adapt
     try {
@@ -165,6 +198,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {}
     applyVars(vars);
     applyThemeMode(THEME_MODE[key] || "dark");
+    applyThemeIdentity(key);
     const root = document.getElementById("root");
     if (root) {
       root.style.transition = "opacity 200ms ease";
@@ -271,6 +305,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         } catch {}
         applyVars(vars);
         applyThemeMode(THEME_MODE[key as ThemeKey] || "dark");
+        applyThemeIdentity(key as ThemeKey);
         applyGymBackgroundPreference(effectiveThemeV2?.gymBackground);
         try {
           window.dispatchEvent(
@@ -280,6 +315,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       } catch {
         applyVars(THEMES["midnight"]);
         applyThemeMode("dark");
+        applyThemeIdentity("midnight");
       }
     })();
   }, []);
@@ -303,6 +339,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           }
           applyVars(vars);
           applyThemeMode(THEME_MODE[pKey] || "dark");
+          applyThemeIdentity(pKey);
           applyGymBackgroundPreference(t?.gymBackground);
           try {
             window.dispatchEvent(

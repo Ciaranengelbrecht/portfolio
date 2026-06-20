@@ -48,12 +48,12 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
       <div className="absolute inset-y-0 right-0 flex max-w-full pointer-events-none">
         <div
           ref={panelRef}
-          className="pointer-events-auto w-[78vw] max-w-[320px] h-full bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_10px_40px_-8px_rgba(0,0,0,.6)] flex flex-col outline-none translate-x-0 animate-[drawerSlide_.4s_cubic-bezier(.32,.72,.33,1)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]"
+          className="nav-drawer-panel pointer-events-auto w-[78vw] max-w-[320px] h-full bg-gradient-to-b from-slate-900/95 to-slate-950/95 border-l border-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_10px_40px_-8px_rgba(0,0,0,.6)] flex flex-col outline-none translate-x-0 animate-[drawerSlide_.4s_cubic-bezier(.32,.72,.33,1)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)]"
           tabIndex={-1}
         >
           <div className="p-4 pb-3 flex items-center justify-between gap-3">
-            <span className="font-semibold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-200">Menu</span>
-            <button onClick={onClose} className="GlossyButton inline-flex h-8 items-center rounded-md px-3 text-xs font-medium bg-slate-700/60 hover:bg-slate-600/70 text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60">
+            <span className="nav-drawer-title font-semibold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-200">Menu</span>
+            <button onClick={onClose} className="GlossyButton nav-drawer-close inline-flex h-8 items-center rounded-md px-3 text-xs font-medium bg-slate-700/60 hover:bg-slate-600/70 text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60">
               Close
             </button>
           </div>
@@ -76,13 +76,13 @@ export default function NavDrawer({ open, onClose, authEmail, onSignOut }: NavDr
                 onFocus={() => preloadRoute(to)}
                 onTouchStart={() => preloadRoute(to)}
                 onClick={onClose}
-                className={({isActive})=>`group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 ${isActive? 'bg-emerald-500/20 text-emerald-200 shadow-inner shadow-emerald-500/10':'text-slate-200/80 hover:text-slate-100 hover:bg-white/5'}`}
+                className={({isActive})=>`nav-drawer-link group flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 ${isActive? 'nav-drawer-link-active bg-emerald-500/20 text-emerald-200 shadow-inner shadow-emerald-500/10':'text-slate-200/80 hover:text-slate-100 hover:bg-white/5'}`}
               >
                 <span className="relative flex-1">{label}</span>
               </NavLink>
             ))}
           </nav>
-          <div className="p-4 border-t border-white/5 text-xs flex items-center justify-between gap-2 bg-slate-950/40">
+          <div className="nav-drawer-footer p-4 border-t border-white/5 text-xs flex items-center justify-between gap-2 bg-slate-950/40">
             {authEmail ? <span className="truncate text-emerald-400" title={authEmail}>{authEmail}</span> : <span className="text-slate-400">Signed out</span>}
             {authEmail && <button onClick={onSignOut} className="inline-flex items-center rounded-md bg-red-600/80 hover:bg-red-600 px-2 py-1 text-[11px] font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60">Sign out</button>}
           </div>

@@ -1847,14 +1847,31 @@ export default function SettingsPage() {
                               : THEMES[k];
                           const meta = THEME_META[k];
                           const mode = THEME_MODE[k] || "dark";
+                          const previewBackground =
+                            customPreview["--bg-layer"] &&
+                            customPreview["--bg-layer"] !== "none"
+                              ? `${customPreview["--bg-layer"]}, ${customPreview["--bg"]}`
+                              : `linear-gradient(135deg, ${customPreview["--bg"]}, ${customPreview["--bg-muted"]})`;
                           return (
                             <button
                               key={k}
-                              className={`rounded-xl p-3 text-left border transition-all duration-200 ${
+                              className={`theme-gallery-card ${
                                 themeKey === k
-                                  ? "border-accent bg-accent/10 ring-1 ring-accent/50"
-                                  : "border-card card-surface hover:border-accent/40 hover:scale-[1.02]"
+                                  ? "theme-gallery-card-active"
+                                  : ""
                               }`}
+                              style={
+                                {
+                                  "--theme-preview-bg": previewBackground,
+                                  "--theme-preview-card": customPreview["--card"],
+                                  "--theme-preview-border": customPreview["--card-border"],
+                                  "--theme-preview-accent": customPreview["--accent"],
+                                  "--theme-preview-chart": customPreview["--chart-2"],
+                                  "--theme-preview-texture": customPreview["--theme-texture"] || "none",
+                                  "--theme-preview-texture-opacity": customPreview["--theme-texture-opacity"] || "0",
+                                  "--theme-preview-radius": customPreview["--radius-lg"] || "14px",
+                                } as any
+                              }
                               onClick={() => {
                                 setS((prev) => ({
                                   ...prev,
@@ -1866,53 +1883,46 @@ export default function SettingsPage() {
                                 setThemeKey(k);
                               }}
                             >
-                              <div className="flex items-center justify-between gap-1.5">
+                              <div className="theme-preview-stage">
+                                <div className="theme-preview-card-surface">
+                                  <div className="theme-preview-line theme-preview-line-strong" />
+                                  <div className="theme-preview-line" />
+                                  <div className="theme-preview-mini-row">
+                                    <span className="theme-preview-pill" />
+                                    <span className="theme-preview-dot" />
+                                  </div>
+                                </div>
+                                <div className="theme-preview-button" />
+                                <div className="theme-preview-bars">
+                                  <span />
+                                  <span />
+                                  <span />
+                                </div>
+                              </div>
+                              <div className="mt-2.5 flex items-start justify-between gap-2">
                                 <div className="min-w-0">
-                                  <span className="block font-medium text-sm capitalize truncate">
+                                  <span className="block text-sm font-semibold capitalize leading-tight text-app truncate">
                                     {k.replace(/-/g, " ")}
                                   </span>
-                                  <span className="text-[10px] text-muted uppercase tracking-[0.18em]">
-                                    {mode}
+                                  <span className="block text-[10px] leading-snug text-muted truncate">
+                                    {meta?.description || ""}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <span
-                                    className={`rounded-full px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em] ${
-                                      mode === "light"
-                                        ? "border border-amber-300/35 bg-amber-300/20 text-amber-900"
-                                        : "border border-slate-300/20 bg-slate-300/10 text-slate-200"
-                                    }`}
-                                  >
-                                    {mode}
-                                  </span>
-                                  {themeKey === k && (
-                                    <span className="settings-static-pill text-[10px]">Active</span>
-                                  )}
+                                {themeKey === k && (
+                                  <span className="settings-static-pill text-[10px] shrink-0">Active</span>
+                                )}
+                              </div>
+                              <div className="mt-2 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="theme-vibe-chip">{meta?.vibe || "Classic"}</span>
+                                  <span className="theme-mode-chip capitalize">{mode}</span>
                                 </div>
-                              </div>
-                              <div className="text-[10px] text-muted truncate mb-2">
-                                {meta?.description || ""}
-                              </div>
-                              <div className="flex gap-1 items-center">
-                                <span
-                                  className="flex-1 h-5 rounded-l"
-                                  style={{ background: customPreview["--bg-muted"] }}
-                                />
-                                <span
-                                  className="w-5 h-5 rounded border"
-                                  style={{
-                                    background: customPreview["--card"],
-                                    borderColor: customPreview["--card-border"],
-                                  }}
-                                />
-                                <span
-                                  className="w-5 h-5 rounded"
-                                  style={{ background: customPreview["--accent"] }}
-                                />
-                                <span
-                                  className="w-5 h-5 rounded-r"
-                                  style={{ background: customPreview["--chart-2"] }}
-                                />
+                                <div className="theme-swatch-row" aria-hidden>
+                                  <span style={{ background: customPreview["--bg-muted"] }} />
+                                  <span style={{ background: customPreview["--card"], borderColor: customPreview["--card-border"] }} />
+                                  <span style={{ background: customPreview["--accent"] }} />
+                                  <span style={{ background: customPreview["--chart-2"] }} />
+                                </div>
                               </div>
                             </button>
                           );

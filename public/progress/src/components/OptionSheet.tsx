@@ -311,7 +311,7 @@ export default function OptionSheet({
               onClick={onClose}
             />
             <motion.div
-              className="relative z-10 flex w-full max-h-[min(94dvh,calc(100dvh-0.75rem))] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] backdrop-blur-sm sm:max-h-[94vh] sm:max-w-2xl sm:rounded-3xl"
+              className="option-sheet-panel relative z-10 flex w-full max-h-[min(94dvh,calc(100dvh-0.75rem))] flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-slate-950/95 shadow-[0_24px_70px_-30px_rgba(15,118,110,0.7)] backdrop-blur-sm sm:max-h-[94vh] sm:max-w-2xl sm:rounded-3xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby={titleId}
@@ -416,9 +416,9 @@ export default function OptionSheet({
                             if (option.disabled) return;
                             option.onSelect();
                           }}
-                          className={`group w-full rounded-2xl border border-white/10 px-4 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-0 ${
+                          className={`option-sheet-row group w-full rounded-2xl border border-white/10 px-4 py-3 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 focus-visible:ring-offset-0 ${
                             option.selected
-                              ? "border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(16,185,129,0.45)]"
+                              ? "option-sheet-row-selected border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_0_1px_rgba(16,185,129,0.45)]"
                               : "bg-white/5 hover:border-white/20 hover:bg-white/10"
                           } ${option.disabled ? "opacity-50" : ""}`}
                         >
