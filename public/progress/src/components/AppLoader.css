@@ -1,0 +1,118 @@
+.app-loader {
+  --loader-orb-size: clamp(320px, 52vw, 560px); /* Overall orb footprint. */
+
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top))
+    max(20px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  background-color: #020617;
+  background-image: linear-gradient(
+      180deg,
+      rgba(2, 6, 23, 0.68),
+      rgba(2, 6, 23, 0.88)
+    ),
+    radial-gradient(circle at 50% 45%, rgba(8, 47, 73, 0.3), transparent 44%),
+    url("../theme/dark gym mobile.webp");
+  background-position: center top;
+  background-size: cover;
+  color: #e0f7ff;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+
+.app-loader--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-loader__content {
+  display: grid;
+  place-items: center;
+  justify-items: center;
+  gap: 0;
+  width: min(100%, 760px);
+  height: min(68vh, 640px);
+  transform: translateY(-2vh);
+}
+
+.app-loader__orb {
+  display: block;
+  width: var(--loader-orb-size);
+  height: var(--loader-orb-size);
+  max-width: 88vw;
+  max-height: 62vh;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.38))
+    drop-shadow(0 0 52px rgba(37, 99, 235, 0.24))
+    drop-shadow(0 0 70px rgba(168, 85, 247, 0.12));
+}
+
+.app-loader__text {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 1;
+  width: min(320px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(2, 6, 23, 0.72),
+    rgba(2, 6, 23, 0) 72%
+  );
+  text-shadow: 0 2px 14px rgba(2, 6, 23, 0.9);
+}
+
+.app-loader__brand {
+  margin: 0;
+  color: #e0f7ff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.app-loader__phase {
+  margin: 0;
+  max-width: min(280px, 80vw);
+  color: rgba(186, 230, 253, 0.72);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+@media (max-width: 520px) {
+  .app-loader {
+    --loader-orb-size: clamp(300px, 86vw, 400px);
+  }
+
+  .app-loader__content {
+    height: min(64vh, 520px);
+    transform: translateY(-3vh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loader,
+  .app-loader__orb {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+[data-reduced-motion="true"] .app-loader,
+[data-reduced-motion="true"] .app-loader__orb {
+  animation: none !important;
+  transition: none !important;
+}

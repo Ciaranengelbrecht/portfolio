@@ -80,6 +80,9 @@ function Shell() {
   const [bigFlash, setBigFlash] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessionDuration, setSessionDuration] = useState<string | null>(null);
+  const [loaderPhase, setLoaderPhase] = useState<string | null>(
+    boot.status === "booting" ? boot.phase : null
+  );
   const [firstRunStatus, setFirstRunStatus] = useState<{
     checked: boolean;
     shouldShow: boolean;
@@ -89,6 +92,26 @@ function Shell() {
   const authRoute = locationRef.pathname.startsWith("/auth");
   const onboardingRoute = locationRef.pathname.startsWith("/welcome");
   const hideChrome = authRoute || onboardingRoute;
+  const startupLoaderPhase =
+    boot.status === "booting"
+      ? boot.phase
+      : boot.status === "ready" && boot.authed && program.loading
+      ? "program"
+      : null;
+
+  useEffect(() => {
+    if (startupLoaderPhase) {
+      setLoaderPhase((current) =>
+        current === startupLoaderPhase ? current : startupLoaderPhase
+      );
+      return;
+    }
+
+    if (!loaderPhase) return;
+    const timer = setTimeout(() => setLoaderPhase(null), 340);
+    return () => clearTimeout(timer);
+  }, [startupLoaderPhase, loaderPhase]);
+
   useEffect(() => {
     if (!bigFlash) return;
     const t = setTimeout(() => setBigFlash(null), 1800);
@@ -423,8 +446,8 @@ function Shell() {
     return () => window.removeEventListener('sessions-duration-update', handler as EventListener);
   }, []);
 
-  if (boot.status === "booting") {
-    return <AppBootstrapScreen phase={boot.phase} />;
+  if (startupLoaderPhase) {
+    return <AppBootstrapScreen phase={startupLoaderPhase} />;
   }
 
   if (boot.status === "error") {
@@ -434,10 +457,6 @@ function Shell() {
         onRetry={boot.retry}
       />
     );
-  }
-
-  if (boot.authed && program.loading) {
-    return <AppBootstrapScreen phase="program" />;
   }
 
   if (boot.authed && program.error) {
@@ -737,6 +756,9 @@ function Shell() {
             }
           }}
         />
+        {loaderPhase && (
+          <AppBootstrapScreen phase={loaderPhase} exiting={!startupLoaderPhase} />
+        )}
       </div>
     </SnackProvider>
   );
