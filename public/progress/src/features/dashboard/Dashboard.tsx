@@ -64,6 +64,17 @@ function formatCompact(value: number): string {
     .replace(/\.0$/, "");
 }
 
+function formatUnitValue(value: number, unit: "kg" | "lb"): string {
+  if (!Number.isFinite(value) || value <= 0) return `0 ${unit}`;
+  const formatted =
+    value >= 100
+      ? Math.round(value).toLocaleString()
+      : value >= 20
+        ? value.toFixed(1)
+        : value.toFixed(2);
+  return `${formatted} ${unit}`;
+}
+
 function formatHours(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0h";
   if (value >= 100) return `${Math.round(value)}h`;
@@ -976,8 +987,8 @@ export default function Dashboard() {
       {
         key: "volume",
         label: "Volume",
-        value: formatCompact(lifetimeStats.tonnage),
-        caption: `${tonnageUnit} lifted`,
+        value: formatUnitValue(lifetimeStats.tonnage, tonnageUnit),
+        caption: "lifted",
       },
     ],
     [lifetimeStats, tonnageUnit]
@@ -1006,8 +1017,8 @@ export default function Dashboard() {
       {
         key: "volume",
         label: "Volume",
-        value: formatCompact(weeklyStats.tonnage),
-        caption: `${tonnageUnit} lifted`,
+        value: formatUnitValue(weeklyStats.tonnage, tonnageUnit),
+        caption: "lifted",
       },
     ],
     [weeklyStats, tonnageUnit]
@@ -1121,7 +1132,13 @@ export default function Dashboard() {
                         {item.label}
                       </span>
                       <div className="mt-1 flex items-baseline gap-1.5 min-w-0 flex-wrap">
-                        <span className="text-xl sm:text-2xl font-semibold text-white/90 leading-none">
+                        <span
+                          className={`font-semibold text-white/90 leading-none ${
+                            item.key === "volume"
+                              ? "unit-value-fit"
+                              : "text-xl sm:text-2xl"
+                          }`}
+                        >
                           {item.value}
                         </span>
                         {item.caption && (
@@ -1174,7 +1191,13 @@ export default function Dashboard() {
                         {item.label}
                       </span>
                       <div className="mt-1 flex items-baseline gap-1.5 min-w-0 flex-wrap">
-                        <span className="text-xl sm:text-2xl font-semibold text-white leading-none">
+                        <span
+                          className={`font-semibold text-white leading-none ${
+                            item.key === "volume"
+                              ? "unit-value-fit"
+                              : "text-xl sm:text-2xl"
+                          }`}
+                        >
                           {item.value}
                         </span>
                         {item.caption && (

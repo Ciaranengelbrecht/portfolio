@@ -40,6 +40,17 @@ function formatCompact(value: number): string {
     .replace(/\.0$/, "");
 }
 
+function formatUnitValue(value: number, unit: string): string {
+  if (!Number.isFinite(value) || value <= 0) return `0 ${unit}`;
+  const formatted =
+    value >= 100
+      ? Math.round(value).toLocaleString()
+      : value >= 20
+        ? value.toFixed(1)
+        : value.toFixed(2);
+  return `${formatted} ${unit}`;
+}
+
 function formatCount(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return "0";
   if (value >= 1000) return formatCompact(value);
@@ -821,7 +832,7 @@ export default function Analytics() {
   };
 
   const formatVolumeValue = (kg: number) =>
-    `${formatCompact(kg * weightMultiplier)} ${tonnageUnit}`;
+    formatUnitValue(kg * weightMultiplier, tonnageUnit);
 
   const OverviewSection = () => (
     <div className="space-y-6" data-tour-id="analytics-overview-section">
@@ -853,7 +864,13 @@ export default function Analytics() {
               <p className="text-[11px] uppercase tracking-[0.33em] text-white/70">
                 {metric.caption}
               </p>
-              <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+              <div
+                className={`font-semibold tracking-tight text-white ${
+                  metric.label === "Volume"
+                    ? "unit-value-fit"
+                    : "text-2xl sm:text-3xl"
+                }`}
+              >
                 {metric.value}
               </div>
               <p className="text-sm text-white/75">{metric.label}</p>
@@ -961,10 +978,7 @@ export default function Analytics() {
                       if (name === "sessions" || name === "sets") {
                         return [formatCount(value as number), name];
                       }
-                      return [
-                        `${formatCompact(value as number)} ${tonnageUnit}`,
-                        name,
-                      ];
+                      return [formatVolumeValue(value as number), name];
                     }}
                   />
                   {weeklyVisibleSeries.volume && (
@@ -1226,7 +1240,7 @@ export default function Analytics() {
                           "Top weight",
                         ];
                       return [
-                        `${formatCompact(value as number)} ${tonnageUnit}`,
+                        formatVolumeValue(value as number),
                         "Volume",
                       ];
                     }}
@@ -1286,7 +1300,7 @@ export default function Analytics() {
                     <p className="uppercase tracking-[0.28em] text-white/60">
                       Volume
                     </p>
-                    <p className="text-base font-semibold text-white">
+                    <p className="unit-value-fit font-semibold text-white">
                       {formatVolumeValue(session.volumeKg)}
                     </p>
                   </div>
@@ -1757,7 +1771,7 @@ export default function Analytics() {
                           name === "topWeight" ? "Top" : "Avg",
                         ];
                       return [
-                        `${formatCompact(value as number)} ${tonnageUnit}`,
+                        formatVolumeValue(value as number),
                         "Volume",
                       ];
                     }}
@@ -1851,7 +1865,7 @@ export default function Analytics() {
                       <p className="uppercase tracking-[0.28em] text-white/60">
                         Volume
                       </p>
-                      <p className="text-base font-semibold text-white">
+                      <p className="unit-value-fit font-semibold text-white">
                         {formatVolumeValue(entry.volumeKg)}
                       </p>
                     </div>

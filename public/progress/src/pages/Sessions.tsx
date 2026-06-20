@@ -4613,9 +4613,7 @@ export default function Sessions() {
     (kg: number) => {
       if (!Number.isFinite(kg) || kg <= 0) return null;
       const value = weightUnit === "lb" ? kg * KG_TO_LB : kg;
-      if (value >= 10000) return `${(value / 1000).toFixed(1)}k${weightUnit}`;
-      if (value >= 1000) return `${(value / 1000).toFixed(1)}k${weightUnit}`;
-      return `${Math.round(value)}${weightUnit}`;
+      return `${Math.round(value).toLocaleString()}${weightUnit}`;
     },
     [weightUnit]
   );
@@ -4708,7 +4706,7 @@ export default function Sessions() {
               <p className="text-[8px] uppercase tracking-[0.2em] text-white/35">
                 Volume
               </p>
-              <p className="mt-0.5 truncate text-xs font-semibold text-emerald-200">
+              <p className="unit-value-fit mt-0.5 text-xs font-semibold text-emerald-200">
                 {volumeLabel ?? "--"}
               </p>
             </div>
@@ -4800,7 +4798,7 @@ export default function Sessions() {
             <p className="text-[8px] uppercase tracking-[0.22em] text-white/35">
               Volume
             </p>
-            <p className="mt-1 truncate text-sm font-semibold text-emerald-200">
+            <p className="unit-value-fit mt-1 font-semibold text-emerald-200">
               {volumeLabel ?? "--"}
             </p>
           </div>
@@ -7777,7 +7775,7 @@ function SessionSummary({
             <p className="text-[8px] uppercase tracking-[0.22em] text-slate-400">
               Volume
             </p>
-            <p className="mt-1 truncate text-base font-semibold text-emerald-200">
+            <p className="unit-value-fit mt-1 font-semibold text-emerald-200">
               {volumeLabel}
             </p>
           </div>

@@ -705,6 +705,19 @@ input[type="number"] {
     @apply text-xs font-medium text-slate-400 uppercase tracking-wide;
   }
 
+  .unit-value-fit {
+    font-size: clamp(0.8rem, 3.8vw, 1.25rem);
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  @media (min-width: 640px) {
+    .unit-value-fit {
+      font-size: clamp(0.9rem, 1.65vw, 1.45rem);
+    }
+  }
+
   /* Card variants for consistency */
   .card-primary {
     @apply bg-slate-900/60 backdrop-blur-sm border border-white/5 rounded-2xl;

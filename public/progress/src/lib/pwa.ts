@@ -12,6 +12,59 @@ const bustServiceWorker = () => {
   }
 };
 
+const isLiftLogRegistration = (registration: ServiceWorkerRegistration) => {
+  if (typeof window === "undefined") return false;
+  try {
+    const currentUrl = window.location.href;
+    const scopeUrl = new URL(registration.scope);
+    return (
+      currentUrl.startsWith(registration.scope) ||
+      scopeUrl.pathname.includes("/progress/")
+    );
+  } catch {
+    return false;
+  }
+};
+
+const deleteAppShellCaches = async () => {
+  if (typeof window === "undefined" || !("caches" in window)) return;
+  const cacheKeys = await caches.keys();
+  await Promise.all(
+    cacheKeys
+      .filter((key) =>
+        /liftlog|workbox|precache|vite|progress/i.test(key)
+      )
+      .map((key) => caches.delete(key).catch(() => false))
+  );
+};
+
+export async function refreshAppShell() {
+  if (typeof window === "undefined") return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    throw new Error("You need to be online to refresh the app version.");
+  }
+
+  await bustServiceWorker().catch(() => undefined);
+  await fetch(window.location.href, { cache: "no-store" }).catch(() => undefined);
+
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const appRegistrations = registrations.filter(isLiftLogRegistration);
+    await Promise.all(
+      appRegistrations.map(async (registration) => {
+        await registration.update().catch(() => undefined);
+        await registration.unregister().catch(() => false);
+      })
+    );
+  }
+
+  await deleteAppShellCaches();
+
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set("app_refresh", String(Date.now()));
+  window.location.replace(nextUrl.toString());
+}
+
 export function registerSW() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
     return;

@@ -37,6 +37,7 @@ import { DELETE_ACCOUNT_FUNCTION } from "../lib/config";
 import { clearLiftLogLocalData } from "../lib/localData";
 import { getSettings, setSettings } from "../lib/helpers";
 import { ListSkeleton } from "../components/LoadingSkeletons";
+import { refreshAppShell } from "../lib/pwa";
 
 const PRIVACY_POLICY_URL = "https://ciaranengelbrecht.com/progress/privacy.html";
 
@@ -158,6 +159,7 @@ export default function SettingsPage() {
   const [profilePasswordConfirm, setProfilePasswordConfirm] = useState("");
   const [authChecked, setAuthChecked] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [appRefreshBusy, setAppRefreshBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [bigFlash, setBigFlash] = useState<string | null>(null);
   const [showGuidedSetup, setShowGuidedSetup] = useState(false);
@@ -179,6 +181,22 @@ export default function SettingsPage() {
 
   const hasPendingAutosave =
     settingsHydrated && JSON.stringify(s) !== lastSavedSettingsRef.current;
+
+  const refreshLatestApp = async () => {
+    if (appRefreshBusy) return;
+    setAppRefreshBusy(true);
+    setToast("Refreshing app version…");
+    try {
+      await refreshAppShell();
+    } catch (err) {
+      setToast(
+        err instanceof Error
+          ? err.message
+          : "Could not refresh the app version. Try again when online."
+      );
+      setAppRefreshBusy(false);
+    }
+  };
 
   const applyAuthIdentity = (user?: any) => {
     setUserEmail(user?.email || undefined);
@@ -2559,6 +2577,26 @@ export default function SettingsPage() {
                 setS({ ...s, confirmDestructive: checked })
               }
             />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3">
+              <div className="flex flex-col gap-3 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold text-white">
+                    App version
+                  </div>
+                  <p className="text-xs text-white/70 leading-snug">
+                    Force a fresh app shell download when a new update is not showing yet.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-outline px-3 py-2 rounded-xl"
+                  disabled={appRefreshBusy}
+                  onClick={() => void refreshLatestApp()}
+                >
+                  {appRefreshBusy ? "Refreshing…" : "Refresh latest app"}
+                </button>
+              </div>
+            </div>
             <p className="text-xs text-white/70 leading-snug">
               Export creates a full backup. Import merges data from a previous export.
             </p>
