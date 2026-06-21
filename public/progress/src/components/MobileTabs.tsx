@@ -60,7 +60,7 @@ export default function MobileTabs(){
             onFocus={() => preloadRoute(t.to)}
             onTouchStart={() => markNavStart(t.to)}
             onClick={() => markNavStart(t.to)}
-              className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 rounded-lg border text-[10px] font-medium tracking-wide min-h-[44px] ${isActive? 'text-emerald-200 bg-emerald-500/12 border-emerald-400/35':'text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/5'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
+              className={({isActive})=>`relative flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1.5 py-1.5 text-[10px] font-medium tracking-wide min-h-[44px] ${isActive? 'text-emerald-200':'text-slate-400 hover:text-slate-200'} transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-0 active:scale-95`}
           >
               <span className={loc.pathname===t.to? 'scale-110 transition-transform':'transition-transform'}>{t.icon(Boolean(loc.pathname === t.to))}</span>
             <span className="leading-none">{t.label}</span>

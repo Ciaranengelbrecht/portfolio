@@ -63,8 +63,6 @@ import { migrateToV7 } from "./lib/migrations/v7_exercise_muscles";
 import { migrateToV8_LocalDate } from "./lib/migrations/v8_sessions_localdate";
 import { migrateToV9_BlankZeros } from "./lib/migrations/v9_blank_zeros";
 
-const COLD_START_LOADER_MIN_MS = 2000;
-
 function RouteSuspense({ children }: { children: ReactNode }) {
   return <Suspense fallback={<SmartSuspenseFallback />}>{children}</Suspense>;
 }
@@ -82,7 +80,6 @@ function Shell() {
   const [bigFlash, setBigFlash] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessionDuration, setSessionDuration] = useState<string | null>(null);
-  const [coldStartLoaderActive, setColdStartLoaderActive] = useState(true);
   const [loaderPhase, setLoaderPhase] = useState<string | null>(
     boot.status === "booting" ? boot.phase : null
   );
@@ -101,16 +98,7 @@ function Shell() {
       : boot.status === "ready" && boot.authed && program.loading
       ? "program"
       : null;
-  const activeLoaderPhase =
-    startupLoaderPhase ?? (coldStartLoaderActive ? loaderPhase || "ready" : null);
-
-  useEffect(() => {
-    const timer = setTimeout(
-      () => setColdStartLoaderActive(false),
-      COLD_START_LOADER_MIN_MS
-    );
-    return () => clearTimeout(timer);
-  }, []);
+  const activeLoaderPhase = startupLoaderPhase;
 
   useEffect(() => {
     if (activeLoaderPhase) {

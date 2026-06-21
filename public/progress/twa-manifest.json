@@ -4,23 +4,23 @@
   "name": "LiftLog",
   "launcherName": "LiftLog",
   "display": "standalone",
-  "themeColor": "#F5F7FA",
-  "themeColorDark": "#F5F7FA",
+  "themeColor": "#0b0f14",
+  "themeColorDark": "#0b0f14",
   "navigationColor": "#000000",
   "navigationColorDark": "#000000",
   "navigationDividerColor": "#000000",
   "navigationDividerColorDark": "#000000",
-  "backgroundColor": "#F5F7FA",
+  "backgroundColor": "#0b0f14",
   "enableNotifications": true,
   "startUrl": "/progress/dist/index.html",
   "iconUrl": "https://raw.githubusercontent.com/Ciaranengelbrecht/portfolio/refs/heads/main/public/progress/icons/icon-512.png",
-  "splashScreenFadeOutDuration": 300,
+  "splashScreenFadeOutDuration": 0,
   "signingKey": {
     "path": "/Users/CiaranIMCC/Desktop/portfolio/public/progress/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "9",
-  "appVersionCode": 9,
+  "appVersionName": "10",
+  "appVersionCode": 10,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://ciaranengelbrecht.com/progress/manifest.webmanifest",
@@ -50,5 +50,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "9"
+  "appVersion": "10"
 }
