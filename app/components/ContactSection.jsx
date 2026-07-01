@@ -121,8 +121,9 @@ const ContactSection = () => {
           <span className="ops-label">Contact</span>
           <h2 className="ops-heading mt-4">Get in touch</h2>
           <p className="mt-4 max-w-2xl text-primary-100">
-            I&apos;m always interested in hearing about new projects and opportunities.
-            If you have a question or opportunity, feel free to reach out.
+            I&apos;m interested in ICT support, desktop support, systems administration,
+            network support, service delivery, and automation-focused opportunities.
+            If you have a role or project that fits, feel free to reach out.
           </p>
           <div className="ops-rule mt-5" />
         </motion.div>
@@ -193,7 +194,8 @@ const ContactSection = () => {
                     <p className="ops-kicker">Message</p>
                     <h3 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Send me a message</h3>
                     <p className="mt-2 text-sm text-primary-100">
-                      Have a project in mind? Let&apos;s discuss how we can work together.
+                      Have an ICT opportunity, support role, automation need, or technical project in mind?
+                      Send through the details.
                     </p>
                   </div>
 

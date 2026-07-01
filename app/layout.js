@@ -14,14 +14,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "Ciaran Engelbrecht | Software Developer & ICT Professional",
+  title: "Ciaran Engelbrecht | ICT Support, Systems & Automation",
   description:
-    "Portfolio of Ciaran Engelbrecht, a software developer and ICT professional focused on software, systems, automation, support, and practical technology solutions.",
-  keywords: ["Software Developer", "ICT Professional", "Full Stack Developer", "Automation", "Systems", "Portfolio"],
+    "Portfolio of Ciaran Engelbrecht, an ICT professional focused on support, desktop and endpoint environments, Microsoft 365, networking, systems administration, automation, data, and practical development projects.",
+  keywords: ["ICT Support", "Desktop Support", "Systems Administrator", "Network Support", "Microsoft 365", "Automation", "Portfolio"],
   authors: [{ name: "Ciaran Engelbrecht" }],
   openGraph: {
-    title: "Ciaran Engelbrecht | Software Developer & ICT Professional",
-    description: "Portfolio of Ciaran Engelbrecht, focused on software development, ICT systems, automation, and practical technical solutions.",
+    title: "Ciaran Engelbrecht | ICT Support, Systems & Automation",
+    description: "Portfolio of Ciaran Engelbrecht, focused on ICT support, endpoint environments, systems, networking, automation, data, and practical technical solutions.",
     type: "website",
   },
 };

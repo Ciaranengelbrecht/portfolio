@@ -6,16 +6,11 @@ const AssetImage = ({ src, ...props }) => {
   const [adjustedSrc, setAdjustedSrc] = useState(src);
 
   useEffect(() => {
-    // Check if we're on GitHub Pages or custom domain
-    const isGitHubPages =
-      window.location.hostname.includes("github.io") &&
-      window.location.pathname.startsWith("/portfolio");
+    const isPortfolioBasePath = window.location.pathname.startsWith("/portfolio");
 
-    if (isGitHubPages && !src.startsWith("/portfolio/")) {
-      // On GitHub Pages but path doesn't have /portfolio/ prefix
+    if (isPortfolioBasePath && !src.startsWith("/portfolio/")) {
       setAdjustedSrc(`/portfolio${src.startsWith("/") ? src : `/${src}`}`);
-    } else if (!isGitHubPages && src.startsWith("/portfolio/")) {
-      // On custom domain but path has /portfolio/ prefix
+    } else if (!isPortfolioBasePath && src.startsWith("/portfolio/")) {
       setAdjustedSrc(src.replace("/portfolio/", "/"));
     }
   }, [src]);

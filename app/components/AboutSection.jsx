@@ -6,16 +6,16 @@ import { useInView } from "react-intersection-observer";
 
 const stats = [
   { label: "Years Experience", value: "4+" },
-  { label: "Projects Completed", value: "23+" },
-  { label: "Technologies", value: "20+" },
-  { label: "Certifications", value: "2" },
+  { label: "Supported Users", value: "1,300+" },
+  { label: "Classrooms Supported", value: "50+" },
+  { label: "Certifications & Checks", value: "3+" },
 ];
 
 const interests = [
-  "Software Development",
-  "Full-Stack Engineering",
+  "ICT Support",
+  "Desktop & Endpoint Support",
+  "Systems Administration",
   "Automation & Scripting",
-  "Problem Solving",
 ];
 
 const tabs = [
@@ -28,17 +28,17 @@ const tabs = [
         title: "Bachelor of Science - Computer Science",
         org: "University of Western Australia",
         notes: [
-          "Specialised in software engineering, advanced algorithms, and artificial intelligence.",
-          "Gained hands-on experience with real-world projects and collaborative development.",
+          "Computer science degree completed in 2025 with practical project work across software, data, systems, and algorithms.",
+          "Built applied experience through web applications, OCR tooling, systems programming, networking, and AI/search projects.",
         ],
       },
       {
         range: "2017 - 2020",
-        title: "Bachelor of Science - Nursing",
+        title: "Bachelor of Science - Registered Nursing",
         org: "Edith Cowan University",
         notes: [
-          "Foundation in scientific methodology and analytical thinking.",
-          "Developed strong problem-solving skills and research capabilities.",
+          "Built a strong foundation in communication, professional practice, documentation, privacy, and structured problem solving.",
+          "Experience remains useful when supporting staff, students, and stakeholders in service-focused ICT environments.",
         ],
       },
     ],
@@ -55,9 +55,15 @@ const tabs = [
       },
       {
         range: "Certified",
-        title: "GitHub Foundations",
-        org: "GitHub",
-        notes: ["GitHub workflow, repository collaboration, and platform fundamentals."],
+        title: "Introduction to Data Science",
+        org: "Cisco",
+        notes: ["Data concepts, analytics fundamentals, and practical use of data in technical environments."],
+      },
+      {
+        range: "Current",
+        title: "Working With Children, Police Clearance & Child Protection",
+        org: "Western Australia",
+        notes: ["Current clearances and training supporting safe work in school and public-sector ICT contexts."],
       },
     ],
   },
@@ -66,14 +72,25 @@ const tabs = [
     id: "experience",
     records: [
       {
-        range: "2025 - Present",
+        range: "2026 - Present",
         title: "Graduate ICT Officer",
+        org: "WA Health",
+        notes: [
+          "Enterprise Health Data placement: worked with Snowflake and SQL to validate fact/dimension tables, joins, mappings, source-to-curated logic, and data integrity checks.",
+          "Supported SharePoint metadata structure and large list uploads to improve information management, discoverability, and governance.",
+          "Data Science / Application Platform placement: contributed to an internal platform using FastAPI, React, TanStack Router/Query, Drizzle ORM, Better Auth/RBAC, SQL, and Git-style workflows.",
+          "Assisted with application structure, documentation, security considerations, role-based access, API design concepts, and maintainable technical documentation.",
+        ],
+      },
+      {
+        range: "2025 - 2026",
+        title: "Graduate ICT Officer - Cyber Security",
         org: "Main Roads Western Australia",
         notes: [
-          "SIEM monitoring with Microsoft Sentinel, developing KQL queries for threat detection and incident triage.",
-          "Essential Eight uplift: macro security controls, digital signing validation, governance documentation.",
-          "Identity & access management: privileged account reviews, least privilege enforcement, MFA analysis.",
-          "Security automation: PowerShell/GraphAPI scripting for audit evidence collection and reporting.",
+          "Supported cyber security operations in a state government environment with exposure to Microsoft Sentinel, Defender XDR, identity monitoring, access reviews, and Essential Eight uplift.",
+          "Developed KQL queries to analyse sign-in activity, MFA issues, error codes, and success/failure trends.",
+          "Performed identity and access reviews across privileged accounts, guest accounts, and group memberships to support least privilege and access hygiene.",
+          "Built Power BI reporting and automated audit evidence collection using PowerShell and Microsoft Graph API.",
         ],
       },
       {
@@ -81,10 +98,10 @@ const tabs = [
         title: "Junior IT Systems Engineer",
         org: "ITDynamics",
         notes: [
-          "Administered Microsoft 365, SharePoint, Teams, Active Directory, JAMF MDM for secure deployments.",
-          "Managed network infrastructure (Aruba Central, Cisco): switches, APs, VLANs, troubleshooting.",
-          "Built Python OCR utility reducing manual processing by ~90%, automated workflows with Power Automate.",
-          "Provided L2 support across Windows/macOS, business applications, structured documentation in IT Glue.",
+          "Provided Level 2 ICT support across managed service and school environments, including full-time onsite support for approximately 1,300 staff and students at Prendiville Catholic College.",
+          "Supported BYOD, staff Windows/Mac devices, iPads, classroom AV, Vivi systems, Wi-Fi, printers, Microsoft 365, SharePoint, Teams, Active Directory, Group Policy, Jamf Pro, Jamf School, and Intune exposure.",
+          "Assisted with Aruba Central and Cisco environments, including switch/AP support, patching, port changes, VLAN checks, and wireless troubleshooting.",
+          "Built a Python OCR utility that reduced manual processing by approximately 90%, and used Power Automate and scripting to improve recurring service desk and business processes.",
         ],
       },
       {
@@ -92,9 +109,10 @@ const tabs = [
         title: "IT Help Desk Technician",
         org: "Catholic Education WA (CEWA)",
         notes: [
-          "Delivered L1 IT support: device imaging, AV troubleshooting, Wi-Fi connectivity in education setting.",
-          "Triaged tickets and escalated complex issues to L2/L3 teams per SLA requirements.",
-          "Created user documentation and guides, improving staff confidence and reducing repeat incidents.",
+          "Delivered onsite Level 1 ICT support in a secondary school environment of approximately 1,000 staff and students.",
+          "Supported a 1:1 student device program, staff Windows/Mac devices, iPads, classroom AV, Vivi systems, printers, Wi-Fi, account access, software issues, and general troubleshooting.",
+          "Assisted with device imaging, deployment, setup, repairs, user onboarding, account support, and classroom technology checks.",
+          "Produced user guides and how-to documentation to help staff resolve common ICT issues and reduce repeat support requests.",
         ],
       },
     ],
@@ -185,19 +203,19 @@ const AboutSection = () => {
               <h3 className="text-xl font-semibold text-white sm:text-2xl">Hello, I&apos;m Ciaran</h3>
               <div className="mt-4 space-y-3 text-sm leading-relaxed text-primary-100 sm:mt-5 sm:space-y-4 sm:text-base">
                 <p>
-                  I&apos;m a <span className="text-accent-200">Software Developer</span> and{" "}
-                  <span className="text-accent-200">ICT Professional</span> based in Perth, Australia,
-                  focused on building reliable software and solving practical technical challenges.
+                  I&apos;m an <span className="text-accent-200">ICT professional</span> based in Perth,
+                  Australia, with experience across school ICT, managed services, government cyber security,
+                  and WA Health ICT environments.
                 </p>
                 <p>
-                  With a <span className="text-warm-300">Bachelor of Computer Science from UWA</span> and
-                  4+ years of IT experience, I specialise in full-stack development, automation, and systems engineering.
-                  I enjoy working across the entire development lifecycle, from design to deployment.
+                  My core background is practical support and administration: Level 1-2 service delivery,
+                  Microsoft 365, Windows/macOS/iPad support, Active Directory, Group Policy, Jamf, user access,
+                  classroom technology, Wi-Fi, printers, AV, documentation, and structured troubleshooting.
                 </p>
                 <p>
-                  I leverage strong technical skills in Python, JavaScript, C, and modern frameworks to build robust
-                  applications, automate workflows, and deliver practical solutions across software development,
-                  ICT support, systems administration, networking, and security-focused work.
+                  Development and automation are still a strong interest. I use PowerShell, Python, SQL,
+                  Power Automate, Microsoft Graph, Power BI, FastAPI, and React/TanStack work to build tools,
+                  reporting, and internal systems that improve everyday ICT operations.
                 </p>
               </div>
 

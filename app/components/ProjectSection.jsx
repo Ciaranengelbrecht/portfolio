@@ -10,8 +10,8 @@ const projectsData = [
     id: 1,
     title: "Macro Scanner",
     description:
-      "Cross-platform security tooling for triaging macro-enabled Office documents with heuristic analysis, Defender integration, and browser-based batch processing.",
-    tag: ["All", "Security"],
+      "ICT/security support utility for triaging macro-enabled Office documents with heuristic analysis, Defender integration, and browser-based batch processing.",
+    tag: ["All", "Security", "Automation"],
     gitUrl: "https://github.com/Ciaranengelbrecht/macro-scanner",
     previewUrl: "https://github.com/Ciaranengelbrecht/macro-scanner",
     tech: ["JavaScript", "Python", "PowerShell", "Security"],
@@ -21,7 +21,7 @@ const projectsData = [
     id: 2,
     title: "LiftLog - Gym Progress Tracker",
     description:
-      "Fast, offline-first PWA for tracking lifting sessions and body measurements with heuristic recovery modeling and guided program setup.",
+      "Offline-first PWA showing practical full-stack product work: local-first data handling, guided setup, sync, recovery modelling, and mobile-focused UX.",
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/portfolio",
     previewUrl: "https://ciaranengelbrecht.com/progress",
@@ -33,7 +33,7 @@ const projectsData = [
     id: 3,
     title: "TaskHub Web App",
     description:
-      "Full-stack task management platform with real-time collaboration, user authentication, and intuitive UI for team productivity.",
+      "Full-stack task management platform with authentication, collaboration workflows, and a structured UI for team productivity.",
     tag: ["All", "Web"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3403-TaskHub-Web-Project",
     previewUrl: "https://taskhub.ciaranengelbrecht.com",
@@ -56,8 +56,8 @@ const projectsData = [
     id: 5,
     title: "OCR Table Detection",
     description:
-      "Computer vision system for detecting and extracting tables from documents, converting them to structured data formats.",
-    tag: ["All", "AI"],
+      "Document automation project for detecting tables in PDFs/images and converting manual document processing into structured data outputs.",
+    tag: ["All", "AI", "Automation"],
     gitUrl: "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
     previewUrl: "https://github.com/Ciaranengelbrecht/OCR-Table-Detection-and-PDF-conversion-Project",
     tech: ["Python", "OpenCV", "Tesseract"],
@@ -76,8 +76,8 @@ const projectsData = [
     id: 7,
     title: "Document OCR Pipeline",
     description:
-      "End-to-end optical character recognition system for extracting and processing text from scanned documents.",
-    tag: ["All", "AI"],
+      "End-to-end OCR pipeline for extracting and processing text from scanned documents, supporting the same automation mindset used in ICT operations.",
+    tag: ["All", "AI", "Automation"],
     gitUrl: "https://github.com/Ciaranengelbrecht/CITS3200-OCR-Project",
     previewUrl: "https://github.com/Ciaranengelbrecht/CITS3200-OCR-Project",
     tech: ["Python", "PyTorch", "Image Processing"],
@@ -87,7 +87,7 @@ const projectsData = [
     title: "PDF Subject Splitter",
     description:
       "Automated tool for splitting large PDF documents by subject markers, streamlining document organization workflows.",
-    tag: ["All", "Utility"],
+    tag: ["All", "Automation", "Utility"],
     gitUrl: "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
     previewUrl: "https://github.com/Ciaranengelbrecht/subject-selection-splitter",
     tech: ["Python", "PyPDF2"],
@@ -126,8 +126,8 @@ const projectsData = [
     id: 12,
     title: "Network Server Engine",
     description:
-      "Custom networking server implementing TCP/IP protocols and concurrent connection handling.",
-    tag: ["All", "Systems"],
+      "Custom network server project implementing TCP/IP concepts and concurrent connection handling.",
+    tag: ["All", "Systems", "Networking"],
     gitUrl: "https://github.com/Ciaranengelbrecht/Networking-Server-Project",
     previewUrl: "https://github.com/Ciaranengelbrecht/Networking-Server-Project",
     tech: ["C", "Sockets", "TCP/IP"],
@@ -174,7 +174,7 @@ const projectsData = [
   },
 ];
 
-const categories = ["All", "Web", "AI", "Security", "Systems", "Algorithms", "Graphics"];
+const categories = ["All", "Automation", "Web", "Networking", "Security", "Systems", "AI", "Algorithms", "Graphics", "Utility"];
 
 const CategoryButton = ({ name, isSelected, onClick, count }) => (
   <button
@@ -304,8 +304,9 @@ const ProjectsSection = () => {
           <span className="ops-label">Selected projects</span>
           <h2 className="ops-heading mt-4">Projects</h2>
           <p className="mt-4 max-w-2xl text-primary-100">
-            A collection of projects showcasing my skills in web development,
-            artificial intelligence, systems programming, and more.
+            Project work that supports my ICT focus: automation utilities,
+            data tools, web apps, networking/systems exercises, and selected
+            software builds that show how I solve practical technical problems.
           </p>
           <div className="ops-rule mt-5" />
         </motion.div>

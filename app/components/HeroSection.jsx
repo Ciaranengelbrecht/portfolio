@@ -6,18 +6,18 @@ import Link from "next/link";
 import AssetImage from "./AssetImage";
 
 const focusAreas = [
-  "Software development",
-  "ICT support & systems",
-  "Networking & administration",
-  "Automation, data & AI",
+  "ICT support & service delivery",
+  "Desktop, endpoint & school ICT",
+  "Network & systems administration",
+  "Automation, data & development",
 ];
 
-const stack = ["Python", "JavaScript", "TypeScript", "React", "Next.js", "C", "SQL", "PowerShell"];
+const stack = ["Microsoft 365", "Active Directory", "Jamf", "Windows/macOS", "Networking", "PowerShell", "SQL", "Python"];
 
 const signalRows = [
-  { label: "Current role", value: "Graduate ICT Officer" },
+  { label: "Current role", value: "Graduate ICT Officer - WA Health" },
   { label: "Location", value: "Perth, Western Australia" },
-  { label: "Focus", value: "Reliable software, practical ICT, automation, and support" },
+  { label: "Focus", value: "ICT support, endpoint administration, networks, systems, and automation" },
 ];
 
 const HeroSection = () => {
@@ -60,9 +60,9 @@ const HeroSection = () => {
           </motion.div>
 
           <motion.div initial={false} className="mb-4 sm:mb-6">
-            <p className="ops-kicker mb-3">Ciaran Engelbrecht / Software Developer & ICT Professional</p>
+            <p className="ops-kicker mb-3">Ciaran Engelbrecht / ICT Support, Systems & Automation</p>
             <h1 className="max-w-4xl text-[2.15rem] font-semibold leading-[1.04] text-white sm:text-5xl md:text-6xl">
-              Building practical software, automation, and ICT solutions
+              ICT support, systems administration, and practical automation
             </h1>
           </motion.div>
 
@@ -70,9 +70,11 @@ const HeroSection = () => {
             initial={false}
             className="max-w-2xl text-[0.96rem] leading-relaxed text-primary-100 sm:text-lg"
           >
-            I build modern web applications and internal tools with a focus on
-            reliability, usability, and clear outcomes. I also explore AI/ML
-            workflows and automation where they add practical value.
+            ICT professional with hands-on experience across school ICT,
+            managed services, government cyber security, and WA Health
+            environments. I support users, devices, networks, Microsoft 365,
+            identity, documentation, and the automation work that makes ICT
+            operations more reliable.
           </motion.p>
 
           <motion.div initial={false} className="mt-5 grid max-w-2xl grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-2">
@@ -133,12 +135,12 @@ const HeroSection = () => {
               <div className="border-b border-white/10 p-3 text-xs font-medium uppercase text-primary-300">
                 Profile overview
               </div>
-              <div className="grid grid-cols-[0.42fr_0.58fr] gap-0 sm:grid-cols-[0.9fr_1.1fr] lg:grid-cols-1 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="portrait-frame relative min-h-[205px] border-r border-white/10 bg-surface-950 sm:min-h-[280px] sm:border-b-0 sm:border-r lg:border-b lg:border-r-0 xl:border-b-0 xl:border-r">
+              <div className="grid grid-cols-1 gap-0 sm:grid-cols-[minmax(190px,0.82fr)_1.18fr] lg:grid-cols-1 xl:grid-cols-[minmax(220px,0.9fr)_1.1fr]">
+                <div className="portrait-frame relative aspect-[4/5] min-h-0 border-b border-white/10 bg-surface-950 sm:aspect-auto sm:min-h-[300px] sm:border-b-0 sm:border-r lg:aspect-[4/5] lg:min-h-0 lg:border-b lg:border-r-0 xl:aspect-auto xl:min-h-[360px] xl:border-b-0 xl:border-r">
                   <AssetImage
                     src="/images/portrait.webp"
                     alt="Ciaran Engelbrecht"
-                    className="object-contain object-center grayscale-[8%] contrast-105 sm:object-cover"
+                    className="object-contain object-center grayscale-[8%] contrast-105 xl:object-cover xl:object-[center_24%]"
                     fill
                     priority
                   />
@@ -151,7 +153,7 @@ const HeroSection = () => {
                   <div>
                     <p className="ops-kicker mb-2">Profile</p>
                     <h2 className="text-lg font-semibold text-white min-[390px]:text-xl sm:text-2xl">Ciaran Engelbrecht</h2>
-                    <p className="mt-1 text-sm text-primary-200">Software Developer / ICT Professional</p>
+                    <p className="mt-1 text-sm text-primary-200">ICT Professional / Systems & Automation</p>
                   </div>
 
                   <div className="space-y-2 sm:space-y-3">

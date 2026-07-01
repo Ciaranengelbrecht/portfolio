@@ -6,34 +6,46 @@ import { useInView } from "react-intersection-observer";
 
 const skillGroups = [
   {
-    id: "software",
-    name: "Software Development",
-    summary: "Web applications, full-stack projects, scripting, and practical software tools.",
-    items: ["Python", "JavaScript", "TypeScript", "React", "Next.js", "Flask"],
+    id: "service",
+    name: "ICT Support & Service Delivery",
+    summary: "Level 1-2 support, onsite/walk-in service, ticket triage, escalation, documentation, and user-focused troubleshooting.",
+    items: ["Incident Triage", "Onsite Support", "Remote Support", "SLA-Aware Support", "ConnectWise", "IT Glue", "ServiceNow Exposure"],
   },
   {
-    id: "ict",
-    name: "ICT & Systems",
-    summary: "Hands-on experience supporting users, administering platforms, and improving day-to-day operations.",
-    items: ["Microsoft 365", "SharePoint", "Active Directory", "JAMF", "Windows/macOS", "IT Documentation"],
+    id: "endpoint",
+    name: "Microsoft, Identity & Endpoint",
+    summary: "Administration and support across Microsoft 365, identity, endpoint platforms, and mixed Windows, macOS, and iPad environments.",
+    items: ["Microsoft 365", "Teams", "SharePoint", "Active Directory", "Group Policy", "Entra ID Exposure", "Jamf Pro", "Jamf School", "Intune Exposure"],
+  },
+  {
+    id: "school",
+    name: "School ICT & End-User Environments",
+    summary: "Practical school ICT support across staff, student, BYOD, 1:1 device, classroom AV, printing, Wi-Fi, and learning-space continuity.",
+    items: ["Windows", "macOS", "iOS/iPad", "BYOD", "Vivi", "Classroom AV", "Printers", "1:1 Devices"],
+  },
+  {
+    id: "networking",
+    name: "Networking & Infrastructure",
+    summary: "Network troubleshooting and infrastructure support across wireless, switching, addressing, patching, and escalation workflows.",
+    items: ["TCP/IP", "DNS", "DHCP", "VLANs", "Wi-Fi", "Aruba Central", "Cisco Support", "Port Changes", "VPN Concepts"],
+  },
+  {
+    id: "security",
+    name: "Security & Governance",
+    summary: "Security-aware ICT practice across identity monitoring, access reviews, MFA/sign-in analysis, governance, and audit evidence.",
+    items: ["Microsoft Sentinel", "Defender XDR", "KQL", "MFA Analysis", "Access Reviews", "Essential Eight", "Audit Evidence"],
   },
   {
     id: "automation",
     name: "Automation & Data",
-    summary: "Workflow automation, reporting, data extraction, and lightweight AI/data science projects.",
-    items: ["PowerShell", "GraphAPI", "SQL", "OCR", "Python Automation", "AI/ML"],
+    summary: "Workflow automation, reporting, data validation, OCR utilities, and internal tooling that reduce repetitive ICT work.",
+    items: ["PowerShell", "Microsoft Graph API", "Power Automate", "Power BI", "Python", "SQL", "Snowflake", "Excel"],
   },
   {
-    id: "networking",
-    name: "Networking & Security",
-    summary: "Networking, access management, monitoring, and security-aware ICT support.",
-    items: ["Aruba/Cisco", "VLANs", "Microsoft Sentinel", "KQL", "MFA", "Essential Eight"],
-  },
-  {
-    id: "tools",
-    name: "Tools",
-    summary: "Development and platform tools used to build, test, deploy, and maintain projects.",
-    items: ["Git", "Vite", "Tailwind", "IndexedDB", "SQLite", "Linux"],
+    id: "development",
+    name: "Development Projects",
+    summary: "Applied software work used for internal tools, dashboards, APIs, personal projects, and automation-heavy problem solving.",
+    items: ["FastAPI", "React", "TanStack", "Drizzle ORM", "Better Auth/RBAC", "Git", "SQLite", "TypeScript"],
   },
 ];
 
@@ -43,9 +55,9 @@ const categories = [
 ];
 
 const evidence = [
-  { label: "Software projects", value: "LiftLog PWA, TaskHub, portfolio systems" },
-  { label: "ICT experience", value: "Support, systems administration, networking, documentation" },
-  { label: "Automation work", value: "OCR tooling, reporting scripts, workflow improvements" },
+  { label: "ICT support", value: "School ICT, managed services, WA Health, and government environments" },
+  { label: "Systems & networks", value: "Microsoft 365, identity, endpoint support, Wi-Fi, VLANs, Aruba/Cisco" },
+  { label: "Automation work", value: "OCR tooling, PowerShell/Graph reporting, SQL validation, workflow improvements" },
 ];
 
 const SkillGroup = ({ group, index, isVisible }) => (
@@ -116,8 +128,9 @@ const SkillsSection = () => {
           <span className="ops-label">Skills overview</span>
           <h2 className="ops-heading mt-4">Skills</h2>
           <p className="mt-4 max-w-2xl text-primary-100">
-            A practical toolkit built through hands-on project work,
-            from low-level systems programming to modern web development.
+            A practical ICT toolkit built through service desk, school ICT,
+            endpoint administration, networking, government security, data,
+            and automation-focused project work.
           </p>
           <div className="ops-rule mt-5" />
         </motion.div>
