@@ -171,17 +171,37 @@ a:focus-visible {
 
 .portrait-wrap {
   position: relative;
-  width: min(100%, 16rem);
-  aspect-ratio: 4 / 5;
+  width: min(100%, 17rem);
+  aspect-ratio: 2 / 3;
   overflow: hidden;
   justify-self: end;
-  border: 1px solid var(--line);
-  background: #e8e8e6;
+  border: 1px solid #35444f;
+  background: #b8c3c9;
+}
+
+.portrait-wrap::before,
+.portrait-wrap::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.portrait-wrap::before {
+  background: rgba(82, 112, 130, 0.1);
+  mix-blend-mode: multiply;
+}
+
+.portrait-wrap::after {
+  z-index: 2;
+  background: radial-gradient(ellipse at 50% 46%, transparent 58%, rgba(15, 19, 23, 0.2) 82%, rgba(15, 19, 23, 0.62) 118%);
 }
 
 .portrait-image {
-  object-fit: cover;
-  object-position: center 18%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: saturate(0.9) contrast(1.02) brightness(0.96);
 }
 
 .profile-section {
@@ -479,7 +499,7 @@ a:focus-visible {
   }
 
   .hero-layout {
-    grid-template-columns: minmax(0, 1fr) 16rem;
+    grid-template-columns: minmax(0, 1fr) 17rem;
   }
 
   .experience-layout {
@@ -522,7 +542,7 @@ a:focus-visible {
   }
 
   .portrait-wrap {
-    width: 10.5rem;
+    width: 11.5rem;
     justify-self: start;
   }
 }

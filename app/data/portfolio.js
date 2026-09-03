@@ -15,9 +15,12 @@ export const experience = [
     organisation: "WA Health",
     overview: "Enterprise health data and internal application-platform delivery.",
     achievements: [
-      "Validated Snowflake and SQL data across models, mappings, joins and business rules.",
-      "Developed and documented internal platform features using FastAPI, React/TanStack, SQL, authentication and RBAC.",
-      "Supported SharePoint metadata design and structured information management.",
+      "Validated enterprise health data in Snowflake and SQL across fact and dimension models, mappings, joins, source-to-target rules and business logic.",
+      "Identified transformation and data-quality issues while supporting stakeholder engagement and business requirement gathering.",
+      "Developed and documented features for an internal governed data platform using FastAPI, React/TanStack and SQL.",
+      "Worked across authentication, role-based access, APIs, data access and dashboard functionality.",
+      "Supported SharePoint metadata design and large-list uploads to improve governance, discoverability and structured information management.",
+      "Used Git and Azure DevOps-style workflows to investigate issues, document changes and collaborate with technical and business stakeholders.",
     ],
   },
   {
@@ -26,9 +29,13 @@ export const experience = [
     organisation: "Main Roads Western Australia",
     overview: "Identity, monitoring, governance, reporting and automation.",
     achievements: [
-      "Used KQL, Microsoft Sentinel and Defender XDR to investigate sign-ins, MFA issues and security activity.",
-      "Reviewed privileged, guest and group access to support least-privilege controls.",
-      "Automated security reporting and audit evidence with Power BI, PowerShell and Microsoft Graph.",
+      "Developed KQL queries in Microsoft Sentinel to investigate sign-in activity, MFA issues, error codes and success and failure trends.",
+      "Correlated identity and endpoint activity with Defender XDR alerts to support security investigations.",
+      "Reviewed privileged accounts, guest accounts and group memberships to strengthen least-privilege controls and identity hygiene.",
+      "Built Power BI security and compliance reporting from scripted datasets.",
+      "Automated account and group audits and evidence collection using PowerShell and Microsoft Graph.",
+      "Contributed to Essential Eight uplift through VBA signing and timestamp validation, phishing analysis, macro controls and endpoint compliance checks.",
+      "Produced technical procedures, risk-assessment templates, governance documentation and repeatable audit evidence.",
     ],
   },
   {
@@ -37,9 +44,19 @@ export const experience = [
     organisation: "ITDynamics",
     overview: "Managed services and embedded Level 2 support for approximately 1,300 users.",
     achievements: [
-      "Owned Level 2 incidents across endpoints, Microsoft 365, education systems, Wi-Fi, printing and classroom technology.",
-      "Administered Active Directory, Group Policy, Microsoft 365, Jamf and mixed Windows, Mac and iPad fleets.",
-      "Troubleshot cabling, switch ports, VLANs, DHCP/DNS and wireless issues, while building automation that reduced manual processing by approximately 90%.",
+      "Owned Level 2 incidents and escalations across Windows, macOS and iPadOS endpoints, Microsoft 365, SharePoint, Teams, SEQTA, printing, Wi-Fi and classroom technology.",
+      "Prioritised high-impact issues across AV and Vivi, telephony, CCTV and other business systems through to resolution.",
+      "Administered Microsoft 365, Active Directory and Group Policy for onboarding, offboarding, accounts, passwords, security groups, permissions and application access.",
+      "Managed Apple endpoints with Jamf Pro, Jamf School and Apple School Manager, including enrolment, applications, profiles, compliance, troubleshooting and lifecycle management.",
+      "Administered Teams, OneDrive and SharePoint sites, libraries and permissions, together with software licensing and Adobe Admin Console access.",
+      "Supported SEQTA, Edval, PaperCut, firewall and web-filtering services, Fastvue reporting, monitoring dashboards, telephony, CCTV and classroom AV.",
+      "Diagnosed connectivity end to end across cabling, link state, switch ports, VLAN assignment, DHCP/DNS, wireless coverage, authentication and endpoint configuration.",
+      "Audited switch and wireless infrastructure, configured VLAN and access ports, restored connectivity after switch failures and assisted with Aruba and Cisco deployments.",
+      "Delivered annual staff and student device rollouts covering preparation, enrolment, configuration, testing and post-deployment support.",
+      "Used ConnectWise, IT Glue and Jira for incidents, remote support, project tracking, documentation and knowledge management.",
+      "Worked with users and ICT leadership to gather requirements, develop solutions, audit processes and improve service workflows.",
+      "Built Python and PowerShell PDF/OCR tooling that reduced manual processing by approximately 90%, and automated recurring workflows with Power Automate.",
+      "Created technical procedures, knowledgebase articles, user guides and internal web resources to improve self-service and escalation handover.",
     ],
   },
   {
@@ -48,33 +65,46 @@ export const experience = [
     organisation: "Catholic Education WA / Irene McCormack Catholic College",
     overview: "Onsite Level 1/2 support for approximately 1,000 staff and students.",
     achievements: [
-      "Resolved account, endpoint, software, printing, Wi-Fi and classroom-technology issues.",
-      "Supported account creation, imaging, enrolment, deployment, repair and device records across a 1:1 environment.",
-      "Provided time-critical AV and network support across more than 50 teaching spaces.",
+      "Resolved staff and student incidents across accounts, logins, Windows, Mac and iPad devices, software, printing, Wi-Fi and classroom technology.",
+      "Explained solutions clearly to non-technical users and provided time-critical support for lessons, assessments, meetings and school events.",
+      "Created and managed staff and student accounts through Active Directory, Microsoft 365 and SEQTA, including groups, access and new-starter onboarding.",
+      "Prepared, imaged, configured, deployed and repaired devices, including screen and battery replacements, loan equipment and allocation records.",
+      "Enrolled and supported Apple devices through Jamf, including applications, profiles, configuration and deployment.",
+      "Supported printers, copiers, projectors, Apple TV, Vivi and classroom AV across more than 50 teaching spaces.",
+      "Performed first-line network troubleshooting across wireless access, cabling, switch connections and access points, escalating clear diagnostic evidence.",
+      "Assisted with cohort device preparation, asset and lifecycle records, recurring-issue tracking, user guides and internal support resources.",
     ],
   },
 ];
 
 export const capabilityGroups = [
   {
-    title: "ICT support",
-    tools: "Level 1/2 support, incident triage, escalation, documentation, ConnectWise, IT Glue, Jira",
+    title: "Support & ITSM",
+    tools: "Level 1/2 onsite, remote and walk-in support; incident and request triage; prioritisation; SLA awareness; escalation; asset and knowledge management; ConnectWise; IT Glue; Jira; ServiceNow and Freshdesk familiarity",
   },
   {
-    title: "Microsoft & endpoints",
-    tools: "Microsoft 365, Active Directory, Group Policy, Entra ID, Windows, macOS, iPadOS, Jamf, Intune familiarity",
+    title: "Microsoft & identity",
+    tools: "Microsoft 365; Teams; SharePoint; OneDrive; Outlook; Active Directory; Group Policy; Entra ID; MFA and sign-in troubleshooting; permissions; security groups; access reviews; Exchange Online working knowledge",
   },
   {
-    title: "Networks",
-    tools: "Aruba Central, Aruba/HPE, Cisco, TCP/IP, DNS, DHCP, VLANs, Wi-Fi, VPN, cabling and switch ports",
+    title: "Endpoint management",
+    tools: "Windows 10/11; macOS; iOS and iPadOS; Jamf Pro; Jamf School; Apple School Manager; imaging; enrolment; application and profile deployment; rebuilds; updates; compliance; device lifecycle; Intune and SCCM familiarity",
+  },
+  {
+    title: "Networking & monitoring",
+    tools: "Aruba Central; Aruba/HPE and Cisco switches and access points; TCP/IP; DNS; DHCP; ARP; subnetting; switching; VLANs; Wi-Fi; VPN; switch ports; patching; access and trunk concepts; cabling; link-state troubleshooting; Zabbix; Grafana",
   },
   {
     title: "Security & automation",
-    tools: "Microsoft Sentinel, Defender XDR, KQL, Essential Eight, PowerShell, Microsoft Graph, Power Automate, Python",
+    tools: "Microsoft Sentinel; Defender XDR; KQL; Essential Eight; least privilege; access reviews; audit evidence; PowerShell; Microsoft Graph API; Power Automate; Python; Bash",
   },
   {
     title: "Data & development",
-    tools: "SQL, Snowflake, Power BI, FastAPI, Flask, React, TanStack, REST APIs, Git",
+    tools: "SQL; Snowflake; Power BI; Excel; FastAPI; Flask; React and TanStack; REST APIs; authentication and RBAC concepts; Git; GitHub; Azure DevOps-style workflows; CI/CD",
+  },
+  {
+    title: "Education & business systems",
+    tools: "SEQTA; Edval; PaperCut; Adobe Admin Console; Fastvue; Oliver; SharePoint; Microsoft Forms and Bookings; Vivi; CCTV; POS; telephony systems",
   },
 ];
 

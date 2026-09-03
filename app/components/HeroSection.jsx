@@ -37,7 +37,7 @@ const HeroSection = () => (
           alt="Ciaran Engelbrecht"
           fill
           priority
-          sizes="(max-width: 700px) 180px, 260px"
+          sizes="(max-width: 700px) 184px, 272px"
           className="portrait-image"
         />
       </div>
