@@ -1,199 +1,76 @@
-"use client";
-
-import React, { useEffect } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
-import AssetImage from "./AssetImage";
+import Image from "next/image";
+import { profile, proofPoints, resumeHref } from "../data/portfolio";
 
-const focusAreas = [
-  "ICT support & service delivery",
-  "Desktop, endpoint & school ICT",
-  "Network & systems administration",
-  "Automation, data & development",
-];
+const basePath = process.env.DEPLOY_ENV === "CUSTOM_DOMAIN" ? "" : "/portfolio";
 
-const stack = ["Microsoft 365", "Active Directory", "Jamf", "Windows/macOS", "Networking", "PowerShell", "SQL", "Python"];
+const ArrowIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 20 20" fill="none">
+    <path d="M4 10h11M11 6l4 4-4 4" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
 
-const signalRows = [
-  { label: "Current role", value: "Graduate ICT Officer - WA Health" },
-  { label: "Location", value: "Perth, Western Australia" },
-  { label: "Focus", value: "ICT support, endpoint administration, networks, systems, and automation" },
-];
+const HeroSection = () => (
+  <section id="home" className="relative overflow-hidden border-b border-[#302f2b] bg-[#10110f] pt-20 sm:pt-24">
+    <div className="mx-auto grid min-h-[calc(100svh-5rem)] max-w-[1240px] items-center gap-12 px-5 py-14 sm:px-8 sm:py-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:px-10 lg:py-24">
+      <div className="hero-intro relative z-10 max-w-3xl">
+        <p className="mb-7 text-xs font-semibold uppercase tracking-[0.22em] text-[#c69262] sm:text-sm">
+          {profile.discipline}
+        </p>
+        <h1 className="font-editorial text-[clamp(3.3rem,8vw,7rem)] leading-[0.9] tracking-[-0.045em] text-[#f1eee7]">
+          Ciaran
+          <span className="block italic text-[#c9c5bd]">Engelbrecht</span>
+        </h1>
+        <p className="mt-8 max-w-2xl text-lg leading-8 text-[#c9c5bd] sm:text-xl sm:leading-9">
+          {profile.summary}
+        </p>
 
-const HeroSection = () => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const parallaxX = useSpring(useTransform(mouseX, [-500, 500], [-10, 10]), {
-    damping: 28,
-    stiffness: 130,
-  });
-  const parallaxY = useSpring(useTransform(mouseY, [-500, 500], [-10, 10]), {
-    damping: 28,
-    stiffness: 130,
-  });
-
-  useEffect(() => {
-    const handleMouseMove = (event) => {
-      mouseX.set(event.clientX - window.innerWidth / 2);
-      mouseY.set(event.clientY - window.innerHeight / 2);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  return (
-    <section
-      id="home"
-      className="relative flex min-h-[100svh] items-start overflow-hidden pb-10 pt-20 sm:min-h-screen sm:items-center sm:py-28"
-    >
-      <div className="absolute inset-0 bg-grid opacity-50" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent-400/40 to-transparent" />
-
-      <motion.div
-        initial={false}
-        className="relative z-10 grid w-full grid-cols-1 gap-6 px-4 sm:gap-8 sm:px-6 md:px-12 lg:grid-cols-12 lg:gap-10 xl:px-20"
-      >
-        <div className="flex flex-col justify-center lg:col-span-7">
-          <motion.div initial={false} className="mb-4 sm:mb-5">
-            <span className="ops-label">Available for opportunities</span>
-          </motion.div>
-
-          <motion.div initial={false} className="mb-4 sm:mb-6">
-            <p className="ops-kicker mb-3">Ciaran Engelbrecht / ICT Support, Systems & Automation</p>
-            <h1 className="max-w-4xl text-[2.15rem] font-semibold leading-[1.04] text-white sm:text-5xl md:text-6xl">
-              ICT support, systems administration, and practical automation
-            </h1>
-          </motion.div>
-
-          <motion.p
-            initial={false}
-            className="max-w-2xl text-[0.96rem] leading-relaxed text-primary-100 sm:text-lg"
-          >
-            ICT professional with hands-on experience across school ICT,
-            managed services, government cyber security, and WA Health
-            environments. I support users, devices, networks, Microsoft 365,
-            identity, documentation, and the automation work that makes ICT
-            operations more reliable.
-          </motion.p>
-
-          <motion.div initial={false} className="mt-5 grid max-w-2xl grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-2">
-            {focusAreas.map((item) => (
-              <div key={item} className="ops-panel-plain px-3 py-2 text-[0.82rem] text-primary-100 sm:text-sm">
-                <span className="mr-2 text-accent-300">&gt;</span>
-                {item}
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div initial={false} className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row">
-            <Link href="#projects" className="ops-button">
-              View my work
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
-              </svg>
-            </Link>
-            <Link href="#contact" className="ops-button-secondary">
-              Get in touch
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5A2.25 2.25 0 0119.5 19.5h-15a2.25 2.25 0 01-2.25-2.25V6.75" />
-              </svg>
-            </Link>
-          </motion.div>
-
-          <motion.div initial={false} className="mt-5 flex flex-wrap gap-2 sm:mt-7 sm:gap-3">
-            <Link
-              href="https://github.com/Ciaranengelbrecht"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ops-chip"
-            >
-              GitHub
-            </Link>
-            <Link
-              href="https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ops-chip"
-            >
-              LinkedIn
-            </Link>
-            <Link href="mailto:ciaran.engelbrecht@outlook.com" className="ops-chip">
-              Email
-            </Link>
-          </motion.div>
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Link href="#experience" className="editorial-button editorial-button-primary">
+            View experience
+            <ArrowIcon />
+          </Link>
+          <Link href={resumeHref} target="_blank" rel="noopener noreferrer" className="editorial-button">
+            Download CV
+          </Link>
         </div>
 
-        <motion.div
-          initial={false}
-          className="lg:col-span-5"
-          style={{ x: parallaxX, y: parallaxY }}
+        <div className="mt-12 flex flex-wrap gap-x-8 gap-y-2 border-t border-[#302f2b] pt-5 text-sm text-[#99968f]">
+          <span>{profile.location}</span>
+          <a href="mailto:ciaran.engelbrecht@outlook.com" className="text-link">
+            ciaran.engelbrecht@outlook.com
+          </a>
+        </div>
+      </div>
+
+      <div className="hero-portrait relative mx-auto w-full max-w-[530px] lg:mx-0 lg:justify-self-end">
+        <div className="absolute -left-5 -top-5 h-24 w-px bg-[#c69262] sm:-left-7 sm:-top-7" />
+        <div className="relative aspect-[4/5] overflow-hidden bg-[#ebe8e1]">
+          <Image
+            src={`${basePath}/images/portrait.webp`}
+            alt="Ciaran Engelbrecht"
+            fill
+            priority
+            sizes="(max-width: 1024px) 90vw, 42vw"
+            className="object-cover object-[center_18%] transition-transform duration-700 ease-out hover:scale-[1.015]"
+          />
+        </div>
+        <div className="absolute -bottom-4 -right-4 -z-10 h-full w-full border border-[#4b4036] sm:-bottom-6 sm:-right-6" />
+      </div>
+    </div>
+
+    <div className="mx-auto grid max-w-[1240px] grid-cols-2 border-x border-t border-[#302f2b] md:grid-cols-4">
+      {proofPoints.map((point, index) => (
+        <div
+          key={point.label}
+          className={`border-b border-[#302f2b] px-5 py-6 sm:px-7 sm:py-7 md:border-b-0 md:border-r md:last:border-r-0 ${index % 2 === 0 ? "border-r" : ""}`}
         >
-          <div className="ops-panel hero-profile-card scan-mask">
-            <span className="profile-top-glint" />
-            <div className="grid grid-cols-1 gap-0">
-              <div className="border-b border-white/10 p-3 text-xs font-medium uppercase text-primary-300">
-                Profile overview
-              </div>
-              <div className="grid grid-cols-1 gap-0 sm:grid-cols-[minmax(190px,0.82fr)_1.18fr] lg:grid-cols-1 xl:grid-cols-[minmax(220px,0.9fr)_1.1fr]">
-                <div className="portrait-frame relative aspect-[4/5] min-h-0 border-b border-white/10 bg-surface-950 sm:aspect-auto sm:min-h-[300px] sm:border-b-0 sm:border-r lg:aspect-[4/5] lg:min-h-0 lg:border-b lg:border-r-0 xl:aspect-auto xl:min-h-[360px] xl:border-b-0 xl:border-r">
-                  <AssetImage
-                    src="/images/portrait.webp"
-                    alt="Ciaran Engelbrecht"
-                    className="object-contain object-center grayscale-[8%] contrast-105 xl:object-cover xl:object-[center_24%]"
-                    fill
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(8,11,15,0.32)_66%,rgba(8,11,15,0.82)_100%)]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-surface-950/80 via-transparent to-surface-950/20" />
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-surface-950 to-transparent" />
-                </div>
-
-                <div className="space-y-3 p-3 sm:space-y-5 sm:p-5">
-                  <div>
-                    <p className="ops-kicker mb-2">Profile</p>
-                    <h2 className="text-lg font-semibold text-white min-[390px]:text-xl sm:text-2xl">Ciaran Engelbrecht</h2>
-                    <p className="mt-1 text-sm text-primary-200">ICT Professional / Systems & Automation</p>
-                  </div>
-
-                  <div className="space-y-2 sm:space-y-3">
-                    {signalRows.map((row) => (
-                      <div key={row.label} className="border-l border-accent-400/35 pl-3">
-                        <p className="text-xs font-semibold uppercase text-primary-400">{row.label}</p>
-                        <p className="text-sm text-primary-100">{row.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="hidden min-[430px]:block sm:block">
-                    <p className="ops-kicker mb-2">Technologies</p>
-                    <div className="flex flex-wrap gap-2">
-                      {stack.map((item) => (
-                        <span key={item} className="ops-chip">
-                          {item}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2, duration: 0.45 }}
-        className="absolute bottom-7 left-1/2 hidden -translate-x-1/2 items-center gap-3 text-xs text-primary-400 lg:flex"
-      >
-        <span>scroll</span>
-        <span className="h-px w-12 bg-primary-700" />
-        <span>more below</span>
-      </motion.div>
-    </section>
-  );
-};
+          <p className="font-editorial text-2xl text-[#f1eee7] sm:text-3xl">{point.value}</p>
+          <p className="mt-1 text-xs leading-5 text-[#99968f] sm:text-sm">{point.label}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+);
 
 export default HeroSection;
