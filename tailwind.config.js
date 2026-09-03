@@ -9,7 +9,6 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ["var(--font-manrope)", "system-ui", "sans-serif"],
-        editorial: ["var(--font-source-serif)", "Georgia", "serif"],
       },
     },
   },

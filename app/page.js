@@ -1,12 +1,7 @@
-import AboutSection from "./components/AboutSection";
-import ContactSection from "./components/ContactSection";
-import ExperienceSection from "./components/ExperienceSection";
 import Footer from "./components/Footer";
 import HeroSection from "./components/HeroSection";
 import Navbar from "./components/Navbar";
-import ProjectsSection from "./components/ProjectSection";
-import QualificationsSection from "./components/QualificationsSection";
-import SkillsSection from "./components/SkillsSection";
+import ProfileTabs from "./components/ProfileTabs";
 
 export default function Home() {
   return (
@@ -14,12 +9,7 @@ export default function Home() {
       <Navbar />
       <main>
         <HeroSection />
-        <AboutSection />
-        <ExperienceSection />
-        <SkillsSection />
-        <ProjectsSection />
-        <QualificationsSection />
-        <ContactSection />
+        <ProfileTabs />
       </main>
       <Footer />
     </>

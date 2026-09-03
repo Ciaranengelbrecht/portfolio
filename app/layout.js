@@ -1,17 +1,10 @@
-import { Manrope, Source_Serif_4 } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
   display: "swap",
-});
-
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  variable: "--font-source-serif",
-  display: "swap",
-  style: ["normal", "italic"],
 });
 
 export const metadata = {
@@ -37,8 +30,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`scroll-smooth ${manrope.variable} ${sourceSerif.variable}`}>
-      <body className={`${manrope.className} bg-[#10110f] text-[#f1eee7] antialiased`}>{children}</body>
+    <html lang="en" className={`scroll-smooth ${manrope.variable}`}>
+      <body className={`${manrope.className} antialiased`}>{children}</body>
     </html>
   );
 }
