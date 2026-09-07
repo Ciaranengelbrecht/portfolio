@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./wedding.css">
+  <link rel="stylesheet" href="./wedding.css?v=20260907-mobile-2">
   <script src="./config.js" defer></script>
   <script src="./wedding.js" defer></script>
   <script src="./countdown.js" defer></script>
@@ -101,10 +101,10 @@
         <div class="card-heading"><span class="eyebrow">Kindly reply</span><span class="small muted">01 / RSVP</span></div>
         <form id="rsvpForm">
           <div class="form-grid">
-            <label>First name <span class="required">*</span><input name="first_name" autocomplete="given-name" placeholder="First name" maxlength="80" required></label>
-            <label>Last name <span class="required">*</span><input name="last_name" autocomplete="family-name" placeholder="Last name" maxlength="80" required></label>
+            <label>First name <span class="required">*</span><input name="first_name" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" placeholder="First name" maxlength="80" required></label>
+            <label>Last name <span class="required">*</span><input name="last_name" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" placeholder="Last name" maxlength="80" required></label>
           </div>
-          <label>Email address <span class="required">*</span><input name="email" type="email" autocomplete="email" inputmode="email" placeholder="Email address" maxlength="254" required><span class="hint">Use the main contact’s name and email for your RSVP.</span></label>
+          <label>Email address <span class="required">*</span><input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Email address" maxlength="254" required><span class="hint">Use the main contact’s name and email for your RSVP.</span></label>
           <fieldset class="attendance"><legend>Will you / your group be attending? <span class="required">*</span></legend><div class="attendance-options">
             <label class="radio-card"><input type="radio" name="attending" value="yes" required><span><strong>Joyfully accepts</strong><small>Ready to celebrate</small></span><span class="radio-dot" aria-hidden="true"></span></label>
             <label class="radio-card"><input type="radio" name="attending" value="no" required><span><strong>Regretfully declines</strong><small>Celebrating from afar</small></span><span class="radio-dot" aria-hidden="true"></span></label>
@@ -130,7 +130,7 @@
         <article class="detail-card"><p class="eyebrow">03 · The finer details</p><h3>Black tie</h3><p class="detail-time">A little occasion to dress up</p><p>Gold accents are welcome.</p><p class="small muted">We’re still planning the menu. Please share any dietary requirements in your RSVP.</p></article>
       </div>
     </section>
-    <section class="photo-story" aria-label="Our celebration"><img src="../images/venuepic1.webp" alt="The gardens and grounds at Caversham House" loading="lazy" width="1200" height="700"><div><p class="eyebrow">For eternity &amp; always</p><h2>Our favourite day.<br><em>Our favourite people.</em></h2><p>Thank you for being part of our story. We can’t wait to make these memories with you.</p><a class="text-link" href="#rsvp">Leave your RSVP ↑</a></div></section>
+    <section class="photo-story" aria-label="Our celebration"><img src="../images/venuepic1.webp" alt="The gardens and grounds at Caversham House" loading="lazy" decoding="async" width="1200" height="700"><div><p class="eyebrow">For eternity &amp; always</p><h2>Our favourite day.<br><em>Our favourite people.</em></h2><p>Thank you for being part of our story. We can’t wait to make these memories with you.</p><a class="text-link" href="#rsvp">Leave your RSVP ↑</a></div></section>
   </main>
   <footer class="shell"><span class="monogram">C <span>&amp;</span> C</span><p>With love, Ciarán &amp; Cheylin</p><p class="eyebrow">26 · 09 · 2027</p></footer>
 </body>
