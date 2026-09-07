@@ -6,14 +6,15 @@
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#101820">
-  <meta name="description" content="Join Ciaran and Cheylin to celebrate their wedding. RSVP and find the details for the day.">
-  <title>Ciaran &amp; Cheylin · RSVP</title>
+  <meta name="description" content="Join Ciarán and Cheylin to celebrate their wedding. RSVP and find the details for the day.">
+  <title>Ciarán &amp; Cheylin · RSVP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./wedding.css">
   <script src="./config.js" defer></script>
   <script src="./wedding.js" defer></script>
+  <script src="./countdown.js" defer></script>
 </head>
 <body>
   <div class="starry-sky" aria-hidden="true">
@@ -73,10 +74,19 @@
   </nav>
   <header class="hero shell">
     <p class="eyebrow">Together with our favourite people</p>
-    <h1>Ciaran <em>&amp;</em> Cheylin</h1>
+    <h1>Ciarán <em>&amp;</em> Cheylin</h1>
     <p class="hero-date">Sunday, 26 September 2027 <span>·</span> Perth, WA</p>
     <div class="ornament" aria-hidden="true"><span></span>✧<span></span></div>
     <p class="hero-note">A lifetime of love. A day to share with you.</p>
+    <div class="wedding-countdown" id="weddingCountdown" hidden>
+      <p class="eyebrow" id="countdownTitle">Until we say “I do”</p>
+      <dl class="countdown-units" role="timer" aria-live="off" aria-labelledby="countdownTitle">
+        <div class="countdown-unit"><dt>Days</dt><dd id="countDays">--</dd></div>
+        <div class="countdown-unit"><dt>Hours</dt><dd id="countHours">--</dd></div>
+        <div class="countdown-unit"><dt>Minutes</dt><dd id="countMinutes">--</dd></div>
+        <div class="countdown-unit"><dt>Seconds</dt><dd id="countSeconds">--</dd></div>
+      </dl>
+    </div>
   </header>
   <main class="shell">
     <section id="rsvp" class="rsvp-layout" aria-labelledby="rsvpTitle">
@@ -109,7 +119,7 @@
         <div id="formStatus" class="status" role="status" aria-live="polite" tabindex="-1" hidden></div>
         <div id="successActions" hidden><button type="button" class="button secondary" id="anotherGuest">Send a separate RSVP</button></div>
         <p class="rsvp-contact">Need to make a change or correction after submitting?<br>Email us at <a href="mailto:ciaran.engelbrecht@outlook.com">ciaran.engelbrecht@outlook.com</a>.</p>
-        <noscript><p class="status error">Please enable JavaScript to send your RSVP, or contact Ciaran or Cheylin directly.</p></noscript>
+        <noscript><p class="status error">Please enable JavaScript to send your RSVP, or contact Ciarán or Cheylin directly.</p></noscript>
       </div>
     </section>
     <section id="details" class="day-section" aria-labelledby="dayTitle">
@@ -122,6 +132,6 @@
     </section>
     <section class="photo-story" aria-label="Our celebration"><img src="../images/venuepic1.webp" alt="The gardens and grounds at Caversham House" loading="lazy" width="1200" height="700"><div><p class="eyebrow">For eternity &amp; always</p><h2>Our favourite day.<br><em>Our favourite people.</em></h2><p>Thank you for being part of our story. We can’t wait to make these memories with you.</p><a class="text-link" href="#rsvp">Leave your RSVP ↑</a></div></section>
   </main>
-  <footer class="shell"><span class="monogram">C <span>&amp;</span> C</span><p>With love, Ciaran &amp; Cheylin</p><p class="eyebrow">26 · 09 · 2027</p></footer>
+  <footer class="shell"><span class="monogram">C <span>&amp;</span> C</span><p>With love, Ciarán &amp; Cheylin</p><p class="eyebrow">26 · 09 · 2027</p></footer>
 </body>
 </html>

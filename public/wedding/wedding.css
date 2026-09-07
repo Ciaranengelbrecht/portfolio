@@ -170,6 +170,41 @@ h3 {
   color:var(--muted);
   margin:12px 0 0;
 }
+.wedding-countdown {
+  width:min(100%, 360px);
+  margin:26px auto 0;
+}
+.wedding-countdown .eyebrow {
+  margin-bottom:12px;
+  font-size:9px;
+}
+.countdown-units {
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:8px;
+  margin:0;
+}
+.countdown-unit {
+  display:flex;
+  flex-direction:column;
+  padding:12px 4px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel);
+}
+.countdown-unit dt {
+  color:var(--muted);
+  font-size:8px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.countdown-unit dd {
+  order:-1;
+  margin:0 0 5px;
+  color:var(--gold);
+  font:500 clamp(28px, 5vw, 36px)/1 var(--serif);
+  font-variant-numeric:tabular-nums lining-nums;
+}
 .ornament {
   display:flex;
   align-items:center;
