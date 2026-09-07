@@ -81,3 +81,7 @@ public/progress/manifest-checksum.txt
 /manifest-checksum.txt
 /twa-manifest.json
 /store_icon.png
+
+# Private wedding activation and invitation code (never publish)
+/wedding/*.local.sql
+/wedding/*.local.txt

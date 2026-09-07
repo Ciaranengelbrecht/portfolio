@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow, noarchive"><meta name="referrer" content="no-referrer"><title>Wedding responses · Ciaran &amp; Cheylin</title><link rel="stylesheet" href="../wedding.css"><script src="../config.js" defer></script><script src="./admin.js" defer></script></head>
+<body><main class="shell admin-shell">
+  <div class="admin-header"><div><p class="eyebrow">Ciaran &amp; Cheylin · 26 September 2027</p><h1>Wedding responses</h1><a class="text-link" href="../">Back to wedding page ↗</a></div><button class="button secondary" id="signOut" hidden>Sign out</button></div>
+  <div class="form-card login-card" id="loginCard"><h2>Welcome back</h2><p class="small muted">Sign in with your wedding organiser account to view guest responses.</p><form id="loginForm"><label>Email<input name="email" type="email" autocomplete="username" required placeholder="Email address"></label><label>Password<input name="password" type="password" autocomplete="current-password" required placeholder="Password"></label><button class="button primary" id="signIn">Sign in</button></form></div>
+  <p id="adminStatus" class="status" role="status" aria-live="polite" hidden></p>
+  <section id="dashboard" aria-label="Guest responses" hidden>
+    <div class="summary-grid"><div class="summary-card"><strong id="total">0</strong>Responses</div><div class="summary-card"><strong id="accepting">0</strong>Accepting RSVPs</div><div class="summary-card"><strong id="declining">0</strong>Declining RSVPs</div><div class="summary-card"><strong id="dietary">0</strong>RSVPs with dietary notes</div></div>
+    <p class="small muted">Totals count RSVP submissions. For a couple or family’s guest names, numbers and any individual declines, check the Family &amp; notes column.</p>
+    <p class="small muted" id="updated"></p>
+    <div class="toolbar"><label>Search responses<input id="search" type="search" placeholder="Name, email or notes"></label><label>Show<select id="filter"><option value="all">All responses</option><option value="yes">Attending</option><option value="no">Not attending</option><option value="dietary">Dietary notes</option></select></label><div class="admin-actions"><button class="button secondary" id="refresh">Refresh</button><button class="button primary" id="export">Export CSV</button></div></div>
+    <p class="small muted" id="resultCount"></p>
+    <div class="table-wrap"><table><caption class="skip-link">Wedding RSVP responses</caption><thead><tr><th scope="col">Main contact</th><th scope="col">Email</th><th scope="col">Attending</th><th scope="col">Dietary notes</th><th scope="col">Family &amp; notes</th><th scope="col">Received (Perth)</th></tr></thead><tbody id="responses"></tbody></table><p class="empty-state muted" id="empty" hidden>No responses yet.</p></div>
+  </section>
+</main></body></html>
