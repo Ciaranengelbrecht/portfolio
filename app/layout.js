@@ -30,7 +30,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`scroll-smooth ${manrope.variable}`}>
+    <html lang="en-AU" className={manrope.variable}>
       <body className={`${manrope.className} antialiased`}>{children}</body>
     </html>
   );

@@ -6,8 +6,9 @@ import ProfileTabs from "./components/ProfileTabs";
 export default function Home() {
   return (
     <>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <Navbar />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <HeroSection />
         <ProfileTabs />
       </main>

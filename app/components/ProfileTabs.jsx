@@ -27,36 +27,42 @@ const ExternalLink = ({ href, children }) => (
 
 const ExperiencePanel = () => {
   const [selectedRole, setSelectedRole] = useState(0);
-  const job = experience[selectedRole];
 
   return (
-    <div className="experience-layout">
-      <div className="role-list" aria-label="Employment history">
-        {experience.map((item, index) => (
-          <button
-            key={`${item.organisation}-${item.period}`}
-            type="button"
-            className="role-button"
-            aria-pressed={selectedRole === index}
-            onClick={() => setSelectedRole(index)}
+    <div className="experience-list">
+      {experience.map((job, index) => (
+        <article className="experience-entry" key={`${job.organisation}-${job.period}`}>
+          <h3>
+            <button
+              id={`role-${index}`}
+              type="button"
+              className="role-button"
+              aria-expanded={selectedRole === index}
+              aria-controls={`role-detail-${index}`}
+              onClick={() => setSelectedRole(selectedRole === index ? null : index)}
+            >
+              <span className="role-company">{job.organisation}</span>
+              <span className="role-title">{job.role}</span>
+              <span className="meta-text role-period">{job.period}</span>
+              <span className="role-toggle" aria-hidden="true">{selectedRole === index ? "−" : "+"}</span>
+            </button>
+          </h3>
+          <div
+            id={`role-detail-${index}`}
+            className="role-detail"
+            role="region"
+            aria-labelledby={`role-${index}`}
+            hidden={selectedRole !== index}
           >
-            <span>{item.organisation}</span>
-            <span className="meta-text">{item.period}</span>
-          </button>
-        ))}
-      </div>
-
-      <article className="role-detail" key={`${job.organisation}-${selectedRole}`}>
-        <p className="meta-text">{job.period}</p>
-        <h3>{job.role}</h3>
-        <p className="role-organisation">{job.organisation}</p>
-        <p className="role-overview">{job.overview}</p>
-        <ul className="plain-list">
-          {job.achievements.map((achievement) => (
-            <li key={achievement}>{achievement}</li>
-          ))}
-        </ul>
-      </article>
+            <p className="role-overview">{job.overview}</p>
+            <ul className="plain-list">
+              {job.achievements.map((achievement) => (
+                <li key={achievement}>{achievement}</li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      ))}
     </div>
   );
 };
@@ -118,8 +124,8 @@ const ProjectsPanel = () => (
             <p>{project.description}</p>
           </div>
           <div className="project-links">
-            <ExternalLink href={project.repository}>Code</ExternalLink>
-            {project.demo && <ExternalLink href={project.demo}>Live</ExternalLink>}
+            <ExternalLink href={project.repository}>View code<span className="sr-only"> for {project.title}</span></ExternalLink>
+            {project.demo && <ExternalLink href={project.demo}>Open project<span className="sr-only">: {project.title}</span></ExternalLink>}
           </div>
         </article>
       ))}
@@ -205,6 +211,7 @@ const ProfileTabs = () => {
             role="tabpanel"
             aria-labelledby={`tab-${tab.id}`}
             className="tab-panel"
+            tabIndex={0}
             hidden={activeTab !== tab.id}
           >
             <h2 className="sr-only">{tab.label}</h2>

@@ -8,7 +8,7 @@ const Navbar = () => (
       <div className="header-links">
         <a href="mailto:ciaran.engelbrecht@outlook.com">Email</a>
         <a href="https://www.linkedin.com/in/ciaran-engelbrecht-9a0914243" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-        <Link href={resumeHref} target="_blank" rel="noopener noreferrer">CV</Link>
+        <a href={resumeHref} target="_blank" rel="noopener noreferrer">CV</a>
       </div>
     </nav>
   </header>

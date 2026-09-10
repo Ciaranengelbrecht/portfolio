@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { contactLinks, profile, resumeHref } from "../data/portfolio";
 
 const basePath = process.env.DEPLOY_ENV === "CUSTOM_DOMAIN" ? "" : "/portfolio";
@@ -17,7 +16,7 @@ const HeroSection = () => (
           <p>{profile.detail}</p>
         </div>
         <div className="hero-links" aria-label="Profile links">
-          <Link href={resumeHref} target="_blank" rel="noopener noreferrer">CV</Link>
+          <a href={resumeHref} target="_blank" rel="noopener noreferrer">View CV <span className="link-format">(PDF)</span></a>
           {contactLinks.map((link) => (
             <a
               key={link.label}
