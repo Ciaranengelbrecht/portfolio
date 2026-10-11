@@ -200,8 +200,8 @@ a {
   aspect-ratio: 2 / 3;
   overflow: hidden;
   justify-self: end;
-  border: 1px solid #35444f;
-  background: #b8c3c9;
+  /* Let the portrait's alpha channel reveal the hero background. */
+  background: transparent;
 }
 
 .portrait-image {
