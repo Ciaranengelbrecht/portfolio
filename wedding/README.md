@@ -33,6 +33,16 @@ Password sign-in is restricted by database policies to explicitly approved organ
 
 Sessions are held in memory, not local storage. Reloading requires sign-in again. Tokens refresh when fetching responses; sign-out clears the displayed guest data immediately. All dashboard totals count submissions, not individual people. Family names, headcounts and mixed attendance are recorded as free-text notes; review the Family & notes column or CSV to calculate the guest headcount. Dietary counts refer to accepting submissions with dietary notes. Times in the dashboard are Perth time; CSV timestamps are UTC. This is a response list, not an invitation roster: it cannot count people who have not replied.
 
+## Invitation activity
+
+`wedding/activity.sql` adds tracking to an already activated database. It is independent of RSVP submissions and does not rotate the invitation code. Apply it once before publishing the updated page. For a fresh setup, activate `schema.sql` first, then apply `activity.sql`.
+
+The admin page shows invitation opens, RSVP-link clicks, today's counts and daily activity for the past 14 days. It counts only visits carrying a valid invitation code, including a remembered code or one entered manually. An open is counted once per page load; each click on a link to `#rsvp` is counted. Scrolling to the form does not count as a link click. Repeated opens, organisers' own checks and forwarded links count, so these are **not unique guests**. Everyone uses a shared code, so tracking cannot identify which invitee opened the site. Earlier visits cannot be reconstructed from this tracking.
+
+Events contain only a fresh random event ID, one of two event types and a server timestamp. No names, email addresses, invitation secrets, IP addresses, user agents or persistent visitor IDs are saved in the activity table. No tracking cookies or browser identifiers are added. Supabase and the hosting provider may maintain their own ordinary operational logs. The invitation secret is sent only in the Supabase request body for validation. Invalid secrets and unknown event types are rejected; event IDs prevent a repeated request from being counted twice. A separate atomic limit caps tracking at 1,000 events per rolling hour and 5,000 per rolling day. Failed or blocked tracking requests may leave a visit uncounted and never prevent an RSVP.
+
+Activity reads use the existing wedding organiser membership and row-level security. Signed-in users of other apps cannot read counts. Refresh updates activity and RSVPs; an activity-service failure leaves the RSVP list usable and labels counts as unavailable. Dates and daily boundaries use Perth time.
+
 ## Spam protection and privacy
 
 The database verifies a randomly generated 192-bit invitation code, stored only as a SHA-256 hash in a private schema. The link fragment is not sent to the web server and is removed from the address bar after loading; it is retained in session storage for navigation on that tab. No invitation code is bundled into the website.
@@ -53,6 +63,7 @@ Reopen by setting it to `true`. To rotate a leaked invitation code, generate a n
 
 - `node --test wedding/frontend.test.cjs`: guest confirmation, failure/retry, duplicate clicks, invitation handling, dietary behaviour, admin access, pagination, filtering, CSV safety and sign-out using an isolated DOM harness. These are behaviour checks, not visual browser tests.
 - `wedding/test-schema.sql`: run only on a disposable local PostgreSQL database. Creates mock Supabase roles/auth and checks actual SQL validation, RLS, organiser access, duplicates, idempotency and rate limits. Never run this test fixture on the production project.
+- `wedding/test-activity.sql`: run after `test-schema.sql` in the same disposable database to verify tracking permissions, invitation validation, idempotency, limits and Perth daily boundaries.
 - `DEPLOY_ENV=CUSTOM_DOMAIN npm run build`: static export including wedding assets.
 - Before sending invitations, verify the full flow on the deployed site and visually inspect it on a phone. The in-app browser was unavailable during implementation.
 

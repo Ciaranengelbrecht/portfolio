@@ -43,6 +43,7 @@ function harness(file, fetch, hash = '') {
   document.getElementById = get;
   document.createElement = () => new Element();
   document.createDocumentFragment = () => new Element();
+  document.querySelectorAll = () => [get('rsvpLink'), get('skipLink')];
   const sandbox = {
     document, location, history: { replaceState(_a, _b, value) { location.replaced = value; } },
     window: new Element(), localStorage: { getItem() { return null; }, setItem() {} },
@@ -59,7 +60,126 @@ function harness(file, fetch, hash = '') {
 }
 const guestFile = 'public/wedding/wedding.js';
 const adminFile = 'public/wedding/admin/admin.js';
+const activityFile = 'public/wedding/activity.js';
 const reply = (data, ok = true, status = 200) => ({ ok, status, json: async () => data });
+const loadActivity = app => vm.runInNewContext(fs.readFileSync(activityFile, 'utf8'), app.sandbox, { filename: activityFile });
+const settle = () => new Promise(resolve => setImmediate(resolve));
+
+test('activity records invitation opens and each RSVP link click without guest details or persistent IDs', async () => {
+  const requests = [];
+  const app = harness(guestFile, async (url, options) => { requests.push({ url, options, body: JSON.parse(options.body) }); return reply({ status: 'recorded' }); }, '#invite=private-code');
+  loadActivity(app);
+  await settle();
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].body.p_event_type, 'page_view');
+  assert.equal(requests[0].url.includes('private-code'), false);
+  assert.deepEqual(Object.keys(requests[0].body).sort(), ['p_event_id', 'p_event_type', 'p_invite_code']);
+  await app.get('rsvpLink').emit('click');
+  await app.get('skipLink').emit('click');
+  await settle();
+  assert.deepEqual(requests.map(r => r.body.p_event_type), ['page_view', 'rsvp_click', 'rsvp_click']);
+  assert.equal(new Set(requests.map(r => r.body.p_event_id)).size, 3);
+  assert.equal(requests.every(r => r.options.keepalive), true);
+  assert.equal(app.form.hidden, false);
+});
+
+test('ordinary visits wait for an invitation code and a rejected code can be corrected', async () => {
+  const sent = [];
+  const app = harness(guestFile, async (_url, options) => {
+    const body = JSON.parse(options.body); sent.push(body);
+    return body.p_invite_code === 'valid' ? reply({ status: 'recorded' }) : reply({ message: 'INVALID_INVITATION' }, false, 400);
+  });
+  loadActivity(app);
+  await settle();
+  assert.equal(sent.length, 0);
+  app.form.elements.invite_code.value = 'wrong';
+  await app.form.elements.invite_code.emit('change');
+  await settle();
+  app.form.elements.invite_code.value = 'valid';
+  await app.form.elements.invite_code.emit('change');
+  await settle();
+  await app.form.elements.invite_code.emit('change');
+  await settle();
+  assert.deepEqual(sent.map(r => r.p_invite_code), ['wrong', 'valid']);
+});
+
+test('tracking failure cannot prevent RSVP confirmation', async () => {
+  const app = harness(guestFile, async (url) => {
+    if (url.includes('record_wedding_activity')) throw new TypeError('tracking blocked');
+    return reply({ status: 'received' });
+  }, '#invite=private-code');
+  loadActivity(app);
+  await settle();
+  await app.form.emit('submit');
+  assert.equal(app.form.hidden, true);
+  assert.match(app.get('formStatus').textContent, /has been received/);
+});
+
+test('activity only counts one page view while the initial tracking request is pending', async () => {
+  const sent = [];
+  let finish;
+  const app = harness(guestFile, (_url, options) => {
+    const body = JSON.parse(options.body); sent.push(body);
+    if (body.p_event_type === 'page_view') return new Promise(resolve => { finish = resolve; });
+    return Promise.resolve(reply({ status: 'recorded' }));
+  }, '#invite=private-code');
+  loadActivity(app);
+  await app.get('rsvpLink').emit('click');
+  assert.deepEqual(sent.map(r => r.p_event_type), ['page_view', 'rsvp_click']);
+  finish(reply({ status: 'recorded' }));
+  await settle();
+});
+
+test('a lost tracking acknowledgement reuses the page view ID when a later click retries it', async () => {
+  const sent = [];
+  const app = harness(guestFile, async (_url, options) => {
+    const body = JSON.parse(options.body); sent.push(body);
+    if (sent.length === 1) throw new TypeError('acknowledgement lost');
+    return reply({ status: 'recorded' });
+  }, '#invite=private-code');
+  loadActivity(app);
+  await settle();
+  await app.get('rsvpLink').emit('click');
+  await settle();
+  const views = sent.filter(r => r.p_event_type === 'page_view');
+  assert.equal(views.length, 2);
+  assert.equal(views[0].p_event_id, views[1].p_event_id);
+});
+
+test('admin displays activity totals and daily counts, then clears them on sign-out', async () => {
+  const app = harness(adminFile, async (url, options) => {
+    if (url.includes('/token?')) return reply({ access_token: 'auth-token', expires_in: 3600 });
+    if (url.includes('/wedding_organisers')) return reply([{ user_id: 'organiser' }]);
+    if (url.includes('/wedding_responses')) return reply([]);
+    if (url.includes('/get_wedding_activity')) {
+      assert.equal(options.headers.Authorization, 'Bearer auth-token');
+      return reply({ page_views: 24, rsvp_clicks: 8, today_views: 3, today_clicks: 1, last_view: '2026-10-11T00:00:00Z', days: [{ day: '2026-10-11', page_views: 3, rsvp_clicks: 1 }] });
+    }
+    return reply(null, true, 204);
+  });
+  await app.get('loginForm').emit('submit');
+  assert.equal(app.get('pageViews').textContent, 24);
+  assert.equal(app.get('rsvpClicks').textContent, 8);
+  assert.equal(app.get('activityDetails').hidden, false);
+  assert.equal(app.get('activityDays').children[0].children[1].textContent, 3);
+  await app.get('signOut').emit('click');
+  assert.equal(app.get('pageViews').textContent, '—');
+  assert.equal(app.get('activityDays').children.length, 0);
+});
+
+test('activity failure leaves RSVP responses available and does not show a misleading zero', async () => {
+  const app = harness(adminFile, async url => {
+    if (url.includes('/token?')) return reply({ access_token: 'auth-token', expires_in: 3600 });
+    if (url.includes('/wedding_organisers')) return reply([{ user_id: 'organiser' }]);
+    if (url.includes('/wedding_responses')) return reply([sample()]);
+    throw new TypeError('activity offline');
+  });
+  await app.get('loginForm').emit('submit');
+  assert.equal(app.get('dashboard').hidden, false);
+  assert.equal(app.get('total').textContent, 1);
+  assert.equal(app.get('pageViews').textContent, '—');
+  assert.match(app.get('activityStatus').textContent, /could not be loaded/);
+});
 
 test('private link fills invitation, strips fragment and avoids exposing it in request URL', async () => {
   let request;

@@ -8,6 +8,7 @@
   let busy = false;
   let generation = 0;
   const dateFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', dateStyle: 'medium', timeStyle: 'short' });
+  const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', dateStyle: 'medium' });
   function status(message, error = true) {
     $('adminStatus').textContent = message;
     $('adminStatus').className = `status ${error ? 'error' : 'success'}`;
@@ -34,6 +35,7 @@
     rows = [];
     visibleRows = [];
     $('responses').replaceChildren();
+    renderActivity(null);
     $('dashboard').hidden = true;
     $('signOut').hidden = true;
     $('loginCard').hidden = false;
@@ -80,6 +82,26 @@
     $('empty').textContent = rows.length ? 'No responses match your filters.' : 'No responses yet. New RSVPs will appear here.';
     $('export').disabled = visibleRows.length === 0;
   }
+  function renderActivity(activity, failed = false) {
+    for (const [id, key] of [['pageViews', 'page_views'], ['rsvpClicks', 'rsvp_clicks'], ['todayViews', 'today_views'], ['todayClicks', 'today_clicks']]) {
+      $(id).textContent = activity ? activity[key] : '—';
+    }
+    $('activityDays').replaceChildren();
+    $('activityDetails').hidden = !activity?.days?.length;
+    $('activityStatus').textContent = failed
+      ? 'Activity counts could not be loaded. Your RSVPs are still shown below; use Refresh to try again.'
+      : activity?.last_view ? `Latest invitation open: ${dateFormat.format(new Date(activity.last_view))} (Perth).`
+      : activity ? 'No invitation opens have been recorded yet.' : '';
+    (activity?.days || []).forEach(day => {
+      const tr = document.createElement('tr');
+      for (const value of [dayFormat.format(new Date(`${day.day}T00:00:00+08:00`)), day.page_views, day.rsvp_clicks]) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      $('activityDays').appendChild(tr);
+    });
+  }
   async function refresh() {
     if (busy) return;
     busy = true;
@@ -97,9 +119,15 @@
         loaded.push(...page);
         if (page.length < 500) break;
       }
+      let activity = null;
+      try {
+        activity = await request('/rest/v1/rpc/get_wedding_activity', { method: 'POST', body: '{}' });
+        if (!activity || !Array.isArray(activity.days) || ['page_views', 'rsvp_clicks', 'today_views', 'today_clicks'].some(key => !Number.isFinite(activity[key]))) activity = null;
+      } catch { /* RSVP responses remain available if activity cannot be loaded. */ }
       if (currentGeneration !== generation) return;
       rows = loaded;
       render();
+      renderActivity(activity, !activity);
       $('loginCard').hidden = true;
       $('dashboard').hidden = false;
       $('signOut').hidden = false;
