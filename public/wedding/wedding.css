@@ -697,6 +697,80 @@ body.page-hidden .sky-star {
   max-width:1080px;
   padding-block:40px;
 }
+body.welcome-open {
+  overflow:hidden;
+}
+.welcome-dialog {
+  width:min(480px, calc(100% - 32px));
+  max-height:calc(100dvh - 32px);
+  padding:40px 32px 24px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  color:var(--text);
+  box-shadow:0 24px 90px #0008;
+  overflow:auto;
+}
+.welcome-dialog::backdrop {
+  background:#050c13c9;
+  backdrop-filter:blur(5px);
+}
+.welcome-dialog h2 {
+  margin:0 0 18px;
+  font-size:clamp(38px, 7vw, 52px);
+  line-height:1.08;
+}
+.welcome-dialog #welcomeIntro {
+  color:var(--muted);
+  margin-bottom:24px;
+}
+.welcome-dialog form {
+  gap:0;
+}
+.welcome-close {
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:44px;
+  height:44px;
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:24px;
+  line-height:1;
+}
+.welcome-privacy {
+  line-height:1.65;
+  margin:8px 0 22px;
+}
+.welcome-continue {
+  width:100%;
+}
+.welcome-skip {
+  display:block;
+  margin:8px auto 0;
+  min-height:44px;
+  padding:8px 18px;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  text-decoration:underline;
+  text-underline-offset:4px;
+}
+.visit-table-wrap {
+  max-height:360px;
+  margin-block:12px 24px;
+}
+@media(max-width:480px) {
+  .welcome-dialog {
+    padding:36px 22px 18px;
+  }
+  .welcome-dialog .form-grid {
+    grid-template-columns:minmax(0, 1fr);
+  }
+}
 .admin-header {
   display:flex;
   justify-content:space-between;

@@ -18,6 +18,10 @@ class Element {
   appendChild(el) { this.children.push(el); }
   replaceChildren(...children) { this.children = children; }
   click() { this.clicked = true; }
+  showModal() { this.open = true; }
+  close() { this.open = false; void this.emit('close'); }
+  getBoundingClientRect() { return { left: 10, right: 490, top: 10, bottom: 590 }; }
+  dispatchEvent(event) { void this.emit(event.type, event); return true; }
 }
 function harness(file, fetch, hash = '') {
   const els = {};
@@ -33,6 +37,7 @@ function harness(file, fetch, hash = '') {
   const form = createForm('rsvpForm', { first_name: 'First', last_name: 'Last', email: 'guest@local.test', attending: 'yes', dietary_notes: 'Vegetarian', message: 'Hello', invite_code: '', website: '' });
   form.elements.push(get('submitRsvp'));
   createForm('loginForm', { email: 'organiser@local.test', password: 'test-password' });
+  createForm('welcomeForm', { first_name: '', last_name: '' });
   ['dashboard', 'successActions', 'signOut', 'formStatus', 'adminStatus'].forEach(id => { get(id).hidden = true; });
   get('filter').value = 'all';
   const storage = new Map();
@@ -49,6 +54,7 @@ function harness(file, fetch, hash = '') {
     window: new Element(), localStorage: { getItem() { return null; }, setItem() {} },
     sessionStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v) },
     crypto: webcrypto, URLSearchParams, AbortController, Intl, Date, TypeError, Error,
+    Event: class { constructor(type, options = {}) { this.type = type; Object.assign(this, options); } },
     setTimeout, clearTimeout, Blob,
     URL: { createObjectURL(blob) { blobUrls.push(blob); return 'blob:test'; }, revokeObjectURL() {} },
     FormData: class { constructor(f) { this.values = f.elements.filter(el => el.name && !el.disabled).map(el => [el.name, el.value]); } [Symbol.iterator]() { return this.values[Symbol.iterator](); } get(name) { return this.values.find(([key]) => key === name)?.[1]; } },
@@ -73,13 +79,14 @@ test('activity records invitation opens and each RSVP link click without guest d
   assert.equal(requests.length, 1);
   assert.equal(requests[0].body.p_event_type, 'page_view');
   assert.equal(requests[0].url.includes('private-code'), false);
-  assert.deepEqual(Object.keys(requests[0].body).sort(), ['p_event_id', 'p_event_type', 'p_invite_code']);
+  assert.deepEqual(Object.keys(requests[0].body).sort(), ['p_event_id', 'p_event_type', 'p_invite_code', 'p_visit_id']);
   await app.get('rsvpLink').emit('click');
   await app.get('skipLink').emit('click');
   await settle();
   assert.deepEqual(requests.map(r => r.body.p_event_type), ['page_view', 'rsvp_click', 'rsvp_click']);
   assert.equal(new Set(requests.map(r => r.body.p_event_id)).size, 3);
   assert.equal(requests.every(r => r.options.keepalive), true);
+  assert.equal(requests.every(r => r.body.p_visit_id === requests[0].body.p_event_id), true);
   assert.equal(app.form.hidden, false);
 });
 
@@ -273,6 +280,110 @@ test('edited retry gets a new request ID and a duplicate is explained', async ()
 });
 
 const sample = (n = 0) => ({ id: String(n), first_name: `First${n}`, last_name: 'Last', email: `guest${n}@local.test`, attending: true, dietary_notes: 'Vegetarian', message: '', created_at: '2026-09-07T00:00:00Z' });
+
+test('invite links show an optional welcome prompt, prefill editable RSVP names and identify only that visit', async () => {
+  const requests = [];
+  const app = harness(guestFile, async (url, options) => {
+    requests.push({ url, body: JSON.parse(options.body) });
+    return reply({ status: url.includes('submit_wedding_rsvp') ? 'received' : 'recorded' });
+  }, '#invite=private-code');
+  loadActivity(app);
+  await settle();
+  assert.equal(app.get('guestWelcome').open, true);
+  assert.equal(app.sandbox.document.body.classList.contains('welcome-open'), true);
+  app.get('welcomeForm').elements.first_name.value = '  Ana   María ';
+  app.get('welcomeForm').elements.last_name.value = 'O’Neill';
+  await app.get('welcomeForm').emit('submit');
+  await settle();
+  assert.equal(app.get('guestWelcome').open, false);
+  assert.equal(app.form.elements.first_name.value, 'Ana María');
+  assert.equal(app.form.elements.last_name.value, 'O’Neill');
+  assert.equal(app.form.elements.first_name.disabled, false);
+  const identified = requests.find(r => r.url.includes('identify_wedding_visit'));
+  assert.equal(identified.body.p_visit_id, requests[0].body.p_event_id);
+  assert.equal(identified.body.p_first_name, 'Ana María');
+  assert.equal(identified.body.p_last_name, 'O’Neill');
+  assert.equal(identified.url.includes('Ana'), false);
+  assert.equal(app.storage.has('wedding_guest_name'), false);
+  app.form.elements.first_name.value = 'Edited';
+  await app.form.emit('input');
+  await app.form.emit('submit');
+  assert.equal(requests.at(-1).body.p_first_name, 'Edited');
+});
+
+test('the welcome prompt stays closed without an invitation code', async () => {
+  const app = harness(guestFile, async () => reply({ status: 'recorded' }));
+  loadActivity(app);
+  assert.notEqual(app.get('guestWelcome').open, true);
+});
+
+test('closing, skipping, clicking the backdrop or pressing Escape does not capture a typed name', async () => {
+  for (const action of ['close', 'skip', 'backdrop', 'escape']) {
+    const requests = [];
+    const app = harness(guestFile, async (url, options) => { requests.push({ url, body: JSON.parse(options.body) }); return reply({ status: 'recorded' }); }, '#invite=private-code');
+    loadActivity(app);
+    app.get('welcomeForm').elements.first_name.value = 'Do not save';
+    if (action === 'close') await app.get('welcomeClose').emit('click');
+    if (action === 'skip') await app.get('welcomeSkip').emit('click');
+    if (action === 'backdrop') await app.get('guestWelcome').emit('click', { clientX: 0, clientY: 0 });
+    if (action === 'escape') app.get('guestWelcome').close(); // Native dialog Escape emits close.
+    await settle();
+    assert.equal(app.get('guestWelcome').open, false);
+    assert.equal(app.sandbox.document.body.classList.contains('welcome-open'), false);
+    assert.equal(requests.some(r => r.url.includes('identify_wedding_visit')), false);
+    assert.equal(app.form.elements.first_name.value, 'First');
+    assert.equal(app.form.elements.invite_code.value, 'private-code');
+  }
+});
+
+test('clicking dialog padding does not dismiss it; an empty Continue is allowed', async () => {
+  const requests = [];
+  const app = harness(guestFile, async url => { requests.push(url); return reply({ status: 'recorded' }); }, '#invite=private-code');
+  loadActivity(app);
+  await app.get('guestWelcome').emit('click', { clientX: 30, clientY: 30 });
+  assert.equal(app.get('guestWelcome').open, true);
+  await app.get('welcomeForm').emit('submit');
+  await settle();
+  assert.equal(app.get('guestWelcome').open, false);
+  assert.equal(requests.some(url => url.includes('identify_wedding_visit')), false);
+});
+
+test('a first name alone works and failed name tracking never prevents prefill or closing', async () => {
+  const app = harness(guestFile, async url => {
+    if (url.includes('identify_wedding_visit')) throw new TypeError('offline');
+    return reply({ status: 'recorded' });
+  }, '#invite=private-code');
+  loadActivity(app);
+  app.form.elements.last_name.value = '';
+  app.get('welcomeForm').elements.first_name.value = 'Sam';
+  await app.get('welcomeForm').emit('submit');
+  await settle();
+  assert.equal(app.get('guestWelcome').open, false);
+  assert.equal(app.form.elements.first_name.value, 'Sam');
+  assert.equal(app.form.elements.last_name.value, '');
+});
+
+test('admin shows named and unnamed visits as text and clears them on sign-out', async () => {
+  const app = harness(adminFile, async url => {
+    if (url.includes('/token?')) return reply({ access_token: 'auth-token', expires_in: 3600 });
+    if (url.includes('/wedding_organisers')) return reply([{ user_id: 'organiser' }]);
+    if (url.includes('/wedding_responses')) return reply([]);
+    if (url.includes('/get_wedding_activity')) return reply({ page_views: 2, rsvp_clicks: 3, today_views: 2, today_clicks: 3, named_visits: 1, days: [], visits: [
+      { first_name: '<img src=x onerror=alert(1)>', last_name: 'Guest', opened_at: '2026-10-12T00:00:00Z', rsvp_clicks: 3 },
+      { first_name: '', last_name: '', opened_at: '2026-10-12T00:00:01Z', rsvp_clicks: 0 }
+    ] });
+    return reply(null, true, 204);
+  });
+  await app.get('loginForm').emit('submit');
+  assert.equal(app.get('visitDetails').hidden, false);
+  assert.equal(app.get('invitationVisits').children[0].children[0].textContent, '<img src=x onerror=alert(1)> Guest');
+  assert.equal(app.get('invitationVisits').children[0].children[2].textContent, 3);
+  assert.equal(app.get('invitationVisits').children[1].children[0].textContent, 'Name not shared');
+  assert.match(app.get('namedVisitCount').textContent, /1 invitation open/);
+  await app.get('signOut').emit('click');
+  assert.equal(app.get('invitationVisits').children.length, 0);
+  assert.equal(app.get('namedVisitCount').textContent, '');
+});
 test('admin fetches every page, filters, escapes guest text and exports safe CSV', async () => {
   const pages = [];
   const fixture = Array.from({ length: 501 }, (_v, n) => sample(n));

@@ -87,6 +87,10 @@
       $(id).textContent = activity ? activity[key] : '—';
     }
     $('activityDays').replaceChildren();
+    $('invitationVisits').replaceChildren();
+    $('visitDetails').hidden = !activity?.visits?.length;
+    $('namedVisitCount').textContent = activity && Number.isFinite(activity.named_visits)
+      ? `${activity.named_visits} invitation ${activity.named_visits === 1 ? 'open' : 'opens'} with a shared name. Names are optional and repeat visits count separately.` : '';
     $('activityDetails').hidden = !activity?.days?.length;
     $('activityStatus').textContent = failed
       ? 'Activity counts could not be loaded. Your RSVPs are still shown below; use Refresh to try again.'
@@ -100,6 +104,16 @@
         tr.appendChild(td);
       }
       $('activityDays').appendChild(tr);
+    });
+    (activity?.visits || []).forEach(visit => {
+      const tr = document.createElement('tr');
+      const name = [visit.first_name, visit.last_name].filter(Boolean).join(' ') || 'Name not shared';
+      for (const value of [name, dateFormat.format(new Date(visit.opened_at)), visit.rsvp_clicks]) {
+        const td = document.createElement('td');
+        td.textContent = value;
+        tr.appendChild(td);
+      }
+      $('invitationVisits').appendChild(tr);
     });
   }
   async function refresh() {
