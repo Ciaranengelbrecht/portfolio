@@ -1,151 +1,826 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#101820">
-  <meta name="description" content="Join Ciarán and Cheylin to celebrate their wedding. RSVP and find the details for the day.">
-  <title>Ciarán &amp; Cheylin · RSVP</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./wedding.css?v=20261012-welcome">
-  <script src="./config.js" defer></script>
-  <script src="./wedding.js?v=20261011-activity" defer></script>
-  <script src="./activity.js?v=20261012-welcome" defer></script>
-  <script src="./countdown.js" defer></script>
-</head>
-<body>
-  <div class="starry-sky" aria-hidden="true">
-    <span class="sky-star sky-glimmer" style="--x:16.5%;--y:47.5%;--size:2.0px;--duration:8.9s;--delay:-7.6s"></span>
-    <span class="sky-star" style="--x:66.0%;--y:21.3%;--size:2.0px;--duration:11.0s;--delay:-17.1s"></span>
-    <span class="sky-star" style="--x:56.9%;--y:83.3%;--size:2.3px;--duration:9.7s;--delay:-16.2s"></span>
-    <span class="sky-star" style="--x:69.9%;--y:96.6%;--size:1.6px;--duration:9.2s;--delay:-8.3s"></span>
-    <span class="sky-star" style="--x:91.0%;--y:7.8%;--size:1.8px;--duration:8.6s;--delay:-17.5s"></span>
-    <span class="sky-star sky-glimmer" style="--x:34.0%;--y:90.6%;--size:2.2px;--duration:10.3s;--delay:-3.9s"></span>
-    <span class="sky-star" style="--x:49.9%;--y:94.6%;--size:2.1px;--duration:9.9s;--delay:-4.2s"></span>
-    <span class="sky-star" style="--x:12.8%;--y:50.6%;--size:1.3px;--duration:7.5s;--delay:-3.4s"></span>
-    <span class="sky-star" style="--x:75.2%;--y:47.9%;--size:2.1px;--duration:7.7s;--delay:-1.6s"></span>
-    <span class="sky-star" style="--x:8.3%;--y:10.6%;--size:1.4px;--duration:7.3s;--delay:-3.6s"></span>
-    <span class="sky-star sky-glimmer" style="--x:45.5%;--y:75.0%;--size:2.2px;--duration:9.5s;--delay:-15.2s"></span>
-    <span class="sky-star" style="--x:6.6%;--y:95.1%;--size:2.2px;--duration:7.2s;--delay:-17.5s"></span>
-    <span class="sky-star" style="--x:88.6%;--y:5.6%;--size:2.1px;--duration:10.0s;--delay:-3.4s"></span>
-    <span class="sky-star" style="--x:26.7%;--y:16.6%;--size:2.1px;--duration:8.4s;--delay:-7.0s"></span>
-    <span class="sky-star" style="--x:43.4%;--y:17.3%;--size:2.4px;--duration:8.7s;--delay:-3.1s"></span>
-    <span class="sky-star sky-glimmer" style="--x:69.8%;--y:80.0%;--size:2.1px;--duration:7.2s;--delay:-1.9s"></span>
-    <span class="sky-star" style="--x:97.0%;--y:49.5%;--size:1.4px;--duration:12.8s;--delay:-4.3s"></span>
-    <span class="sky-star" style="--x:30.1%;--y:85.1%;--size:2.4px;--duration:7.9s;--delay:-3.6s"></span>
-    <span class="sky-star" style="--x:11.7%;--y:67.7%;--size:2.5px;--duration:6.7s;--delay:-13.0s"></span>
-    <span class="sky-star" style="--x:69.9%;--y:85.9%;--size:1.3px;--duration:12.6s;--delay:-2.5s"></span>
-    <span class="sky-star sky-glimmer" style="--x:68.3%;--y:80.2%;--size:2.2px;--duration:9.7s;--delay:-8.5s"></span>
-    <span class="sky-star" style="--x:92.0%;--y:24.3%;--size:2.0px;--duration:6.8s;--delay:-10.1s"></span>
-    <span class="sky-star" style="--x:56.4%;--y:50.1%;--size:1.6px;--duration:11.2s;--delay:-2.8s"></span>
-    <span class="sky-star" style="--x:67.3%;--y:96.2%;--size:1.9px;--duration:9.6s;--delay:-14.5s"></span>
-    <span class="sky-star" style="--x:34.7%;--y:22.5%;--size:1.5px;--duration:7.9s;--delay:-6.7s"></span>
-    <span class="sky-star sky-glimmer" style="--x:44.9%;--y:45.7%;--size:1.8px;--duration:12.2s;--delay:-6.0s"></span>
-    <span class="sky-star" style="--x:27.6%;--y:41.7%;--size:2.1px;--duration:8.0s;--delay:-15.8s"></span>
-    <span class="sky-star" style="--x:1.7%;--y:66.0%;--size:1.7px;--duration:8.3s;--delay:-2.8s"></span>
-    <span class="sky-star" style="--x:98.1%;--y:14.3%;--size:1.7px;--duration:12.0s;--delay:-11.4s"></span>
-    <span class="sky-star" style="--x:2.3%;--y:55.0%;--size:2.1px;--duration:7.3s;--delay:-13.9s"></span>
-    <span class="sky-star sky-glimmer" style="--x:89.0%;--y:42.1%;--size:1.4px;--duration:9.8s;--delay:-6.7s"></span>
-    <span class="sky-star" style="--x:53.1%;--y:89.2%;--size:1.6px;--duration:7.0s;--delay:-9.1s"></span>
-    <span class="sky-star" style="--x:5.1%;--y:12.2%;--size:1.5px;--duration:12.5s;--delay:-10.8s"></span>
-    <span class="sky-star" style="--x:14.9%;--y:45.4%;--size:1.6px;--duration:8.2s;--delay:-4.0s"></span>
-    <span class="sky-star" style="--x:86.0%;--y:91.1%;--size:1.9px;--duration:9.1s;--delay:-4.8s"></span>
-    <span class="sky-star sky-glimmer" style="--x:46.9%;--y:53.4%;--size:1.5px;--duration:6.9s;--delay:-0.8s"></span>
-    <span class="sky-star" style="--x:77.1%;--y:63.8%;--size:2.3px;--duration:10.9s;--delay:-9.9s"></span>
-    <span class="sky-star" style="--x:52.8%;--y:66.0%;--size:1.7px;--duration:8.3s;--delay:-11.0s"></span>
-    <span class="sky-star" style="--x:90.3%;--y:94.5%;--size:1.7px;--duration:7.1s;--delay:-14.6s"></span>
-    <span class="sky-star" style="--x:37.2%;--y:22.6%;--size:1.6px;--duration:8.1s;--delay:-12.5s"></span>
-    <span class="sky-star sky-glimmer" style="--x:75.1%;--y:95.0%;--size:1.5px;--duration:7.5s;--delay:-4.7s"></span>
-    <span class="sky-star" style="--x:61.4%;--y:96.5%;--size:1.5px;--duration:8.4s;--delay:-1.3s"></span>
-    <span class="sky-star" style="--x:97.0%;--y:56.0%;--size:2.1px;--duration:10.3s;--delay:-9.1s"></span>
-    <span class="sky-star" style="--x:24.1%;--y:82.1%;--size:2.0px;--duration:7.4s;--delay:-6.0s"></span>
-    <span class="sky-star" style="--x:51.0%;--y:72.4%;--size:2.4px;--duration:11.4s;--delay:-5.3s"></span>
-    <span class="sky-star sky-glimmer" style="--x:27.1%;--y:21.6%;--size:1.5px;--duration:11.2s;--delay:-7.7s"></span>
-    <span class="sky-star" style="--x:3.1%;--y:5.6%;--size:2.5px;--duration:10.5s;--delay:-13.9s"></span>
-    <span class="sky-star" style="--x:35.9%;--y:76.7%;--size:1.8px;--duration:8.3s;--delay:-12.5s"></span>
-  </div>
-  <a class="skip-link" href="#rsvp">Skip to RSVP</a>
-  <nav class="topbar shell" aria-label="Wedding navigation">
-    <a class="monogram" href="#">C <span>&amp;</span> C</a>
-    <div class="nav-links"><a href="#rsvp">RSVP</a><a href="#details">The day</a><button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to daylight theme">Daylight ☼</button></div>
-  </nav>
-  <header class="hero shell">
-    <p class="eyebrow">Together with our favourite people</p>
-    <h1>Ciarán <em>&amp;</em> Cheylin</h1>
-    <p class="hero-date">Sunday, 26 September 2027 <span>·</span> Perth, WA</p>
-    <div class="ornament" aria-hidden="true"><span></span>✧<span></span></div>
-    <p class="hero-note">A lifetime of love. A day to share with you.</p>
-    <div class="wedding-countdown" id="weddingCountdown" hidden>
-      <p class="eyebrow" id="countdownTitle">Until we say “I do”</p>
-      <dl class="countdown-units" role="timer" aria-live="off" aria-labelledby="countdownTitle">
-        <div class="countdown-unit"><dt>Days</dt><dd id="countDays">--</dd></div>
-        <div class="countdown-unit"><dt>Hours</dt><dd id="countHours">--</dd></div>
-        <div class="countdown-unit"><dt>Minutes</dt><dd id="countMinutes">--</dd></div>
-        <div class="countdown-unit"><dt>Seconds</dt><dd id="countSeconds">--</dd></div>
-      </dl>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#101820" />
+    <meta
+      name="description"
+      content="Join Ciarán and Cheylin to celebrate their wedding. RSVP and find the details for the day." />
+    <title>Ciarán &amp; Cheylin · RSVP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@400;500;600&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="./wedding.css?v=20261012-welcome" />
+    <script src="./config.js" defer></script>
+    <script src="./wedding.js?v=20261011-activity" defer></script>
+    <script src="./activity.js?v=20261012-welcome" defer></script>
+    <script src="./countdown.js" defer></script>
+  </head>
+  <body>
+    <div class="starry-sky" aria-hidden="true">
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 16.5%;
+          --y: 47.5%;
+          --size: 2px;
+          --duration: 8.9s;
+          --delay: -7.6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 66%;
+          --y: 21.3%;
+          --size: 2px;
+          --duration: 11s;
+          --delay: -17.1s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 56.9%;
+          --y: 83.3%;
+          --size: 2.3px;
+          --duration: 9.7s;
+          --delay: -16.2s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 69.9%;
+          --y: 96.6%;
+          --size: 1.6px;
+          --duration: 9.2s;
+          --delay: -8.3s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 91%;
+          --y: 7.8%;
+          --size: 1.8px;
+          --duration: 8.6s;
+          --delay: -17.5s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 34%;
+          --y: 90.6%;
+          --size: 2.2px;
+          --duration: 10.3s;
+          --delay: -3.9s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 49.9%;
+          --y: 94.6%;
+          --size: 2.1px;
+          --duration: 9.9s;
+          --delay: -4.2s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 12.8%;
+          --y: 50.6%;
+          --size: 1.3px;
+          --duration: 7.5s;
+          --delay: -3.4s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 75.2%;
+          --y: 47.9%;
+          --size: 2.1px;
+          --duration: 7.7s;
+          --delay: -1.6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 8.3%;
+          --y: 10.6%;
+          --size: 1.4px;
+          --duration: 7.3s;
+          --delay: -3.6s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 45.5%;
+          --y: 75%;
+          --size: 2.2px;
+          --duration: 9.5s;
+          --delay: -15.2s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 6.6%;
+          --y: 95.1%;
+          --size: 2.2px;
+          --duration: 7.2s;
+          --delay: -17.5s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 88.6%;
+          --y: 5.6%;
+          --size: 2.1px;
+          --duration: 10s;
+          --delay: -3.4s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 26.7%;
+          --y: 16.6%;
+          --size: 2.1px;
+          --duration: 8.4s;
+          --delay: -7s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 43.4%;
+          --y: 17.3%;
+          --size: 2.4px;
+          --duration: 8.7s;
+          --delay: -3.1s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 69.8%;
+          --y: 80%;
+          --size: 2.1px;
+          --duration: 7.2s;
+          --delay: -1.9s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 97%;
+          --y: 49.5%;
+          --size: 1.4px;
+          --duration: 12.8s;
+          --delay: -4.3s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 30.1%;
+          --y: 85.1%;
+          --size: 2.4px;
+          --duration: 7.9s;
+          --delay: -3.6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 11.7%;
+          --y: 67.7%;
+          --size: 2.5px;
+          --duration: 6.7s;
+          --delay: -13s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 69.9%;
+          --y: 85.9%;
+          --size: 1.3px;
+          --duration: 12.6s;
+          --delay: -2.5s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 68.3%;
+          --y: 80.2%;
+          --size: 2.2px;
+          --duration: 9.7s;
+          --delay: -8.5s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 92%;
+          --y: 24.3%;
+          --size: 2px;
+          --duration: 6.8s;
+          --delay: -10.1s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 56.4%;
+          --y: 50.1%;
+          --size: 1.6px;
+          --duration: 11.2s;
+          --delay: -2.8s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 67.3%;
+          --y: 96.2%;
+          --size: 1.9px;
+          --duration: 9.6s;
+          --delay: -14.5s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 34.7%;
+          --y: 22.5%;
+          --size: 1.5px;
+          --duration: 7.9s;
+          --delay: -6.7s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 44.9%;
+          --y: 45.7%;
+          --size: 1.8px;
+          --duration: 12.2s;
+          --delay: -6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 27.6%;
+          --y: 41.7%;
+          --size: 2.1px;
+          --duration: 8s;
+          --delay: -15.8s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 1.7%;
+          --y: 66%;
+          --size: 1.7px;
+          --duration: 8.3s;
+          --delay: -2.8s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 98.1%;
+          --y: 14.3%;
+          --size: 1.7px;
+          --duration: 12s;
+          --delay: -11.4s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 2.3%;
+          --y: 55%;
+          --size: 2.1px;
+          --duration: 7.3s;
+          --delay: -13.9s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 89%;
+          --y: 42.1%;
+          --size: 1.4px;
+          --duration: 9.8s;
+          --delay: -6.7s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 53.1%;
+          --y: 89.2%;
+          --size: 1.6px;
+          --duration: 7s;
+          --delay: -9.1s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 5.1%;
+          --y: 12.2%;
+          --size: 1.5px;
+          --duration: 12.5s;
+          --delay: -10.8s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 14.9%;
+          --y: 45.4%;
+          --size: 1.6px;
+          --duration: 8.2s;
+          --delay: -4s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 86%;
+          --y: 91.1%;
+          --size: 1.9px;
+          --duration: 9.1s;
+          --delay: -4.8s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 46.9%;
+          --y: 53.4%;
+          --size: 1.5px;
+          --duration: 6.9s;
+          --delay: -0.8s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 77.1%;
+          --y: 63.8%;
+          --size: 2.3px;
+          --duration: 10.9s;
+          --delay: -9.9s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 52.8%;
+          --y: 66%;
+          --size: 1.7px;
+          --duration: 8.3s;
+          --delay: -11s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 90.3%;
+          --y: 94.5%;
+          --size: 1.7px;
+          --duration: 7.1s;
+          --delay: -14.6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 37.2%;
+          --y: 22.6%;
+          --size: 1.6px;
+          --duration: 8.1s;
+          --delay: -12.5s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 75.1%;
+          --y: 95%;
+          --size: 1.5px;
+          --duration: 7.5s;
+          --delay: -4.7s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 61.4%;
+          --y: 96.5%;
+          --size: 1.5px;
+          --duration: 8.4s;
+          --delay: -1.3s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 97%;
+          --y: 56%;
+          --size: 2.1px;
+          --duration: 10.3s;
+          --delay: -9.1s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 24.1%;
+          --y: 82.1%;
+          --size: 2px;
+          --duration: 7.4s;
+          --delay: -6s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 51%;
+          --y: 72.4%;
+          --size: 2.4px;
+          --duration: 11.4s;
+          --delay: -5.3s;
+        "></span>
+      <span
+        class="sky-star sky-glimmer"
+        style="
+          --x: 27.1%;
+          --y: 21.6%;
+          --size: 1.5px;
+          --duration: 11.2s;
+          --delay: -7.7s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 3.1%;
+          --y: 5.6%;
+          --size: 2.5px;
+          --duration: 10.5s;
+          --delay: -13.9s;
+        "></span>
+      <span
+        class="sky-star"
+        style="
+          --x: 35.9%;
+          --y: 76.7%;
+          --size: 1.8px;
+          --duration: 8.3s;
+          --delay: -12.5s;
+        "></span>
     </div>
-  </header>
-  <main class="shell">
-    <section id="rsvp" class="rsvp-layout" aria-labelledby="rsvpTitle">
-      <div class="rsvp-intro">
-        <p class="eyebrow">You’re part of our story</p>
-        <h2 id="rsvpTitle">Will you<br><em>join us?</em></h2>
-        <p>We can’t wait to celebrate with you.<br>Let us know if you’ll be there.</p>
-        <p class="small muted">One RSVP can cover you, your partner or your family. Please include only guests named on your invitation.</p>
-        <div class="mini-detail"><span class="detail-symbol" aria-hidden="true">✧</span><div><strong>26 September 2027</strong><span>St Joseph’s Catholic Church, Subiaco<br>Reception at Caversham House</span></div></div>
+    <a class="skip-link" href="#rsvp">Skip to RSVP</a>
+    <nav class="topbar shell" aria-label="Wedding navigation">
+      <a class="monogram" href="#">C <span>&amp;</span> C</a>
+      <div class="nav-links">
+        <a href="#rsvp">RSVP</a><a href="#details">The day</a
+        ><button
+          class="theme-toggle"
+          id="themeToggle"
+          type="button"
+          aria-label="Switch to daylight theme">
+          Daylight ☼
+        </button>
       </div>
-      <div class="form-card">
-        <div class="card-heading"><span class="eyebrow">Kindly reply</span><span class="small muted">01 / RSVP</span></div>
-        <form id="rsvpForm">
-          <div class="form-grid">
-            <label>First name <span class="required">*</span><input name="first_name" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" placeholder="First name" maxlength="80" required></label>
-            <label>Last name <span class="required">*</span><input name="last_name" autocomplete="family-name" autocapitalize="words" enterkeyhint="next" placeholder="Last name" maxlength="80" required></label>
+    </nav>
+    <header class="hero shell">
+      <p class="eyebrow">Together with our favourite people</p>
+      <h1>Ciarán <em>&amp;</em> Cheylin</h1>
+      <p class="hero-date">
+        Sunday, 26 September 2027 <span>·</span> Perth, WA
+      </p>
+      <div class="ornament" aria-hidden="true"><span></span>✧<span></span></div>
+      <p class="hero-note">A lifetime of love. A day to share with you.</p>
+      <div class="wedding-countdown" id="weddingCountdown" hidden>
+        <p class="eyebrow" id="countdownTitle">Until we say “I do”</p>
+        <dl
+          class="countdown-units"
+          role="timer"
+          aria-live="off"
+          aria-labelledby="countdownTitle">
+          <div class="countdown-unit">
+            <dt>Days</dt>
+            <dd id="countDays">--</dd>
           </div>
-          <label>Email address <span class="required">*</span><input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Email address" maxlength="254" required><span class="hint">Use the main contact’s name and email for your RSVP.</span></label>
-          <fieldset class="attendance"><legend>Will you / your group be attending? <span class="required">*</span></legend><div class="attendance-options">
-            <label class="radio-card"><input type="radio" name="attending" value="yes" required><span><strong>Joyfully accepts</strong><small>Ready to celebrate</small></span><span class="radio-dot" aria-hidden="true"></span></label>
-            <label class="radio-card"><input type="radio" name="attending" value="no" required><span><strong>Regretfully declines</strong><small>Celebrating from afar</small></span><span class="radio-dot" aria-hidden="true"></span></label>
-          </div></fieldset>
-          <label id="dietaryField">Dietary notes <span class="optional">optional</span><textarea name="dietary_notes" rows="3" maxlength="1000" placeholder="Allergies, vegetarian, vegan, gluten-free, or other dietary requirements"></textarea><span class="hint">Please include any allergies or dietary needs, and the name of each guest they apply to.</span></label>
-          <label>Additional guests &amp; notes <span class="optional">if applicable</span><textarea name="message" rows="4" maxlength="1000" placeholder="Full names of all invitees attending, or any other notes" aria-describedby="groupNotesHint"></textarea><span class="hint" id="groupNotesHint">Replying for a couple or family? Include the total number of guests (including yourself) and the full names of everyone covered by this RSVP, including children. If anyone in your group can’t attend, please note that here too.</span></label>
-          <label id="inviteField" hidden>Invitation code <span class="required">*</span><input name="invite_code" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="128" required placeholder="Code shared with your invitation"><span class="hint">Open the private link we sent you, or enter your invitation code.</span></label>
-          <div class="honeypot" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
-          <button class="button primary submit-button" id="submitRsvp" type="submit">Send RSVP <span aria-hidden="true">↗</span></button>
-          <p class="privacy-note">Your response is only visible to the wedding organisers. We count invitation opens and RSVP-link clicks; if you share your name in the welcome prompt, it is shown with your visit.</p>
-        </form>
-        <div id="formStatus" class="status" role="status" aria-live="polite" tabindex="-1" hidden></div>
-        <div id="successActions" hidden><button type="button" class="button secondary" id="anotherGuest">Send a separate RSVP</button></div>
-        <p class="rsvp-contact">Need to make a change or correction after submitting?<br>Email us at <a href="mailto:ciaran.engelbrecht@outlook.com">ciaran.engelbrecht@outlook.com</a>.</p>
-        <noscript><p class="status error">Please enable JavaScript to send your RSVP, or contact Ciarán or Cheylin directly.</p></noscript>
+          <div class="countdown-unit">
+            <dt>Hours</dt>
+            <dd id="countHours">--</dd>
+          </div>
+          <div class="countdown-unit">
+            <dt>Minutes</dt>
+            <dd id="countMinutes">--</dd>
+          </div>
+          <div class="countdown-unit">
+            <dt>Seconds</dt>
+            <dd id="countSeconds">--</dd>
+          </div>
+        </dl>
       </div>
-    </section>
-    <section id="details" class="day-section" aria-labelledby="dayTitle">
-      <div class="section-heading"><div><p class="eyebrow">A day to remember</p><h2 id="dayTitle">The celebration</h2></div><a class="text-link" href="../weddinginvite/ciaran-cheylin-save-the-date.ics" download>Add to calendar ↗</a></div>
-      <div class="details-grid">
-        <article class="detail-card"><p class="eyebrow">01 · The vows</p><h3>Ceremony</h3><p class="detail-time">2:00 pm – 3:00 pm</p><p>St Joseph’s Catholic Church<br>Subiaco</p><p class="small muted">Doors open at 1:30 pm</p><a class="text-link" href="https://www.google.com/maps/search/?api=1&amp;query=St+Josephs+Catholic+Church+Subiaco" target="_blank" rel="noopener noreferrer">Get directions ↗</a></article>
-        <article class="detail-card"><p class="eyebrow">02 · The party</p><h3>Reception</h3><p class="detail-time">5:00 pm – late</p><p>Riverside Marquee, Caversham House<br>265 Caversham Road, Caversham</p><p class="small muted">An evening of love, laughter &amp; dancing</p><a class="text-link" href="https://www.google.com/maps/search/?api=1&amp;query=Caversham+House+265+Caversham+Road" target="_blank" rel="noopener noreferrer">Get directions ↗</a></article>
-        <article class="detail-card"><p class="eyebrow">03 · The finer details</p><h3>Black tie</h3><p class="detail-time">A little occasion to dress up</p><p>Gold accents are welcome.</p><p class="small muted">We’re still planning the menu. Please share any dietary requirements in your RSVP.</p></article>
-      </div>
-    </section>
-    <section class="photo-story" aria-label="Our celebration"><img src="../images/venuepic1.webp" alt="The gardens and grounds at Caversham House" loading="lazy" decoding="async" width="1200" height="700"><div><p class="eyebrow">For eternity &amp; always</p><h2>Our favourite day.<br><em>Our favourite people.</em></h2><p>Thank you for being part of our story. We can’t wait to make these memories with you.</p><a class="text-link" href="#rsvp">Leave your RSVP ↑</a></div></section>
-  </main>
-  <footer class="shell"><span class="monogram">C <span>&amp;</span> C</span><p>With love, Ciarán &amp; Cheylin</p><p class="eyebrow">26 · 09 · 2027</p></footer>
-  <dialog id="guestWelcome" class="welcome-dialog" aria-labelledby="welcomeTitle" aria-describedby="welcomeIntro">
-    <button id="welcomeClose" class="welcome-close" type="button" aria-label="Skip the name prompt">×</button>
-    <p class="eyebrow">A little hello</p>
-    <h2 id="welcomeTitle">We’re so glad<br><em>you’re here.</em></h2>
-    <form id="welcomeForm">
-      <div class="form-grid">
-        <label>First name<input name="first_name" autocomplete="given-name" autocapitalize="words" enterkeyhint="next" maxlength="80" placeholder="First name" autofocus></label>
-        <label>Last name <span class="">optional</span><input name="last_name" autocomplete="family-name" autocapitalize="words" enterkeyhint="done" maxlength="80" placeholder="Last name"></label>
-      </div>
-      <button class="button primary welcome-continue" type="submit">Continue to invitation <span aria-hidden="true">↗</span></button>
-      <button id="welcomeSkip" class="welcome-skip" type="button">Skip for now</button>
-    </form>
-  </dialog>
-</body>
+    </header>
+    <main class="shell">
+      <section id="rsvp" class="rsvp-layout" aria-labelledby="rsvpTitle">
+        <div class="rsvp-intro">
+          <p class="eyebrow">You’re part of our story</p>
+          <h2 id="rsvpTitle">Will you<br /><em>join us?</em></h2>
+          <p>
+            We can’t wait to celebrate with you.<br />Let us know if you’ll be
+            there.
+          </p>
+          <p class="small muted">
+            One RSVP can cover you, your partner or your family. Please include
+            only guests named on your invitation.
+          </p>
+          <div class="mini-detail">
+            <span class="detail-symbol" aria-hidden="true">✧</span>
+            <div>
+              <strong>26 September 2027</strong
+              ><span
+                >St Joseph’s Catholic Church, Subiaco<br />Reception at
+                Caversham House</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="form-card">
+          <div class="card-heading">
+            <span class="eyebrow">Kindly reply</span
+            ><span class="small muted">01 / RSVP</span>
+          </div>
+          <form id="rsvpForm">
+            <div class="form-grid">
+              <label
+                >First name <span class="required">*</span
+                ><input
+                  name="first_name"
+                  autocomplete="given-name"
+                  autocapitalize="words"
+                  enterkeyhint="next"
+                  placeholder="First name"
+                  maxlength="80"
+                  required
+              /></label>
+              <label
+                >Last name <span class="required">*</span
+                ><input
+                  name="last_name"
+                  autocomplete="family-name"
+                  autocapitalize="words"
+                  enterkeyhint="next"
+                  placeholder="Last name"
+                  maxlength="80"
+                  required
+              /></label>
+            </div>
+            <label
+              >Email address <span class="required">*</span
+              ><input
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                autocapitalize="none"
+                autocorrect="off"
+                spellcheck="false"
+                enterkeyhint="next"
+                placeholder="Email address"
+                maxlength="254"
+                required /><span class="hint"
+                >Use the main contact’s name and email for your RSVP.</span
+              ></label
+            >
+            <fieldset class="attendance">
+              <legend>
+                Will you / your group be attending?
+                <span class="required">*</span>
+              </legend>
+              <div class="attendance-options">
+                <label class="radio-card"
+                  ><input
+                    type="radio"
+                    name="attending"
+                    value="yes"
+                    required /><span
+                    ><strong>Joyfully accepts</strong
+                    ><small>Ready to celebrate</small></span
+                  ><span class="radio-dot" aria-hidden="true"></span
+                ></label>
+                <label class="radio-card"
+                  ><input
+                    type="radio"
+                    name="attending"
+                    value="no"
+                    required /><span
+                    ><strong>Regretfully declines</strong
+                    ><small>Celebrating from afar</small></span
+                  ><span class="radio-dot" aria-hidden="true"></span
+                ></label>
+              </div>
+            </fieldset>
+            <label id="dietaryField"
+              >Dietary notes <span class="optional">optional</span
+              ><textarea
+                name="dietary_notes"
+                rows="3"
+                maxlength="1000"
+                placeholder="Allergies, vegetarian, vegan, gluten-free, or other dietary requirements"></textarea
+              ><span class="hint"
+                >Please include any allergies or dietary needs, and the name of
+                each guest they apply to.</span
+              ></label
+            >
+            <label
+              >Additional guests &amp; notes
+              <span class="optional">if applicable</span
+              ><textarea
+                name="message"
+                rows="4"
+                maxlength="1000"
+                placeholder="Full names of all invitees attending, or any other notes"
+                aria-describedby="groupNotesHint"></textarea
+              ><span class="hint" id="groupNotesHint"
+                >Replying for a couple or family? Include the total number of
+                guests (including yourself) and the full names of everyone
+                covered by this RSVP, including children. If anyone in your
+                group can’t attend, please note that here too.</span
+              ></label
+            >
+            <label id="inviteField" hidden
+              >Invitation code <span class="required">*</span
+              ><input
+                name="invite_code"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                maxlength="128"
+                required
+                placeholder="Code shared with your invitation" /><span
+                class="hint"
+                >Open the private link we sent you, or enter your invitation
+                code.</span
+              ></label
+            >
+            <div class="honeypot" aria-hidden="true">
+              <label
+                >Website<input name="website" tabindex="-1" autocomplete="off"
+              /></label>
+            </div>
+            <button
+              class="button primary submit-button"
+              id="submitRsvp"
+              type="submit">
+              Send RSVP <span aria-hidden="true">↗</span>
+            </button>
+            <p class="privacy-note">
+              Your response is only visible to the wedding organisers. We count
+              invitation opens and RSVP-link clicks; if you share your name in
+              the welcome prompt, it is shown with your visit.
+            </p>
+          </form>
+          <div
+            id="formStatus"
+            class="status"
+            role="status"
+            aria-live="polite"
+            tabindex="-1"
+            hidden></div>
+          <div id="successActions" hidden>
+            <button type="button" class="button secondary" id="anotherGuest">
+              Send a separate RSVP
+            </button>
+          </div>
+          <p class="rsvp-contact">
+            Need to make a change or correction after submitting?<br />Email us
+            at
+            <a href="mailto:ciaran.engelbrecht@outlook.com"
+              >ciaran.engelbrecht@outlook.com</a
+            >.
+          </p>
+          <noscript
+            ><p class="status error">
+              Please enable JavaScript to send your RSVP, or contact Ciarán or
+              Cheylin directly.
+            </p></noscript
+          >
+        </div>
+      </section>
+      <section id="details" class="day-section" aria-labelledby="dayTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">A day to remember</p>
+            <h2 id="dayTitle">The celebration</h2>
+          </div>
+          <a
+            class="text-link"
+            href="../weddinginvite/ciaran-cheylin-save-the-date.ics"
+            download
+            >Add to calendar ↗</a
+          >
+        </div>
+        <div class="details-grid">
+          <article class="detail-card">
+            <p class="eyebrow">01 · The vows</p>
+            <h3>Ceremony</h3>
+            <p class="detail-time">2:00 pm – 3:00 pm</p>
+            <p>St Joseph’s Catholic Church<br />Subiaco</p>
+            <p class="small muted">Doors open at 1:30 pm</p>
+            <a
+              class="text-link"
+              href="https://www.google.com/maps/search/?api=1&amp;query=St+Josephs+Catholic+Church+Subiaco"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Get directions ↗</a
+            >
+          </article>
+          <article class="detail-card">
+            <p class="eyebrow">02 · The party</p>
+            <h3>Reception</h3>
+            <p class="detail-time">5:00 pm – late</p>
+            <p>
+              Riverside Marquee, Caversham House<br />265 Caversham Road,
+              Caversham
+            </p>
+            <p class="small muted">
+              An evening of love, laughter &amp; dancing
+            </p>
+            <a
+              class="text-link"
+              href="https://www.google.com/maps/search/?api=1&amp;query=Caversham+House+265+Caversham+Road"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Get directions ↗</a
+            >
+          </article>
+          <article class="detail-card">
+            <p class="eyebrow">03 · The finer details</p>
+            <h3>Black tie</h3>
+            <p class="detail-time">A little occasion to dress up</p>
+            <p>Gold accents are welcome.</p>
+            <p class="small muted">
+              We’re still planning the menu. Please share any dietary
+              requirements in your RSVP.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section class="photo-story" aria-label="Our celebration">
+        <img
+          src="../images/venuepic1.webp"
+          alt="The gardens and grounds at Caversham House"
+          loading="lazy"
+          decoding="async"
+          width="1200"
+          height="700" />
+        <div>
+          <p class="eyebrow">For eternity &amp; always</p>
+          <h2>Our favourite day.<br /><em>Our favourite people.</em></h2>
+          <p>
+            Thank you for being part of our story. We can’t wait to make these
+            memories with you.
+          </p>
+          <a class="text-link" href="#rsvp">Leave your RSVP ↑</a>
+        </div>
+      </section>
+    </main>
+    <footer class="shell">
+      <span class="monogram">C <span>&amp;</span> C</span>
+      <p>With love, Ciarán &amp; Cheylin</p>
+      <p class="eyebrow">26 · 09 · 2027</p>
+    </footer>
+    <dialog
+      id="guestWelcome"
+      class="welcome-dialog"
+      aria-labelledby="welcomeTitle"
+      aria-describedby="welcomeIntro">
+      <button
+        id="welcomeClose"
+        class="welcome-close"
+        type="button"
+        aria-label="Skip the name prompt">
+        ×
+      </button>
+      <p class="eyebrow">A little hello</p>
+      <h2 id="welcomeTitle">We’re so glad<br /><em>you’re here.</em></h2>
+      <p id="welcomeIntro"></p>
+      <form id="welcomeForm">
+        <div class="form-grid">
+          <label
+            >First name<input
+              name="first_name"
+              autocomplete="given-name"
+              autocapitalize="words"
+              enterkeyhint="next"
+              maxlength="80"
+              placeholder="First name"
+              autofocus
+          /></label>
+          <label
+            >Last name <span class="">optional</span
+            ><input
+              name="last_name"
+              autocomplete="family-name"
+              autocapitalize="words"
+              enterkeyhint="done"
+              maxlength="80"
+              placeholder="Last name"
+          /></label>
+        </div>
+        <p class="small muted welcome-privacy"></p>
+        <button class="button primary welcome-continue" type="submit">
+          Continue to invitation <span aria-hidden="true">↗</span>
+        </button>
+        <button id="welcomeSkip" class="welcome-skip" type="button">
+          Skip for now
+        </button>
+      </form>
+    </dialog>
+  </body>
 </html>
